@@ -1,397 +1,291 @@
-# bot/utils/ticket_constants.py - 票券系統完整常數定義
+# bot/utils/constants.py - 簡化的票券常數定義
+"""
+票券系統常數 - 簡化版
+只保留核心必要的常數定義
+"""
 
 import discord
-from typing import Dict, List, Any, Tuple, Optional
-from enum import Enum
-from datetime import datetime, timezone
+from typing import Dict, List, Any
 
-# ===== 枚舉定義 =====
-
-class Priority(Enum):
-    """優先級枚舉"""
-    HIGH = "high"
-    MEDIUM = "medium"
-    LOW = "low"
-
-
-class Status(Enum):
-    """狀態枚舉"""
-    OPEN = "open"
-    CLOSED = "closed"
-    ARCHIVED = "archived"
-
-
-class ActionType(Enum):
-    """操作類型枚舉"""
-    CREATED = "created"
-    CLOSED = "closed"
-    ASSIGNED = "assigned"
-    PRIORITY_CHANGE = "priority_change"
-    STATUS_CHANGE = "status_change"
-    RATING_ADDED = "rating_added"
-    TAG_ADDED = "tag_added"
-    TAG_REMOVED = "tag_removed"
-    TRANSFERRED = "transferred"
-    ESCALATED = "escalated"
-    MESSAGE_ADDED = "message_added"
-    AUTO_REPLY = "auto_reply"
-
-# ===== 票券系統常數區 =====
 
 class TicketConstants:
-    """票券系統常數定義"""
-
-    # ===== 優先級定義 =====
-    PRIORITIES = [Priority.HIGH.value, Priority.MEDIUM.value, Priority.LOW.value]
+    """票券系統常數"""
+    
+    # ===== 基本常數 =====
+    PRIORITIES = ['high', 'medium', 'low']
+    STATUSES = ['open', 'closed']
+    
+    # ===== 顯示常數 =====
     PRIORITY_EMOJIS = {
-        Priority.HIGH.value: '🔴',
-        Priority.MEDIUM.value: '🟡',
-        Priority.LOW.value: '🟢'
+        'high': '🔴',
+        'medium': '🟡',
+        'low': '🟢'
     }
-    PRIORITY_COLORS = {
-        Priority.HIGH.value: discord.Color.red(),
-        Priority.MEDIUM.value: discord.Color.orange(),
-        Priority.LOW.value: discord.Color.green()
-    }
-    PRIORITY_NAMES = {
-        Priority.HIGH.value: '高優先級',
-        Priority.MEDIUM.value: '中優先級',
-        Priority.LOW.value: '低優先級'
-    }
-    PRIORITY_DESCRIPTIONS = {
-        Priority.HIGH.value: '緊急問題，需要立即處理',
-        Priority.MEDIUM.value: '一般問題，正常處理時間',
-        Priority.LOW.value: '非緊急問題，可稍後處理'
-    }
-    PRIORITY_SLA_MULTIPLIERS = {
-        Priority.HIGH.value: 0.5,
-        Priority.MEDIUM.value: 1.0,
-        Priority.LOW.value: 1.5
-    }
-
-    # ===== 狀態定義 =====
-    STATUSES = [Status.OPEN.value, Status.CLOSED.value, Status.ARCHIVED.value]
+    
     STATUS_EMOJIS = {
-        Status.OPEN.value: '🟢',
-        Status.CLOSED.value: '🔴',
-        Status.ARCHIVED.value: '⚫'
+        'open': '🟢',
+        'closed': '🔴'
     }
+    
+    PRIORITY_COLORS = {
+        'high': 0xff0000,      # 紅色
+        'medium': 0xffaa00,    # 橙色
+        'low': 0x00ff00        # 綠色
+    }
+    
     STATUS_COLORS = {
-        Status.OPEN.value: discord.Color.green(),
-        Status.CLOSED.value: discord.Color.red(),
-        Status.ARCHIVED.value: discord.Color.dark_grey()
+        'open': 0x00ff00,      # 綠色
+        'closed': 0xff0000     # 紅色
     }
-    STATUS_NAMES = {
-        Status.OPEN.value: '開啟中',
-        Status.CLOSED.value: '已關閉',
-        Status.ARCHIVED.value: '已歸檔'
+    
+    # ===== 系統顏色 =====
+    COLORS = {
+        'primary': 0x3498db,   # 藍色
+        'success': 0x2ecc71,   # 綠色
+        'warning': 0xf39c12,   # 橙色
+        'danger': 0xe74c3c,    # 紅色
+        'info': 0x9b59b6       # 紫色
     }
-    STATUS_DESCRIPTIONS = {
-        Status.OPEN.value: '票券正在處理中',
-        Status.CLOSED.value: '票券已處理完成',
-        Status.ARCHIVED.value: '票券已歸檔保存'
+    
+    # ===== 評分系統 =====
+    RATING_EMOJIS = {
+        1: "⭐",
+        2: "⭐⭐", 
+        3: "⭐⭐⭐",
+        4: "⭐⭐⭐⭐",
+        5: "⭐⭐⭐⭐⭐"
     }
-
-    # ===== 票券類型定義 =====
+    
+    RATING_COLORS = {
+        1: 0xe74c3c,  # 紅色
+        2: 0xf39c12,  # 橙色
+        3: 0xf1c40f,  # 黃色
+        4: 0x2ecc71,  # 綠色
+        5: 0x27ae60   # 深綠色
+    }
+    
+    # ===== 票券類型 =====
     DEFAULT_TICKET_TYPES = [
         {
-            "name": "技術支援",
-            "emoji": "🔧",
-            "style": discord.ButtonStyle.primary,
-            "description": "技術問題、Bug 回報、系統故障",
-            "priority": Priority.MEDIUM.value,
-            "auto_tags": ["技術", "支援"]
+            'name': '技術支援',
+            'emoji': '🔧',
+            'style': discord.ButtonStyle.primary,
+            'description': '技術問題、Bug 回報、系統故障'
         },
         {
-            "name": "帳號問題",
-            "emoji": "👤",
-            "style": discord.ButtonStyle.secondary,
-            "description": "登入問題、權限問題、個人資料",
-            "priority": Priority.HIGH.value,
-            "auto_tags": ["帳號", "權限"]
+            'name': '帳號問題', 
+            'emoji': '👤',
+            'style': discord.ButtonStyle.secondary,
+            'description': '登入問題、權限問題、個人資料'
         },
         {
-            "name": "檢舉回報",
-            "emoji": "⚠️",
-            "style": discord.ButtonStyle.danger,
-            "description": "違規行為、不當內容、騷擾舉報",
-            "priority": Priority.HIGH.value,
-            "auto_tags": ["檢舉", "違規"]
+            'name': '檢舉回報',
+            'emoji': '⚠️', 
+            'style': discord.ButtonStyle.danger,
+            'description': '違規行為、不當內容、騷擾舉報'
         },
         {
-            "name": "功能建議",
-            "emoji": "💡",
-            "style": discord.ButtonStyle.success,
-            "description": "新功能建議、改進意見",
-            "priority": Priority.LOW.value,
-            "auto_tags": ["建議", "功能"]
+            'name': '功能建議',
+            'emoji': '💡',
+            'style': discord.ButtonStyle.success,
+            'description': '新功能建議、改進意見'
         },
         {
-            "name": "其他問題",
-            "emoji": "❓",
-            "style": discord.ButtonStyle.secondary,
-            "description": "其他未分類的問題或疑問",
-            "priority": Priority.MEDIUM.value,
-            "auto_tags": ["其他"]
+            'name': '其他問題',
+            'emoji': '❓',
+            'style': discord.ButtonStyle.secondary, 
+            'description': '其他未分類的問題或疑問'
         }
     ]
-
-    # ===== 系統設定預設值 =====
+    
+    # ===== SLA 設定 =====
+    SLA_MULTIPLIERS = {
+        'high': 0.5,    # 高優先級：時間減半
+        'medium': 1.0,  # 中優先級：標準時間
+        'low': 1.5      # 低優先級：時間增加50%
+    }
+    
+    # ===== 預設設定 =====
     DEFAULT_SETTINGS = {
         'max_tickets_per_user': 3,
         'auto_close_hours': 24,
         'sla_response_minutes': 60,
-        'auto_assign_enabled': False,
-        'welcome_message': "歡迎使用客服系統！請選擇你的問題類型，我們會為你建立專屬支援頻道。",
-        'closure_message': "感謝你使用我們的客服系統！如果問題已解決，請為此次服務評分。",
-        'rating_prompt_message': "請為此次客服體驗評分，你的回饋對我們很重要！",
-        'auto_assignment_algorithm': 'least_loaded',
-        'enable_sla_monitoring': True,
-        'enable_auto_replies': True,
-        'enable_rating_system': True,
-        'enable_tag_system': True,
-        'require_rating_on_close': False,
-        'delete_channel_on_close': True,
-        'channel_deletion_delay': 30,
-        'transcript_enabled': True,
-        'transcript_format': 'html'
+        'welcome_message': "歡迎使用客服系統！請選擇問題類型來建立支援票券。"
     }
-
-    # ===== 權限等級定義 =====
-    PERMISSION_LEVELS = {
-        'user': 0,
-        'support': 1,
-        'admin': 2,
-        'owner': 3
-    }
-
-    # ===== 操作類型定義 =====
-    ACTION_TYPES = [action.value for action in ActionType]
-    ACTION_EMOJIS = {
-        ActionType.CREATED.value: '🎫',
-        ActionType.CLOSED.value: '🔒',
-        ActionType.ASSIGNED.value: '👥',
-        ActionType.PRIORITY_CHANGE.value: '⚡',
-        ActionType.STATUS_CHANGE.value: '🔄',
-        ActionType.RATING_ADDED.value: '⭐',
-        ActionType.TAG_ADDED.value: '🏷️',
-        ActionType.TAG_REMOVED.value: '🗑️',
-        ActionType.TRANSFERRED.value: '📤',
-        ActionType.ESCALATED.value: '⬆️',
-        ActionType.MESSAGE_ADDED.value: '💬',
-        ActionType.AUTO_REPLY.value: '🤖'
-    }
-    ACTION_DESCRIPTIONS = {
-        ActionType.CREATED.value: '票券已建立',
-        ActionType.CLOSED.value: '票券已關閉',
-        ActionType.ASSIGNED.value: '票券已指派',
-        ActionType.PRIORITY_CHANGE.value: '優先級已變更',
-        ActionType.STATUS_CHANGE.value: '狀態已變更',
-        ActionType.RATING_ADDED.value: '用戶已評分',
-        ActionType.TAG_ADDED.value: '標籤已添加',
-        ActionType.TAG_REMOVED.value: '標籤已移除',
-        ActionType.TRANSFERRED.value: '票券已轉移',
-        ActionType.ESCALATED.value: '票券已升級',
-        ActionType.MESSAGE_ADDED.value: '消息已添加',
-        ActionType.AUTO_REPLY.value: '自動回覆已觸發'
-    }
-
-    # ===== SLA 相關常數 =====
-    SLA_WARNING_THRESHOLDS = {
-        Priority.HIGH.value: 0.8,
-        Priority.MEDIUM.value: 0.9,
-        Priority.LOW.value: 0.95
-    }
-    SLA_ESCALATION_THRESHOLDS = {
-        Priority.HIGH.value: 1.2,
-        Priority.MEDIUM.value: 1.5,
-        Priority.LOW.value: 2.0
-    }
-
-    # ===== 評分相關常數 =====
-    RATING_EMOJIS = {i: "⭐" * i for i in range(1, 6)}
-    RATING_DESCRIPTIONS = {
-        1: "非常不滿意 - 服務需要大幅改善",
-        2: "不滿意 - 服務有明顯問題",
-        3: "普通 - 服務基本符合預期",
-        4: "滿意 - 服務良好",
-        5: "非常滿意 - 服務超出預期"
-    }
-    RATING_COLORS = {
-        1: discord.Color.dark_red(),
-        2: discord.Color.red(),
-        3: discord.Color.orange(),
-        4: discord.Color.green(),
-        5: discord.Color.dark_green()
-    }
-
-    # ===== UI 相關常數 =====
-    PAGINATION_SIZE = 5
-    MAX_EMBED_FIELDS = 25
-    MAX_SELECT_OPTIONS = 25
-    MODAL_TIMEOUT = 600
-    VIEW_TIMEOUT = 300
-    BUTTON_TIMEOUT = 300
-    EMBED_TITLE_MAX = 256
-    EMBED_DESCRIPTION_MAX = 4096
-    EMBED_FIELD_NAME_MAX = 256
-    EMBED_FIELD_VALUE_MAX = 1024
-    EMBED_FOOTER_MAX = 2048
-    EMBED_AUTHOR_MAX = 256
-
+    
     # ===== 限制常數 =====
     LIMITS = {
-        'max_tickets_per_user': (1, 20),
-        'max_tags_per_ticket': (0, 15),
-        'max_template_length': (10, 4000),
-        'max_feedback_length': (0, 1000),
-        'max_reason_length': (0, 500),
-        'max_search_results': (5, 100),
-        'sla_response_minutes': (5, 1440),
-        'auto_close_hours': (1, 168),
-        'rating': (1, 5),
-        'template_name_length': (2, 100),
-        'auto_reply_keywords': (1, 20),
-        'channel_name_length': (3, 50),
-        'tag_name_length': (1, 30),
-        'batch_operation_size': (1, 100)
+        'max_tickets_per_user': (1, 10),
+        'auto_close_hours': (1, 168),      # 1小時到1週
+        'sla_response_minutes': (5, 1440), # 5分鐘到24小時
+        'feedback_length': (0, 500),
+        'reason_length': (0, 200)
     }
 
-    # ===== 快取相關常數 =====
-    CACHE_TIMEOUTS = {
-        'settings': 300,
-        'auto_replies': 300,
-        'statistics': 180,
-        'sla_data': 60,
-        'staff_workload': 120,
-        'templates': 600,
-        'specialties': 300
-    }
-    CACHE_KEYS = {
-        'guild_settings': 'settings_{guild_id}',
-        'auto_replies': 'auto_reply_{guild_id}',
-        'staff_workload': 'workload_{guild_id}_{period}',
-        'sla_stats': 'sla_{guild_id}_{period}',
-        'ticket_stats': 'stats_{guild_id}_{type}_{period}',
-        'templates': 'templates_{guild_id}',
-        'specialties': 'specialties_{guild_id}'
-    }
 
-    # ... 其餘區塊（自動回覆、專精領域、模板等）照你的設計補上即可 ...
+# ===== 錯誤訊息 =====
+class TicketError:
+    """票券錯誤訊息"""
+    
+    # 權限錯誤
+    NO_PERMISSION = "❌ 你沒有權限執行此操作。"
+    NOT_SUPPORT_STAFF = "❌ 只有客服人員可以執行此操作。"
+    NOT_ADMIN = "❌ 只有管理員可以執行此操作。"
+    
+    # 票券錯誤
+    TICKET_NOT_FOUND = "❌ 找不到指定的票券。"
+    NOT_TICKET_CHANNEL = "❌ 此指令只能在票券頻道中使用。"
+    TICKET_LIMIT_REACHED = "❌ 你已達到票券上限！請先關閉現有票券。"
+    TICKET_ALREADY_CLOSED = "❌ 此票券已經關閉。"
+    
+    # 評分錯誤
+    INVALID_RATING = "❌ 評分必須在 1-5 之間。"
+    ALREADY_RATED = "❌ 此票券已經評分過了。"
+    CANNOT_RATE_OPEN = "❌ 只能為已關閉的票券評分。"
+    
+    # 設定錯誤
+    CATEGORY_NOT_SET = "❌ 尚未設定票券分類頻道。"
+    INVALID_SETTING = "❌ 無效的設定項目。"
+    INVALID_VALUE = "❌ 無效的設定值。"
+    
+    # 系統錯誤
+    DATABASE_ERROR = "❌ 資料庫操作失敗，請稍後再試。"
+    CHANNEL_CREATE_FAILED = "❌ 建立票券頻道失敗。"
+    SYSTEM_ERROR = "❌ 系統錯誤，請稍後再試。"
 
 
-# ===== 錯誤和成功訊息 =====
+# ===== 成功訊息 =====
+class TicketSuccess:
+    """票券成功訊息"""
+    
+    TICKET_CREATED = "✅ 票券建立成功！"
+    TICKET_CLOSED = "✅ 票券已關閉。"
+    TICKET_ASSIGNED = "✅ 票券指派完成。"
+    PRIORITY_UPDATED = "✅ 優先級已更新。"
+    RATING_SAVED = "✅ 評分已保存，感謝你的回饋！"
+    SETTING_UPDATED = "✅ 設定已更新。"
 
-ERROR_MESSAGES = {
-    'no_permission': "❌ 你沒有權限執行此操作。",
-    'ticket_not_found': "❌ 找不到指定的票券。",
-    'not_ticket_channel': "❌ 此頻道不是票券頻道。",
-    'already_rated': "❌ 此票券已經評分過了。",
-    'invalid_rating': "❌ 評分必須在 1-5 之間。",
-    'ticket_limit_reached': "❌ 你已達到票券上限！請先關閉現有票券。",
-    'invalid_priority': "❌ 優先級必須是：high、medium 或 low",
-    'database_error': "❌ 資料庫操作失敗，請稍後再試。",
-    'channel_creation_failed': "❌ 建立票券頻道失敗。",
-    'assignment_failed': "❌ 指派票券失敗。",
-    'template_not_found': "❌ 找不到指定的模板。",
-    'template_exists': "❌ 模板名稱已存在。",
-    'auto_reply_exists': "❌ 自動回覆規則名稱已存在。",
-    'invalid_setting': "❌ 無效的設定項目。",
-    'invalid_value': "❌ 無效的設定值。",
-    'user_not_found': "❌ 找不到指定的用戶。",
-    'role_not_found': "❌ 找不到指定的身分組。",
-    'channel_not_found': "❌ 找不到指定的頻道。",
-    'search_too_short': "❌ 搜尋關鍵字太短，至少需要 2 個字元。",
-    'no_search_results': "❌ 沒有找到符合條件的結果。",
-    'operation_timeout': "❌ 操作超時，請重試。",
-    'rate_limit_exceeded': "❌ 操作太頻繁，請稍後再試。",
-    'ticket_already_closed': "❌ 此票券已經關閉。",
-    'cannot_rate_open_ticket': "❌ 只能為已關閉的票券評分。",
-    'invalid_ticket_type': "❌ 無效的票券類型。",
-    'category_not_set': "❌ 尚未設定票券分類頻道。",
-    'no_support_roles': "❌ 尚未設定客服身分組。",
-    'template_too_long': "❌ 模板內容過長。",
-    'too_many_tags': "❌ 標籤數量超過限制。",
-    'invalid_tag_name': "❌ 標籤名稱格式無效。",
-    'staff_not_available': "❌ 目前沒有可用的客服人員。",
-    'auto_assign_disabled': "❌ 自動分配功能已停用。"
-}
 
-SUCCESS_MESSAGES = {
-    'ticket_created': "✅ 票券已成功建立！",
-    'ticket_closed': "✅ 票券已成功關閉。",
-    'priority_updated': "✅ 優先級已更新。",
-    'assignment_completed': "✅ 票券指派完成。",
-    'rating_saved': "✅ 評分已保存，感謝你的回饋！",
-    'setting_updated': "✅ 設定已更新。",
-    'template_created': "✅ 模板已建立。",
-    'template_updated': "✅ 模板已更新。",
-    'template_deleted': "✅ 模板已刪除。",
-    'auto_reply_created': "✅ 自動回覆規則已建立。",
-    'auto_reply_updated': "✅ 自動回覆規則已更新。",
-    'auto_reply_deleted': "✅ 自動回覆規則已刪除。",
-    'specialties_updated': "✅ 客服專精已更新。",
-    'tags_added': "✅ 標籤已添加。",
-    'tags_removed': "✅ 標籤已移除。",
-    'data_exported': "✅ 資料匯出完成。",
-    'cache_cleared': "✅ 快取已清理。",
-    'batch_operation_completed': "✅ 批次操作已完成。",
-    'ticket_transferred': "✅ 票券已轉移。",
-    'ticket_escalated': "✅ 票券已升級。",
-    'notification_updated': "✅ 通知設定已更新。",
-    'backup_created': "✅ 備份已建立。",
-    'backup_restored': "✅ 備份已還原。",
-    'system_optimized': "✅ 系統已最佳化。"
-}
+# ===== 工具函數 =====
 
-# ===== 其餘 class / 工具函數 / 模板等... =====
-# 請將原本所有 class、方法、選項模板、嵌入模板、各類工具函式一併放到本檔案下（如 get_priority_emoji, format_duration_chinese, 等等）
-# 註解、docstring 與型別註記可參考前方簡化版本、或直接問我要自動產生。
+def get_priority_emoji(priority: str) -> str:
+    """取得優先級表情符號"""
+    return TicketConstants.PRIORITY_EMOJIS.get(priority, '🟡')
 
-# ===== 環境變數預設值 =====
 
-DEFAULT_ENV_VALUES = {
-    'TICKET_MAX_PER_USER': '10',
-    'TICKET_MAX_PER_GUILD': '1000',
-    'TICKET_MAX_TEMPLATE_LENGTH': '2000',
-    'TICKET_MAX_AUTO_REPLY_RULES': '50',
-    'TICKET_MAX_TAGS': '10',
-    'TICKET_DEFAULT_SLA_MINUTES': '60',
-    'TICKET_MAX_SLA_MINUTES': '1440',
-    'TICKET_MIN_SLA_MINUTES': '5',
-    'TICKET_DEFAULT_AUTO_CLOSE_HOURS': '24',
-    'TICKET_MAX_AUTO_CLOSE_HOURS': '168',
-    'TICKET_CACHE_SETTINGS': '300',
-    'TICKET_CACHE_STATS': '180',
-    'TICKET_CACHE_AUTO_REPLY': '300',
-    'TICKET_DEFAULT_PAGE_SIZE': '5',
-    'TICKET_MAX_PAGE_SIZE': '20',
-    'TICKET_MAX_SEARCH_RESULTS': '50',
-    'TICKET_AUTO_ASSIGNMENT': 'true',
-    'TICKET_SLA_MONITORING': 'true',
-    'TICKET_AUTO_REPLIES': 'true',
-    'TICKET_RATING_SYSTEM': 'true',
-    'TICKET_ADVANCED_STATS': 'true',
-    'TICKET_TEMPLATE_SYSTEM': 'true',
-    'TICKET_TAG_SYSTEM': 'true',
-    'TICKET_EXPORT_SYSTEM': 'false',
-    'TICKET_BACKUP_SYSTEM': 'false',
-    'TICKET_DEBUG': 'false',
-    'TICKET_VERBOSE_LOG': 'false',
-    'TICKET_SQL_LOG': 'false',
-    'TICKET_PERF_LOG': 'false',
-    'DISCORD_VIEW_TIMEOUT': '300',
-    'DISCORD_MODAL_TIMEOUT': '600',
-    'DISCORD_BUTTON_TIMEOUT': '300',
-    'DISCORD_EMBED_DEFAULT': '0x00ff00',
-    'DISCORD_EMBED_ERROR': '0xff0000',
-    'DISCORD_EMBED_WARNING': '0xffaa00',
-    'DISCORD_EMBED_INFO': '0x0099ff',
-    'DISCORD_CHANNEL_NAME_MAX': '50',
-    'DISCORD_CHANNEL_PREFIX': 'ticket-',
-    'DISCORD_EPHEMERAL': 'true',
-    'DISCORD_DELETE_COMMANDS': 'true',
-    'DISCORD_CLEANUP_DELAY': '10'
-}
+def get_status_emoji(status: str) -> str:
+    """取得狀態表情符號"""
+    return TicketConstants.STATUS_EMOJIS.get(status, '🟢')
 
-# --- END ---
+
+def get_priority_color(priority: str) -> int:
+    """取得優先級顏色"""
+    return TicketConstants.PRIORITY_COLORS.get(priority, 0xffaa00)
+
+
+def get_status_color(status: str) -> int:
+    """取得狀態顏色"""
+    return TicketConstants.STATUS_COLORS.get(status, 0x00ff00)
+
+
+def get_rating_stars(rating: int) -> str:
+    """取得評分星星"""
+    return TicketConstants.RATING_EMOJIS.get(rating, "⭐")
+
+
+def calculate_sla_time(priority: str, base_minutes: int) -> int:
+    """計算 SLA 時間"""
+    multiplier = TicketConstants.SLA_MULTIPLIERS.get(priority, 1.0)
+    return int(base_minutes * multiplier)
+
+
+def is_valid_priority(priority: str) -> bool:
+    """驗證優先級是否有效"""
+    return priority in TicketConstants.PRIORITIES
+
+
+def is_valid_status(status: str) -> bool:
+    """驗證狀態是否有效"""
+    return status in TicketConstants.STATUSES
+
+
+def is_valid_rating(rating: int) -> bool:
+    """驗證評分是否有效"""
+    return 1 <= rating <= 5
+
+
+def get_ticket_type_info(type_name: str) -> Dict[str, Any]:
+    """取得票券類型資訊"""
+    for ticket_type in TicketConstants.DEFAULT_TICKET_TYPES:
+        if ticket_type['name'] == type_name:
+            return ticket_type
+    return TicketConstants.DEFAULT_TICKET_TYPES[0]  # 預設返回第一個
+
+
+def validate_setting_value(setting: str, value: Any) -> bool:
+    """驗證設定值"""
+    if setting == 'max_tickets_per_user':
+        min_val, max_val = TicketConstants.LIMITS['max_tickets_per_user']
+        return isinstance(value, int) and min_val <= value <= max_val
+    
+    elif setting == 'auto_close_hours':
+        min_val, max_val = TicketConstants.LIMITS['auto_close_hours']
+        return isinstance(value, int) and min_val <= value <= max_val
+    
+    elif setting == 'sla_response_minutes':
+        min_val, max_val = TicketConstants.LIMITS['sla_response_minutes']
+        return isinstance(value, int) and min_val <= value <= max_val
+    
+    elif setting == 'welcome_message':
+        return isinstance(value, str) and len(value) <= 2000
+    
+    elif setting == 'support_roles':
+        return isinstance(value, list) and len(value) <= 10
+    
+    return True
+
+
+# ===== 選項生成器 =====
+
+def create_priority_options() -> List[discord.SelectOption]:
+    """建立優先級選項"""
+    return [
+        discord.SelectOption(
+            label="🔴 高優先級",
+            value="high", 
+            description="緊急問題，需要立即處理",
+            emoji="🔴"
+        ),
+        discord.SelectOption(
+            label="🟡 中優先級",
+            value="medium",
+            description="一般問題，正常處理時間",
+            emoji="🟡"
+        ),
+        discord.SelectOption(
+            label="🟢 低優先級", 
+            value="low",
+            description="非緊急問題，可稍後處理",
+            emoji="🟢"
+        )
+    ]
+
+
+def create_rating_options() -> List[discord.SelectOption]:
+    """建立評分選項"""
+    return [
+        discord.SelectOption(label="⭐ 1星 - 非常不滿意", value="1", emoji="⭐"),
+        discord.SelectOption(label="⭐⭐ 2星 - 不滿意", value="2", emoji="⭐"),
+        discord.SelectOption(label="⭐⭐⭐ 3星 - 普通", value="3", emoji="⭐"),
+        discord.SelectOption(label="⭐⭐⭐⭐ 4星 - 滿意", value="4", emoji="⭐"),
+        discord.SelectOption(label="⭐⭐⭐⭐⭐ 5星 - 非常滿意", value="5", emoji="⭐")
+    ]
+
+
+def create_status_filter_options() -> List[discord.SelectOption]:
+    """建立狀態篩選選項"""
+    return [
+        discord.SelectOption(label="📋 全部", value="all", emoji="📋"),
+        discord.SelectOption(label="🟢 開啟中", value="open", emoji="🟢"),
+        discord.SelectOption(label="🔴 已關閉", value="closed", emoji="🔴")
+    ]

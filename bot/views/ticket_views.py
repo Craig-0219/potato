@@ -6,7 +6,7 @@ from typing import Dict, List, Optional, Any, Callable
 from datetime import datetime, timezone
 import asyncio
 
-from bot.db.ticket_dao import TicketDAO
+from bot.db.ticket_repository import TicketDAO
 from bot.utils.ticket_constants import (
     TicketConstants, get_priority_emoji, get_status_emoji,
     get_priority_color, TicketSelectOptions, Priority, Status,

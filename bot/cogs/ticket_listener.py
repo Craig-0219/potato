@@ -7,8 +7,8 @@ from typing import Dict, List, Optional, Any
 import asyncio
 import re
 
-from bot.db.ticket_dao import TicketDAO
-from bot.services.ticket_service import (
+from bot.db.ticket_repository import TicketDAO
+from bot.services.ticket_manager import (
     TicketServiceCoordinator, AutoReplyService, 
     SLAMonitoringService, NotificationService
 )
@@ -675,7 +675,7 @@ class TicketListener(commands.Cog):
                 return
             
             # 取消指派並重新分配
-            from bot.services.ticket_service import TicketAssignmentService
+            from bot.services.ticket_manager import TicketAssignmentService
             assignment_service = TicketAssignmentService()
             
             for ticket in assigned_tickets:
@@ -1078,7 +1078,7 @@ class TicketMaintenanceListener(commands.Cog):
         """檢查服務健康狀態"""
         try:
             # 檢查各個服務的健康狀態
-            from bot.services.ticket_service import TicketServiceCoordinator
+            from bot.services.ticket_manager import TicketServiceCoordinator
             
             coordinator = TicketServiceCoordinator()
             health_status = await coordinator.health_check()
