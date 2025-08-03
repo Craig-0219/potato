@@ -1,7 +1,61 @@
-# bot/utils/ticket_constants.py - 票券系統常數與工具完整版
+# bot/utils/ticket_constants.py - 票券系統常數與工具完整版（修復版）
 import discord
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Callable, Tuple  # 添加缺失的導入
 from datetime import datetime, timezone
+
+# ===== 基礎驗證函數實現 =====
+
+def validate_text_input(text: str, field_type: str) -> tuple[bool, str]:
+    """驗證文字輸入"""
+    if not text or not text.strip():
+        return False, f"{field_type} 不能為空"
+    
+    text = text.strip()
+    
+    # 長度限制
+    limits = {
+        'ticket_type': 50,
+        'username': 32,
+        'close_reason': 200,
+        'rating_feedback': 500,
+        'template_name': 100,
+        'template_content': 2000,
+        'tag_name': 30,
+        'keyword': 50,
+        'auto_reply_name': 100,
+        'channel_name_length': 100
+    }
+    
+    max_length = limits.get(field_type, 100)
+    if len(text) > max_length:
+        return False, f"長度不能超過 {max_length} 個字元"
+    
+    # 特殊字符檢查
+    if field_type in ['username', 'tag_name', 'template_name']:
+        import re
+        if re.search(r'[<>@#&]', text):
+            return False, "不能包含特殊字符 <>@#&"
+    
+    return True, ""
+
+def validate_numeric_input(value: int, field_type: str) -> tuple[bool, str]:
+    """驗證數值輸入"""
+    limits = {
+        'rating': (1, 5),
+        'max_tickets_per_user': (1, 20),
+        'auto_close_hours': (1, 168),
+        'sla_response_minutes': (5, 1440),
+        'batch_operation_size': (1, 100)
+    }
+    
+    if field_type not in limits:
+        return True, ""
+    
+    min_val, max_val = limits[field_type]
+    if not (min_val <= value <= max_val):
+        return False, f"必須在 {min_val} 到 {max_val} 之間"
+    
+    return True, ""
 
 # ===== 票券常數類 =====
 
@@ -112,7 +166,6 @@ class TicketConstants:
         'reason_length': (0, 200)
     }
 
-
 # ===== 錯誤訊息 =====
 
 ERROR_MESSAGES = {
@@ -126,6 +179,7 @@ ERROR_MESSAGES = {
     "invalid_rating": "❌ 評分必須在 1-5 之間。",
     "already_rated": "❌ 此票券已經評分過了。",
     "cannot_rate_open": "❌ 只能為已關閉的票券評分。",
+    "cannot_rate_open_ticket": "❌ 只能為已關閉的票券評分。",
     "category_not_set": "❌ 尚未設定票券分類頻道。",
     "invalid_setting": "❌ 無效的設定項目。",
     "invalid_value": "❌ 無效的設定值。",
@@ -277,6 +331,7 @@ def create_progress_indicator(current: int, total: int, length: int = 10) -> str
 
 __all__ = [
     "TicketConstants", "ERROR_MESSAGES", "SUCCESS_MESSAGES",
+    "validate_text_input", "validate_numeric_input",
     "get_priority_emoji", "get_status_emoji", "get_priority_color",
     "get_status_color", "get_rating_emoji", "calculate_sla_time",
     "is_valid_priority", "is_valid_status", "is_valid_rating",

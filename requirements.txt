@@ -1,5 +1,9 @@
+# requirements.txt
+# 這是Potato Bot的依賴項列表
 discord.py>=2.3.2
 aiomysql>=0.1.1
 python-dotenv>=1.0.0
 fastapi>=0.110.0
 uvicorn>=0.29.0
+asyncio-mqtt>=0.11.0  # 如果需要
+psutil>=5.9.0  # 用於系統監控

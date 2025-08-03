@@ -76,6 +76,10 @@ class MultiChoiceSelect(discord.ui.Select):
         )
 
     async def callback(self, interaction: discord.Interaction):
+        # 避免循環導入
+        from bot.cogs.vote import VoteCog
+        cog = interaction.client.get_cog("VoteCog")
+        
         if not self._check_permission(interaction):
             await interaction.response.send_message("❌ 你沒有權限參與此投票。", ephemeral=True)
             return
