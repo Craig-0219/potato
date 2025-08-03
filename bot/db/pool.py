@@ -1,6 +1,6 @@
-# bot/db/pool.py - v2.0
+# bot/db/pool.py - v2.2
 # ✅ MariaDB/MySQL 非同步連線池管理（aiomysql）
-# 整合初始化、單例、上下文管理、連線取得與釋放
+# 整合初始化、單例、上下文管理、連線取得與釋放、健康檢查
 
 import aiomysql
 from contextlib import asynccontextmanager
@@ -72,3 +72,44 @@ class MariaDBPool:
 
 # ✅ 全域單例實體（專案統一使用這個變數）
 db_pool = MariaDBPool()
+
+# ====== 主程式可呼叫的初始化/關閉/健康檢查 ======
+
+async def init_database(host, port, user, password, database, **kwargs):
+    """初始化資料庫連線池"""
+    await db_pool.initialize(host, port, user, password, database, **kwargs)
+
+async def close_database():
+    """正確關閉連線池"""
+    if db_pool.pool:
+        db_pool.pool.close()
+        await db_pool.pool.wait_closed()
+        logger.info("✅ 資料庫連線池已關閉")
+
+async def get_db_health():
+    """
+    回傳資料庫健康狀態 dict（可給 main.py bot_status 用）
+    """
+    result = {"overall_status": "unhealthy", "database": {}}
+    try:
+        async with db_pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("SELECT DATABASE(), NOW();")
+                db_name, now = await cur.fetchone()
+                # 查詢資料庫大小（MySQL/MariaDB）
+                await cur.execute(
+                    "SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) "
+                    "FROM information_schema.tables WHERE table_schema = DATABASE();"
+                )
+                size_mb, = await cur.fetchone()
+                result = {
+                    "overall_status": "healthy",
+                    "database": {
+                        "name": db_name,
+                        "size_mb": size_mb or 0,
+                        "now": str(now),
+                    }
+                }
+    except Exception as e:
+        logger.warning(f"資料庫健康檢查失敗: {e}")
+    return result

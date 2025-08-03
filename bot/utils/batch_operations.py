@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Any, Tuple, Union
 from dataclasses import dataclass
 from enum import Enum
 
-from bot.db.ticket_repository import TicketDAO
+from bot.db.ticket_dao import TicketDAO
 from bot.services.ticket_manager import (
     StatisticsService, NotificationService
 )

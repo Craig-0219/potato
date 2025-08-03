@@ -1,21 +1,21 @@
-# bot/db/ticket_repository.py - 簡化的票券資料存取層
+# bot/db/ticket_dao.py - 簡化的票券資料存取層
 """
 票券資料存取層 - 簡化版
 專注於核心的 CRUD 操作，移除過度複雜的查詢
 """
 
-from bot.db.connection import DatabasePool
+from bot.db.pool import db_pool
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any, Tuple
 import json
 from shared.logger import logger
 
 
-class TicketRepository:
+class TicketDAO:
     """票券資料存取層"""
     
     def __init__(self):
-        self.db = DatabasePool()
+        self.db = db_pool
     
     # ===== 資料表管理 =====
     

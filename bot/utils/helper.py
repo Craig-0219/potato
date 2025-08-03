@@ -7,7 +7,7 @@
 import discord
 import re
 from datetime import datetime, timezone, timedelta
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Optional, Any, Union, Tuple
 from shared.logger import logger
 
 
@@ -258,7 +258,7 @@ def parse_time_string(time_str: str) -> Optional[int]:
     time_str = time_str.lower().strip()
     
     # 匹配數字和單位
-    match = re.match(r'(\d+)\s*(m|min|mins|minutes?|h|hr|hrs|hours?|d|day|days?), time_str)
+    match = re.match(r'(\d+)\s*(m|min|mins|minutes?|h|hr|hrs|hours?|d|day|days?)', time_str)
     
     if not match:
         # 嘗試只匹配數字（默認分鐘）

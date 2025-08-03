@@ -7,17 +7,12 @@ from typing import Dict, List, Optional, Any
 import asyncio
 import re
 
-from bot.db.ticket_repository import TicketDAO
-from bot.services.ticket_manager import (
-    TicketServiceCoordinator, AutoReplyService, 
-    SLAMonitoringService, NotificationService
-)
-from bot.utils.ticket_utils import (
-    is_ticket_channel, TicketPermissionChecker, 
-    format_duration, send_sla_alert
-)
+from bot.db.ticket_dao import TicketDAO
+from bot.services.ticket_manager import TicketManager
+from bot.utils.ticket_utils import (is_ticket_channel, TicketPermissionChecker,  send_sla_alert)
 from bot.utils.ticket_constants import get_priority_emoji, ERROR_MESSAGES
 from bot.utils.debug import debug_log
+from bot.utils.helper import format_duration
 
 
 class TicketListener(commands.Cog):
@@ -26,12 +21,7 @@ class TicketListener(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.dao = TicketDAO()
-        
-        # 服務實例
-        self.service_coordinator = TicketServiceCoordinator()
-        self.auto_reply_service = AutoReplyService()
-        self.sla_service = SLAMonitoringService()
-        self.notification_service = NotificationService()
+        self.manager = TicketManager(self.dao)
         
         # 狀態追蹤
         self.user_activity = {}  # 追蹤用戶活動
@@ -51,7 +41,7 @@ class TicketListener(commands.Cog):
         self.activity_tracker.cancel()
         
         # 停止服務
-        asyncio.create_task(self.service_coordinator.stop_services())
+        #asyncio.create_task(self.service_coordinator.stop_services())
 
     # ===== 訊息事件監聽 =====
 
@@ -472,8 +462,8 @@ class TicketListener(commands.Cog):
             
             # 計算持續時間
             duration = datetime.now(timezone.utc) - ticket_info['created_at']
-            from bot.utils.ticket_constants import format_duration_chinese
-            embed.add_field(name="持續時間", value=format_duration_chinese(int(duration.total_seconds())), inline=True)
+            from bot.utils.ticket_constants import format_duration
+            embed.add_field(name="持續時間", value=format_duration(int(duration.total_seconds())), inline=True)
             
             await log_channel.send(embed=embed)
             
@@ -872,7 +862,7 @@ class TicketListener(commands.Cog):
         debug_log("[TicketListener] 票券系統監聽器已啟動")
         
         # 啟動服務協調器
-        await self.service_coordinator.start_services()
+        #await self.service_coordinator.start_services()
         
         # 初始化客服狀態追蹤
         await self._initialize_staff_tracking()
