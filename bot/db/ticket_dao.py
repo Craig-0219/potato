@@ -230,33 +230,48 @@ class TicketDAO:
 
     # ===== 修復現有方法的異步問題 =====
     
-    async def create_ticket(self, discord_id: str, username: str, ticket_type: str, 
-                           channel_id: int, guild_id: int, priority: str = 'medium') -> Optional[int]:
-        """建立新票券 - 修復異步"""
-        await self._ensure_initialized()
-        try:
-            async with self.db.connection() as conn:
-                async with conn.cursor() as cursor:
-                    await cursor.execute("""
-                        INSERT INTO tickets (discord_id, username, type, priority, channel_id, guild_id, created_at, last_activity)
-                        VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
-                    """, (discord_id, username, ticket_type, priority, channel_id, guild_id))
-                    
-                    ticket_id = cursor.lastrowid
-                    
-                    # 記錄操作日誌
-                    await cursor.execute("""
-                        INSERT INTO ticket_logs (ticket_id, action, details, created_by, created_at)
-                        VALUES (%s, 'created', %s, %s, NOW())
-                    """, (ticket_id, f"建立{ticket_type}票券", discord_id))
-                    
-                    await conn.commit()
-                    logger.info(f"建立票券 #{ticket_id:04d} - 用戶: {username}")
-                    return ticket_id
-                    
-        except Exception as e:
-            logger.error(f"建立票券錯誤：{e}")
-            return None
+async def create_ticket(self, discord_id: str, username: str, ticket_type: str, 
+                       channel_id: int, guild_id: int, priority: str = 'medium') -> Optional[int]:
+    """建立新票券 - 加強版"""
+    await self._ensure_initialized()
+    try:
+        async with self.db.connection() as conn:
+            async with conn.cursor() as cursor:
+                # 檢查用戶是否已達票券上限
+                await cursor.execute("""
+                    SELECT COUNT(*) FROM tickets 
+                    WHERE discord_id = %s AND guild_id = %s AND status = 'open'
+                """, (discord_id, guild_id))
+                
+                current_count = (await cursor.fetchone())[0]
+                settings = await self.get_settings(guild_id)
+                max_tickets = settings.get('max_tickets_per_user', 3)
+                
+                if current_count >= max_tickets:
+                    logger.warning(f"用戶 {discord_id} 已達票券上限")
+                    return None
+                
+                # 建立票券
+                await cursor.execute("""
+                    INSERT INTO tickets (discord_id, username, type, priority, channel_id, guild_id, created_at, last_activity)
+                    VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
+                """, (discord_id, username, ticket_type, priority, channel_id, guild_id))
+                
+                ticket_id = cursor.lastrowid
+                
+                # 記錄操作日誌
+                await cursor.execute("""
+                    INSERT INTO ticket_logs (ticket_id, action, details, created_by, created_at)
+                    VALUES (%s, 'created', %s, %s, NOW())
+                """, (ticket_id, f"建立{ticket_type}票券", discord_id))
+                
+                await conn.commit()
+                logger.info(f"建立票券 #{ticket_id:04d} - 用戶: {username}")
+                return ticket_id
+                
+    except Exception as e:
+        logger.error(f"建立票券錯誤：{e}")
+        return None
     
     async def get_ticket_by_id(self, ticket_id: int) -> Optional[Dict[str, Any]]:
         """根據 ID 取得票券 - 修復異步"""
