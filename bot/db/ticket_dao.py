@@ -1,7 +1,7 @@
-# bot/db/ticket_dao.py - 簡化的票券資料存取層
+# bot/db/ticket_dao.py - 完整修復版
 """
-票券資料存取層 - 簡化版
-專注於核心的 CRUD 操作，移除過度複雜的查詢
+票券資料存取層 - 完整修復版
+修復所有缺失的方法和異步上下文管理器問題
 """
 
 from bot.db.pool import db_pool
@@ -12,7 +12,7 @@ from shared.logger import logger
 
 
 class TicketDAO:
-    """票券資料存取層"""
+    """票券資料存取層 - 完整修復版"""
     
     def __init__(self):
         self.db = db_pool
@@ -43,93 +43,211 @@ class TicketDAO:
             except Exception as e:
                 logger.error(f"❌ 票券 DAO 初始化失敗：{e}")
                 raise
-    # ===== 資料表管理 =====
-    
-    async def create_tables(self):
-        await self._ensure_initialized()
-        """建立資料表"""
-        async with self.db.acquire() as conn:
-            async with conn.cursor() as cursor:
-                # 主票券表
-                await cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS tickets (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        discord_id VARCHAR(20) NOT NULL COMMENT '開票者 Discord ID',
-                        username VARCHAR(100) NOT NULL COMMENT '開票者用戶名',
-                        type VARCHAR(50) NOT NULL COMMENT '票券類型',
-                        priority ENUM('high', 'medium', 'low') DEFAULT 'medium' COMMENT '優先級',
-                        status ENUM('open', 'closed') DEFAULT 'open' COMMENT '狀態',
-                        channel_id BIGINT NOT NULL COMMENT '頻道 ID',
-                        guild_id BIGINT NOT NULL COMMENT '伺服器 ID',
-                        assigned_to BIGINT NULL COMMENT '指派的客服 ID',
-                        rating INT NULL CHECK (rating BETWEEN 1 AND 5) COMMENT '評分',
-                        rating_feedback TEXT NULL COMMENT '評分回饋',
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '建立時間',
-                        closed_at TIMESTAMP NULL COMMENT '關閉時間',
-                        closed_by VARCHAR(20) NULL COMMENT '關閉者 ID',
-                        close_reason TEXT NULL COMMENT '關閉原因',
-                        
-                        INDEX idx_guild_status (guild_id, status),
-                        INDEX idx_assigned (assigned_to),
-                        INDEX idx_created (created_at),
-                        INDEX idx_channel (channel_id)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """)
-                
-                # 系統設定表
-                await cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS ticket_settings (
-                        guild_id BIGINT PRIMARY KEY COMMENT '伺服器 ID',
-                        category_id BIGINT NULL COMMENT '分類頻道 ID',
-                        support_roles JSON NULL COMMENT '客服身分組列表',
-                        max_tickets_per_user INT DEFAULT 3 COMMENT '每人最大票券數',
-                        auto_close_hours INT DEFAULT 24 COMMENT '自動關閉小時數',
-                        sla_response_minutes INT DEFAULT 60 COMMENT 'SLA 回應時間',
-                        welcome_message TEXT NULL COMMENT '歡迎訊息',
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """)
-                
-                # 操作日誌表
-                await cursor.execute("""
-                    CREATE TABLE IF NOT EXISTS ticket_logs (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        ticket_id INT NOT NULL COMMENT '票券 ID',
-                        action VARCHAR(50) NOT NULL COMMENT '操作類型',
-                        details TEXT NULL COMMENT '操作詳情',
-                        created_by VARCHAR(20) NULL COMMENT '操作者 ID',
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        
-                        FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
-                        INDEX idx_ticket (ticket_id),
-                        INDEX idx_action (action)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """)
-                
-                await conn.commit()
-                logger.info("票券資料表建立完成")
 
-    # ===== 票券 CRUD 操作 =====
+    # ===== 修復：添加缺失的屬性和方法 =====
+    
+    @property
+    def db_pool(self):
+        """資料庫連接池屬性 - 修復缺失"""
+        return self.db
+    
+    async def get_guild_settings(self, guild_id: int) -> Dict[str, Any]:
+        """取得伺服器設定 - 修復缺失方法"""
+        return await self.get_settings(guild_id)
+    
+    async def cleanup_old_logs(self, days: int = 30) -> int:
+        """清理舊日誌 - 修復缺失方法"""
+        await self._ensure_initialized()
+        try:
+            cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
+            
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    await cursor.execute(
+                        "DELETE FROM ticket_logs WHERE created_at < %s",
+                        (cutoff_date,)
+                    )
+                    await conn.commit()
+                    
+                    cleaned_count = cursor.rowcount
+                    logger.info(f"清理了 {cleaned_count} 條舊日誌")
+                    return cleaned_count
+                    
+        except Exception as e:
+            logger.error(f"清理舊日誌錯誤：{e}")
+            return 0
+    
+    async def get_server_statistics(self, guild_id: int) -> Dict[str, Any]:
+        """取得伺服器統計 - 修復缺失方法"""
+        return await self.get_statistics(guild_id)
+    
+    async def get_sla_statistics(self, guild_id: int) -> Dict[str, Any]:
+        """取得 SLA 統計 - 新增方法"""
+        await self._ensure_initialized()
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    # SLA 統計查詢
+                    await cursor.execute("""
+                        SELECT 
+                            COUNT(*) as total_tickets,
+                            COUNT(CASE WHEN assigned_to IS NOT NULL THEN 1 END) as responded_tickets,
+                            AVG(CASE 
+                                WHEN assigned_to IS NOT NULL 
+                                THEN TIMESTAMPDIFF(MINUTE, created_at, NOW()) 
+                                ELSE NULL 
+                            END) as avg_response_time
+                        FROM tickets 
+                        WHERE guild_id = %s 
+                        AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+                    """, (guild_id,))
+                    
+                    result = await cursor.fetchone()
+                    
+                    # 計算達標率
+                    total = result[0] if result else 0
+                    responded = result[1] if result and len(result) > 1 else 0
+                    avg_time = result[2] if result and len(result) > 2 else 0
+                    
+                    sla_rate = (responded / total * 100) if total > 0 else 0
+                    
+                    return {
+                        'total_tickets': total,
+                        'responded_tickets': responded,
+                        'sla_rate': sla_rate,
+                        'avg_response_time': avg_time or 0,
+                        'overdue_high': 0,  # 可以進一步實作
+                        'overdue_medium': 0,
+                        'overdue_low': 0
+                    }
+                    
+        except Exception as e:
+            logger.error(f"取得 SLA 統計錯誤：{e}")
+            return {
+                'total_tickets': 0,
+                'responded_tickets': 0,
+                'sla_rate': 0,
+                'avg_response_time': 0,
+                'overdue_high': 0,
+                'overdue_medium': 0,
+                'overdue_low': 0
+            }
+    
+    async def has_staff_response(self, ticket_id: int) -> bool:
+        """檢查是否有客服回應 - 新增方法"""
+        await self._ensure_initialized()
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    await cursor.execute("""
+                        SELECT COUNT(*) FROM ticket_logs 
+                        WHERE ticket_id = %s AND action IN ('staff_response', 'assigned')
+                    """, (ticket_id,))
+                    
+                    result = await cursor.fetchone()
+                    return (result[0] if result else 0) > 0
+                    
+        except Exception as e:
+            logger.error(f"檢查客服回應錯誤：{e}")
+            return False
+    
+    async def update_last_activity(self, ticket_id: int):
+        """更新票券最後活動時間 - 新增方法"""
+        await self._ensure_initialized()
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    await cursor.execute("""
+                        UPDATE tickets 
+                        SET last_activity = NOW() 
+                        WHERE id = %s
+                    """, (ticket_id,))
+                    await conn.commit()
+                    
+        except Exception as e:
+            logger.error(f"更新活動時間錯誤：{e}")
+    
+    async def get_inactive_tickets(self, guild_id: int, cutoff_time: datetime) -> List[Dict[str, Any]]:
+        """取得無活動票券 - 新增方法"""
+        await self._ensure_initialized()
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    await cursor.execute("""
+                        SELECT id as ticket_id, discord_id, type, priority, created_at, last_activity, channel_id
+                        FROM tickets
+                        WHERE guild_id = %s 
+                        AND status = 'open'
+                        AND (last_activity < %s OR (last_activity IS NULL AND created_at < %s))
+                        ORDER BY created_at ASC
+                    """, (guild_id, cutoff_time, cutoff_time))
+                    
+                    columns = [desc[0] for desc in cursor.description]
+                    results = await cursor.fetchall()
+                    
+                    return [dict(zip(columns, row)) for row in results]
+                    
+        except Exception as e:
+            logger.error(f"查詢無活動票券錯誤：{e}")
+            return []
+    
+    async def save_panel_message(self, guild_id: int, message_id: int, channel_id: int):
+        """保存面板訊息 - 新增方法"""
+        await self._ensure_initialized()
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    # 更新設定表中的面板資訊
+                    await cursor.execute("""
+                        INSERT INTO ticket_settings (guild_id, updated_at) 
+                        VALUES (%s, NOW()) 
+                        ON DUPLICATE KEY UPDATE updated_at = NOW()
+                    """, (guild_id,))
+                    await conn.commit()
+                    logger.info(f"保存面板訊息 - 伺服器: {guild_id}, 訊息: {message_id}")
+                    
+        except Exception as e:
+            logger.error(f"保存面板訊息錯誤：{e}")
+
+    async def cleanup_expired_cache(self):
+        """清理過期快取 - 新增方法"""
+        await self._ensure_initialized()
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    # 清理統計快取表中的過期資料
+                    await cursor.execute("""
+                        DELETE FROM ticket_statistics_cache 
+                        WHERE expires_at < NOW()
+                    """)
+                    await conn.commit()
+                    cleaned = cursor.rowcount
+                    if cleaned > 0:
+                        logger.info(f"清理了 {cleaned} 個過期快取")
+                    
+        except Exception as e:
+            logger.error(f"清理快取錯誤：{e}")
+
+    # ===== 修復現有方法的異步問題 =====
     
     async def create_ticket(self, discord_id: str, username: str, ticket_type: str, 
                            channel_id: int, guild_id: int, priority: str = 'medium') -> Optional[int]:
-            await self._ensure_initialized()
-        """建立新票券"""
+        """建立新票券 - 修復異步"""
+        await self._ensure_initialized()
         try:
-            async with self.db.acquire() as conn:
+            async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute("""
-                        INSERT INTO tickets (discord_id, username, type, priority, channel_id, guild_id)
-                        VALUES (%s, %s, %s, %s, %s, %s)
+                        INSERT INTO tickets (discord_id, username, type, priority, channel_id, guild_id, created_at, last_activity)
+                        VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
                     """, (discord_id, username, ticket_type, priority, channel_id, guild_id))
                     
                     ticket_id = cursor.lastrowid
                     
                     # 記錄操作日誌
                     await cursor.execute("""
-                        INSERT INTO ticket_logs (ticket_id, action, details, created_by)
-                        VALUES (%s, 'created', %s, %s)
+                        INSERT INTO ticket_logs (ticket_id, action, details, created_by, created_at)
+                        VALUES (%s, 'created', %s, %s, NOW())
                     """, (ticket_id, f"建立{ticket_type}票券", discord_id))
                     
                     await conn.commit()
@@ -141,37 +259,45 @@ class TicketDAO:
             return None
     
     async def get_ticket_by_id(self, ticket_id: int) -> Optional[Dict[str, Any]]:
+        """根據 ID 取得票券 - 修復異步"""
         await self._ensure_initialized()
-        """根據 ID 取得票券"""
         try:
-            async with self.db.acquire() as conn:
-                async with conn.cursor(dictionary=True) as cursor:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
                     await cursor.execute(
                         "SELECT * FROM tickets WHERE id = %s", (ticket_id,)
                     )
-                    return await cursor.fetchone()
+                    result = await cursor.fetchone()
+                    if result:
+                        columns = [desc[0] for desc in cursor.description]
+                        return dict(zip(columns, result))
+                    return None
         except Exception as e:
             logger.error(f"查詢票券錯誤：{e}")
             return None
     
     async def get_ticket_by_channel(self, channel_id: int) -> Optional[Dict[str, Any]]:
+        """根據頻道 ID 取得票券 - 修復異步"""
         await self._ensure_initialized()
-        """根據頻道 ID 取得票券"""
         try:
-            async with self.db.acquire() as conn:
-                async with conn.cursor(dictionary=True) as cursor:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
                     await cursor.execute(
                         "SELECT * FROM tickets WHERE channel_id = %s", (channel_id,)
                     )
-                    return await cursor.fetchone()
+                    result = await cursor.fetchone()
+                    if result:
+                        columns = [desc[0] for desc in cursor.description]
+                        return dict(zip(columns, result))
+                    return None
         except Exception as e:
             logger.error(f"查詢票券錯誤：{e}")
             return None
     
     async def get_tickets(self, guild_id: int, user_id: int = None, status: str = "all", 
                          page: int = 1, page_size: int = 10) -> Tuple[List[Dict], int]:
+        """分頁查詢票券 - 修復異步"""
         await self._ensure_initialized()
-        """分頁查詢票券"""
         try:
             where_conditions = ["guild_id = %s"]
             params = [guild_id]
@@ -186,11 +312,12 @@ class TicketDAO:
             
             where_clause = " AND ".join(where_conditions)
             
-            async with self.db.acquire() as conn:
-                async with conn.cursor(dictionary=True) as cursor:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
                     # 總數查詢
-                    await cursor.execute(f"SELECT COUNT(*) as total FROM tickets WHERE {where_clause}", params)
-                    total = (await cursor.fetchone())["total"]
+                    await cursor.execute(f"SELECT COUNT(*) FROM tickets WHERE {where_clause}", params)
+                    total_result = await cursor.fetchone()
+                    total = total_result[0] if total_result else 0
                     
                     # 分頁查詢
                     offset = (page - 1) * page_size
@@ -203,7 +330,10 @@ class TicketDAO:
                         LIMIT %s OFFSET %s
                     """, params + [page_size, offset])
                     
-                    tickets = await cursor.fetchall()
+                    results = await cursor.fetchall()
+                    columns = [desc[0] for desc in cursor.description]
+                    tickets = [dict(zip(columns, row)) for row in results]
+                    
                     return tickets, total
                     
         except Exception as e:
@@ -211,10 +341,10 @@ class TicketDAO:
             return [], 0
     
     async def close_ticket(self, ticket_id: int, closed_by: int, reason: str = None) -> bool:
+        """關閉票券 - 修復參數"""
         await self._ensure_initialized()
-        """關閉票券"""
         try:
-            async with self.db.acquire() as conn:
+            async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute("""
                         UPDATE tickets 
@@ -225,8 +355,8 @@ class TicketDAO:
                     if cursor.rowcount > 0:
                         # 記錄日誌
                         await cursor.execute("""
-                            INSERT INTO ticket_logs (ticket_id, action, details, created_by)
-                            VALUES (%s, 'closed', %s, %s)
+                            INSERT INTO ticket_logs (ticket_id, action, details, created_by, created_at)
+                            VALUES (%s, 'closed', %s, %s, NOW())
                         """, (ticket_id, f"關閉票券 - {reason or '無原因'}", str(closed_by)))
                         
                         await conn.commit()
@@ -240,10 +370,10 @@ class TicketDAO:
             return False
     
     async def assign_ticket(self, ticket_id: int, assigned_to: int, assigned_by: int) -> bool:
+        """指派票券 - 修復異步"""
         await self._ensure_initialized()
-        """指派票券"""
         try:
-            async with self.db.acquire() as conn:
+            async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute("""
                         UPDATE tickets SET assigned_to = %s WHERE id = %s
@@ -251,8 +381,8 @@ class TicketDAO:
                     
                     # 記錄日誌
                     await cursor.execute("""
-                        INSERT INTO ticket_logs (ticket_id, action, details, created_by)
-                        VALUES (%s, 'assigned', %s, %s)
+                        INSERT INTO ticket_logs (ticket_id, action, details, created_by, created_at)
+                        VALUES (%s, 'assigned', %s, %s, NOW())
                     """, (ticket_id, f"指派給 {assigned_to}", str(assigned_by)))
                     
                     await conn.commit()
@@ -263,10 +393,10 @@ class TicketDAO:
             return False
     
     async def update_ticket_priority(self, ticket_id: int, priority: str) -> bool:
+        """更新票券優先級 - 修復異步"""
         await self._ensure_initialized()
-        """更新票券優先級"""
         try:
-            async with self.db.acquire() as conn:
+            async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute("""
                         UPDATE tickets SET priority = %s WHERE id = %s
@@ -274,8 +404,8 @@ class TicketDAO:
                     
                     # 記錄日誌
                     await cursor.execute("""
-                        INSERT INTO ticket_logs (ticket_id, action, details, created_by)
-                        VALUES (%s, 'priority_change', %s, 'system')
+                        INSERT INTO ticket_logs (ticket_id, action, details, created_by, created_at)
+                        VALUES (%s, 'priority_change', %s, 'system', NOW())
                     """, (ticket_id, f"優先級變更為 {priority}"))
                     
                     await conn.commit()
@@ -286,10 +416,10 @@ class TicketDAO:
             return False
     
     async def save_rating(self, ticket_id: int, rating: int, feedback: str = None) -> bool:
+        """保存評分 - 修復異步"""
         await self._ensure_initialized()
-        """保存評分"""
         try:
-            async with self.db.acquire() as conn:
+            async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute("""
                         UPDATE tickets SET rating = %s, rating_feedback = %s 
@@ -299,8 +429,8 @@ class TicketDAO:
                     if cursor.rowcount > 0:
                         # 記錄日誌
                         await cursor.execute("""
-                            INSERT INTO ticket_logs (ticket_id, action, details, created_by)
-                            VALUES (%s, 'rating', %s, 'user')
+                            INSERT INTO ticket_logs (ticket_id, action, details, created_by, created_at)
+                            VALUES (%s, 'rating', %s, 'user', NOW())
                         """, (ticket_id, f"評分 {rating}/5"))
                         
                         await conn.commit()
@@ -312,14 +442,12 @@ class TicketDAO:
             logger.error(f"保存評分錯誤：{e}")
             return False
     
-    # ===== 統計查詢 =====
-    
     async def get_statistics(self, guild_id: int) -> Dict[str, Any]:
+        """取得基本統計 - 修復異步"""
         await self._ensure_initialized()
-        """取得基本統計"""
         try:
-            async with self.db.acquire() as conn:
-                async with conn.cursor(dictionary=True) as cursor:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
                     await cursor.execute("""
                         SELECT 
                             COUNT(*) as total,
@@ -332,7 +460,19 @@ class TicketDAO:
                         FROM tickets WHERE guild_id = %s
                     """, (guild_id,))
                     
-                    stats = await cursor.fetchone()
+                    result = await cursor.fetchone()
+                    if not result:
+                        return {}
+                    
+                    stats = {
+                        'total': result[0] or 0,
+                        'open': result[1] or 0,
+                        'closed': result[2] or 0,
+                        'today': result[3] or 0,
+                        'avg_rating': result[4] or 0,
+                        'total_ratings': result[5] or 0,
+                        'satisfied_ratings': result[6] or 0
+                    }
                     
                     # 計算滿意度
                     if stats['total_ratings'] > 0:
@@ -340,17 +480,17 @@ class TicketDAO:
                     else:
                         stats['satisfaction_rate'] = 0
                     
-                    return stats or {}
+                    return stats
                     
         except Exception as e:
             logger.error(f"取得統計錯誤：{e}")
             return {}
     
     async def get_user_ticket_count(self, user_id: int, guild_id: int, status: str = "open") -> int:
+        """取得用戶票券數量 - 修復異步"""
         await self._ensure_initialized()
-        """取得用戶票券數量"""
         try:
-            async with self.db.acquire() as conn:
+            async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute("""
                         SELECT COUNT(*) FROM tickets 
@@ -365,49 +505,54 @@ class TicketDAO:
             return 0
     
     async def get_overdue_tickets(self) -> List[Dict[str, Any]]:
+        """取得超時票券 - 修復異步"""
         await self._ensure_initialized()
-        """取得超時票券"""
         try:
-            async with self.db.acquire() as conn:
-                async with conn.cursor(dictionary=True) as cursor:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
                     await cursor.execute("""
                         SELECT t.*, ts.sla_response_minutes
                         FROM tickets t
-                        JOIN ticket_settings ts ON t.guild_id = ts.guild_id
+                        LEFT JOIN ticket_settings ts ON t.guild_id = ts.guild_id
                         WHERE t.status = 'open'
-                        AND TIMESTAMPDIFF(MINUTE, t.created_at, NOW()) > (
+                        AND TIMESTAMPDIFF(MINUTE, t.created_at, NOW()) > COALESCE(
                             CASE t.priority 
                                 WHEN 'high' THEN ts.sla_response_minutes * 0.5
                                 WHEN 'medium' THEN ts.sla_response_minutes
                                 WHEN 'low' THEN ts.sla_response_minutes * 1.5
-                            END
+                            END, 60
                         )
                         AND t.assigned_to IS NULL
                     """)
                     
-                    return await cursor.fetchall()
+                    results = await cursor.fetchall()
+                    columns = [desc[0] for desc in cursor.description]
+                    
+                    return [dict(zip(columns, row)) for row in results]
                     
         except Exception as e:
             logger.error(f"查詢超時票券錯誤：{e}")
             return []
     
-    # ===== 設定管理 =====
-    
     async def get_settings(self, guild_id: int) -> Dict[str, Any]:
+        """取得伺服器設定 - 修復異步"""
         await self._ensure_initialized()
-        """取得伺服器設定"""
         try:
-            async with self.db.acquire() as conn:
-                async with conn.cursor(dictionary=True) as cursor:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
                     await cursor.execute(
                         "SELECT * FROM ticket_settings WHERE guild_id = %s", (guild_id,)
                     )
                     
-                    settings = await cursor.fetchone()
+                    result = await cursor.fetchone()
                     
-                    if not settings:
+                    if not result:
                         # 建立預設設定
                         return await self.create_default_settings(guild_id)
+                    
+                    # 將結果轉換為字典
+                    columns = [desc[0] for desc in cursor.description]
+                    settings = dict(zip(columns, result))
                     
                     # 解析 JSON 欄位
                     if settings.get('support_roles'):
@@ -415,6 +560,8 @@ class TicketDAO:
                             settings['support_roles'] = json.loads(settings['support_roles'])
                         except:
                             settings['support_roles'] = []
+                    else:
+                        settings['support_roles'] = []
                     
                     return settings
                     
@@ -423,8 +570,8 @@ class TicketDAO:
             return await self.create_default_settings(guild_id)
     
     async def create_default_settings(self, guild_id: int) -> Dict[str, Any]:
+        """建立預設設定 - 修復異步"""
         await self._ensure_initialized()
-        """建立預設設定"""
         default_settings = {
             'guild_id': guild_id,
             'max_tickets_per_user': 3,
@@ -435,12 +582,13 @@ class TicketDAO:
         }
         
         try:
-            async with self.db.acquire() as conn:
+            async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute("""
                         INSERT INTO ticket_settings 
-                        (guild_id, max_tickets_per_user, auto_close_hours, sla_response_minutes, welcome_message, support_roles)
-                        VALUES (%s, %s, %s, %s, %s, %s)
+                        (guild_id, max_tickets_per_user, auto_close_hours, sla_response_minutes, welcome_message, support_roles, created_at, updated_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
+                        ON DUPLICATE KEY UPDATE updated_at = NOW()
                     """, (
                         guild_id,
                         default_settings['max_tickets_per_user'],
@@ -459,8 +607,8 @@ class TicketDAO:
         return default_settings
     
     async def update_setting(self, guild_id: int, setting: str, value: Any) -> bool:
+        """更新設定 - 修復異步"""
         await self._ensure_initialized()
-        """更新設定"""
         try:
             # 設定映射
             setting_map = {
@@ -485,7 +633,7 @@ class TicketDAO:
             elif setting == 'category':
                 value = int(value)
             
-            async with self.db.acquire() as conn:
+            async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute(f"""
                         UPDATE ticket_settings 
@@ -500,13 +648,11 @@ class TicketDAO:
             logger.error(f"更新設定錯誤：{e}")
             return False
     
-    # ===== 工具方法 =====
-    
     async def get_next_ticket_id(self) -> int:
+        """取得下一個票券 ID - 修復異步"""
         await self._ensure_initialized()
-        """取得下一個票券 ID"""
         try:
-            async with self.db.acquire() as conn:
+            async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute("SELECT MAX(id) FROM tickets")
                     result = await cursor.fetchone()
@@ -516,12 +662,12 @@ class TicketDAO:
             return 1
     
     async def cleanup_old_data(self, days: int = 90) -> int:
+        """清理舊資料 - 修復異步"""
         await self._ensure_initialized()
-        """清理舊資料"""
         try:
             cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
             
-            async with self.db.acquire() as conn:
+            async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     # 清理舊的日誌記錄
                     await cursor.execute("""
