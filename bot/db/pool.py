@@ -7,7 +7,6 @@ from contextlib import asynccontextmanager
 from typing import Optional, Dict, Any
 import asyncio
 import logging
-import weakref
 
 # 設置日誌
 logger = logging.getLogger(__name__)
@@ -85,28 +84,6 @@ class MariaDBPool:
                         raise Exception("資料庫連接測試失敗")
         except Exception as e:
             logger.error(f"❌ 資料庫連接測試失敗：{e}")
-            raise
-
-    async def acquire(self):
-        """取得連線（修復Task warnings）"""
-        if not self._initialized or not self.pool:
-            raise RuntimeError("資料庫連線池尚未初始化")
-        
-        if self._closing:
-            raise RuntimeError("連線池正在關閉中")
-        
-        try:
-            # 修復：添加超時和任務追蹤
-            conn = await asyncio.wait_for(
-                self.pool.acquire(), 
-                timeout=10.0
-            )
-            return conn
-        except asyncio.TimeoutError:
-            logger.error("獲取資料庫連接超時")
-            raise RuntimeError("獲取資料庫連接超時")
-        except Exception as e:
-            logger.error(f"獲取資料庫連接失敗：{e}")
             raise
 
     async def acquire(self):
