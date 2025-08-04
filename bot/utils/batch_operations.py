@@ -202,7 +202,7 @@ class BatchOperationManager:
             cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours_threshold)
             
             # 取得無活動票券
-            async with self.dao.db_pool.acquire() as conn:
+            async with self.dao.db_pool.connection() as conn:
                 async with conn.cursor(dictionary=True) as cursor:
                     await cursor.execute(
                         """
@@ -296,7 +296,7 @@ class BatchOperationManager:
             cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours_threshold)
             
             # 取得舊票券
-            async with self.dao.db_pool.acquire() as conn:
+            async with self.dao.db_pool.connection() as conn:
                 async with conn.cursor(dictionary=True) as cursor:
                     await cursor.execute(
                         """
@@ -396,7 +396,7 @@ class BatchOperationManager:
             cutoff_time = datetime.now(timezone.utc) - timedelta(days=days_threshold)
             
             # 取得要歸檔的票券
-            async with self.dao.db_pool.acquire() as conn:
+            async with self.dao.db_pool.connection() as conn:
                 async with conn.cursor(dictionary=True) as cursor:
                     await cursor.execute(
                         """
@@ -440,7 +440,7 @@ class BatchOperationManager:
                 ticket_ids = [t['ticket_id'] for t in batch]
                 
                 try:
-                    async with self.dao.db_pool.acquire() as conn:
+                    async with self.dao.db_pool.connection() as conn:
                         async with conn.cursor() as cursor:
                             await cursor.execute(
                                 f"UPDATE tickets SET status = 'archived' WHERE ticket_id IN ({','.join(['%s'] * len(ticket_ids))})",
@@ -497,7 +497,7 @@ class BatchOperationManager:
             where_clause = " AND ".join(where_conditions)
             
             # 取得票券資料
-            async with self.dao.db_pool.acquire() as conn:
+            async with self.dao.db_pool.connection() as conn:
                 async with conn.cursor(dictionary=True) as cursor:
                     await cursor.execute(
                         f"""
@@ -669,7 +669,7 @@ class BatchOperationManager:
             cleaned_count = 0
             
             # 清理統計快取
-            async with self.dao.db_pool.acquire() as conn:
+            async with self.dao.db_pool.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
                         "DELETE FROM ticket_statistics_cache WHERE expires_at < NOW() OR guild_id = %s",
@@ -826,7 +826,7 @@ class BatchOperationManager:
             cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours_threshold)
             
             # 取得無活動票券
-            async with self.dao.db_pool.acquire() as conn:
+            async with self.dao.db_pool.connection() as conn:
                 async with conn.cursor(dictionary=True) as cursor:
                     await cursor.execute(
                         """
@@ -881,7 +881,7 @@ class BatchOperationManager:
             
             # 如果沒有指定票券 ID，取得符合條件的票券
             if not ticket_ids:
-                async with self.dao.db_pool.acquire() as conn:
+                async with self.dao.db_pool.connection() as conn:
                     async with conn.cursor() as cursor:
                         await cursor.execute(
                             """
@@ -946,7 +946,7 @@ class BatchOperationManager:
             
             # 如果沒有指定票券 ID，根據當前優先級篩選
             if not ticket_ids and current_priority:
-                async with self.dao.db_pool.acquire() as conn:
+                async with self.dao.db_pool.connection() as conn:
                     async with conn.cursor() as cursor:
                         await cursor.execute(
                             """
@@ -977,7 +977,7 @@ class BatchOperationManager:
                 batch_ids = ticket_ids[i:i + config.batch_size]
                 
                 try:
-                    async with self.dao.db_pool.acquire() as conn:
+                    async with self.dao.db_pool.connection() as conn:
                         async with conn.cursor() as cursor:
                             placeholders = ','.join(['%s'] * len(batch_ids))
                             await cursor.execute(
@@ -1026,7 +1026,7 @@ class BatchOperationManager:
             
             if not ticket_ids:
                 # 取得所有開啟的票券
-                async with self.dao.db_pool.acquire() as conn:
+                async with self.dao.db_pool.connection() as conn:
                     async with conn.cursor() as cursor:
                         await cursor.execute(
                             "SELECT ticket_id FROM tickets WHERE guild_id = %s AND status = 'open'",
@@ -1092,7 +1092,7 @@ class BatchOperationManager:
     async def _replace_ticket_tags(self, ticket_id: int, new_tags: List[str]) -> bool:
         """替換票券標籤"""
         try:
-            async with self.dao.db_pool.acquire() as conn:
+            async with self.dao.db_pool.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
                         "UPDATE tickets SET tags = %s WHERE ticket_id = %s",
@@ -1115,7 +1115,7 @@ class BatchOperationManager:
             new_tags = [tag for tag in current_tags if tag not in tags_to_remove]
             
             # 更新標籤
-            async with self.dao.db_pool.acquire() as conn:
+            async with self.dao.db_pool.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
                         "UPDATE tickets SET tags = %s WHERE ticket_id = %s",

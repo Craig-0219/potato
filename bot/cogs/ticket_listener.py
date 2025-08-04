@@ -976,7 +976,7 @@ class TicketMaintenanceListener(commands.Cog):
     async def _cleanup_statistics_cache(self):
         """清理統計快取"""
         try:
-            async with self.dao.db_pool.acquire() as conn:
+            async with self.dao.db_pool.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
                         "DELETE FROM ticket_statistics_cache WHERE expires_at < NOW()"
@@ -995,7 +995,7 @@ class TicketMaintenanceListener(commands.Cog):
             # 清理30天前的查看記錄
             cutoff_date = datetime.now(timezone.utc) - timedelta(days=30)
             
-            async with self.dao.db_pool.acquire() as conn:
+            async with self.dao.db_pool.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
                         "DELETE FROM ticket_views WHERE viewed_at < %s",
@@ -1015,7 +1015,7 @@ class TicketMaintenanceListener(commands.Cog):
             # 清理7天前的自動回覆日誌
             cutoff_date = datetime.now(timezone.utc) - timedelta(days=7)
             
-            async with self.dao.db_pool.acquire() as conn:
+            async with self.dao.db_pool.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
                         "DELETE FROM auto_reply_logs WHERE created_at < %s",
@@ -1053,7 +1053,7 @@ class TicketMaintenanceListener(commands.Cog):
         """檢查資料庫健康狀態"""
         try:
             # 簡單的資料庫連接測試
-            async with self.dao.db_pool.acquire() as conn:
+            async with self.dao.db_pool.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute("SELECT 1")
                     result = await cursor.fetchone()
@@ -1147,7 +1147,7 @@ class TicketAnalyticsListener(commands.Cog):
             current_time = datetime.now(timezone.utc)
             hour_start = current_time.replace(minute=0, second=0, microsecond=0)
             
-            async with self.dao.db_pool.acquire() as conn:
+            async with self.dao.db_pool.connection() as conn:
                 async with conn.cursor(dictionary=True) as cursor:
                     # 本小時建立的票券
                     await cursor.execute(
