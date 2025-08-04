@@ -16,10 +16,37 @@ class TicketDAO:
     
     def __init__(self):
         self.db = db_pool
-    
+        self._initialized = False 
+
+    async def _ensure_initialized(self):
+        """確保資料庫已初始化"""
+        if not self._initialized:
+            try:
+                # 檢查主要表格是否存在
+                async with self.db.connection() as conn:
+                    async with conn.cursor() as cursor:
+                        await cursor.execute("""
+                            SELECT COUNT(*) FROM information_schema.tables 
+                            WHERE table_schema = DATABASE() AND table_name = 'tickets'
+                        """)
+                        exists = (await cursor.fetchone())[0] > 0
+                
+                if not exists:
+                    logger.warning("📋 檢測到票券表格不存在，開始自動初始化...")
+                    from bot.db.database_manager import DatabaseManager
+                    db_manager = DatabaseManager()
+                    await db_manager._create_ticket_tables()
+                
+                self._initialized = True
+                logger.info("✅ 票券 DAO 初始化完成")
+                
+            except Exception as e:
+                logger.error(f"❌ 票券 DAO 初始化失敗：{e}")
+                raise
     # ===== 資料表管理 =====
     
     async def create_tables(self):
+        await self._ensure_initialized()
         """建立資料表"""
         async with self.db.acquire() as conn:
             async with conn.cursor() as cursor:
@@ -87,6 +114,7 @@ class TicketDAO:
     
     async def create_ticket(self, discord_id: str, username: str, ticket_type: str, 
                            channel_id: int, guild_id: int, priority: str = 'medium') -> Optional[int]:
+            await self._ensure_initialized()
         """建立新票券"""
         try:
             async with self.db.acquire() as conn:
@@ -113,6 +141,7 @@ class TicketDAO:
             return None
     
     async def get_ticket_by_id(self, ticket_id: int) -> Optional[Dict[str, Any]]:
+        await self._ensure_initialized()
         """根據 ID 取得票券"""
         try:
             async with self.db.acquire() as conn:
@@ -126,6 +155,7 @@ class TicketDAO:
             return None
     
     async def get_ticket_by_channel(self, channel_id: int) -> Optional[Dict[str, Any]]:
+        await self._ensure_initialized()
         """根據頻道 ID 取得票券"""
         try:
             async with self.db.acquire() as conn:
@@ -140,6 +170,7 @@ class TicketDAO:
     
     async def get_tickets(self, guild_id: int, user_id: int = None, status: str = "all", 
                          page: int = 1, page_size: int = 10) -> Tuple[List[Dict], int]:
+        await self._ensure_initialized()
         """分頁查詢票券"""
         try:
             where_conditions = ["guild_id = %s"]
@@ -180,6 +211,7 @@ class TicketDAO:
             return [], 0
     
     async def close_ticket(self, ticket_id: int, closed_by: int, reason: str = None) -> bool:
+        await self._ensure_initialized()
         """關閉票券"""
         try:
             async with self.db.acquire() as conn:
@@ -208,6 +240,7 @@ class TicketDAO:
             return False
     
     async def assign_ticket(self, ticket_id: int, assigned_to: int, assigned_by: int) -> bool:
+        await self._ensure_initialized()
         """指派票券"""
         try:
             async with self.db.acquire() as conn:
@@ -230,6 +263,7 @@ class TicketDAO:
             return False
     
     async def update_ticket_priority(self, ticket_id: int, priority: str) -> bool:
+        await self._ensure_initialized()
         """更新票券優先級"""
         try:
             async with self.db.acquire() as conn:
@@ -252,6 +286,7 @@ class TicketDAO:
             return False
     
     async def save_rating(self, ticket_id: int, rating: int, feedback: str = None) -> bool:
+        await self._ensure_initialized()
         """保存評分"""
         try:
             async with self.db.acquire() as conn:
@@ -280,6 +315,7 @@ class TicketDAO:
     # ===== 統計查詢 =====
     
     async def get_statistics(self, guild_id: int) -> Dict[str, Any]:
+        await self._ensure_initialized()
         """取得基本統計"""
         try:
             async with self.db.acquire() as conn:
@@ -311,6 +347,7 @@ class TicketDAO:
             return {}
     
     async def get_user_ticket_count(self, user_id: int, guild_id: int, status: str = "open") -> int:
+        await self._ensure_initialized()
         """取得用戶票券數量"""
         try:
             async with self.db.acquire() as conn:
@@ -328,6 +365,7 @@ class TicketDAO:
             return 0
     
     async def get_overdue_tickets(self) -> List[Dict[str, Any]]:
+        await self._ensure_initialized()
         """取得超時票券"""
         try:
             async with self.db.acquire() as conn:
@@ -356,6 +394,7 @@ class TicketDAO:
     # ===== 設定管理 =====
     
     async def get_settings(self, guild_id: int) -> Dict[str, Any]:
+        await self._ensure_initialized()
         """取得伺服器設定"""
         try:
             async with self.db.acquire() as conn:
@@ -384,6 +423,7 @@ class TicketDAO:
             return await self.create_default_settings(guild_id)
     
     async def create_default_settings(self, guild_id: int) -> Dict[str, Any]:
+        await self._ensure_initialized()
         """建立預設設定"""
         default_settings = {
             'guild_id': guild_id,
@@ -419,6 +459,7 @@ class TicketDAO:
         return default_settings
     
     async def update_setting(self, guild_id: int, setting: str, value: Any) -> bool:
+        await self._ensure_initialized()
         """更新設定"""
         try:
             # 設定映射
@@ -462,6 +503,7 @@ class TicketDAO:
     # ===== 工具方法 =====
     
     async def get_next_ticket_id(self) -> int:
+        await self._ensure_initialized()
         """取得下一個票券 ID"""
         try:
             async with self.db.acquire() as conn:
@@ -474,6 +516,7 @@ class TicketDAO:
             return 1
     
     async def cleanup_old_data(self, days: int = 90) -> int:
+        await self._ensure_initialized()
         """清理舊資料"""
         try:
             cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
