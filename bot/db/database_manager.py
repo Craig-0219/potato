@@ -16,11 +16,15 @@ class DatabaseManager:
     def __init__(self):
         self.db = db_pool
         self.current_version = "1.0.0"
+        self._initialized = False
         
     async def initialize_all_tables(self, force_recreate: bool = False):
         """初始化所有資料表"""
+        if self._initialized and not force_recreate:
+            logger.info("資料庫已初始化，跳過重複初始化")
+            return
+            
         logger.info("🔄 開始初始化資料庫表格...")
-        
         try:
             # 創建版本管理表
             await self._create_version_table()
@@ -39,7 +43,8 @@ class DatabaseManager:
             
             # 更新資料庫版本
             await self._update_database_version(self.current_version)
-            
+
+            self._initialized = True
             logger.info("✅ 資料庫表格初始化完成")
             
         except Exception as e:
