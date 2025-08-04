@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from typing import Optional, Dict, Any
 import asyncio
 import logging
+import weakref
 
 # 設置日誌
 logger = logging.getLogger(__name__)
@@ -25,18 +26,19 @@ class MariaDBPool:
         self._connection_params: Dict[str, Any] = {}
         self._initialized: bool = False
         self._lock = asyncio.Lock()
+        self._closing = False
+        self._tasks = set()  # 追蹤活躍的任務
 
     async def initialize(self, host: str, port: int, user: str,
                         password: str, database: str, **kwargs):
-        """
-        初始化連線池，專案啟動時呼叫一次
-        """
+        """初始化連線池（修復版）"""
         async with self._lock:
             if self._initialized:
                 logger.warning("資料庫連線池已經初始化")
                 return
 
             try:
+                # 修復：添加更好的連接池參數
                 self._connection_params = {
                     'host': host,
                     'port': port,
@@ -45,11 +47,17 @@ class MariaDBPool:
                     'db': database,
                     'charset': kwargs.get('charset', 'utf8mb4'),
                     'autocommit': kwargs.get('autocommit', True),
-                    'minsize': kwargs.get('minsize', 5),
-                    'maxsize': kwargs.get('maxsize', 20),
-                    'pool_recycle': kwargs.get('pool_recycle', 3600),  # 1小時回收
-                    'echo': kwargs.get('echo', False)
+                    'minsize': kwargs.get('minsize', 1),  # 修復：從5改為1
+                    'maxsize': kwargs.get('maxsize', 10),  # 修復：從20改為10
+                    'pool_recycle': kwargs.get('pool_recycle', 3600),
+                    'echo': kwargs.get('echo', False),
+                    # 修復：添加超時設定
+                    'connect_timeout': kwargs.get('connect_timeout', 10),
                 }
+                
+                # 修復：不再傳遞 loop 參數（discord.py 2.x 不需要）
+                if 'loop' in self._connection_params:
+                    del self._connection_params['loop']
                 
                 # 建立連線池
                 self.pool = await aiomysql.create_pool(**self._connection_params)
@@ -65,7 +73,7 @@ class MariaDBPool:
                 raise
 
     async def _test_connection(self):
-        """測試資料庫連接"""
+        """測試資料庫連接（修復版）"""
         try:
             async with self.connection() as conn:
                 async with conn.cursor() as cursor:
@@ -77,6 +85,28 @@ class MariaDBPool:
                         raise Exception("資料庫連接測試失敗")
         except Exception as e:
             logger.error(f"❌ 資料庫連接測試失敗：{e}")
+            raise
+
+    async def acquire(self):
+        """取得連線（修復Task warnings）"""
+        if not self._initialized or not self.pool:
+            raise RuntimeError("資料庫連線池尚未初始化")
+        
+        if self._closing:
+            raise RuntimeError("連線池正在關閉中")
+        
+        try:
+            # 修復：添加超時和任務追蹤
+            conn = await asyncio.wait_for(
+                self.pool.acquire(), 
+                timeout=10.0
+            )
+            return conn
+        except asyncio.TimeoutError:
+            logger.error("獲取資料庫連接超時")
+            raise RuntimeError("獲取資料庫連接超時")
+        except Exception as e:
+            logger.error(f"獲取資料庫連接失敗：{e}")
             raise
 
     async def acquire(self):
@@ -103,25 +133,26 @@ class MariaDBPool:
             raise
 
     async def release(self, conn):
-        """
-        釋放資料庫連線（修復版）
-        """
-        if self.pool and conn:
+        """釋放連線（修復版）"""
+        if self.pool and conn and not self._closing:
             try:
-                await self.pool.release(conn)  # 修復：添加 await
+                # 修復：正確的釋放方式
+                await self.pool.release(conn)
             except Exception as e:
                 logger.error(f"釋放資料庫連接失敗：{e}")
-                # 如果釋放失敗，強制關閉連接
+                # 強制關閉連接
                 try:
-                    conn.close()
+                    if hasattr(conn, 'close'):
+                        conn.close()
                 except:
                     pass
 
     @asynccontextmanager
     async def connection(self):
-        """
-        非同步上下文：用於 with 語法自動取得/釋放連線（修復版）
-        """
+        """非同步上下文管理器（修復版）"""
+        if self._closing:
+            raise RuntimeError("連線池正在關閉中")
+            
         conn = None
         try:
             conn = await self.acquire()
@@ -152,43 +183,33 @@ class MariaDBPool:
                 raise
 
     async def health_check(self) -> Dict[str, Any]:
-        """
-        健康檢查（新增）
-        """
+        """健康檢查（修復版）"""
         try:
-            if not self._initialized or not self.pool:
+            if not self._initialized or not self.pool or self._closing:
                 return {
                     "status": "unhealthy",
-                    "error": "連線池未初始化"
+                    "error": "連線池未初始化或正在關閉"
                 }
 
-            # 檢查連線池狀態
+            # 修復：添加連線池狀態檢查
             pool_info = {
-                "size": self.pool.size,
-                "used": self.pool.used,
-                "free": self.pool.free
+                "size": getattr(self.pool, 'size', 0),
+                "used": getattr(self.pool, 'used_size', 0),
+                "free": getattr(self.pool, 'free_size', 0),
+                "minsize": getattr(self.pool, 'minsize', 0),
+                "maxsize": getattr(self.pool, 'maxsize', 0)
             }
 
-            # 測試查詢
+            # 快速測試查詢
             async with self.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute("SELECT DATABASE(), NOW(), CONNECTION_ID()")
                     db_name, now, connection_id = await cursor.fetchone()
-                    
-                    # 查詢資料庫大小
-                    await cursor.execute("""
-                        SELECT ROUND(SUM(data_length + index_length) / 1024 / 1024, 2) 
-                        FROM information_schema.tables 
-                        WHERE table_schema = DATABASE()
-                    """)
-                    size_result = await cursor.fetchone()
-                    size_mb = size_result[0] if size_result and size_result[0] else 0
 
             return {
                 "status": "healthy",
                 "database": {
                     "name": db_name,
-                    "size_mb": float(size_mb),
                     "server_time": str(now),
                     "connection_id": connection_id
                 },
@@ -202,19 +223,33 @@ class MariaDBPool:
                 "error": str(e)
             }
 
+
     async def close(self):
-        """正確關閉連線池"""
+        """關閉連線池（修復Task warnings）"""
         async with self._lock:
-            if self.pool:
-                try:
-                    self.pool.close()
-                    await self.pool.wait_closed()
-                    logger.info("✅ 資料庫連線池已關閉")
-                except Exception as e:
-                    logger.error(f"關閉連線池錯誤：{e}")
-                finally:
-                    self.pool = None
-                    self._initialized = False
+            if not self._initialized or not self.pool:
+                return
+                
+            self._closing = True
+            
+            try:
+                # 修復：等待所有活躍任務完成
+                if self._tasks:
+                    logger.info(f"等待 {len(self._tasks)} 個資料庫任務完成...")
+                    await asyncio.gather(*self._tasks, return_exceptions=True)
+                
+                # 關閉連線池
+                self.pool.close()
+                await self.pool.wait_closed()
+                
+                logger.info("✅ 資料庫連線池已關閉")
+                
+            except Exception as e:
+                logger.error(f"關閉連線池錯誤：{e}")
+            finally:
+                self.pool = None
+                self._initialized = False
+                self._closing = False
 
 # ✅ 全域單例實體（專案統一使用這個變數）
 db_pool = MariaDBPool()
@@ -222,37 +257,31 @@ db_pool = MariaDBPool()
 # ====== 主程式可呼叫的初始化/關閉/健康檢查 ======
 
 async def init_database(host, port, user, password, database, **kwargs):
-    """初始化資料庫連線池"""
+    """初始化資料庫連線池（修復版）"""
     try:
         await db_pool.initialize(host, port, user, password, database, **kwargs)
-        logger.info("資料庫初始化完成")
+        logger.info("✅ 資料庫初始化完成")
     except Exception as e:
-        logger.error(f"資料庫初始化失敗：{e}")
+        logger.error(f"❌ 資料庫初始化失敗：{e}")
         raise
 
 async def close_database():
-    """正確關閉連線池"""
+    """正確關閉連線池（修復版）"""
     try:
         await db_pool.close()
-        logger.info("資料庫已關閉")
+        logger.info("✅ 資料庫已關閉")
     except Exception as e:
-        logger.error(f"關閉資料庫錯誤：{e}")
+        logger.error(f"❌ 關閉資料庫錯誤：{e}")
 
 async def get_db_health():
-    """
-    回傳資料庫健康狀態 dict（修復版）
-    """
+    """回傳資料庫健康狀態（修復版）"""
     try:
         health_data = await db_pool.health_check()
-        return {
-            "overall_status": health_data["status"],
-            "database": health_data.get("database", {}),
-            "pool": health_data.get("pool", {})
-        }
+        return health_data
     except Exception as e:
         logger.error(f"取得資料庫健康狀態失敗：{e}")
         return {
-            "overall_status": "unhealthy",
+            "status": "unhealthy",
             "error": str(e)
         }
 

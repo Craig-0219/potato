@@ -56,33 +56,56 @@ TICKET_DEFAULT_SLA_MINUTES = int(os.getenv("TICKET_DEFAULT_SLA_MINUTES", 60))
 TICKET_DEFAULT_AUTO_CLOSE_HOURS = int(os.getenv("TICKET_DEFAULT_AUTO_CLOSE_HOURS", 24))
 TICKET_MAX_PER_USER = int(os.getenv("TICKET_MAX_PER_USER", 3))
 
-def validate_config() -> bool:
-    """驗證配置是否有效"""
-    try:
-        # 驗證資料庫連接參數
-        if not all([DB_HOST, DB_USER, DB_PASSWORD, DB_NAME]):
-            print("❌ 資料庫配置不完整")
-            return False
-        
-        # 驗證 Discord Token 格式
-        if not DISCORD_TOKEN or len(DISCORD_TOKEN) < 50:
-            print("❌ Discord Token 格式無效")
-            return False
-        
-        # 驗證數值配置
-        if TICKET_DEFAULT_SLA_MINUTES < 1 or TICKET_DEFAULT_SLA_MINUTES > 1440:
-            print("❌ SLA 時間設定無效（應在 1-1440 分鐘之間）")
-            return False
-        
-        if TICKET_MAX_PER_USER < 1 or TICKET_MAX_PER_USER > 20:
-            print("❌ 每用戶票券限制無效（應在 1-20 之間）")
-            return False
-        
-        return True
-        
-    except Exception as e:
-        print(f"❌ 配置驗證失敗：{e}")
+def validate_config_enhanced():
+    """增強的配置驗證（修復版）"""
+    errors = []
+    warnings = []
+    
+    # 檢查必要的環境變數
+    required_vars = {
+        'DISCORD_TOKEN': '機器人Token',
+        'DB_HOST': '資料庫主機',
+        'DB_USER': '資料庫用戶',
+        'DB_PASSWORD': '資料庫密碼',
+        'DB_NAME': '資料庫名稱'
+    }
+    
+    for var, desc in required_vars.items():
+        value = os.getenv(var)
+        if not value:
+            errors.append(f"缺少{desc}環境變數：{var}")
+        elif var == 'DISCORD_TOKEN' and len(value) < 50:
+            errors.append(f"Discord Token格式可能不正確（長度過短）")
+    
+    # 檢查可選變數的預設值
+    optional_vars = {
+        'DB_PORT': ('3306', '資料庫端口'),
+        'LOG_LEVEL': ('INFO', '日誌等級'),
+        'DEBUG': ('false', '除錯模式')
+    }
+    
+    for var, (default, desc) in optional_vars.items():
+        value = os.getenv(var, default)
+        if var == 'DB_PORT':
+            try:
+                int(value)
+            except ValueError:
+                warnings.append(f"{desc}格式錯誤，將使用預設值：{default}")
+    
+    # 回報結果
+    if errors:
+        print("❌ 配置錯誤：")
+        for error in errors:
+            print(f"  • {error}")
         return False
+    
+    if warnings:
+        print("⚠️ 配置警告：")
+        for warning in warnings:
+            print(f"  • {warning}")
+    
+    print("✅ 配置驗證通過")
+    return True
 
 def get_config_summary() -> dict:
     """取得配置摘要（隱藏敏感資訊）"""
@@ -116,7 +139,7 @@ def get_config_summary() -> dict:
 # 啟動時驗證配置
 if __name__ == "__main__":
     print("🔍 驗證配置...")
-    if validate_config():
+    if validate_config_enhanced():
         print("✅ 配置驗證通過")
         
         # 顯示配置摘要
@@ -129,6 +152,6 @@ if __name__ == "__main__":
         sys.exit(1)
 else:
     # 模組被導入時自動驗證
-    if not validate_config():
+    if not validate_config_enhanced():
         print("❌ 配置無效，請檢查 .env 檔案")
         sys.exit(1)

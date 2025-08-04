@@ -63,6 +63,8 @@ class PotatoBot(commands.Bot):
         self.initial_extensions = [COGS_PREFIX + ext for ext in ALL_EXTENSIONS]
         self.error_handler = None
         self.startup_time = None
+        self._shutdown_event = asyncio.Event()
+        self._background_tasks = set()
 
     async def setup_hook(self):
         """Bot 設定鉤子（修復版）"""
@@ -70,6 +72,7 @@ class PotatoBot(commands.Bot):
         
         try:
             # 1. 設置全局錯誤處理
+            from bot.utils.error_handler import setup_error_handling
             self.error_handler = setup_error_handling(self)
             logger.info("✅ 錯誤處理器已設置")
             
@@ -80,7 +83,7 @@ class PotatoBot(commands.Bot):
             await self._load_extensions()
             
             # 4. 註冊 Persistent Views
-            await self._register_views()
+            await self._register_views_delayed()
             
             # 5. 同步命令樹
             await self._sync_commands()
@@ -91,21 +94,39 @@ class PotatoBot(commands.Bot):
             logger.error(f"❌ Bot 設定失敗：{e}")
             raise
 
-    async def _init_database(self):
+    async def _init_database(self, max_retries=3):
         """初始化資料庫"""
-        try:
-            await init_database(DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)
-            
-            # 健康檢查
-            health = await get_db_health()
-            if health.get("overall_status") == "healthy":
-                logger.info("✅ 資料庫連接成功")
-            else:
-                logger.warning(f"⚠️ 資料庫狀態：{health}")
+        for attempt in range(max_retries):
+            try:
+                from shared.config import DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+                from bot.db.pool import init_database
                 
-        except Exception as e:
-            logger.error(f"❌ 資料庫連接失敗：{e}")
-            raise
+                #建立連接池
+                await init_database(DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)
+
+                #初始化表格
+                from bot.db.database_manager import DatabaseManager
+                db_manager = DatabaseManager()
+                await db_manager.initialize_all_tables()       
+                
+                # 健康檢查
+                from bot.db.pool import get_db_health
+                health = await get_db_health()
+                
+                if health.get("status") == "healthy":
+                    logger.info("✅ 資料庫連接成功")
+                    return
+                else:
+                    raise Exception(f"資料庫健康檢查失敗：{health}")
+                    
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    wait_time = 2 ** attempt
+                    logger.warning(f"⚠️ 資料庫連接失敗（嘗試 {attempt + 1}/{max_retries}），{wait_time}秒後重試：{e}")
+                    await asyncio.sleep(wait_time)
+                else:
+                    logger.error(f"❌ 資料庫連接最終失敗：{e}")
+                    raise
 
     async def _load_extensions(self):
         """載入擴展"""
@@ -126,20 +147,19 @@ class PotatoBot(commands.Bot):
         if failed_extensions:
             logger.warning(f"⚠️ 失敗的擴展：{', '.join(failed_extensions)}")
 
-    async def _register_views(self):
-        """註冊 Persistent Views"""
+    async def _register_views_delayed(self):
+        """延遲註冊Views（避免啟動順序問題）"""
         try:
+            # 修復：等待一小段時間確保Bot完全初始化
+            await asyncio.sleep(1)
+            
+            from bot.register.register import register_all_views
             register_all_views(self)
             
-            # 驗證註冊結果
-            validation = validate_view_registration(self)
-            if validation.get("has_persistent_views"):
-                logger.info(f"✅ Persistent Views 註冊完成（{validation.get('persistent_view_count', 0)} 個）")
-            else:
-                logger.warning("⚠️ 沒有 Persistent Views 被註冊")
-                
+            logger.info("✅ Views註冊完成")
+            
         except Exception as e:
-            logger.error(f"❌ Persistent Views 註冊失敗：{e}")
+            logger.error(f"❌ Views註冊失敗：{e}")
 
     async def _sync_commands(self):
         """同步命令樹"""
@@ -207,18 +227,29 @@ class PotatoBot(commands.Bot):
         logger.info(f"👋 離開伺服器：{guild.name} (ID: {guild.id})")
 
     async def close(self):
-        """Bot 關閉"""
-        logger.info("🔄 Bot 正在關閉...")
+        """優雅關閉（修復Task warnings）"""
+        logger.info("🔄 Bot正在關閉...")
+        
         try:
+            # 設置關閉標誌
+            self._shutdown_event.set()
+            
+            # 等待背景任務完成
+            if self._background_tasks:
+                logger.info(f"⏳ 等待 {len(self._background_tasks)} 個背景任務完成...")
+                await asyncio.gather(*self._background_tasks, return_exceptions=True)
+            
             # 關閉資料庫連接
+            from bot.db.pool import close_database
             await close_database()
             logger.info("✅ 資料庫連接已關閉")
+            
         except Exception as e:
-            logger.error(f"❌ 關閉資料庫連接錯誤：{e}")
+            logger.error(f"❌ 關閉過程中發生錯誤：{e}")
         
         # 調用父類關閉方法
         await super().close()
-        logger.info("✅ Bot 已關閉")
+        logger.info("✅ Bot已關閉")
 
     def get_uptime(self) -> str:
         """取得運行時間"""
@@ -236,6 +267,13 @@ class PotatoBot(commands.Bot):
             return f"{hours}小時 {minutes}分鐘"
         else:
             return f"{minutes}分鐘 {seconds}秒"
+        
+    def create_background_task(self, coro):
+        """創建背景任務（修復Task tracking）"""
+        task = asyncio.create_task(coro)
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+        return task
 
 # ===== 管理指令（修復版） =====
 
