@@ -91,30 +91,362 @@ class PotatoBot(commands.Bot):
             logger.info("✅ Bot 設定完成")
             
         except Exception as e:
+        await ctx.send(f"❌ 取得資料庫狀態失敗：{e}")
+        logger.error(f"取得資料庫狀態失敗：{e}")
+            
+@commands.command(name='dbcleanup')
+@commands.is_owner()
+async def database_cleanup(ctx, days: int = 90):
+    """清理資料庫舊資料"""
+    try:
+        from bot.db.database_manager import get_database_manager
+        
+        db_manager = get_database_manager()
+        cleanup_results = await db_manager.cleanup_old_data(days)
+        
+        if cleanup_results:
+            result_text = []
+            total_cleaned = 0
+            for table, count in cleanup_results.items():
+                result_text.append(f"• {table}: {count} 筆")
+                total_cleaned += count
+            
+            embed = discord.Embed(
+                title="🧹 資料庫清理完成",
+                description=f"清理了 {days} 天前的舊資料",
+                color=discord.Color.green()
+            )
+            embed.add_field(
+                name="清理結果",
+                value="\n".join(result_text) + f"\n\n**總計：{total_cleaned} 筆記錄**",
+                inline=False
+            )
+            await ctx.send(embed=embed)
+        else:
+            await ctx.send("✅ 沒有需要清理的舊資料")
+            
+    except Exception as e:
+        await ctx.send(f"❌ 資料庫清理失敗：{e}")
+        logger.error(f"資料庫清理失敗：{e}")
+
+@commands.command(name='status')
+@commands.is_owner()
+async def bot_status(ctx):
+    """Bot 狀態"""
+    try:
+        # 收集狀態資訊
+        db_health = await get_db_health()
+        
+        from bot.utils.embed_builder import EmbedBuilder
+        
+        embed = EmbedBuilder.status_embed({
+            "overall_status": "healthy" if db_health.get('status') == 'healthy' else "degraded",
+            "基本資訊": {
+                "伺服器數量": len(ctx.bot.guilds),
+                "延遲": f"{round(ctx.bot.latency * 1000)}ms",
+                "運行時間": ctx.bot.get_uptime()
+            },
+            "資料庫": {
+                "狀態": db_health.get('status', 'unknown'),
+                "連接池": f"{db_health.get('pool', {}).get('free', 0)} 可用"
+            },
+            "擴展": {
+                "已載入": len(ctx.bot.extensions),
+                "列表": ", ".join([ext.split('.')[-1] for ext in ctx.bot.extensions])
+            }
+        })
+        
+        # 錯誤統計
+        if ctx.bot.error_handler:
+            error_stats = ctx.bot.error_handler.get_error_stats()
+            if error_stats['total_errors'] > 0:
+                embed.add_field(
+                    name="錯誤統計",
+                    value=f"總錯誤數：{error_stats['total_errors']}\n前三錯誤：{', '.join(list(error_stats['top_errors'].keys())[:3])}",
+                    inline=False
+                )
+        
+        await ctx.send(embed=embed)
+        
+    except Exception as e:
+        await ctx.send(f"❌ 取得狀態失敗：{e}")
+        logger.error(f"取得狀態失敗：{e}")
+
+@commands.command(name='health')
+@commands.is_owner()
+async def health_check(ctx):
+    """健康檢查"""
+    try:
+        # 詳細健康檢查
+        checks = {
+            "資料庫連接": False,
+            "命令同步": False,
+            "Persistent Views": False,
+            "擴展載入": False
+        }
+        
+        # 檢查資料庫
+        try:
+            db_health = await get_db_health()
+            checks["資料庫連接"] = db_health.get('status') == 'healthy'
+        except:
+            pass
+        
+        # 檢查命令
+        checks["命令同步"] = len(ctx.bot.tree.get_commands()) > 0
+        
+        # 檢查 Views
+        validation = validate_view_registration(ctx.bot)
+        checks["Persistent Views"] = validation.get("has_persistent_views", False)
+        
+        # 檢查擴展
+        checks["擴展載入"] = len(ctx.bot.extensions) > 0
+        
+        # 建立回應
+        status_text = ""
+        all_healthy = True
+        
+        for check_name, is_healthy in checks.items():
+            emoji = "✅" if is_healthy else "❌"
+            status_text += f"{emoji} {check_name}\n"
+            if not is_healthy:
+                all_healthy = False
+        
+        overall_emoji = "✅" if all_healthy else "⚠️"
+        
+        from bot.utils.embed_builder import EmbedBuilder
+        embed = EmbedBuilder.build(
+            title=f"{overall_emoji} 健康檢查結果",
+            description=status_text,
+            color='success' if all_healthy else 'warning'
+        )
+        
+        await ctx.send(embed=embed)
+        
+    except Exception as e:
+        await ctx.send(f"❌ 健康檢查失敗：{e}")
+        logger.error(f"健康檢查失敗：{e}")
+
+@commands.command(name='migrate')
+@commands.is_owner()
+async def migrate_database(ctx, target_version: str = None):
+    """資料庫遷移"""
+    try:
+        from bot.db.database_manager import get_database_manager
+        
+        db_manager = get_database_manager()
+        success = await db_manager.migrate_database(target_version)
+        
+        if success:
+            await ctx.send(f"✅ 資料庫遷移成功！目標版本：{target_version or db_manager.current_version}")
+        else:
+            await ctx.send("❌ 資料庫遷移失敗，請查看日誌了解詳情")
+            
+    except Exception as e:
+        await ctx.send(f"❌ 資料庫遷移錯誤：{e}")
+        logger.error(f"資料庫遷移錯誤：{e}")
+
+@commands.command(name='validate')
+@commands.is_owner()
+async def validate_database(ctx):
+    """驗證資料庫完整性"""
+    try:
+        from bot.db.database_manager import get_database_manager
+        
+        db_manager = get_database_manager()
+        validation_result = await db_manager.validate_database_integrity()
+        
+        embed = discord.Embed(
+            title="🔍 資料庫完整性檢查",
+            color=discord.Color.green() if validation_result['valid'] else discord.Color.red()
+        )
+        
+        # 檢查結果
+        status = "✅ 通過" if validation_result['valid'] else "❌ 發現問題"
+        embed.add_field(name="檢查結果", value=status, inline=True)
+        
+        # 問題列表
+        if validation_result['issues']:
+            issues_text = "\n".join(validation_result['issues'][:5])  # 限制顯示數量
+            embed.add_field(name="發現的問題", value=issues_text, inline=False)
+        
+        # 檢查統計
+        checks_text = []
+        for check_name, value in validation_result['checks'].items():
+            checks_text.append(f"• {check_name}: {value}")
+        
+        if checks_text:
+            embed.add_field(name="檢查統計", value="\n".join(checks_text), inline=False)
+        
+        await ctx.send(embed=embed)
+        
+    except Exception as e:
+        await ctx.send(f"❌ 資料庫驗證失敗：{e}")
+        logger.error(f"資料庫驗證失敗：{e}")
+
+@commands.command(name='restart')
+@commands.is_owner()
+async def restart_bot(ctx):
+    """重啟 Bot（需要外部進程管理）"""
+    await ctx.send("🔄 正在重啟 Bot...")
+    logger.info("收到重啟命令")
+    
+    # 優雅關閉
+    await ctx.bot.close()
+
+# ===== 信號處理 =====
+
+def setup_signal_handlers(bot):
+    """設置信號處理器"""
+    
+    def signal_handler(signum, frame):
+        logger.info(f"收到信號 {signum}，正在關閉...")
+        asyncio.create_task(bot.close())
+    
+    # Unix 信號
+    if sys.platform != "win32":
+        signal.signal(signal.SIGTERM, signal_handler)
+        signal.signal(signal.SIGINT, signal_handler)
+
+# ===== 主函數 =====
+
+async def main():
+    """主函數"""
+    load_dotenv()
+    
+    # 驗證環境變數
+    if not DISCORD_TOKEN:
+        logger.error("❌ 未找到 DISCORD_TOKEN，請檢查 .env 設定")
+        sys.exit(1)
+    
+    # 建立 Bot 實例
+    bot = PotatoBot()
+    
+    # 添加管理指令
+    bot.add_command(reload_extension)
+    bot.add_command(load_extension)
+    bot.add_command(unload_extension)
+    bot.add_command(sync_commands)
+    bot.add_command(database_status)
+    bot.add_command(database_cleanup)
+    bot.add_command(bot_status)
+    bot.add_command(health_check)
+    bot.add_command(migrate_database)
+    bot.add_command(validate_database)
+    bot.add_command(restart_bot)
+    
+    # 設置信號處理
+    setup_signal_handlers(bot)
+    
+    # 啟動 Bot
+    async with bot:
+        try:
+            logger.info("🚀 正在啟動 Potato Bot...")
+            await bot.start(DISCORD_TOKEN)
+        except KeyboardInterrupt:
+            logger.info("收到中斷信號，正在關閉...")
+        except Exception as e:
+            logger.error(f"❌ Bot 運行錯誤：{e}")
+            raise
+        finally:
+            if not bot.is_closed():
+                await bot.close()
+
+# ===== 啟動檢查 =====
+
+def pre_startup_checks():
+    """啟動前檢查"""
+    checks = []
+    
+    # 檢查 Python 版本
+    if sys.version_info < (3, 8):
+        checks.append("❌ Python 版本必須 >= 3.8")
+    else:
+        checks.append(f"✅ Python {sys.version_info.major}.{sys.version_info.minor}")
+    
+    # 檢查必要模組
+    required_modules = ['discord', 'aiomysql', 'dotenv']
+    for module in required_modules:
+        try:
+            __import__(module)
+            checks.append(f"✅ {module}")
+        except ImportError:
+            checks.append(f"❌ 缺少模組：{module}")
+    
+    # 檢查環境變數
+    if DISCORD_TOKEN:
+        checks.append("✅ DISCORD_TOKEN")
+    else:
+        checks.append("❌ 缺少 DISCORD_TOKEN")
+    
+    if DB_HOST and DB_USER and DB_PASSWORD and DB_NAME:
+        checks.append("✅ 資料庫設定")
+    else:
+        checks.append("❌ 資料庫設定不完整")
+    
+    # 輸出檢查結果
+    logger.info("🔍 啟動前檢查：")
+    for check in checks:
+        logger.info(f"  {check}")
+    
+    # 檢查是否有失敗項目
+    failed_checks = [check for check in checks if check.startswith("❌")]
+    if failed_checks:
+        logger.error("❌ 啟動前檢查失敗，請修復以下問題：")
+        for failed in failed_checks:
+            logger.error(f"  {failed}")
+        return False
+    
+    logger.info("✅ 啟動前檢查通過")
+    return True
+
+# ===== 入口點 =====
+
+if __name__ == "__main__":
+    # 設置事件循環策略（Windows 相容性）
+    if sys.platform == "win32":
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    
+    try:
+        # 啟動前檢查
+        if not pre_startup_checks():
+            sys.exit(1)
+        
+        # 啟動 Bot
+        asyncio.run(main())
+        
+    except KeyboardInterrupt:
+        logger.info("👋 程式已終止")
+    except Exception as e:
+        logger.error(f"❌ 程式執行錯誤：{e}")
+        import traceback
+        logger.error(traceback.format_exc())
+        sys.exit(1)
+    finally:
+        logger.info("🔚 程式已結束")
             logger.error(f"❌ Bot 設定失敗：{e}")
             raise
-
-    async def _init_database(self, max_retries=3):
-        """初始化資料庫"""
+    
+    async def _init_database_unified(self, max_retries=3):
+        """統一資料庫初始化（修正版）"""
+        logger.info("🔄 開始統一資料庫初始化...")
+        
         for attempt in range(max_retries):
             try:
-                from shared.config import DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
-                from bot.db.pool import init_database
-                
-                #建立連接池
+                # 1. 建立連接池
                 await init_database(DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)
-
-                #初始化表格
-                from bot.db.database_manager import DatabaseManager
-                db_manager = DatabaseManager()
-                await db_manager.initialize_all_tables()       
+                logger.info("✅ 資料庫連接池建立成功")
                 
-                # 健康檢查
-                from bot.db.pool import get_db_health
+                # 2. 統一初始化所有表格（修正：使用 DatabaseManager）
+                from bot.db.database_manager import get_database_manager
+                db_manager = get_database_manager()
+                await db_manager.initialize_all_tables(force_recreate=False)
+                logger.info("✅ 資料庫表格初始化完成")
+                
+                # 3. 健康檢查
                 health = await get_db_health()
-                
                 if health.get("status") == "healthy":
-                    logger.info("✅ 資料庫連接成功")
+                    logger.info("✅ 資料庫健康檢查通過")
                     return
                 else:
                     raise Exception(f"資料庫健康檢查失敗：{health}")
@@ -122,10 +454,10 @@ class PotatoBot(commands.Bot):
             except Exception as e:
                 if attempt < max_retries - 1:
                     wait_time = 2 ** attempt
-                    logger.warning(f"⚠️ 資料庫連接失敗（嘗試 {attempt + 1}/{max_retries}），{wait_time}秒後重試：{e}")
+                    logger.warning(f"⚠️ 資料庫初始化失敗（嘗試 {attempt + 1}/{max_retries}），{wait_time}秒後重試：{e}")
                     await asyncio.sleep(wait_time)
                 else:
-                    logger.error(f"❌ 資料庫連接最終失敗：{e}")
+                    logger.error(f"❌ 資料庫初始化最終失敗：{e}")
                     raise
 
     async def _load_extensions(self):
