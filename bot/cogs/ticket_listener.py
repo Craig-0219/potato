@@ -9,7 +9,7 @@ import re
 
 from bot.db.ticket_dao import TicketDAO
 from bot.services.ticket_manager import TicketManager
-from bot.utils.ticket_utils import (is_ticket_channel, TicketPermissionChecker,  send_sla_alert)
+from bot.utils.ticket_utils import is_ticket_channel, TicketPermissionChecker
 from bot.utils.ticket_constants import get_priority_emoji, ERROR_MESSAGES
 from bot.utils.debug import debug_log
 from bot.utils.helper import format_duration
@@ -17,20 +17,33 @@ from bot.utils.helper import format_duration
 
 class TicketListener(commands.Cog):
     """票券系統事件監聽器 - 完整版"""
-    
-    def __init__(self, bot):
+
+    def __init__(
+        self,
+        bot,
+        auto_reply_service: Optional[Any] = None,
+        sla_service: Optional[Any] = None,
+        notification_service: Optional[Any] = None,
+        assignment_service: Optional[Any] = None,
+    ):
         self.bot = bot
         self.dao = TicketDAO()
         self.manager = TicketManager(self.dao)
-        
+
+        # 可選服務
+        self.auto_reply_service = auto_reply_service or getattr(bot, "auto_reply_service", None)
+        self.sla_service = sla_service or getattr(bot, "sla_service", None)
+        self.notification_service = notification_service or getattr(bot, "notification_service", None)
+        self.assignment_service = assignment_service or getattr(bot, "assignment_service", None)
+
         # 狀態追蹤
         self.user_activity = {}  # 追蹤用戶活動
         self.staff_online_status = {}  # 追蹤客服在線狀態
-        
+
         # 快取和限流
         self._message_cache = {}
         self._rate_limits = {}
-        
+
         # 啟動背景任務
         self.cleanup_task.start()
         self.activity_tracker.start()
@@ -84,11 +97,18 @@ class TicketListener(commands.Cog):
         """處理用戶訊息 - 增強版"""
         try:
             # 檢查是否需要觸發自動回覆
-            if await self._should_trigger_auto_reply(message, ticket_info):
-                auto_reply_triggered = await self.auto_reply_service.process_message(message, ticket_info)
-                
+            if (
+                self.auto_reply_service
+                and await self._should_trigger_auto_reply(message, ticket_info)
+            ):
+                auto_reply_triggered = await self.auto_reply_service.process_message(
+                    message, ticket_info
+                )
+
                 if auto_reply_triggered:
-                    debug_log(f"[TicketListener] 票券 #{ticket_info['ticket_id']:04d} 觸發自動回覆")
+                    debug_log(
+                        f"[TicketListener] 票券 #{ticket_info['ticket_id']:04d} 觸發自動回覆"
+                    )
             
             # 檢查是否包含緊急關鍵字
             await self._check_urgent_keywords(message, ticket_info)
@@ -110,14 +130,18 @@ class TicketListener(commands.Cog):
                 return
             
             # 記錄首次回應（SLA 監控）
-            if not await self.dao.has_staff_response(ticket_info['ticket_id']):
+            if (
+                self.sla_service
+                and not await self.dao.has_staff_response(ticket_info['ticket_id'])
+            ):
                 await self.sla_service.record_first_response(
-                    ticket_info['ticket_id'], 
-                    message.author.id
+                    ticket_info['ticket_id'], message.author.id
                 )
-                
+
                 # 發送 SLA 達標通知
-                await self._send_sla_compliance_notification(message, ticket_info, settings)
+                await self._send_sla_compliance_notification(
+                    message, ticket_info, settings
+                )
             
             # 自動指派票券（如果尚未指派）
             if not ticket_info.get('assigned_to'):
@@ -421,15 +445,18 @@ class TicketListener(commands.Cog):
                 debug_log(f"[TicketListener] 票券 #{ticket_info['ticket_id']:04d} 因頻道刪除而自動關閉")
                 
                 # 通知用戶
-                try:
-                    user = self.bot.get_user(int(ticket_info['discord_id']))
-                    if user:
-                        await self.notification_service.send_ticket_notification(
-                            user, 'ticket_closed', ticket_info,
-                            {'close_reason': '票券頻道被刪除'}
-                        )
-                except:
-                    pass
+                if self.notification_service:
+                    try:
+                        user = self.bot.get_user(int(ticket_info['discord_id']))
+                        if user:
+                            await self.notification_service.send_ticket_notification(
+                                user,
+                                "ticket_closed",
+                                ticket_info,
+                                {"close_reason": "票券頻道被刪除"},
+                            )
+                    except Exception:
+                        pass
                 
                 # 記錄到日誌
                 await self._log_channel_deletion(channel, ticket_info)
@@ -665,8 +692,7 @@ class TicketListener(commands.Cog):
                 return
             
             # 取消指派並重新分配
-            from bot.services.ticket_manager import TicketAssignmentService
-            assignment_service = TicketAssignmentService()
+            assignment_service = self.assignment_service
             
             for ticket in assigned_tickets:
                 # 取消當前指派
@@ -674,11 +700,9 @@ class TicketListener(commands.Cog):
                 
                 # 嘗試重新自動分配
                 settings = await self.dao.get_guild_settings(member.guild.id)
-                if settings.get('auto_assign_enabled'):
+                if assignment_service and settings.get('auto_assign_enabled'):
                     await assignment_service.auto_assign_ticket(
-                        ticket['ticket_id'], 
-                        member.guild, 
-                        settings
+                        ticket['ticket_id'], member.guild, settings
                     )
                 
                 # 通知票券頻道
