@@ -126,6 +126,12 @@ class TicketConstants:
             'description': '登入、權限、個人資料'
         },
         {
+            'name': '合作夥伴',
+            'emoji': '🤝',
+            'style': discord.ButtonStyle.primary,
+            'description': '商業合作、夥伴關係、聯名活動'
+        },
+        {
             'name': '檢舉回報',
             'emoji': '⚠️',
             'style': discord.ButtonStyle.danger,

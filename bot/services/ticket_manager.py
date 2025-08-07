@@ -63,6 +63,9 @@ class TicketManager:
             # 發送歡迎訊息
             await self._send_welcome_message(channel, user, ticket_id, ticket_type, priority, settings)
             
+            # 應用自動標籤
+            await self._apply_auto_tags(ticket_id, user.guild.id, ticket_type, f"{ticket_type} 票券", user)
+            
             # 自動分配（如果有客服在線）
             await self._try_auto_assign(ticket_id, user.guild, settings)
             
@@ -86,9 +89,14 @@ class TicketManager:
             if not category or not isinstance(category, discord.CategoryChannel):
                 return False, "票券分類頻道不存在", None
             
-            # 生成頻道名稱
+            # 生成頻道名稱（包含優先級標識）
             ticket_id = await self.repository.get_next_ticket_id()
-            channel_name = f"ticket-{ticket_id:04d}-{user.display_name[:8]}"
+            priority_prefix = {
+                'high': '🔴',
+                'medium': '🟡', 
+                'low': '🟢'
+            }.get(priority, '🟡')
+            channel_name = f"{priority_prefix}ticket-{ticket_id:04d}-{user.display_name[:8]}"
             
             # 設定權限
             overwrites = await self._create_channel_overwrites(user, settings)
@@ -98,7 +106,7 @@ class TicketManager:
                 name=channel_name,
                 category=category,
                 overwrites=overwrites,
-                topic=f"票券 #{ticket_id:04d} - {ticket_type} - {user.display_name}",
+                topic=f"{priority_prefix} 票券 #{ticket_id:04d} - {ticket_type} - {user.display_name} ({priority.upper()}優先級)",
                 reason=f"建立票券 - 用戶: {user}"
             )
             
@@ -157,8 +165,8 @@ class TicketManager:
                                   ticket_id: int, ticket_type: str, priority: str, settings: Dict):
         """發送歡迎訊息"""
         try:
-            from bot.utils.constants import TicketConstants
-            from bot.ui.ticket_views import TicketControlView
+            from bot.utils.ticket_constants import TicketConstants
+            from bot.views.ticket_views import TicketControlView
             
             priority_emoji = TicketConstants.PRIORITY_EMOJIS.get(priority, '🟡')
             priority_color = TicketConstants.PRIORITY_COLORS.get(priority, 0x00ff00)
@@ -192,8 +200,8 @@ class TicketManager:
                 inline=False
             )
             
-            # 控制面板
-            view = TicketControlView(ticket_id)
+            # 控制面板（包含優先級顯示）
+            view = TicketControlView(ticket_id=ticket_id, priority=priority)
             
             await channel.send(content=f"{user.mention}", embed=embed, view=view)
             
@@ -235,6 +243,27 @@ class TicketManager:
             
         except Exception as e:
             logger.error(f"自動分配錯誤：{e}")
+    
+    async def _apply_auto_tags(self, ticket_id: int, guild_id: int, ticket_type: str, content: str, user: discord.Member):
+        """應用自動標籤"""
+        try:
+            from bot.services.tag_manager import TagManager
+            from bot.db.tag_dao import TagDAO
+            
+            tag_dao = TagDAO()
+            tag_manager = TagManager(tag_dao)
+            
+            # 應用自動標籤規則
+            applied_tags = await tag_manager.apply_auto_tags(
+                guild_id, ticket_id, ticket_type, content, user
+            )
+            
+            if applied_tags:
+                tag_names = [tag['display_name'] for tag in applied_tags]
+                logger.info(f"票券 #{ticket_id} 自動應用標籤: {', '.join(tag_names)}")
+            
+        except Exception as e:
+            logger.error(f"應用自動標籤錯誤：{e}")
     
     # ===== 票券關閉 =====
     

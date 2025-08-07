@@ -14,7 +14,7 @@ from bot.utils.ticket_constants import (
     format_duration_chinese, get_time_ago_chinese, truncate_text,
     escape_markdown, create_progress_indicator
 )
-from bot.utils.debug import debug_log
+from shared.logger import logger
 
 
 # ===== 權限檢查器 =====
@@ -688,9 +688,7 @@ def format_ticket_status_summary(tickets: List[Dict[str, Any]]) -> Dict[str, Any
     return summary
 
 
-def format_duration(duration: timedelta) -> str:
-    """格式化時間長度"""
-    return format_duration_chinese(int(duration.total_seconds()))
+# format_duration 函數已移至 bot.utils.helper 模組以避免重複
 
 
 def format_timestamp(timestamp: datetime, format_type: str = "relative") -> str:
@@ -812,10 +810,10 @@ async def send_ticket_notification(user: discord.Member, title: str, description
         await user.send(embed=embed)
         return True
     except discord.Forbidden:
-        debug_log(f"[TicketUtils] 無法向用戶 {user.id} 發送私訊")
+        logger.debug(f"[TicketUtils] 無法向用戶 {user.id} 發送私訊")
         return False
     except Exception as e:
-        debug_log(f"[TicketUtils] 發送通知錯誤：{e}")
+        logger.debug(f"[TicketUtils] 發送通知錯誤：{e}")
         return False
 
 
@@ -849,7 +847,7 @@ async def send_sla_alert(channel: discord.TextChannel, ticket_info: Dict[str, An
         await channel.send(embed=embed)
         return True
     except Exception as e:
-        debug_log(f"[TicketUtils] 發送SLA警告錯誤：{e}")
+        logger.debug(f"[TicketUtils] 發送SLA警告錯誤：{e}")
         return False
 
 
