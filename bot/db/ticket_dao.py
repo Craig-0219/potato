@@ -663,6 +663,51 @@ class TicketDAO:
             logger.error(f"更新設定錯誤：{e}")
             return False
     
+    async def update_settings(self, guild_id: int, settings: Dict[str, Any]) -> bool:
+        """批量更新設定"""
+        await self._ensure_initialized()
+        try:
+            # 直接使用資料庫欄位名稱
+            allowed_fields = {
+                'category_id', 'support_roles', 'max_tickets_per_user', 
+                'auto_close_hours', 'sla_response_minutes', 'welcome_message'
+            }
+            
+            # 過濾允許的欄位
+            valid_settings = {}
+            for key, value in settings.items():
+                if key in allowed_fields:
+                    # 處理特殊類型
+                    if key == 'support_roles' and isinstance(value, list):
+                        value = json.dumps(value)
+                    elif key in ['category_id', 'max_tickets_per_user', 'auto_close_hours', 'sla_response_minutes']:
+                        value = int(value)
+                    valid_settings[key] = value
+            
+            if not valid_settings:
+                return False
+            
+            # 構建UPDATE SQL
+            set_clauses = [f"{field} = %s" for field in valid_settings.keys()]
+            set_clause = ", ".join(set_clauses)
+            values = list(valid_settings.values())
+            values.append(guild_id)  # WHERE條件的值
+            
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    sql = f"""
+                        UPDATE ticket_settings 
+                        SET {set_clause}, updated_at = NOW() 
+                        WHERE guild_id = %s
+                    """
+                    await cursor.execute(sql, values)
+                    await conn.commit()
+                    return cursor.rowcount > 0
+                    
+        except Exception as e:
+            logger.error(f"批量更新設定錯誤：{e}")
+            return False
+    
     async def get_next_ticket_id(self) -> int:
         """取得下一個票券 ID - 修復異步"""
         await self._ensure_initialized()
@@ -699,3 +744,232 @@ class TicketDAO:
         except Exception as e:
             logger.error(f"清理資料錯誤：{e}")
             return 0
+    
+    async def paginate_tickets(
+        self,
+        guild_id: int,
+        user_id: Optional[str] = None,
+        status: Optional[str] = None,
+        assigned_to: Optional[str] = None,
+        page: int = 1,
+        page_size: int = 10,
+        unassigned_only: bool = False
+    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        """分頁查詢票券"""
+        await self._ensure_initialized()
+        try:
+            # 構建查詢條件
+            conditions = ["guild_id = %s"]
+            params = [guild_id]
+            
+            if user_id is not None:
+                conditions.append("user_id = %s")
+                params.append(user_id)
+            
+            if status is not None:
+                conditions.append("status = %s")
+                params.append(status)
+            
+            if assigned_to is not None:
+                conditions.append("assigned_to = %s")
+                params.append(assigned_to)
+            
+            if unassigned_only:
+                conditions.append("assigned_to IS NULL")
+            
+            where_clause = " AND ".join(conditions)
+            
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    # 計算總數
+                    count_sql = f"""
+                        SELECT COUNT(*) FROM tickets 
+                        WHERE {where_clause}
+                    """
+                    await cursor.execute(count_sql, params)
+                    total_count = (await cursor.fetchone())[0]
+                    
+                    # 計算分頁資訊
+                    total_pages = (total_count + page_size - 1) // page_size
+                    offset = (page - 1) * page_size
+                    
+                    # 查詢票券資料
+                    tickets_sql = f"""
+                        SELECT 
+                            id,
+                            guild_id,
+                            user_id,
+                            username,
+                            channel_id,
+                            category_id,
+                            status,
+                            subject,
+                            description,
+                            priority,
+                            assigned_to,
+                            created_at,
+                            updated_at,
+                            closed_at,
+                            closed_by,
+                            close_reason,
+                            tags,
+                            metadata
+                        FROM tickets 
+                        WHERE {where_clause}
+                        ORDER BY created_at DESC
+                        LIMIT %s OFFSET %s
+                    """
+                    
+                    await cursor.execute(tickets_sql, params + [page_size, offset])
+                    rows = await cursor.fetchall()
+                    
+                    # 格式化結果
+                    tickets = []
+                    for row in rows:
+                        ticket = {
+                            'id': row[0],
+                            'ticket_id': row[0],  # 添加 ticket_id 別名
+                            'guild_id': row[1],
+                            'user_id': row[2],
+                            'username': row[3],
+                            'channel_id': row[4],
+                            'category_id': row[5],
+                            'status': row[6],
+                            'subject': row[7],
+                            'description': row[8],
+                            'priority': row[9],
+                            'assigned_to': row[10],
+                            'created_at': row[11],
+                            'updated_at': row[12],
+                            'closed_at': row[13],
+                            'closed_by': row[14],
+                            'close_reason': row[15],
+                            'tags': json.loads(row[16]) if row[16] else [],
+                            'metadata': json.loads(row[17]) if row[17] else {}
+                        }
+                        tickets.append(ticket)
+                    
+                    # 分頁資訊
+                    pagination = {
+                        'current_page': page,
+                        'page_size': page_size,
+                        'total_pages': total_pages,
+                        'total_count': total_count,
+                        'has_next': page < total_pages,
+                        'has_prev': page > 1
+                    }
+                    
+                    return tickets, pagination
+                    
+        except Exception as e:
+            logger.error(f"分頁查詢票券錯誤：{e}")
+            return [], {
+                'current_page': page,
+                'page_size': page_size,
+                'total_pages': 0,
+                'total_count': 0,
+                'has_next': False,
+                'has_prev': False
+            }
+    
+    # ========== 儀表板支援方法 ==========
+    
+    async def get_daily_ticket_stats(self, guild_id: int, start_date, end_date) -> List[Dict[str, Any]]:
+        """獲取每日票券統計數據 (支援儀表板)"""
+        try:
+            await self._ensure_initialized()
+            
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    await cursor.execute("""
+                        SELECT 
+                            DATE(created_at) as date,
+                            COUNT(*) as created_count,
+                            SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) as closed_count,
+                            SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) as open_count,
+                            AVG(CASE 
+                                WHEN closed_at IS NOT NULL AND created_at IS NOT NULL 
+                                THEN TIMESTAMPDIFF(MINUTE, created_at, closed_at) 
+                                ELSE NULL 
+                            END) as avg_resolution_time
+                        FROM tickets 
+                        WHERE guild_id = %s 
+                            AND DATE(created_at) BETWEEN %s AND %s
+                        GROUP BY DATE(created_at)
+                        ORDER BY date ASC
+                    """, (guild_id, start_date, end_date))
+                    
+                    rows = await cursor.fetchall()
+                    
+                    daily_stats = []
+                    for row in rows:
+                        daily_stats.append({
+                            'date': row[0],
+                            'created_count': row[1],
+                            'closed_count': row[2], 
+                            'open_count': row[3],
+                            'avg_resolution_time': float(row[4]) if row[4] else 0.0
+                        })
+                    
+                    return daily_stats
+                    
+        except Exception as e:
+            logger.error(f"獲取每日票券統計失敗: {e}")
+            return []
+    
+    async def get_ticket_performance_metrics(self, guild_id: int, days: int = 30) -> Dict[str, Any]:
+        """獲取票券性能指標"""
+        try:
+            await self._ensure_initialized()
+            
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    # 基本統計
+                    await cursor.execute("""
+                        SELECT 
+                            COUNT(*) as total_tickets,
+                            AVG(CASE 
+                                WHEN closed_at IS NOT NULL AND created_at IS NOT NULL 
+                                THEN TIMESTAMPDIFF(MINUTE, created_at, closed_at) 
+                                ELSE NULL 
+                            END) as avg_resolution_time,
+                            COUNT(CASE WHEN status = 'closed' THEN 1 END) as closed_tickets,
+                            COUNT(CASE WHEN status = 'open' THEN 1 END) as open_tickets,
+                            COUNT(CASE WHEN priority = 'high' THEN 1 END) as high_priority,
+                            COUNT(CASE WHEN priority = 'medium' THEN 1 END) as medium_priority,
+                            COUNT(CASE WHEN priority = 'low' THEN 1 END) as low_priority
+                        FROM tickets 
+                        WHERE guild_id = %s 
+                            AND created_at >= DATE_SUB(NOW(), INTERVAL %s DAY)
+                    """, (guild_id, days))
+                    
+                    row = await cursor.fetchone()
+                    
+                    if row:
+                        metrics = {
+                            'total_tickets': row[0],
+                            'avg_resolution_time': float(row[1]) if row[1] else 0.0,
+                            'closed_tickets': row[2],
+                            'open_tickets': row[3],
+                            'resolution_rate': (row[2] / row[0] * 100) if row[0] > 0 else 0,
+                            'priority_distribution': {
+                                'high': row[4],
+                                'medium': row[5], 
+                                'low': row[6]
+                            }
+                        }
+                        
+                        return metrics
+                    else:
+                        return {
+                            'total_tickets': 0,
+                            'avg_resolution_time': 0.0,
+                            'closed_tickets': 0,
+                            'open_tickets': 0,
+                            'resolution_rate': 0,
+                            'priority_distribution': {'high': 0, 'medium': 0, 'low': 0}
+                        }
+                        
+        except Exception as e:
+            logger.error(f"獲取票券性能指標失敗: {e}")
+            return {}

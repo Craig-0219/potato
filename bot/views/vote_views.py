@@ -2,7 +2,7 @@
 
 import discord
 from discord.utils import MISSING
-from bot.utils.debug import debug_log
+from shared.logger import logger
 
 # ✅ 投票主互動 UI
 class VoteButtonView(discord.ui.View):
@@ -89,7 +89,7 @@ class MultiChoiceSelect(discord.ui.Select):
             f"✅ 你已選擇：{', '.join(self.values)}，請點擊下方確認送出。",
             ephemeral=True
         )
-        debug_log(f"[Vote] 使用者選擇：{self.values}")
+        logger.debug(f"[Vote] 使用者選擇：{self.values}")
 
     def _check_permission(self, interaction):
         return not self.allowed_roles or any(role.id in self.allowed_roles for role in interaction.user.roles)
@@ -104,7 +104,7 @@ class ClearSelectionButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         self.view.selection = []
         await interaction.response.send_message("✅ 已清除你所有的選擇，請重新選擇。", ephemeral=True)
-        debug_log("[Vote] 使用者清除了所有選擇")
+        logger.debug("[Vote] 使用者清除了所有選擇")
 
 
 # ✅ 多選：確認送出按鈕

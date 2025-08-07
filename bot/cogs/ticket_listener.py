@@ -6,12 +6,13 @@ from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any
 import asyncio
 import re
+import aiomysql
 
 from bot.db.ticket_dao import TicketDAO
 from bot.services.ticket_manager import TicketManager
 from bot.utils.ticket_utils import is_ticket_channel, TicketPermissionChecker
 from bot.utils.ticket_constants import get_priority_emoji, ERROR_MESSAGES
-from bot.utils.debug import debug_log
+from shared.logger import logger
 from bot.utils.helper import format_duration
 
 
@@ -91,7 +92,7 @@ class TicketListener(commands.Cog):
             await self._analyze_message_content(message, ticket_info)
             
         except Exception as e:
-            debug_log(f"[TicketListener] on_message 錯誤：{e}")
+            logger.debug(f"[TicketListener] on_message 錯誤：{e}")
 
     async def _handle_user_message(self, message: discord.Message, ticket_info: Dict):
         """處理用戶訊息 - 增強版"""
@@ -106,7 +107,7 @@ class TicketListener(commands.Cog):
                 )
 
                 if auto_reply_triggered:
-                    debug_log(
+                    logger.debug(
                         f"[TicketListener] 票券 #{ticket_info['ticket_id']:04d} 觸發自動回覆"
                     )
             
@@ -117,7 +118,7 @@ class TicketListener(commands.Cog):
             await self._check_priority_escalation(message, ticket_info)
             
         except Exception as e:
-            debug_log(f"[TicketListener] 處理用戶訊息錯誤：{e}")
+            logger.debug(f"[TicketListener] 處理用戶訊息錯誤：{e}")
 
     async def _handle_staff_message(self, message: discord.Message, ticket_info: Dict):
         """處理客服訊息 - 增強版"""
@@ -151,7 +152,7 @@ class TicketListener(commands.Cog):
             await self._detect_template_usage(message, ticket_info)
             
         except Exception as e:
-            debug_log(f"[TicketListener] 處理客服訊息錯誤：{e}")
+            logger.debug(f"[TicketListener] 處理客服訊息錯誤：{e}")
 
     async def _should_trigger_auto_reply(self, message: discord.Message, ticket_info: Dict) -> bool:
         """檢查是否應該觸發自動回覆"""
@@ -195,7 +196,7 @@ class TicketListener(commands.Cog):
                     )
                     await message.channel.send(embed=embed)
                     
-                    debug_log(f"[TicketListener] 票券 #{ticket_info['ticket_id']:04d} 因關鍵字自動升級優先級")
+                    logger.debug(f"[TicketListener] 票券 #{ticket_info['ticket_id']:04d} 因關鍵字自動升級優先級")
                 
                 break
 
@@ -266,7 +267,7 @@ class TicketListener(commands.Cog):
                     await log_channel.send(embed=embed)
             
         except Exception as e:
-            debug_log(f"[TicketListener] 發送 SLA 通知錯誤：{e}")
+            logger.debug(f"[TicketListener] 發送 SLA 通知錯誤：{e}")
 
     async def _auto_assign_responding_staff(self, message: discord.Message, ticket_info: Dict):
         """自動指派回應的客服"""
@@ -285,10 +286,10 @@ class TicketListener(commands.Cog):
                 )
                 await message.channel.send(embed=embed)
                 
-                debug_log(f"[TicketListener] 票券 #{ticket_info['ticket_id']:04d} 自動指派給 {message.author.id}")
+                logger.debug(f"[TicketListener] 票券 #{ticket_info['ticket_id']:04d} 自動指派給 {message.author.id}")
             
         except Exception as e:
-            debug_log(f"[TicketListener] 自動指派錯誤：{e}")
+            logger.debug(f"[TicketListener] 自動指派錯誤：{e}")
 
     async def _detect_template_usage(self, message: discord.Message, ticket_info: Dict):
         """檢測模板使用"""
@@ -304,7 +305,7 @@ class TicketListener(commands.Cog):
         for indicator in template_indicators:
             if indicator in content:
                 # 記錄模板使用（可用於統計）
-                debug_log(f"[TicketListener] 檢測到可能的模板使用：{indicator}")
+                logger.debug(f"[TicketListener] 檢測到可能的模板使用：{indicator}")
                 break
 
     async def _analyze_message_content(self, message: discord.Message, ticket_info: Dict):
@@ -330,7 +331,7 @@ class TicketListener(commands.Cog):
             await self._detect_repetitive_issues(message, ticket_info)
             
         except Exception as e:
-            debug_log(f"[TicketListener] 內容分析錯誤：{e}")
+            logger.debug(f"[TicketListener] 內容分析錯誤：{e}")
 
     async def _flag_negative_sentiment(self, message: discord.Message, ticket_info: Dict, score: int):
         """標記負面情感"""
@@ -363,7 +364,7 @@ class TicketListener(commands.Cog):
                     await log_channel.send(embed=embed)
             
         except Exception as e:
-            debug_log(f"[TicketListener] 標記負面情感錯誤：{e}")
+            logger.debug(f"[TicketListener] 標記負面情感錯誤：{e}")
 
     async def _detect_repetitive_issues(self, message: discord.Message, ticket_info: Dict):
         """檢測重複問題"""
@@ -442,7 +443,7 @@ class TicketListener(commands.Cog):
                     "頻道被刪除"
                 )
                 
-                debug_log(f"[TicketListener] 票券 #{ticket_info['ticket_id']:04d} 因頻道刪除而自動關閉")
+                logger.debug(f"[TicketListener] 票券 #{ticket_info['ticket_id']:04d} 因頻道刪除而自動關閉")
                 
                 # 通知用戶
                 if self.notification_service:
@@ -462,7 +463,7 @@ class TicketListener(commands.Cog):
                 await self._log_channel_deletion(channel, ticket_info)
                 
         except Exception as e:
-            debug_log(f"[TicketListener] 處理頻道刪除錯誤：{e}")
+            logger.debug(f"[TicketListener] 處理頻道刪除錯誤：{e}")
 
     async def _log_channel_deletion(self, channel: discord.TextChannel, ticket_info: Dict):
         """記錄頻道刪除事件"""
@@ -495,7 +496,7 @@ class TicketListener(commands.Cog):
             await log_channel.send(embed=embed)
             
         except Exception as e:
-            debug_log(f"[TicketListener] 記錄頻道刪除錯誤：{e}")
+            logger.debug(f"[TicketListener] 記錄頻道刪除錯誤：{e}")
 
     # ===== 成員事件監聽 =====
 
@@ -540,7 +541,7 @@ class TicketListener(commands.Cog):
                     except discord.NotFound:
                         pass  # 頻道已被刪除
                     except discord.Forbidden:
-                        debug_log(f"[TicketListener] 沒有權限刪除頻道：{channel.name}")
+                        logger.debug(f"[TicketListener] 沒有權限刪除頻道：{channel.name}")
             
             # 記錄到日誌
             if tickets:
@@ -550,7 +551,7 @@ class TicketListener(commands.Cog):
             self._cleanup_user_cache(member.id, member.guild.id)
                 
         except Exception as e:
-            debug_log(f"[TicketListener] 處理成員離開錯誤：{e}")
+            logger.debug(f"[TicketListener] 處理成員離開錯誤：{e}")
 
     async def _log_member_departure(self, member: discord.Member, tickets: List[Dict]):
         """記錄成員離開事件"""
@@ -587,7 +588,7 @@ class TicketListener(commands.Cog):
             await log_channel.send(embed=embed)
             
         except Exception as e:
-            debug_log(f"[TicketListener] 記錄成員離開錯誤：{e}")
+            logger.debug(f"[TicketListener] 記錄成員離開錯誤：{e}")
 
     def _cleanup_user_cache(self, user_id: int, guild_id: int):
         """清理用戶相關快取"""
@@ -649,7 +650,7 @@ class TicketListener(commands.Cog):
             self._update_staff_status(after, has_support_role)
                 
         except Exception as e:
-            debug_log(f"[TicketListener] 處理身分組變更錯誤：{e}")
+            logger.debug(f"[TicketListener] 處理身分組變更錯誤：{e}")
 
     async def _handle_status_change(self, before: discord.Member, after: discord.Member):
         """處理狀態變更"""
@@ -672,7 +673,7 @@ class TicketListener(commands.Cog):
                 await self._notify_staff_of_pending_tickets(after)
             
         except Exception as e:
-            debug_log(f"[TicketListener] 處理狀態更新錯誤：{e}")
+            logger.debug(f"[TicketListener] 處理狀態更新錯誤：{e}")
 
     async def _handle_staff_role_removed(self, member: discord.Member):
         """處理客服身分組被移除"""
@@ -715,10 +716,10 @@ class TicketListener(commands.Cog):
                     )
                     await channel.send(embed=embed)
             
-            debug_log(f"[TicketListener] 已處理 {member.display_name} 失去客服權限的 {len(assigned_tickets)} 張票券")
+            logger.debug(f"[TicketListener] 已處理 {member.display_name} 失去客服權限的 {len(assigned_tickets)} 張票券")
             
         except Exception as e:
-            debug_log(f"[TicketListener] 處理客服身分組移除錯誤：{e}")
+            logger.debug(f"[TicketListener] 處理客服身分組移除錯誤：{e}")
 
     async def _handle_staff_role_added(self, member: discord.Member):
         """處理客服身分組被添加"""
@@ -753,10 +754,10 @@ class TicketListener(commands.Cog):
             # 更新客服統計
             self._update_staff_status(member, True)
             
-            debug_log(f"[TicketListener] {member.display_name} 獲得客服權限")
+            logger.debug(f"[TicketListener] {member.display_name} 獲得客服權限")
             
         except Exception as e:
-            debug_log(f"[TicketListener] 處理客服身分組添加錯誤：{e}")
+            logger.debug(f"[TicketListener] 處理客服身分組添加錯誤：{e}")
 
     def _update_staff_status(self, member: discord.Member, is_staff: bool):
         """更新客服狀態追蹤"""
@@ -805,7 +806,7 @@ class TicketListener(commands.Cog):
         except discord.Forbidden:
             pass  # 無法發送私訊
         except Exception as e:
-            debug_log(f"[TicketListener] 通知待處理票券錯誤：{e}")
+            logger.debug(f"[TicketListener] 通知待處理票券錯誤：{e}")
 
     # ===== 背景任務 =====
 
@@ -843,10 +844,10 @@ class TicketListener(commands.Cog):
                 if (current_time - v).total_seconds() < 300  # 5分鐘
             }
             
-            debug_log(f"[TicketListener] 清理任務完成 - 清理了 {len(expired_keys)} 個快取項目")
+            logger.debug(f"[TicketListener] 清理任務完成 - 清理了 {len(expired_keys)} 個快取項目")
             
         except Exception as e:
-            debug_log(f"[TicketListener] 清理任務錯誤：{e}")
+            logger.debug(f"[TicketListener] 清理任務錯誤：{e}")
 
     @tasks.loop(minutes=30)
     async def activity_tracker(self):
@@ -865,10 +866,10 @@ class TicketListener(commands.Cog):
                 if status.get('is_online', False)
             )
             
-            debug_log(f"[TicketListener] 活動統計 - 活躍用戶: {active_users}, 在線客服: {online_staff}")
+            logger.debug(f"[TicketListener] 活動統計 - 活躍用戶: {active_users}, 在線客服: {online_staff}")
             
         except Exception as e:
-            debug_log(f"[TicketListener] 活動追蹤錯誤：{e}")
+            logger.debug(f"[TicketListener] 活動追蹤錯誤：{e}")
 
     @cleanup_task.before_loop
     async def before_cleanup(self):
@@ -883,7 +884,7 @@ class TicketListener(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         """系統準備完成"""
-        debug_log("[TicketListener] 票券系統監聽器已啟動")
+        logger.debug("[TicketListener] 票券系統監聽器已啟動")
         
         # 啟動服務協調器
         #await self.service_coordinator.start_services()
@@ -905,10 +906,10 @@ class TicketListener(commands.Cog):
                             if not member.bot:
                                 self._update_staff_status(member, True)
             
-            debug_log(f"[TicketListener] 已初始化 {len(self.staff_online_status)} 個客服狀態追蹤")
+            logger.debug(f"[TicketListener] 已初始化 {len(self.staff_online_status)} 個客服狀態追蹤")
             
         except Exception as e:
-            debug_log(f"[TicketListener] 初始化客服追蹤錯誤：{e}")
+            logger.debug(f"[TicketListener] 初始化客服追蹤錯誤：{e}")
 
     # ===== 輔助方法 =====
 
@@ -965,7 +966,7 @@ class TicketMaintenanceListener(commands.Cog):
     async def maintenance_task(self):
         """定期維護任務"""
         try:
-            debug_log("[TicketMaintenance] 開始執行維護任務")
+            logger.debug("[TicketMaintenance] 開始執行維護任務")
             
             # 清理過期的統計快取
             await self._cleanup_statistics_cache()
@@ -973,16 +974,16 @@ class TicketMaintenanceListener(commands.Cog):
             # 清理舊的票券查看記錄
             await self._cleanup_old_ticket_views()
             
-            # 清理舊的自動回覆日誌
-            await self._cleanup_auto_reply_logs()
+            # 清理舊的自動回覆日誌 (暫時停用 - 表格不存在)
+            # await self._cleanup_auto_reply_logs()
             
             # 更新票券統計
             await self._update_ticket_statistics()
             
-            debug_log("[TicketMaintenance] 維護任務完成")
+            logger.debug("[TicketMaintenance] 維護任務完成")
             
         except Exception as e:
-            debug_log(f"[TicketMaintenance] 維護任務錯誤：{e}")
+            logger.debug(f"[TicketMaintenance] 維護任務錯誤：{e}")
 
     @tasks.loop(minutes=15)
     async def health_check_task(self):
@@ -995,7 +996,7 @@ class TicketMaintenanceListener(commands.Cog):
             await self._check_services_health()
             
         except Exception as e:
-            debug_log(f"[TicketMaintenance] 健康檢查錯誤：{e}")
+            logger.debug(f"[TicketMaintenance] 健康檢查錯誤：{e}")
 
     async def _cleanup_statistics_cache(self):
         """清理統計快取"""
@@ -1008,10 +1009,10 @@ class TicketMaintenanceListener(commands.Cog):
                     await conn.commit()
                     
                     if cursor.rowcount > 0:
-                        debug_log(f"[TicketMaintenance] 清理了 {cursor.rowcount} 個過期統計快取")
+                        logger.debug(f"[TicketMaintenance] 清理了 {cursor.rowcount} 個過期統計快取")
                         
         except Exception as e:
-            debug_log(f"[TicketMaintenance] 清理統計快取錯誤：{e}")
+            logger.debug(f"[TicketMaintenance] 清理統計快取錯誤：{e}")
 
     async def _cleanup_old_ticket_views(self):
         """清理舊的票券查看記錄"""
@@ -1028,10 +1029,10 @@ class TicketMaintenanceListener(commands.Cog):
                     await conn.commit()
                     
                     if cursor.rowcount > 0:
-                        debug_log(f"[TicketMaintenance] 清理了 {cursor.rowcount} 個舊票券查看記錄")
+                        logger.debug(f"[TicketMaintenance] 清理了 {cursor.rowcount} 個舊票券查看記錄")
                         
         except Exception as e:
-            debug_log(f"[TicketMaintenance] 清理票券查看記錄錯誤：{e}")
+            logger.debug(f"[TicketMaintenance] 清理票券查看記錄錯誤：{e}")
 
     async def _cleanup_auto_reply_logs(self):
         """清理自動回覆日誌"""
@@ -1048,10 +1049,10 @@ class TicketMaintenanceListener(commands.Cog):
                     await conn.commit()
                     
                     if cursor.rowcount > 0:
-                        debug_log(f"[TicketMaintenance] 清理了 {cursor.rowcount} 個舊自動回覆日誌")
+                        logger.debug(f"[TicketMaintenance] 清理了 {cursor.rowcount} 個舊自動回覆日誌")
                         
         except Exception as e:
-            debug_log(f"[TicketMaintenance] 清理自動回覆日誌錯誤：{e}")
+            logger.debug(f"[TicketMaintenance] 清理自動回覆日誌錯誤：{e}")
 
     async def _update_ticket_statistics(self):
         """更新票券統計"""
@@ -1068,10 +1069,10 @@ class TicketMaintenanceListener(commands.Cog):
                     # 可以在這裡添加更多統計更新邏輯
                     
                 except Exception as e:
-                    debug_log(f"[TicketMaintenance] 更新伺服器 {guild.id} 統計錯誤：{e}")
+                    logger.debug(f"[TicketMaintenance] 更新伺服器 {guild.id} 統計錯誤：{e}")
                     
         except Exception as e:
-            debug_log(f"[TicketMaintenance] 更新統計錯誤：{e}")
+            logger.debug(f"[TicketMaintenance] 更新統計錯誤：{e}")
 
     async def _check_database_health(self):
         """檢查資料庫健康狀態"""
@@ -1083,25 +1084,26 @@ class TicketMaintenanceListener(commands.Cog):
                     result = await cursor.fetchone()
                     
                     if not result or result[0] != 1:
-                        debug_log("[TicketMaintenance] 資料庫健康檢查失敗")
+                        logger.debug("[TicketMaintenance] 資料庫健康檢查失敗")
                         
         except Exception as e:
-            debug_log(f"[TicketMaintenance] 資料庫健康檢查錯誤：{e}")
+            logger.debug(f"[TicketMaintenance] 資料庫健康檢查錯誤：{e}")
 
     async def _check_services_health(self):
         """檢查服務健康狀態"""
         try:
-            # 檢查各個服務的健康狀態
-            from bot.services.ticket_manager import TicketServiceCoordinator
+            # 檢查資料庫健康狀態
+            from bot.db.database_manager import get_database_health
             
-            coordinator = TicketServiceCoordinator()
-            health_status = await coordinator.health_check()
+            health_status = await get_database_health()
             
-            if health_status['overall'] != 'healthy':
-                debug_log(f"[TicketMaintenance] 服務健康狀態警告：{health_status}")
+            if health_status.get('status') != 'healthy':
+                logger.debug(f"[TicketMaintenance] 服務健康狀態警告：{health_status}")
+            else:
+                logger.debug("[TicketMaintenance] 服務健康狀態正常")
                 
         except Exception as e:
-            debug_log(f"[TicketMaintenance] 服務健康檢查錯誤：{e}")
+            logger.debug(f"[TicketMaintenance] 服務健康檢查錯誤：{e}")
 
     @maintenance_task.before_loop
     async def before_maintenance(self):
@@ -1159,10 +1161,10 @@ class TicketAnalyticsListener(commands.Cog):
             for key in keys_to_remove:
                 self.peak_hours_data.pop(key, None)
             
-            debug_log(f"[TicketAnalytics] 收集了 {len(self.bot.guilds)} 個伺服器的分析數據")
+            logger.debug(f"[TicketAnalytics] 收集了 {len(self.bot.guilds)} 個伺服器的分析數據")
             
         except Exception as e:
-            debug_log(f"[TicketAnalytics] 分析任務錯誤：{e}")
+            logger.debug(f"[TicketAnalytics] 分析任務錯誤：{e}")
 
     async def _collect_hourly_data(self, guild_id: int, hour: int) -> Dict[str, Any]:
         """收集每小時數據"""
@@ -1172,7 +1174,7 @@ class TicketAnalyticsListener(commands.Cog):
             hour_start = current_time.replace(minute=0, second=0, microsecond=0)
             
             async with self.dao.db_pool.connection() as conn:
-                async with conn.cursor(dictionary=True) as cursor:
+                async with conn.cursor(aiomysql.DictCursor) as cursor:
                     # 本小時建立的票券
                     await cursor.execute(
                         """
@@ -1201,7 +1203,7 @@ class TicketAnalyticsListener(commands.Cog):
             }
             
         except Exception as e:
-            debug_log(f"[TicketAnalytics] 收集數據錯誤：{e}")
+            logger.debug(f"[TicketAnalytics] 收集數據錯誤：{e}")
             return {'hour': hour, 'created_tickets': 0, 'closed_tickets': 0, 'high_priority_rate': 0}
 
     @analytics_task.before_loop
@@ -1239,7 +1241,7 @@ async def setup(bot):
     await bot.add_cog(TicketListener(bot))
     await bot.add_cog(TicketMaintenanceListener(bot))
     await bot.add_cog(TicketAnalyticsListener(bot))
-    debug_log("✅ 票券系統監聽器已載入")
+    logger.debug("✅ 票券系統監聽器已載入")
 
 
 # ===== 匯出 =====

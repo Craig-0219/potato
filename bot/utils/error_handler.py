@@ -41,13 +41,19 @@ class GlobalErrorHandler:
         error_type = type(error).__name__
         self._log_error(error_type, error, ctx)
         
-        # 如果已經回應過，不要重複回應
-        if ctx.response and ctx.response.is_done():
+        # 如果是互動，檢查是否已經回應過
+        if hasattr(ctx, 'interaction') and ctx.interaction and hasattr(ctx.interaction, 'response') and ctx.interaction.response.is_done():
             return
             
         try:
             if isinstance(error, commands.CommandNotFound):
-                # 命令不存在，靜默處理
+                # 檢查是否是票券相關指令的常見錯誤
+                if ctx.message and ctx.message.content:
+                    content = ctx.message.content.lower()
+                    if any(keyword in content for keyword in ['set_ticket_category', 'ticket', 'category']):
+                        await self._handle_ticket_command_help(ctx, content)
+                        return
+                # 其他命令不存在，靜默處理
                 return
                 
             elif isinstance(error, commands.MissingPermissions):
@@ -55,42 +61,42 @@ class GlobalErrorHandler:
                     "權限不足",
                     f"❌ 你需要以下權限才能使用此命令：\n`{', '.join(error.missing_permissions)}`"
                 )
-                await ctx.send(embed=embed, ephemeral=True)
+                await ctx.send(embed=embed)
                 
             elif isinstance(error, commands.MissingRequiredArgument):
                 embed = self._create_error_embed(
                     "參數缺失",
                     f"❌ 缺少必要參數：`{error.param.name}`\n\n使用 `{ctx.prefix}help {ctx.command.name}` 查看正確用法"
                 )
-                await ctx.send(embed=embed, ephemeral=True)
+                await ctx.send(embed=embed)
                 
             elif isinstance(error, commands.BadArgument):
                 embed = self._create_error_embed(
                     "參數錯誤",
                     f"❌ 參數格式錯誤：{str(error)}"
                 )
-                await ctx.send(embed=embed, ephemeral=True)
+                await ctx.send(embed=embed)
                 
             elif isinstance(error, commands.CommandOnCooldown):
                 embed = self._create_error_embed(
                     "命令冷卻中",
                     f"⏰ 命令冷卻中，請在 {error.retry_after:.1f} 秒後重試"
                 )
-                await ctx.send(embed=embed, ephemeral=True)
+                await ctx.send(embed=embed)
                 
             elif isinstance(error, commands.BotMissingPermissions):
                 embed = self._create_error_embed(
                     "機器人權限不足",
                     f"❌ 機器人缺少以下權限：\n`{', '.join(error.missing_permissions)}`\n\n請聯繫伺服器管理員"
                 )
-                await ctx.send(embed=embed, ephemeral=True)
+                await ctx.send(embed=embed)
                 
             elif isinstance(error, commands.NotOwner):
                 embed = self._create_error_embed(
                     "權限不足",
                     "❌ 此命令只有機器人擁有者可以使用"
                 )
-                await ctx.send(embed=embed, ephemeral=True)
+                await ctx.send(embed=embed)
                 
             else:
                 # 未知錯誤
@@ -99,7 +105,7 @@ class GlobalErrorHandler:
                     "系統錯誤",
                     f"❌ 執行命令時發生錯誤\n\n錯誤ID：`{error_id}`\n如問題持續，請聯繫管理員"
                 )
-                await ctx.send(embed=embed, ephemeral=True)
+                await ctx.send(embed=embed)
                 
                 # 記錄詳細錯誤
                 logger.error(f"命令錯誤 [{error_id}] - {ctx.command.name}: {error}")
@@ -192,6 +198,39 @@ class GlobalErrorHandler:
         except Exception as e:
             logger.error(f"處理 View 錯誤時發生錯誤：{e}")
     
+    async def _handle_ticket_command_help(self, ctx: commands.Context, content: str):
+        """處理票券指令錯誤並提供幫助"""
+        embed = discord.Embed(
+            title="❓ 票券指令使用說明",
+            description="看起來您在使用票券指令時遇到了問題，以下是正確的使用方式：",
+            color=0x3498db,
+            timestamp=datetime.now(timezone.utc)
+        )
+        
+        if 'set_ticket_category' in content:
+            embed.add_field(
+                name="🎯 設定票券分類頻道",
+                value="```\n!set_ticket_category #分類頻道名稱\n```\n**注意：指令和頻道之間要有空格**",
+                inline=False
+            )
+            embed.add_field(
+                name="📋 範例",
+                value="`!set_ticket_category #客服中心`\n`!set_category 票券系統`",
+                inline=False
+            )
+        else:
+            embed.add_field(
+                name="🎫 常用票券指令",
+                value="`!setup_ticket` - 建立票券面板\n"
+                      "`!set_ticket_category #頻道` - 設定分類\n"
+                      "`!ticket_settings` - 查看設定\n"
+                      "`!ticket_test` - 測試系統",
+                inline=False
+            )
+        
+        embed.set_footer(text="💡 確保指令和參數之間有空格")
+        await ctx.send(embed=embed)
+
     def _create_error_embed(self, title: str, description: str) -> discord.Embed:
         """創建錯誤嵌入"""
         embed = discord.Embed(

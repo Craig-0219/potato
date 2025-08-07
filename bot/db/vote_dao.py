@@ -8,7 +8,58 @@ from bot.db.pool import db_pool
 from datetime import datetime, timedelta, timezone
 import json
 import aiomysql
+from typing import Dict, List, Optional, Any
 from shared.logger import logger
+
+
+class VoteDAO:
+    """投票系統資料存取層"""
+    
+    def __init__(self):
+        self.db = db_pool
+    
+    async def get_votes_by_date_range(self, guild_id: int, start_date: datetime, end_date: datetime) -> List[Dict[str, Any]]:
+        """取得指定日期範圍內的投票"""
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    await cursor.execute("""
+                        SELECT id, title, is_multi, anonymous, creator_id, 
+                               start_time, end_time, channel_id,
+                               (SELECT COUNT(*) FROM vote_responses vr WHERE vr.vote_id = v.id) as total_votes
+                        FROM votes v
+                        WHERE guild_id = %s AND start_time BETWEEN %s AND %s
+                        ORDER BY start_time DESC
+                    """, (guild_id, start_date, end_date))
+                    
+                    rows = await cursor.fetchall()
+                    votes = []
+                    
+                    for row in rows:
+                        # 取得選項數量
+                        await cursor.execute("SELECT COUNT(*) FROM vote_options WHERE vote_id = %s", (row[0],))
+                        options_count = (await cursor.fetchone())[0]
+                        
+                        vote = {
+                            'id': row[0],
+                            'title': row[1],
+                            'is_multi': bool(row[2]),
+                            'anonymous': bool(row[3]),
+                            'creator_id': row[4],
+                            'start_time': row[5],
+                            'end_time': row[6],
+                            'ended_at': row[6] if row[6] and row[6] < datetime.now(timezone.utc) else None,
+                            'channel_id': row[7],
+                            'total_votes': row[8],
+                            'options': {'count': options_count}
+                        }
+                        votes.append(vote)
+                    
+                    return votes
+                    
+        except Exception as e:
+            logger.error(f"取得投票列表錯誤: {e}")
+            return []
 
 # ===== 核心投票操作 =====
 
@@ -449,3 +500,130 @@ async def search_votes(keyword: str, limit: int = 20):
     except Exception as e:
         logger.error(f"search_votes 錯誤: {e}")
         return []
+
+# ===== 投票系統設定管理 =====
+
+async def get_vote_settings(guild_id: int):
+    """取得投票系統設定"""
+    try:
+        async with db_pool.connection() as conn:
+            async with conn.cursor(aiomysql.DictCursor) as cur:
+                await cur.execute("""
+                    SELECT * FROM vote_settings WHERE guild_id = %s
+                """, (guild_id,))
+                
+                result = await cur.fetchone()
+                if result:
+                    # 處理JSON欄位
+                    if result['allowed_creator_roles']:
+                        result['allowed_creator_roles'] = json.loads(result['allowed_creator_roles'])
+                    else:
+                        result['allowed_creator_roles'] = []
+                
+                return result
+                
+    except Exception as e:
+        logger.error(f"get_vote_settings({guild_id}) 錯誤: {e}")
+        return None
+
+async def update_vote_settings(guild_id: int, settings: dict):
+    """更新投票系統設定"""
+    try:
+        async with db_pool.connection() as conn:
+            async with conn.cursor() as cur:
+                # 處理JSON欄位
+                allowed_roles_json = json.dumps(settings.get('allowed_creator_roles', [])) if settings.get('allowed_creator_roles') else None
+                
+                await cur.execute("""
+                    INSERT INTO vote_settings (
+                        guild_id, default_vote_channel_id, announcement_channel_id,
+                        max_vote_duration_hours, min_vote_duration_minutes,
+                        require_role_to_create, allowed_creator_roles,
+                        auto_announce_results, allow_anonymous_votes,
+                        allow_multi_choice, is_enabled
+                    ) VALUES (
+                        %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                    ) ON DUPLICATE KEY UPDATE
+                        default_vote_channel_id = VALUES(default_vote_channel_id),
+                        announcement_channel_id = VALUES(announcement_channel_id),
+                        max_vote_duration_hours = VALUES(max_vote_duration_hours),
+                        min_vote_duration_minutes = VALUES(min_vote_duration_minutes),
+                        require_role_to_create = VALUES(require_role_to_create),
+                        allowed_creator_roles = VALUES(allowed_creator_roles),
+                        auto_announce_results = VALUES(auto_announce_results),
+                        allow_anonymous_votes = VALUES(allow_anonymous_votes),
+                        allow_multi_choice = VALUES(allow_multi_choice),
+                        is_enabled = VALUES(is_enabled),
+                        updated_at = CURRENT_TIMESTAMP
+                """, (
+                    guild_id,
+                    settings.get('default_vote_channel_id'),
+                    settings.get('announcement_channel_id'),
+                    settings.get('max_vote_duration_hours', 72),
+                    settings.get('min_vote_duration_minutes', 60),
+                    settings.get('require_role_to_create', False),
+                    allowed_roles_json,
+                    settings.get('auto_announce_results', True),
+                    settings.get('allow_anonymous_votes', True),
+                    settings.get('allow_multi_choice', True),
+                    settings.get('is_enabled', True)
+                ))
+                
+                await conn.commit()
+                logger.info(f"投票系統設定已更新 (guild_id: {guild_id})")
+                return True
+                
+    except Exception as e:
+        logger.error(f"update_vote_settings({guild_id}) 錯誤: {e}")
+        return False
+
+async def set_default_vote_channel(guild_id: int, channel_id: int):
+    """設定預設投票頻道"""
+    try:
+        async with db_pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("""
+                    INSERT INTO vote_settings (guild_id, default_vote_channel_id, is_enabled)
+                    VALUES (%s, %s, TRUE)
+                    ON DUPLICATE KEY UPDATE
+                        default_vote_channel_id = VALUES(default_vote_channel_id),
+                        updated_at = CURRENT_TIMESTAMP
+                """, (guild_id, channel_id))
+                
+                await conn.commit()
+                logger.info(f"預設投票頻道已設定: {channel_id} (guild_id: {guild_id})")
+                return True
+                
+    except Exception as e:
+        logger.error(f"set_default_vote_channel({guild_id}, {channel_id}) 錯誤: {e}")
+        return False
+
+async def set_announcement_channel(guild_id: int, channel_id: int):
+    """設定投票結果公告頻道"""
+    try:
+        async with db_pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("""
+                    INSERT INTO vote_settings (guild_id, announcement_channel_id, is_enabled)
+                    VALUES (%s, %s, TRUE)
+                    ON DUPLICATE KEY UPDATE
+                        announcement_channel_id = VALUES(announcement_channel_id),
+                        updated_at = CURRENT_TIMESTAMP
+                """, (guild_id, channel_id))
+                
+                await conn.commit()
+                logger.info(f"投票結果公告頻道已設定: {channel_id} (guild_id: {guild_id})")
+                return True
+                
+    except Exception as e:
+        logger.error(f"set_announcement_channel({guild_id}, {channel_id}) 錯誤: {e}")
+        return False
+
+async def is_vote_system_enabled(guild_id: int):
+    """檢查投票系統是否啟用"""
+    try:
+        settings = await get_vote_settings(guild_id)
+        return settings and settings.get('is_enabled', True)
+    except Exception as e:
+        logger.error(f"is_vote_system_enabled({guild_id}) 錯誤: {e}")
+        return True  # 預設啟用

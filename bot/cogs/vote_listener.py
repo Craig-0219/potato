@@ -7,7 +7,7 @@ from bot.views.vote_views import (
     RoleSelectView, AnonSelectView, DurationSelectView,
     FinalStepView, MultiSelectView
 )
-from bot.utils.debug import debug_log
+from shared.logger import logger
 
 class VoteListener(commands.Cog):
     def __init__(self, bot):
@@ -27,7 +27,7 @@ class VoteListener(commands.Cog):
             return
 
         session = sessions[user_id]
-        debug_log(f"[Listener] 接收到訊息：{message.content}")
+        logger.debug(f"[Listener] 接收到訊息：{message.content}")
 
         # Step 1 - 輸入標題
         if 'title' not in session:
@@ -37,7 +37,7 @@ class VoteListener(commands.Cog):
                 await message.delete()
             except discord.Forbidden:
                 pass
-            debug_log(f"[Listener] 設定標題：{session['title']}")
+            logger.debug(f"[Listener] 設定標題：{session['title']}")
             return
 
         # Step 2 - 輸入選項
@@ -56,7 +56,7 @@ class VoteListener(commands.Cog):
                 await message.delete()
             except discord.Forbidden:
                 pass
-            debug_log(f"[Listener] 設定選項：{session['options']}")
+            logger.debug(f"[Listener] 設定選項：{session['options']}")
             return
 
     @commands.Cog.listener()
@@ -73,7 +73,7 @@ class VoteListener(commands.Cog):
             return
 
         session = sessions[user_id]
-        debug_log(f"[Listener] 處理互動：{interaction.data}")
+        logger.debug(f"[Listener] 處理互動：{interaction.data}")
 
         component_type = interaction.data.get("component_type")
         values = interaction.data.get("values", [])
@@ -83,21 +83,21 @@ class VoteListener(commands.Cog):
         if 'allowed_roles' not in session and component_type == 3 and custom_id.startswith("role_select"):
             session['allowed_roles'] = [int(v) for v in values]
             await interaction.response.send_message("請選擇是否匿名投票：", view=AnonSelectView(user_id), ephemeral=True)
-            debug_log(f"[Listener] 選擇身分組：{session['allowed_roles']}")
+            logger.debug(f"[Listener] 選擇身分組：{session['allowed_roles']}")
             return
 
         # Step 4 - 匿名設定
         if 'anonymous' not in session and component_type == 3 and custom_id.startswith("anon_select"):
             session['anonymous'] = values[0] == 'true'
             await interaction.response.send_message("請選擇投票方式（單選或多選）：", view=MultiSelectView(user_id), ephemeral=True)
-            debug_log(f"[Listener] 匿名設定：{session['anonymous']}")
+            logger.debug(f"[Listener] 匿名設定：{session['anonymous']}")
             return
 
         # Step 5 - 是否多選
         if 'is_multi' not in session and component_type == 3 and custom_id.startswith("multi_select"):
             session['is_multi'] = values[0] == 'true'
             await interaction.response.send_message("請選擇投票時效：", view=DurationSelectView(user_id), ephemeral=True)
-            debug_log(f"[Listener] 是否為多選：{session['is_multi']}")
+            logger.debug(f"[Listener] 是否為多選：{session['is_multi']}")
             return
 
         # Step 6 - 時效設定
@@ -110,7 +110,7 @@ class VoteListener(commands.Cog):
                 view=FinalStepView(user_id, cog.finalize_vote),
                 ephemeral=True
             )
-            debug_log(f"[Listener] 時效設定完成：{session['end_time']}")
+            logger.debug(f"[Listener] 時效設定完成：{session['end_time']}")
             return
 
         # Step 7 - 建立投票（按鈕確認）
@@ -118,7 +118,7 @@ class VoteListener(commands.Cog):
             await interaction.response.defer(ephemeral=True)
             await cog.finalize_vote(user_id, interaction.guild)
             await interaction.followup.send("🎉 投票已建立完成！", ephemeral=True)
-            debug_log(f"[Listener] 透過 listener 建立投票完成")
+            logger.debug(f"[Listener] 透過 listener 建立投票完成")
             return
 
 async def setup(bot):
