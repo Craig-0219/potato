@@ -1,0 +1,85 @@
+{
+  "ticket_info": {
+    "id": 7,
+    "username": "雞毛",
+    "type": "技術支援",
+    "status": "closed",
+    "created_at": "2025-08-10 14:00:00",
+    "message_count": 6
+  },
+  "messages": [
+    {
+      "message_id": 1234567890,
+      "author_id": 292993868092276736,
+      "author_name": "雞毛",
+      "content": "你好，我遇到了登入問題",
+      "attachments": [],
+      "message_type": "user",
+      "timestamp": "2025-08-10T14:08:34.608047",
+      "edited_timestamp": null,
+      "reply_to": null
+    },
+    {
+      "message_id": 1234567891,
+      "author_id": 999888777666555,
+      "author_name": "客服小明",
+      "content": "您好！很抱歉聽到您遇到了登入問題。請問具體是什麼情況呢？",
+      "attachments": [],
+      "message_type": "staff",
+      "timestamp": "2025-08-10T14:08:34.608068",
+      "edited_timestamp": null,
+      "reply_to": null
+    },
+    {
+      "message_id": 1234567892,
+      "author_id": 292993868092276736,
+      "author_name": "雞毛",
+      "content": "我輸入帳號密碼後，系統顯示「無效的憑證」",
+      "attachments": [
+        {
+          "filename": "error_screenshot.png",
+          "url": "https://example.com/screenshot.png",
+          "size": 145678,
+          "content_type": "image/png"
+        }
+      ],
+      "message_type": "user",
+      "timestamp": "2025-08-10T14:08:34.608070",
+      "edited_timestamp": null,
+      "reply_to": null
+    },
+    {
+      "message_id": 1234567893,
+      "author_id": 999888777666555,
+      "author_name": "客服小明",
+      "content": "我了解了。請嘗試重設您的密碼，步驟如下：\n1. 點擊登入頁面的「忘記密碼」\n2. 輸入您的註冊郵箱\n3. 檢查郵件並點擊重設連結",
+      "attachments": [],
+      "message_type": "staff",
+      "timestamp": "2025-08-10T14:08:34.608072",
+      "edited_timestamp": null,
+      "reply_to": null
+    },
+    {
+      "message_id": 1234567894,
+      "author_id": 292993868092276736,
+      "author_name": "雞毛",
+      "content": "謝謝！我試試看",
+      "attachments": [],
+      "message_type": "user",
+      "timestamp": "2025-08-10T14:08:34.608073",
+      "edited_timestamp": null,
+      "reply_to": null
+    },
+    {
+      "message_id": 1234567895,
+      "author_id": 292993868092276736,
+      "author_name": "雞毛",
+      "content": "成功了！謝謝你的幫助 😊",
+      "attachments": [],
+      "message_type": "user",
+      "timestamp": "2025-08-10T14:08:34.608074",
+      "edited_timestamp": null,
+      "reply_to": null
+    }
+  ]
+}

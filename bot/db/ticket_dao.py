@@ -8,6 +8,7 @@ from bot.db.pool import db_pool
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Any, Tuple
 import json
+import aiomysql
 from shared.logger import logger
 
 
@@ -231,7 +232,8 @@ class TicketDAO:
     # ===== 修復現有方法的異步問題 =====
     
     async def create_ticket(self, discord_id: str, username: str, ticket_type: str, 
-                           channel_id: int, guild_id: int, priority: str = 'medium') -> Optional[int]:
+                           channel_id: int, guild_id: int, priority: str = 'medium',
+                           title: str = None, description: str = None) -> Optional[int]:
         """建立新票券 - 加強版"""
         await self._ensure_initialized()
         try:
@@ -253,9 +255,9 @@ class TicketDAO:
                     
                     # 建立票券
                     await cursor.execute("""
-                        INSERT INTO tickets (discord_id, username, type, priority, channel_id, guild_id, created_at, last_activity)
-                        VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
-                    """, (discord_id, username, ticket_type, priority, channel_id, guild_id))
+                        INSERT INTO tickets (discord_id, username, type, priority, channel_id, guild_id, title, description, created_at, last_activity)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                    """, (discord_id, username, ticket_type, priority, channel_id, guild_id, title, description))
                     
                     ticket_id = cursor.lastrowid
                     
@@ -407,6 +409,147 @@ class TicketDAO:
             logger.error(f"指派票券錯誤：{e}")
             return False
     
+    async def get_tickets_with_filters(self, filters: Dict[str, Any], limit: int = 20, 
+                                     offset: int = 0, guild_id: int = None) -> List[Dict[str, Any]]:
+        """根據篩選條件獲取票券列表"""
+        try:
+            await self._ensure_initialized()
+            
+            # 構建查詢條件
+            where_conditions = ["1=1"]
+            params = []
+            
+            if guild_id:
+                where_conditions.append("guild_id = %s")
+                params.append(guild_id)
+            
+            if filters.get('status'):
+                where_conditions.append("status = %s")
+                params.append(filters['status'])
+            
+            if filters.get('priority'):
+                where_conditions.append("priority = %s")
+                params.append(filters['priority'])
+            
+            if filters.get('assigned_to'):
+                where_conditions.append("assigned_to = %s")
+                params.append(filters['assigned_to'])
+            
+            if filters.get('discord_id'):
+                where_conditions.append("discord_id = %s")
+                params.append(filters['discord_id'])
+            
+            if filters.get('search'):
+                where_conditions.append("(username LIKE %s OR type LIKE %s)")
+                search_param = f"%{filters['search']}%"
+                params.extend([search_param, search_param])
+            
+            where_clause = " AND ".join(where_conditions)
+            
+            query = f"""
+                SELECT * FROM tickets 
+                WHERE {where_clause}
+                ORDER BY created_at DESC 
+                LIMIT %s OFFSET %s
+            """
+            params.extend([limit, offset])
+            
+            async with self.db.connection() as conn:
+                async with conn.cursor(aiomysql.DictCursor) as cursor:
+                    await cursor.execute(query, params)
+                    return await cursor.fetchall()
+                    
+        except Exception as e:
+            logger.error(f"獲取票券列表失敗: {e}")
+            return []
+    
+    async def count_tickets_with_filters(self, filters: Dict[str, Any], guild_id: int = None) -> int:
+        """統計符合篩選條件的票券數量"""
+        try:
+            await self._ensure_initialized()
+            
+            # 構建查詢條件（與 get_tickets_with_filters 相同）
+            where_conditions = ["1=1"]
+            params = []
+            
+            if guild_id:
+                where_conditions.append("guild_id = %s")
+                params.append(guild_id)
+            
+            if filters.get('status'):
+                where_conditions.append("status = %s")
+                params.append(filters['status'])
+            
+            if filters.get('priority'):
+                where_conditions.append("priority = %s")
+                params.append(filters['priority'])
+            
+            if filters.get('assigned_to'):
+                where_conditions.append("assigned_to = %s")
+                params.append(filters['assigned_to'])
+            
+            if filters.get('discord_id'):
+                where_conditions.append("discord_id = %s")
+                params.append(filters['discord_id'])
+            
+            if filters.get('search'):
+                where_conditions.append("(username LIKE %s OR type LIKE %s)")
+                search_param = f"%{filters['search']}%"
+                params.extend([search_param, search_param])
+            
+            where_clause = " AND ".join(where_conditions)
+            
+            query = f"SELECT COUNT(*) as count FROM tickets WHERE {where_clause}"
+            
+            async with self.db.connection() as conn:
+                async with conn.cursor(aiomysql.DictCursor) as cursor:
+                    await cursor.execute(query, params)
+                    result = await cursor.fetchone()
+                    return result['count'] if result else 0
+                    
+        except Exception as e:
+            logger.error(f"統計票券數量失敗: {e}")
+            return 0
+    
+    async def update_ticket(self, ticket_id: int, update_data: Dict[str, Any]) -> bool:
+        """更新票券資料"""
+        try:
+            await self._ensure_initialized()
+            
+            if not update_data:
+                return True
+            
+            # 構建更新語句
+            set_clauses = []
+            params = []
+            
+            for field, value in update_data.items():
+                if field in ['title', 'description', 'status', 'priority', 'assigned_to', 'assigned_by', 'rating', 'feedback', 'closed_at', 'updated_at']:
+                    set_clauses.append(f"{field} = %s")
+                    params.append(value)
+            
+            if not set_clauses:
+                return True
+            
+            # 總是更新 updated_at
+            if 'updated_at' not in update_data:
+                set_clauses.append("updated_at = %s")
+                params.append(datetime.now(timezone.utc))
+            
+            set_clause = ", ".join(set_clauses)
+            query = f"UPDATE tickets SET {set_clause} WHERE id = %s"
+            params.append(ticket_id)
+            
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    await cursor.execute(query, params)
+                    await conn.commit()
+                    return cursor.rowcount > 0
+                    
+        except Exception as e:
+            logger.error(f"更新票券失敗: {e}")
+            return False
+
     async def update_ticket_priority(self, ticket_id: int, priority: str) -> bool:
         """更新票券優先級 - 修復異步"""
         await self._ensure_initialized()
@@ -753,7 +896,9 @@ class TicketDAO:
         assigned_to: Optional[str] = None,
         page: int = 1,
         page_size: int = 10,
-        unassigned_only: bool = False
+        unassigned_only: bool = False,
+        created_after: Optional[datetime] = None,
+        created_before: Optional[datetime] = None
     ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
         """分頁查詢票券"""
         await self._ensure_initialized()
@@ -763,7 +908,7 @@ class TicketDAO:
             params = [guild_id]
             
             if user_id is not None:
-                conditions.append("user_id = %s")
+                conditions.append("discord_id = %s")
                 params.append(user_id)
             
             if status is not None:
@@ -776,6 +921,14 @@ class TicketDAO:
             
             if unassigned_only:
                 conditions.append("assigned_to IS NULL")
+            
+            if created_after is not None:
+                conditions.append("created_at >= %s")
+                params.append(created_after)
+            
+            if created_before is not None:
+                conditions.append("created_at <= %s")
+                params.append(created_before)
             
             where_clause = " AND ".join(conditions)
             
@@ -798,22 +951,22 @@ class TicketDAO:
                         SELECT 
                             id,
                             guild_id,
-                            user_id,
+                            discord_id,
                             username,
                             channel_id,
-                            category_id,
+                            NULL as category_id,
                             status,
-                            subject,
-                            description,
+                            type as subject,
+                            NULL as description,
                             priority,
                             assigned_to,
                             created_at,
-                            updated_at,
+                            NULL as updated_at,
                             closed_at,
                             closed_by,
                             close_reason,
                             tags,
-                            metadata
+                            NULL as metadata
                         FROM tickets 
                         WHERE {where_clause}
                         ORDER BY created_at DESC
@@ -830,22 +983,24 @@ class TicketDAO:
                             'id': row[0],
                             'ticket_id': row[0],  # 添加 ticket_id 別名
                             'guild_id': row[1],
-                            'user_id': row[2],
+                            'user_id': row[2],  # discord_id mapped to user_id for compatibility
+                            'discord_id': row[2],  # 原始 discord_id 欄位
                             'username': row[3],
                             'channel_id': row[4],
-                            'category_id': row[5],
+                            'category_id': row[5],  # NULL
                             'status': row[6],
-                            'subject': row[7],
-                            'description': row[8],
+                            'subject': row[7],  # type mapped to subject
+                            'type': row[7],  # 原始 type 欄位
+                            'description': row[8],  # NULL
                             'priority': row[9],
                             'assigned_to': row[10],
                             'created_at': row[11],
-                            'updated_at': row[12],
+                            'updated_at': row[12],  # NULL
                             'closed_at': row[13],
                             'closed_by': row[14],
                             'close_reason': row[15],
                             'tags': json.loads(row[16]) if row[16] else [],
-                            'metadata': json.loads(row[17]) if row[17] else {}
+                            'metadata': row[17] or {}  # 處理 NULL 值
                         }
                         tickets.append(ticket)
                     
@@ -935,9 +1090,9 @@ class TicketDAO:
                             END) as avg_resolution_time,
                             COUNT(CASE WHEN status = 'closed' THEN 1 END) as closed_tickets,
                             COUNT(CASE WHEN status = 'open' THEN 1 END) as open_tickets,
-                            COUNT(CASE WHEN priority = 'high' THEN 1 END) as high_priority,
-                            COUNT(CASE WHEN priority = 'medium' THEN 1 END) as medium_priority,
-                            COUNT(CASE WHEN priority = 'low' THEN 1 END) as low_priority
+                            COUNT(CASE WHEN priority = 'high' THEN 1 END) as high_priority_count,
+                            COUNT(CASE WHEN priority = 'medium' THEN 1 END) as medium_priority_count,
+                            COUNT(CASE WHEN priority = 'low' THEN 1 END) as low_priority_count
                         FROM tickets 
                         WHERE guild_id = %s 
                             AND created_at >= DATE_SUB(NOW(), INTERVAL %s DAY)

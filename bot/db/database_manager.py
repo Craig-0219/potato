@@ -46,6 +46,8 @@ class DatabaseManager:
             await self._create_welcome_tables()
             await self._create_workflow_tables()
             await self._create_webhook_tables()
+            await self._create_automation_tables()
+            await self._create_security_tables()
             
             # 更新資料庫版本
             await self._update_database_version(self.current_version)
@@ -785,6 +787,311 @@ class DatabaseManager:
             logger.info("✅ Webhook整合系統表格創建完成")
         except Exception as e:
             logger.error(f"❌ Webhook整合系統表格創建失敗：{e}")
+            raise
+
+    async def _create_automation_tables(self):
+        """創建自動化規則相關表格"""
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    
+                    # 自動化規則表
+                    await cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS automation_rules (
+                            id VARCHAR(36) PRIMARY KEY,
+                            name VARCHAR(255) NOT NULL,
+                            description TEXT,
+                            guild_id BIGINT NOT NULL,
+                            status ENUM('draft', 'active', 'paused', 'disabled', 'error') DEFAULT 'draft',
+                            trigger_type VARCHAR(50) NOT NULL,
+                            trigger_conditions JSON,
+                            trigger_parameters JSON,
+                            actions JSON NOT NULL,
+                            created_by BIGINT DEFAULT 0,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                            last_executed TIMESTAMP NULL,
+                            execution_count INT DEFAULT 0,
+                            success_count INT DEFAULT 0,
+                            failure_count INT DEFAULT 0,
+                            tags JSON,
+                            priority INT DEFAULT 5,
+                            cooldown_seconds INT DEFAULT 0,
+                            
+                            INDEX idx_guild_id (guild_id),
+                            INDEX idx_status (status),
+                            INDEX idx_trigger_type (trigger_type),
+                            INDEX idx_created_by (created_by),
+                            INDEX idx_last_executed (last_executed),
+                            INDEX idx_priority (priority)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """)
+                    
+                    # 規則執行記錄表
+                    await cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS automation_executions (
+                            id VARCHAR(36) PRIMARY KEY,
+                            rule_id VARCHAR(36) NOT NULL,
+                            guild_id BIGINT NOT NULL,
+                            trigger_event JSON,
+                            started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            completed_at TIMESTAMP NULL,
+                            success BOOLEAN DEFAULT FALSE,
+                            executed_actions INT DEFAULT 0,
+                            failed_actions INT DEFAULT 0,
+                            execution_time DECIMAL(8,3) DEFAULT 0.000,
+                            error_message TEXT NULL,
+                            details JSON,
+                            user_id BIGINT NULL,
+                            channel_id BIGINT NULL,
+                            message_id BIGINT NULL,
+                            
+                            INDEX idx_rule_id (rule_id),
+                            INDEX idx_guild_id (guild_id),
+                            INDEX idx_started_at (started_at),
+                            INDEX idx_success (success),
+                            INDEX idx_completed_at (completed_at),
+                            
+                            FOREIGN KEY (rule_id) REFERENCES automation_rules(id) ON DELETE CASCADE
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """)
+                    
+                    # 規則變更歷史表
+                    await cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS automation_rule_history (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            rule_id VARCHAR(36) NOT NULL,
+                            changed_by BIGINT NOT NULL,
+                            change_type ENUM('created', 'updated', 'activated', 'deactivated', 'deleted') NOT NULL,
+                            changes JSON,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            
+                            INDEX idx_rule_id (rule_id),
+                            INDEX idx_changed_by (changed_by),
+                            INDEX idx_change_type (change_type),
+                            INDEX idx_created_at (created_at),
+                            
+                            FOREIGN KEY (rule_id) REFERENCES automation_rules(id) ON DELETE CASCADE
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """)
+                    
+                    # 規則統計表
+                    await cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS automation_statistics (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            rule_id VARCHAR(36) NOT NULL,
+                            date DATE NOT NULL,
+                            execution_count INT DEFAULT 0,
+                            success_count INT DEFAULT 0,
+                            failure_count INT DEFAULT 0,
+                            avg_execution_time DECIMAL(8,3) DEFAULT 0.000,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                            
+                            UNIQUE KEY unique_rule_date (rule_id, date),
+                            INDEX idx_rule_id (rule_id),
+                            INDEX idx_date (date),
+                            
+                            FOREIGN KEY (rule_id) REFERENCES automation_rules(id) ON DELETE CASCADE
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """)
+                    
+                    await conn.commit()
+                    logger.info("✅ 自動化規則表格創建完成")
+                    
+        except Exception as e:
+            logger.error(f"❌ 自動化規則表格創建失敗: {e}")
+            raise
+    
+    async def _create_security_tables(self):
+        """創建安全審計系統表格"""
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    
+                    # 安全事件日誌表
+                    await cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS security_events (
+                            id VARCHAR(36) PRIMARY KEY,
+                            event_type VARCHAR(50) NOT NULL,
+                            timestamp TIMESTAMP NOT NULL,
+                            user_id BIGINT NOT NULL,
+                            guild_id BIGINT NULL,
+                            risk_level ENUM('low', 'medium', 'high', 'critical') DEFAULT 'low',
+                            action VARCHAR(20) NOT NULL,
+                            resource VARCHAR(255) NOT NULL,
+                            details JSON,
+                            ip_address VARCHAR(45) NULL,
+                            user_agent TEXT NULL,
+                            session_id VARCHAR(36) NULL,
+                            correlation_id VARCHAR(36) NULL,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            
+                            INDEX idx_event_type (event_type),
+                            INDEX idx_timestamp (timestamp),
+                            INDEX idx_user_id (user_id),
+                            INDEX idx_guild_id (guild_id),
+                            INDEX idx_risk_level (risk_level),
+                            INDEX idx_session_id (session_id),
+                            INDEX idx_correlation_id (correlation_id),
+                            INDEX idx_created_at (created_at)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """)
+                    
+                    # 安全規則表
+                    await cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS security_rules (
+                            id VARCHAR(36) PRIMARY KEY,
+                            name VARCHAR(255) NOT NULL,
+                            description TEXT,
+                            rule_type VARCHAR(50) NOT NULL,
+                            conditions JSON NOT NULL,
+                            actions JSON NOT NULL,
+                            enabled BOOLEAN DEFAULT TRUE,
+                            severity ENUM('low', 'medium', 'high', 'critical') DEFAULT 'medium',
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                            created_by BIGINT DEFAULT 0,
+                            updated_by BIGINT DEFAULT 0,
+                            last_triggered TIMESTAMP NULL,
+                            trigger_count INT DEFAULT 0,
+                            
+                            INDEX idx_rule_type (rule_type),
+                            INDEX idx_enabled (enabled),
+                            INDEX idx_severity (severity),
+                            INDEX idx_created_by (created_by),
+                            INDEX idx_last_triggered (last_triggered)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """)
+                    
+                    # 安全警報表
+                    await cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS security_alerts (
+                            id VARCHAR(36) PRIMARY KEY,
+                            rule_id VARCHAR(36) NOT NULL,
+                            event_id VARCHAR(36) NOT NULL,
+                            alert_type VARCHAR(50) NOT NULL,
+                            severity ENUM('low', 'medium', 'high', 'critical') DEFAULT 'medium',
+                            title VARCHAR(255) NOT NULL,
+                            description TEXT,
+                            status ENUM('open', 'investigating', 'resolved', 'false_positive') DEFAULT 'open',
+                            assigned_to BIGINT NULL,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                            resolved_at TIMESTAMP NULL,
+                            resolution_note TEXT NULL,
+                            
+                            INDEX idx_rule_id (rule_id),
+                            INDEX idx_event_id (event_id),
+                            INDEX idx_severity (severity),
+                            INDEX idx_status (status),
+                            INDEX idx_assigned_to (assigned_to),
+                            INDEX idx_created_at (created_at),
+                            
+                            FOREIGN KEY (rule_id) REFERENCES security_rules(id) ON DELETE CASCADE,
+                            FOREIGN KEY (event_id) REFERENCES security_events(id) ON DELETE CASCADE
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """)
+                    
+                    # 用戶會話表
+                    await cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS user_sessions (
+                            id VARCHAR(36) PRIMARY KEY,
+                            user_id BIGINT NOT NULL,
+                            guild_id BIGINT NULL,
+                            session_start TIMESTAMP NOT NULL,
+                            session_end TIMESTAMP NULL,
+                            ip_address VARCHAR(45) NULL,
+                            user_agent TEXT NULL,
+                            is_active BOOLEAN DEFAULT TRUE,
+                            last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            activity_count INT DEFAULT 0,
+                            risk_score DECIMAL(3,2) DEFAULT 0.00,
+                            
+                            INDEX idx_user_id (user_id),
+                            INDEX idx_guild_id (guild_id),
+                            INDEX idx_session_start (session_start),
+                            INDEX idx_is_active (is_active),
+                            INDEX idx_last_activity (last_activity),
+                            INDEX idx_risk_score (risk_score)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """)
+                    
+                    # 合規報告表
+                    await cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS compliance_reports (
+                            id VARCHAR(36) PRIMARY KEY,
+                            standard VARCHAR(20) NOT NULL,
+                            period_start DATE NOT NULL,
+                            period_end DATE NOT NULL,
+                            guild_id BIGINT NOT NULL,
+                            generated_by BIGINT NOT NULL,
+                            generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            summary JSON,
+                            violations JSON,
+                            recommendations JSON,
+                            status ENUM('draft', 'final', 'archived') DEFAULT 'draft',
+                            file_path VARCHAR(500) NULL,
+                            
+                            INDEX idx_standard (standard),
+                            INDEX idx_guild_id (guild_id),
+                            INDEX idx_generated_by (generated_by),
+                            INDEX idx_generated_at (generated_at),
+                            INDEX idx_status (status),
+                            INDEX idx_period (period_start, period_end)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """)
+                    
+                    # 權限變更歷史表
+                    await cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS permission_history (
+                            id INT AUTO_INCREMENT PRIMARY KEY,
+                            user_id BIGINT NOT NULL,
+                            guild_id BIGINT NOT NULL,
+                            changed_by BIGINT NOT NULL,
+                            change_type ENUM('role_added', 'role_removed', 'permission_granted', 'permission_revoked') NOT NULL,
+                            old_permissions JSON,
+                            new_permissions JSON,
+                            reason TEXT NULL,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            
+                            INDEX idx_user_id (user_id),
+                            INDEX idx_guild_id (guild_id),
+                            INDEX idx_changed_by (changed_by),
+                            INDEX idx_change_type (change_type),
+                            INDEX idx_created_at (created_at)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """)
+                    
+                    # 資料存取日誌表
+                    await cursor.execute("""
+                        CREATE TABLE IF NOT EXISTS data_access_logs (
+                            id VARCHAR(36) PRIMARY KEY,
+                            user_id BIGINT NOT NULL,
+                            guild_id BIGINT NULL,
+                            table_name VARCHAR(100) NOT NULL,
+                            operation ENUM('SELECT', 'INSERT', 'UPDATE', 'DELETE') NOT NULL,
+                            record_count INT DEFAULT 0,
+                            query_hash VARCHAR(64) NULL,
+                            execution_time DECIMAL(8,3) DEFAULT 0.000,
+                            filters JSON,
+                            sensitive_data BOOLEAN DEFAULT FALSE,
+                            accessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            
+                            INDEX idx_user_id (user_id),
+                            INDEX idx_guild_id (guild_id),
+                            INDEX idx_table_name (table_name),
+                            INDEX idx_operation (operation),
+                            INDEX idx_sensitive_data (sensitive_data),
+                            INDEX idx_accessed_at (accessed_at)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """)
+                    
+                    await conn.commit()
+                    logger.info("✅ 企業級安全審計表格創建完成")
+                    
+        except Exception as e:
+            logger.error(f"❌ 安全審計表格創建失敗: {e}")
             raise
 
 

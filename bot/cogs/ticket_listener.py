@@ -10,6 +10,8 @@ import aiomysql
 
 from bot.db.ticket_dao import TicketDAO
 from bot.services.ticket_manager import TicketManager
+from bot.services.chat_transcript_manager import ChatTranscriptManager
+from bot.services.realtime_sync_manager import realtime_sync, SyncEvent, SyncEventType
 from bot.utils.ticket_utils import is_ticket_channel, TicketPermissionChecker
 from bot.utils.ticket_constants import get_priority_emoji, ERROR_MESSAGES
 from shared.logger import logger
@@ -30,6 +32,7 @@ class TicketListener(commands.Cog):
         self.bot = bot
         self.dao = TicketDAO()
         self.manager = TicketManager(self.dao)
+        self.transcript_manager = ChatTranscriptManager()
 
         # 可選服務
         self.auto_reply_service = auto_reply_service or getattr(bot, "auto_reply_service", None)
@@ -75,6 +78,18 @@ class TicketListener(commands.Cog):
             ticket_info = await self.dao.get_ticket_by_channel(message.channel.id)
             if not ticket_info or ticket_info['status'] != 'open':
                 return
+            
+            # 記錄聊天訊息到資料庫
+            await self.transcript_manager.record_message(ticket_info['ticket_id'], message)
+            
+            # 發布訊息接收事件
+            await realtime_sync.publish_event(SyncEvent(
+                event_type=SyncEventType.MESSAGE_RECEIVED,
+                ticket_id=ticket_info['ticket_id'],
+                user_id=message.author.id,
+                guild_id=message.guild.id,
+                data={'content': message.content[:100], 'author': message.author.display_name}
+            ))
             
             # 更新票券活動時間
             await self.dao.update_last_activity(ticket_info['ticket_id'])
@@ -203,7 +218,11 @@ class TicketListener(commands.Cog):
     async def _check_priority_escalation(self, message: discord.Message, ticket_info: Dict):
         """檢查是否需要優先級升級"""
         # 檢查票券年齡
-        ticket_age = datetime.now(timezone.utc) - ticket_info['created_at']
+        created_at = ticket_info['created_at']
+        # 確保時間戳有時區資訊
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        ticket_age = datetime.now(timezone.utc) - created_at
         
         # 如果票券超過24小時且仍是低優先級，升級到中優先級
         if (ticket_age.total_seconds() > 86400 and  # 24小時
@@ -227,7 +246,11 @@ class TicketListener(commands.Cog):
         """發送 SLA 合規通知"""
         try:
             # 計算回應時間
-            response_time = datetime.now(timezone.utc) - ticket_info['created_at']
+            created_at = ticket_info['created_at']
+            # 確保時間戳有時區資訊
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
+            response_time = datetime.now(timezone.utc) - created_at
             response_minutes = response_time.total_seconds() / 60
             
             # 計算目標時間
@@ -489,7 +512,11 @@ class TicketListener(commands.Cog):
             embed.add_field(name="刪除時間", value=f"<t:{int(datetime.now(timezone.utc).timestamp())}:F>", inline=True)
             
             # 計算持續時間
-            duration = datetime.now(timezone.utc) - ticket_info['created_at']
+            created_at = ticket_info['created_at']
+            # 確保時間戳有時區資訊
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
+            duration = datetime.now(timezone.utc) - created_at
             from bot.utils.ticket_constants import format_duration
             embed.add_field(name="持續時間", value=format_duration(int(duration.total_seconds())), inline=True)
             

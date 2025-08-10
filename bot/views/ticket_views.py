@@ -323,6 +323,21 @@ class TicketCloseButton(Button):
                 await interaction.followup.send("❌ 只有票券創建者或客服人員可以關閉票券", ephemeral=True)
                 return
             
+            # 在關閉票券前先匯入聊天歷史記錄
+            try:
+                from bot.services.chat_transcript_manager import ChatTranscriptManager
+                from shared.logger import logger
+                transcript_manager = ChatTranscriptManager()
+                
+                # 批量記錄頻道歷史訊息
+                message_count = await transcript_manager.batch_record_channel_history(
+                    ticket['id'], interaction.channel, limit=None
+                )
+                logger.info(f"📝 票券 #{ticket['id']:04d} 已匯入 {message_count} 條歷史訊息")
+                
+            except Exception as transcript_error:
+                logger.error(f"❌ 匯入聊天歷史失敗: {transcript_error}")
+            
             # 關閉票券
             success = await ticket_core.manager.close_ticket(
                 ticket_id=ticket['id'],
@@ -413,11 +428,30 @@ class RatingView(View):
         await self.send_rating(interaction, 5)
 
     async def send_rating(self, interaction: discord.Interaction, rating: int):
-        # 可以改為直接呼叫 ticket_core 的 rate_ticket，這裡為展示用
-        await interaction.response.send_message(
-            f"感謝您的評分！票券 {self.ticket_id}，評分：{rating} 星", ephemeral=True
-        )
-        # 此處可以加 popup modal 收集額外回饋
+        try:
+            # 導入必要的模組
+            from bot.services.ticket_manager import TicketManager
+            from bot.db.ticket_dao import TicketDAO
+            
+            # 獲取票券管理器並保存評分
+            ticket_dao = TicketDAO()
+            ticket_manager = TicketManager(ticket_dao)
+            success = await ticket_manager.save_rating(int(self.ticket_id), rating, "")
+            
+            if success:
+                await interaction.response.send_message(
+                    f"✅ 感謝您的評分！票券 #{self.ticket_id:>04} 已評分 {rating} 星", ephemeral=True
+                )
+            else:
+                await interaction.response.send_message(
+                    f"❌ 評分保存失敗，請稍後再試", ephemeral=True
+                )
+        except Exception as e:
+            from shared.logger import logger
+            logger.error(f"保存評分時發生錯誤: {e}")
+            await interaction.response.send_message(
+                f"❌ 評分保存失敗: {str(e)}", ephemeral=True
+            )
 
 # ============ 票券分頁/列表瀏覽 ============
 

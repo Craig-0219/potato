@@ -505,7 +505,11 @@ def build_user_tickets_embed(tickets: List[Dict[str, Any]], user: discord.Member
         status_text = f"{status_emoji} {ticket['status'].upper()}"
         if ticket['status'] == 'open':
             # 計算開啟時間
-            open_duration = datetime.now(timezone.utc) - ticket['created_at']
+            created_at = ticket['created_at']
+            # 確保時間戳有時區資訊
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
+            open_duration = datetime.now(timezone.utc) - created_at
             status_text += f" ({format_duration_chinese(int(open_duration.total_seconds()))})"
         
         field_value = f"**狀態：** {status_text}\n"
@@ -913,7 +917,14 @@ def calculate_ticket_metrics(tickets: List[Dict[str, Any]]) -> Dict[str, Any]:
     for ticket in tickets:
         # 計算解決時間
         if ticket.get('closed_at') and ticket.get('created_at'):
-            resolution_time = ticket['closed_at'] - ticket['created_at']
+            closed_at = ticket['closed_at']
+            created_at = ticket['created_at']
+            # 確保時間戳有時區資訊
+            if closed_at.tzinfo is None:
+                closed_at = closed_at.replace(tzinfo=timezone.utc)
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
+            resolution_time = closed_at - created_at
             resolution_times.append(resolution_time.total_seconds() / 3600)  # 轉換為小時
         
         # 收集評分
