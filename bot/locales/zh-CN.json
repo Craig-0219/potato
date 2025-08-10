@@ -1,0 +1,71 @@
+{
+  "common": {
+    "yes": "是",
+    "no": "否",
+    "cancel": "取消",
+    "confirm": "确认",
+    "success": "成功",
+    "error": "错误",
+    "warning": "警告",
+    "info": "信息",
+    "loading": "加载中...",
+    "processing": "处理中...",
+    "completed": "已完成",
+    "failed": "失败"
+  },
+  "commands": {
+    "permission_denied": "❌ 您没有权限使用此命令",
+    "guild_only": "❌ 此命令只能在服务器中使用",
+    "invalid_arguments": "❌ 命令参数无效",
+    "command_failed": "❌ 命令执行失败：{error}",
+    "command_success": "✅ 命令执行成功"
+  },
+  "ticket": {
+    "created": "✅ 工单已创建",
+    "closed": "✅ 工单已关闭",
+    "not_found": "❌ 找不到工单",
+    "permission_denied": "❌ 您没有权限操作此工单",
+    "already_exists": "❌ 您已经有开启的工单了",
+    "priority_updated": "✅ 优先级已更新为 {priority}",
+    "assigned": "✅ 工单已分配给 {staff}",
+    "tag_added": "✅ 已添加标签：{tag}",
+    "tag_removed": "✅ 已移除标签：{tag}"
+  },
+  "welcome": {
+    "title": "🎉 欢迎加入！",
+    "message": "欢迎 {user} 加入 **{server}**！\\n\\n你是我们的第 **{count}** 位成员！",
+    "dm_title": "👋 欢迎！",
+    "dm_message": "欢迎加入 **{server}**！\\n\\n如有任何问题，请随时创建工单。",
+    "leave_message": "👋 **{user}** 离开了 **{server}**",
+    "setup_complete": "✅ 欢迎系统设置完成",
+    "system_enabled": "✅ 欢迎系统已启用",
+    "system_disabled": "❌ 欢迎系统已停用"
+  },
+  "vote": {
+    "created": "✅ 投票已创建",
+    "ended": "✅ 投票已结束",
+    "not_found": "❌ 找不到投票",
+    "already_voted": "❌ 您已经投过票了",
+    "vote_recorded": "✅ 您的投票已记录",
+    "permission_denied": "❌ 您没有权限参与此投票",
+    "invalid_option": "❌ 无效的投票选项"
+  },
+  "ai": {
+    "suggestion_generated": "✅ AI 建议已生成",
+    "no_suggestions": "❌ 无法为此内容生成建议",
+    "analysis_complete": "📊 内容分析完成",
+    "confidence": "置信度：{confidence}",
+    "suggestion_applied": "✅ 已应用 AI 建议",
+    "feedback_recorded": "✅ 您的反馈已记录",
+    "priority_assessed": "🎯 优先级评估：{priority}",
+    "tags_suggested": "🏷️ 建议标签：{tags}"
+  },
+  "system": {
+    "maintenance": "🔧 系统维护中，请稍后再试",
+    "database_error": "❌ 数据库错误，请联系管理员",
+    "unexpected_error": "❌ 发生未预期的错误",
+    "feature_disabled": "❌ 此功能目前已停用",
+    "rate_limited": "❌ 操作过于频繁，请稍后再试",
+    "timeout": "⏰ 操作超时，请重试"
+  }
+}

@@ -21,6 +21,12 @@ class VoteDAO:
     async def get_votes_by_date_range(self, guild_id: int, start_date: datetime, end_date: datetime) -> List[Dict[str, Any]]:
         """取得指定日期範圍內的投票"""
         try:
+            # 確保日期時間格式一致 (移除timezone info以匹配資料庫)
+            if start_date.tzinfo is not None:
+                start_date = start_date.replace(tzinfo=None)
+            if end_date.tzinfo is not None:
+                end_date = end_date.replace(tzinfo=None)
+                
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute("""
@@ -48,7 +54,7 @@ class VoteDAO:
                             'creator_id': row[4],
                             'start_time': row[5],
                             'end_time': row[6],
-                            'ended_at': row[6] if row[6] and row[6] < datetime.now(timezone.utc) else None,
+                            'ended_at': row[6] if row[6] and row[6] < datetime.now().replace(tzinfo=None) else None,
                             'channel_id': row[7],
                             'total_votes': row[8],
                             'options': {'count': options_count}

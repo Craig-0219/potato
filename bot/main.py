@@ -48,6 +48,7 @@ ALL_EXTENSIONS = [
     "welcome_core",
     "welcome_listener",
     "system_admin",
+    "web_auth",
     "ai_core",
     "language_core",
     "workflow_core",
@@ -468,7 +469,7 @@ async def health_check(ctx):
         checks["命令同步"] = len(ctx.bot.tree.get_commands()) > 0
         
         # 檢查 Views
-        validation = validate_view_registration(ctx.bot)
+        validation = ctx.bot._validate_persistent_views()
         checks["Persistent Views"] = validation.get("has_persistent_views", False)
         
         # 檢查擴展

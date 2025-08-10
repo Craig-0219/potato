@@ -9,6 +9,8 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any, Tuple
 from shared.logger import logger
+from bot.services.chat_transcript_manager import ChatTranscriptManager
+from bot.services.realtime_sync_manager import realtime_sync, SyncEvent, SyncEventType
 
 
 class TicketManager:
@@ -16,6 +18,7 @@ class TicketManager:
     
     def __init__(self, repository):
         self.repository = repository
+        self.transcript_manager = ChatTranscriptManager()
     
     # ===== 票券建立 =====
     
@@ -273,8 +276,34 @@ class TicketManager:
             success = await self.repository.close_ticket(ticket_id, closed_by, reason)
             
             if success:
-                # 可以在這裡添加後續處理邏輯
-                # 例如：發送通知、清理資料等
+                # 發布即時同步事件
+                await realtime_sync.publish_event(SyncEvent(
+                    event_type=SyncEventType.TICKET_CLOSED,
+                    ticket_id=ticket_id,
+                    user_id=closed_by,
+                    data={'reason': reason}
+                ))
+                # 自動匯出聊天記錄
+                try:
+                    # 首先嘗試從資料庫匯出
+                    transcript_path = await self.transcript_manager.export_transcript(ticket_id, 'html')
+                    if transcript_path:
+                        logger.info(f"✅ 票券 #{ticket_id:04d} 聊天記錄已匯出: {transcript_path}")
+                    else:
+                        # 如果資料庫中沒有記錄，嘗試從 Discord 頻道匯入歷史訊息並匯出
+                        logger.info(f"🔄 票券 #{ticket_id:04d} 正在嘗試從 Discord 頻道匯入歷史訊息...")
+                        
+                        # 獲取票券資訊以取得頻道 ID
+                        ticket_info = await self.repository.get_ticket_by_id(ticket_id)
+                        if ticket_info and ticket_info.get('channel_id'):
+                            # 這裡需要 bot 實例來獲取頻道，但在當前架構下較難實現
+                            # 建議使用背景任務或在關閉票券的指令中直接處理
+                            logger.warning(f"⚠️ 票券 #{ticket_id:04d} 需要手動匯入頻道歷史訊息")
+                        else:
+                            logger.warning(f"⚠️ 票券 #{ticket_id:04d} 聊天記錄匯出失敗或無記錄")
+                except Exception as transcript_error:
+                    logger.error(f"❌ 票券 #{ticket_id:04d} 聊天記錄匯出錯誤: {transcript_error}")
+                
                 logger.info(f"關閉票券 #{ticket_id:04d}")
             
             return success
@@ -291,6 +320,13 @@ class TicketManager:
             success = await self.repository.assign_ticket(ticket_id, assigned_to, assigned_by)
             
             if success:
+                # 發布即時同步事件
+                await realtime_sync.publish_event(SyncEvent(
+                    event_type=SyncEventType.TICKET_ASSIGNED,
+                    ticket_id=ticket_id,
+                    user_id=assigned_by,
+                    data={'assigned_to': assigned_to}
+                ))
                 logger.info(f"指派票券 #{ticket_id:04d} 給用戶 {assigned_to}")
             
             return success
@@ -310,6 +346,12 @@ class TicketManager:
             success = await self.repository.save_rating(ticket_id, rating, feedback)
             
             if success:
+                # 發布即時同步事件
+                await realtime_sync.publish_event(SyncEvent(
+                    event_type=SyncEventType.TICKET_RATED,
+                    ticket_id=ticket_id,
+                    data={'rating': rating, 'feedback': feedback}
+                ))
                 logger.info(f"保存評分 #{ticket_id:04d} - {rating}星")
             
             return success
@@ -366,11 +408,15 @@ class TicketManager:
     async def handle_overdue_ticket(self, ticket: Dict, guild: discord.Guild) -> bool:
         """處理超時票券"""
         try:
-            from bot.utils.constants import TicketConstants
+            from bot.utils.ticket_constants import TicketConstants
             
             # 計算超時時間
             now = datetime.now(timezone.utc)
-            overdue_minutes = (now - ticket['created_at']).total_seconds() / 60
+            created_at = ticket['created_at']
+            # 確保時間戳有時區資訊
+            if created_at.tzinfo is None:
+                created_at = created_at.replace(tzinfo=timezone.utc)
+            overdue_minutes = (now - created_at).total_seconds() / 60
             
             # 取得 SLA 目標時間
             sla_minutes = ticket.get('sla_response_minutes', 60)

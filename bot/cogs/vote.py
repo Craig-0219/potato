@@ -93,7 +93,7 @@ class VoteCog(commands.Cog):
             logger.debug(f"[Vote] _get_vote_full_data 錯誤：{e}")
             return None
 
-    @app_commands.command(name="vote", description="開始建立一個投票")
+    @app_commands.command(name="vote", description="開始建立一個投票 | Create a new vote")
     async def vote(self, interaction: discord.Interaction):
         user_id = interaction.user.id
         
@@ -133,7 +133,7 @@ class VoteCog(commands.Cog):
         await interaction.response.send_message("📝 請輸入投票標題：", ephemeral=True)
         logger.debug(f"[Vote] 使用者 {user_id} 開始建立投票")
 
-    @app_commands.command(name="votes", description="查看目前進行中的投票")
+    @app_commands.command(name="votes", description="查看目前進行中的投票 | View current active votes")
     async def votes(self, interaction: discord.Interaction):
         try:
             votes = await vote_dao.get_active_votes()
@@ -158,7 +158,7 @@ class VoteCog(commands.Cog):
             logger.debug(f"[Vote] votes 指令錯誤：{e}")
             await interaction.response.send_message("❌ 查詢投票時發生錯誤。", ephemeral=True)
 
-    @app_commands.command(name="vote_result", description="查詢投票結果")
+    @app_commands.command(name="vote_result", description="查詢投票結果 | Query vote results")
     @app_commands.describe(vote_id="投票編號")
     async def vote_result(self, interaction: discord.Interaction, vote_id: int):
         try:
@@ -202,7 +202,7 @@ class VoteCog(commands.Cog):
 
     # ===== 新增：歷史查詢功能 =====
 
-    @app_commands.command(name="vote_history", description="查看投票歷史記錄")
+    @app_commands.command(name="vote_history", description="查看投票歷史記錄 | View vote history")
     @app_commands.describe(
         page="頁數（每頁10筆，預設第1頁）",
         status="篩選狀態：all(全部) / active(進行中) / finished(已結束)"
@@ -366,7 +366,7 @@ class VoteCog(commands.Cog):
             logger.debug(f"[Vote] vote_detail 錯誤：{e}")
             await interaction.followup.send("❌ 查詢投票詳情時發生錯誤。")
 
-    @app_commands.command(name="my_votes", description="查看我參與過的投票")
+    @app_commands.command(name="my_votes", description="查看我參與過的投票 | View my participated votes")
     async def my_votes(self, interaction: discord.Interaction):
         try:
             await interaction.response.defer()

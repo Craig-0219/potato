@@ -1,0 +1,35 @@
+# API 服務專用依賴
+# Core FastAPI
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Authentication
+python-jose[cryptography]==3.3.0
+python-multipart==0.0.6
+passlib[bcrypt]==1.7.4
+
+# Async Database
+aiomysql==0.2.0
+
+# Real-time Features
+aioredis==2.0.1
+websockets==11.0.3
+
+# Data Processing (使用更新版本避免編譯問題)
+pandas>=2.1.0,<3.0.0
+openpyxl>=3.1.0
+
+# Monitoring & Logging
+psutil==5.9.6
+
+# HTTP Client
+httpx==0.25.2
+
+# Environment
+python-dotenv==1.0.0
+
+# Validation
+pydantic==2.5.0
+
+# Core Dependencies (from main requirements.txt)
+discord.py==2.5.2
