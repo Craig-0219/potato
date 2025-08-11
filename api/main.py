@@ -17,7 +17,10 @@ from fastapi.openapi.utils import get_openapi
 # 導入路由
 from api.auth_routes import router as auth_router
 from api.ticket_routes import router as ticket_router
+<<<<<<< HEAD
 from api.analytics_routes import router as analytics_router
+=======
+>>>>>>> a35f5d60d87ec4cc0114507a78c8527f0eed00ca
 
 # 導入中介軟體
 from api.middleware.auth_middleware import (
@@ -146,7 +149,10 @@ async def general_exception_handler(request: Request, exc: Exception):
 # 路由註冊
 app.include_router(auth_router)  # 認證相關路由
 app.include_router(ticket_router)  # 票券管理路由
+<<<<<<< HEAD
 app.include_router(analytics_router)  # 高級分析路由
+=======
+>>>>>>> a35f5d60d87ec4cc0114507a78c8527f0eed00ca
 
 # ===== 基礎端點 =====
 

@@ -1574,6 +1574,7 @@ class ConfirmResetView(discord.ui.View):
             )
             message = await ctx.send(embed=embed)
             
+<<<<<<< HEAD
             from bot.services.database_cleanup_manager import DatabaseCleanupManager
             cleanup_manager = DatabaseCleanupManager()
             
@@ -1665,6 +1666,44 @@ class ConfirmResetView(discord.ui.View):
                     title="❌ 清理失敗",
                     description=f"錯誤: {results.get('error', '未知錯誤')}",
                     color=0xe74c3c
+=======
+            from bot.services.data_cleanup_manager import DataCleanupManager
+            cleanup_manager = DataCleanupManager()
+            
+            if operation == "full":
+                results = await cleanup_manager.run_full_cleanup()
+            else:
+                # 基本清理（只清理日誌和臨時資料）
+                results = {}
+                results['system_logs'] = await cleanup_manager._cleanup_system_logs()
+                results['temporary_data'] = await cleanup_manager._cleanup_temporary_data()
+            
+            # 統計結果
+            total_deleted = sum(result.deleted_count for result in results.values() if hasattr(result, 'deleted_count'))
+            successful_operations = sum(1 for result in results.values() if hasattr(result, 'success') and result.success)
+            
+            embed = discord.Embed(
+                title="✅ 資料清理完成",
+                color=0x27ae60
+            )
+            embed.add_field(name="總刪除記錄", value=f"{total_deleted:,}", inline=True)
+            embed.add_field(name="成功操作", value=f"{successful_operations}/{len(results)}", inline=True)
+            embed.add_field(name="清理類型", value=operation, inline=True)
+            
+            # 詳細結果
+            details = []
+            for op_name, result in results.items():
+                if hasattr(result, 'success'):
+                    status = "✅" if result.success else "❌"
+                    deleted = getattr(result, 'deleted_count', 0)
+                    details.append(f"{status} {op_name}: {deleted:,} 條記錄")
+            
+            if details:
+                embed.add_field(
+                    name="清理詳情",
+                    value="\n".join(details[:10]),  # 限制顯示前10項
+                    inline=False
+>>>>>>> a35f5d60d87ec4cc0114507a78c8527f0eed00ca
                 )
             
             await message.edit(embed=embed)
@@ -1678,6 +1717,7 @@ class ConfirmResetView(discord.ui.View):
             await ctx.send(embed=embed)
             logger.error(f"資料清理錯誤: {e}")
 
+<<<<<<< HEAD
     @commands.command(name='db_optimize', aliases=['資料庫優化'])
     @commands.is_owner()
     async def optimize_database(self, ctx):
@@ -1764,6 +1804,8 @@ class ConfirmResetView(discord.ui.View):
             await ctx.send(embed=embed)
             logger.error(f"資料庫優化錯誤: {e}")
 
+=======
+>>>>>>> a35f5d60d87ec4cc0114507a78c8527f0eed00ca
     @commands.command(name='export', aliases=['匯出'])
     @commands.is_owner()
     async def export_data(self, ctx, data_type: str = "tickets", format: str = "json", days: int = 30):

@@ -49,8 +49,11 @@ class DatabaseManager:
             await self._create_webhook_tables()
             await self._create_automation_tables()
             await self._create_security_tables()
+<<<<<<< HEAD
             await self._create_lottery_tables()
             await self._create_archive_tables()
+=======
+>>>>>>> a35f5d60d87ec4cc0114507a78c8527f0eed00ca
             
             # 更新資料庫版本
             await self._update_database_version(self.current_version)
@@ -151,8 +154,11 @@ class DatabaseManager:
                     channel_id BIGINT NOT NULL COMMENT '頻道 ID',
                     guild_id BIGINT NOT NULL COMMENT '伺服器 ID',
                     assigned_to BIGINT NULL COMMENT '指派的客服 ID',
+<<<<<<< HEAD
                     assigned_at TIMESTAMP NULL COMMENT '指派時間',
                     first_response_at TIMESTAMP NULL COMMENT '首次回應時間',
+=======
+>>>>>>> a35f5d60d87ec4cc0114507a78c8527f0eed00ca
                     rating INT NULL COMMENT '評分' CHECK (rating BETWEEN 1 AND 5),
                     rating_feedback TEXT NULL COMMENT '評分回饋',
                     tags JSON NULL COMMENT '標籤',
@@ -1157,6 +1163,7 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"❌ 安全審計表格創建失敗: {e}")
             raise
+<<<<<<< HEAD
     
     async def _create_lottery_tables(self):
         """創建抽獎系統相關表格"""
@@ -1361,6 +1368,8 @@ class DatabaseManager:
                         raise
                 await conn.commit()
                 logger.info("✅ 歷史資料歸檔表格創建完成")
+=======
+>>>>>>> a35f5d60d87ec4cc0114507a78c8527f0eed00ca
 
 
 # ===== 單例模式實現 =====

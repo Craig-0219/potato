@@ -244,7 +244,11 @@ class DataExportManager:
         query = """
         SELECT 
             discord_id,
+<<<<<<< HEAD
             COALESCE(discord_username, username) as discord_username,
+=======
+            discord_username,
+>>>>>>> a35f5d60d87ec4cc0114507a78c8527f0eed00ca
             COUNT(*) as total_tickets,
             COUNT(CASE WHEN status = 'open' THEN 1 END) as open_tickets,
             COUNT(CASE WHEN status = 'closed' THEN 1 END) as closed_tickets,
@@ -265,7 +269,11 @@ class DataExportManager:
             query += " AND created_at BETWEEN %s AND %s"
             params.extend([start_date, end_date])
         
+<<<<<<< HEAD
         query += " GROUP BY discord_id, COALESCE(discord_username, username)"
+=======
+        query += " GROUP BY discord_id, discord_username"
+>>>>>>> a35f5d60d87ec4cc0114507a78c8527f0eed00ca
         
         if request.limit:
             query += " LIMIT %s"

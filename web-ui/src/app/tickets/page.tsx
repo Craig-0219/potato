@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth/auth-context'
+<<<<<<< HEAD
 import { ApiClient } from '@/lib/api/client'
+=======
+import { TicketsAPI, Ticket, TicketListResponse } from '@/lib/api/tickets'
+>>>>>>> a35f5d60d87ec4cc0114507a78c8527f0eed00ca
 import { Spinner } from '@/components/ui/spinner'
 import toast from 'react-hot-toast'
 
