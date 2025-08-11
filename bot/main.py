@@ -48,6 +48,7 @@ ALL_EXTENSIONS = [
     "welcome_core",
     "welcome_listener",
     "system_admin",
+    "lottery_core",
     "web_auth",
     "ai_core",
     "language_core",

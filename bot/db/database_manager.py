@@ -39,6 +39,7 @@ class DatabaseManager:
                 current_db_version = None
             
             # 創建各系統的表格
+            await self._create_auth_tables()
             await self._create_ticket_tables()
             await self._create_assignment_tables()
             await self._create_vote_tables()
@@ -48,6 +49,8 @@ class DatabaseManager:
             await self._create_webhook_tables()
             await self._create_automation_tables()
             await self._create_security_tables()
+            await self._create_lottery_tables()
+            await self._create_archive_tables()
             
             # 更新資料庫版本
             await self._update_database_version(self.current_version)
@@ -73,6 +76,64 @@ class DatabaseManager:
                 """)
                 await conn.commit()
     
+    async def _create_auth_tables(self):
+        """創建認證系統相關表格"""
+        logger.info("🔐 創建認證系統表格...")
+        
+        tables = {
+            'api_users': """
+                CREATE TABLE IF NOT EXISTS api_users (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    discord_id VARCHAR(20) NOT NULL UNIQUE COMMENT 'Discord 用戶 ID',
+                    username VARCHAR(100) NOT NULL COMMENT '用戶名',
+                    discord_username VARCHAR(100) NOT NULL COMMENT 'Discord 用戶名',
+                    password_hash VARCHAR(255) NULL COMMENT '密碼雜湊',
+                    permission_level ENUM('read_only', 'write', 'admin', 'super_admin') DEFAULT 'read_only' COMMENT '權限等級',
+                    guild_id BIGINT NULL COMMENT '所屬伺服器 ID',
+                    is_active BOOLEAN DEFAULT TRUE COMMENT '是否啟用',
+                    last_login TIMESTAMP NULL COMMENT '最後登入時間',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
+                    
+                    INDEX idx_discord_id (discord_id),
+                    INDEX idx_guild_id (guild_id),
+                    INDEX idx_permission_level (permission_level)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+            
+            'api_keys': """
+                CREATE TABLE IF NOT EXISTS api_keys (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    key_id VARCHAR(32) NOT NULL UNIQUE COMMENT 'API 金鑰 ID',
+                    key_secret VARCHAR(255) NOT NULL COMMENT 'API 金鑰密鑰',
+                    user_id INT NOT NULL COMMENT '用戶 ID',
+                    name VARCHAR(100) NOT NULL COMMENT 'API 金鑰名稱',
+                    permission_level ENUM('read_only', 'write', 'admin') DEFAULT 'read_only' COMMENT '權限等級',
+                    guild_id BIGINT NULL COMMENT '限制的伺服器 ID',
+                    is_active BOOLEAN DEFAULT TRUE COMMENT '是否啟用',
+                    expires_at TIMESTAMP NULL COMMENT '過期時間',
+                    last_used TIMESTAMP NULL COMMENT '最後使用時間',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',
+                    
+                    FOREIGN KEY (user_id) REFERENCES api_users(id) ON DELETE CASCADE,
+                    INDEX idx_key_id (key_id),
+                    INDEX idx_user_id (user_id),
+                    INDEX idx_guild_id (guild_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """
+        }
+        
+        async with self.db.connection() as conn:
+            async with conn.cursor() as cursor:
+                for table_name, create_sql in tables.items():
+                    try:
+                        await cursor.execute(create_sql)
+                        logger.info(f"✅ {table_name} 表格創建成功")
+                    except Exception as e:
+                        logger.error(f"❌ 創建 {table_name} 表格失敗: {e}")
+                        raise
+            await conn.commit()
+    
     async def _create_ticket_tables(self):
         """創建票券系統相關表格"""
         logger.info("📋 創建票券系統表格...")
@@ -83,12 +144,15 @@ class DatabaseManager:
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     discord_id VARCHAR(20) NOT NULL COMMENT '開票者 Discord ID',
                     username VARCHAR(100) NOT NULL COMMENT '開票者用戶名',
+                    discord_username VARCHAR(100) NOT NULL COMMENT '開票者 Discord 用戶名',
                     type VARCHAR(50) NOT NULL COMMENT '票券類型',
-                    priority ENUM('high', 'medium', 'low') DEFAULT 'medium' COMMENT '優先級',
-                    status ENUM('open', 'closed', 'archived') DEFAULT 'open' COMMENT '狀態',
+                    priority ENUM('urgent', 'high', 'medium', 'low') DEFAULT 'medium' COMMENT '優先級',
+                    status ENUM('open', 'in_progress', 'pending', 'resolved', 'closed', 'archived') DEFAULT 'open' COMMENT '狀態',
                     channel_id BIGINT NOT NULL COMMENT '頻道 ID',
                     guild_id BIGINT NOT NULL COMMENT '伺服器 ID',
                     assigned_to BIGINT NULL COMMENT '指派的客服 ID',
+                    assigned_at TIMESTAMP NULL COMMENT '指派時間',
+                    first_response_at TIMESTAMP NULL COMMENT '首次回應時間',
                     rating INT NULL COMMENT '評分' CHECK (rating BETWEEN 1 AND 5),
                     rating_feedback TEXT NULL COMMENT '評分回饋',
                     tags JSON NULL COMMENT '標籤',
@@ -1093,6 +1157,210 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"❌ 安全審計表格創建失敗: {e}")
             raise
+    
+    async def _create_lottery_tables(self):
+        """創建抽獎系統相關表格"""
+        logger.info("🎲 創建抽獎系統表格...")
+        
+        tables = {
+            'lotteries': """
+                CREATE TABLE IF NOT EXISTS lotteries (
+                    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '抽獎ID',
+                    guild_id BIGINT NOT NULL COMMENT '伺服器ID',
+                    name VARCHAR(255) NOT NULL COMMENT '抽獎名稱',
+                    description TEXT NULL COMMENT '抽獎描述',
+                    creator_id BIGINT NOT NULL COMMENT '創建者ID',
+                    channel_id BIGINT NOT NULL COMMENT '抽獎頻道ID',
+                    message_id BIGINT NULL COMMENT '抽獎訊息ID',
+                    
+                    prize_type ENUM('role', 'item', 'custom') DEFAULT 'custom' COMMENT '獎品類型',
+                    prize_data JSON NULL COMMENT '獎品資料',
+                    winner_count INT DEFAULT 1 COMMENT '中獎人數',
+                    
+                    entry_method ENUM('reaction', 'command', 'both') DEFAULT 'reaction' COMMENT '參與方式',
+                    required_roles JSON NULL COMMENT '參與所需角色',
+                    excluded_roles JSON NULL COMMENT '排除的角色',
+                    min_account_age_days INT DEFAULT 0 COMMENT '最小帳號年齡(天)',
+                    min_server_join_days INT DEFAULT 0 COMMENT '最小加入伺服器天數',
+                    
+                    start_time TIMESTAMP NOT NULL COMMENT '開始時間',
+                    end_time TIMESTAMP NOT NULL COMMENT '結束時間',
+                    status ENUM('pending', 'active', 'ended', 'cancelled') DEFAULT 'pending' COMMENT '狀態',
+                    auto_end BOOLEAN DEFAULT TRUE COMMENT '自動結束',
+                    
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
+                    
+                    INDEX idx_guild_status (guild_id, status),
+                    INDEX idx_creator (creator_id),
+                    INDEX idx_end_time (end_time),
+                    INDEX idx_channel (channel_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+            
+            'lottery_entries': """
+                CREATE TABLE IF NOT EXISTS lottery_entries (
+                    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '參賽ID',
+                    lottery_id INT NOT NULL COMMENT '抽獎ID',
+                    user_id BIGINT NOT NULL COMMENT '用戶ID',
+                    username VARCHAR(100) NOT NULL COMMENT '用戶名稱',
+                    entry_method ENUM('reaction', 'command') NOT NULL COMMENT '參與方式',
+                    entry_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '參與時間',
+                    is_valid BOOLEAN DEFAULT TRUE COMMENT '是否有效',
+                    validation_notes TEXT NULL COMMENT '驗證備註',
+                    
+                    UNIQUE KEY unique_entry (lottery_id, user_id),
+                    FOREIGN KEY (lottery_id) REFERENCES lotteries(id) ON DELETE CASCADE,
+                    INDEX idx_lottery (lottery_id),
+                    INDEX idx_user (user_id),
+                    INDEX idx_entry_time (entry_time)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+            
+            'lottery_winners': """
+                CREATE TABLE IF NOT EXISTS lottery_winners (
+                    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '中獎ID',
+                    lottery_id INT NOT NULL COMMENT '抽獎ID',
+                    user_id BIGINT NOT NULL COMMENT '中獎用戶ID',
+                    username VARCHAR(100) NOT NULL COMMENT '中獎用戶名稱',
+                    prize_data JSON NULL COMMENT '獎品資料',
+                    win_position INT NOT NULL COMMENT '中獎順位',
+                    selected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '選中時間',
+                    claimed_at TIMESTAMP NULL COMMENT '領取時間',
+                    claim_status ENUM('pending', 'claimed', 'expired') DEFAULT 'pending' COMMENT '領取狀態',
+                    claim_notes TEXT NULL COMMENT '領取備註',
+                    
+                    FOREIGN KEY (lottery_id) REFERENCES lotteries(id) ON DELETE CASCADE,
+                    INDEX idx_lottery (lottery_id),
+                    INDEX idx_user (user_id),
+                    INDEX idx_claim_status (claim_status)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+            
+            'lottery_settings': """
+                CREATE TABLE IF NOT EXISTS lottery_settings (
+                    guild_id BIGINT PRIMARY KEY COMMENT '伺服器ID',
+                    default_duration_hours INT DEFAULT 24 COMMENT '預設抽獎時長(小時)',
+                    max_concurrent_lotteries INT DEFAULT 3 COMMENT '最大同時抽獎數',
+                    allow_self_entry BOOLEAN DEFAULT TRUE COMMENT '允許自己參與抽獎',
+                    require_boost BOOLEAN DEFAULT FALSE COMMENT '需要加速才能參與',
+                    log_channel_id BIGINT NULL COMMENT '日誌頻道ID',
+                    announcement_channel_id BIGINT NULL COMMENT '公告頻道ID',
+                    admin_roles JSON NULL COMMENT '管理員角色',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間'
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """
+        }
+        
+        async with self.db.connection() as conn:
+            async with conn.cursor() as cursor:
+                for table_name, create_sql in tables.items():
+                    try:
+                        await cursor.execute(create_sql)
+                        logger.info(f"✅ {table_name} 表格創建成功")
+                    except Exception as e:
+                        logger.error(f"❌ 創建 {table_name} 表格失敗: {e}")
+                        raise
+                await conn.commit()
+                logger.info("✅ 抽獎系統表格創建完成")
+    
+    async def _create_archive_tables(self):
+        """創建歷史資料歸檔相關表格"""
+        logger.info("📦 創建歷史資料歸檔表格...")
+        
+        tables = {
+            'ticket_archive': """
+                CREATE TABLE IF NOT EXISTS ticket_archive (
+                    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '歸檔ID',
+                    original_ticket_id INT NOT NULL COMMENT '原始票券ID',
+                    guild_id BIGINT NOT NULL COMMENT '伺服器ID',
+                    ticket_data JSON NOT NULL COMMENT '票券完整資料',
+                    messages_data JSON NULL COMMENT '訊息記錄',
+                    attachments_data JSON NULL COMMENT '附件資料',
+                    archive_reason VARCHAR(255) DEFAULT 'auto_cleanup' COMMENT '歸檔原因',
+                    archived_by BIGINT NULL COMMENT '歸檔執行者ID',
+                    archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '歸檔時間',
+                    
+                    INDEX idx_original_ticket (original_ticket_id),
+                    INDEX idx_guild (guild_id),
+                    INDEX idx_archived_at (archived_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+            
+            'vote_archive': """
+                CREATE TABLE IF NOT EXISTS vote_archive (
+                    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '歸檔ID',
+                    original_vote_id INT NOT NULL COMMENT '原始投票ID',
+                    guild_id BIGINT NOT NULL COMMENT '伺服器ID',
+                    vote_data JSON NOT NULL COMMENT '投票完整資料',
+                    options_data JSON NOT NULL COMMENT '選項資料',
+                    responses_data JSON NOT NULL COMMENT '投票回應資料',
+                    results_data JSON NOT NULL COMMENT '結果統計',
+                    archive_reason VARCHAR(255) DEFAULT 'auto_cleanup' COMMENT '歸檔原因',
+                    archived_by BIGINT NULL COMMENT '歸檔執行者ID',
+                    archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '歸檔時間',
+                    
+                    INDEX idx_original_vote (original_vote_id),
+                    INDEX idx_guild (guild_id),
+                    INDEX idx_archived_at (archived_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+            
+            'user_activity_archive': """
+                CREATE TABLE IF NOT EXISTS user_activity_archive (
+                    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '歸檔ID',
+                    user_id BIGINT NOT NULL COMMENT '用戶ID',
+                    guild_id BIGINT NOT NULL COMMENT '伺服器ID',
+                    activity_period VARCHAR(50) NOT NULL COMMENT '活動期間',
+                    activity_data JSON NOT NULL COMMENT '活動資料',
+                    tickets_count INT DEFAULT 0 COMMENT '票券數量',
+                    votes_count INT DEFAULT 0 COMMENT '投票數量',
+                    messages_count INT DEFAULT 0 COMMENT '訊息數量',
+                    first_activity TIMESTAMP NULL COMMENT '首次活動時間',
+                    last_activity TIMESTAMP NULL COMMENT '最後活動時間',
+                    archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '歸檔時間',
+                    
+                    INDEX idx_user_guild (user_id, guild_id),
+                    INDEX idx_period (activity_period),
+                    INDEX idx_archived_at (archived_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+            
+            'cleanup_schedules': """
+                CREATE TABLE IF NOT EXISTS cleanup_schedules (
+                    id INT AUTO_INCREMENT PRIMARY KEY COMMENT '清理計畫ID',
+                    guild_id BIGINT NOT NULL COMMENT '伺服器ID',
+                    cleanup_type ENUM('tickets', 'votes', 'logs', 'users', 'attachments') NOT NULL COMMENT '清理類型',
+                    schedule_type ENUM('daily', 'weekly', 'monthly', 'custom') DEFAULT 'monthly' COMMENT '排程類型',
+                    retention_days INT DEFAULT 90 COMMENT '保留天數',
+                    archive_before_delete BOOLEAN DEFAULT TRUE COMMENT '刪除前是否歸檔',
+                    conditions JSON NULL COMMENT '清理條件',
+                    last_run TIMESTAMP NULL COMMENT '上次執行時間',
+                    next_run TIMESTAMP NULL COMMENT '下次執行時間',
+                    is_enabled BOOLEAN DEFAULT TRUE COMMENT '是否啟用',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
+                    
+                    INDEX idx_guild (guild_id),
+                    INDEX idx_next_run (next_run),
+                    INDEX idx_cleanup_type (cleanup_type),
+                    INDEX idx_enabled (is_enabled)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """
+        }
+        
+        async with self.db.connection() as conn:
+            async with conn.cursor() as cursor:
+                for table_name, create_sql in tables.items():
+                    try:
+                        await cursor.execute(create_sql)
+                        logger.info(f"✅ {table_name} 表格創建成功")
+                    except Exception as e:
+                        logger.error(f"❌ 創建 {table_name} 表格失敗: {e}")
+                        raise
+                await conn.commit()
+                logger.info("✅ 歷史資料歸檔表格創建完成")
 
 
 # ===== 單例模式實現 =====

@@ -88,6 +88,10 @@ class StatisticsManager:
             logger.error(f"❌ 獲取綜合統計失敗: {e}", exc_info=True)
             return {'error': str(e)}
     
+    async def generate_comprehensive_report(self, guild_id: Optional[int] = None, days: int = 30) -> Dict[str, Any]:
+        """生成綜合報告 (別名方法，供向後兼容)"""
+        return await self.get_comprehensive_statistics(guild_id, days)
+    
     async def get_ticket_statistics(self, guild_id: Optional[int], start_date: datetime, end_date: datetime) -> Dict[str, Any]:
         """獲取票券統計"""
         try:
@@ -101,10 +105,10 @@ class StatisticsManager:
                         COUNT(CASE WHEN status = 'in_progress' THEN 1 END) as in_progress_tickets,
                         COUNT(CASE WHEN status = 'closed' THEN 1 END) as closed_tickets,
                         COUNT(CASE WHEN status = 'archived' THEN 1 END) as archived_tickets,
-                        COUNT(CASE WHEN priority = 'low' THEN 1 END) as low_priority,
-                        COUNT(CASE WHEN priority = 'medium' THEN 1 END) as medium_priority,
-                        COUNT(CASE WHEN priority = 'high' THEN 1 END) as high_priority,
-                        COUNT(CASE WHEN priority = 'urgent' THEN 1 END) as urgent_priority
+                        COUNT(CASE WHEN priority = 'low' THEN 1 END) as low_priority_count,
+                        COUNT(CASE WHEN priority = 'medium' THEN 1 END) as medium_priority_count,
+                        COUNT(CASE WHEN priority = 'high' THEN 1 END) as high_priority_count,
+                        COUNT(CASE WHEN priority = 'urgent' THEN 1 END) as urgent_priority_count
                     FROM tickets
                     WHERE created_at BETWEEN %s AND %s
                     """
@@ -206,7 +210,7 @@ class StatisticsManager:
                     top_users_query = """
                     SELECT 
                         discord_id,
-                        discord_username,
+                        COALESCE(discord_username, username) as discord_username,
                         COUNT(*) as ticket_count,
                         COUNT(CASE WHEN status = 'closed' THEN 1 END) as closed_count,
                         AVG(CASE WHEN rating IS NOT NULL THEN rating END) as avg_rating,
@@ -221,7 +225,7 @@ class StatisticsManager:
                         params.append(guild_id)
                     
                     top_users_query += """
-                    GROUP BY discord_id, discord_username
+                    GROUP BY discord_id, COALESCE(discord_username, username)
                     ORDER BY ticket_count DESC
                     LIMIT 10
                     """
@@ -253,7 +257,7 @@ class StatisticsManager:
                         AVG(TIMESTAMPDIFF(MINUTE, created_at, 
                             CASE WHEN first_response_at IS NOT NULL THEN first_response_at
                                  WHEN assigned_at IS NOT NULL THEN assigned_at
-                                 ELSE updated_at END)) as avg_first_response_minutes,
+                                 ELSE last_activity END)) as avg_first_response_minutes,
                         AVG(TIMESTAMPDIFF(HOUR, created_at, closed_at)) as avg_resolution_hours,
                         COUNT(CASE WHEN TIMESTAMPDIFF(HOUR, created_at, closed_at) <= 24 THEN 1 END) as resolved_within_24h,
                         COUNT(CASE WHEN closed_at IS NOT NULL THEN 1 END) as total_resolved
@@ -332,10 +336,10 @@ class StatisticsManager:
                         COUNT(*) as assigned_count,
                         COUNT(CASE WHEN status = 'closed' THEN 1 END) as completed_count
                     FROM tickets
-                    WHERE assigned_at BETWEEN %s AND %s
+                    WHERE (assigned_at BETWEEN %s AND %s OR (assigned_at IS NULL AND created_at BETWEEN %s AND %s))
                     AND assigned_to IS NOT NULL
                     """
-                    params = [start_date, end_date]
+                    params = [start_date, end_date, start_date, end_date]
                     
                     if guild_id:
                         staff_workload_query += " AND guild_id = %s"

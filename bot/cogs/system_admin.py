@@ -1574,42 +1574,97 @@ class ConfirmResetView(discord.ui.View):
             )
             message = await ctx.send(embed=embed)
             
-            from bot.services.data_cleanup_manager import DataCleanupManager
-            cleanup_manager = DataCleanupManager()
+            from bot.services.database_cleanup_manager import DatabaseCleanupManager
+            cleanup_manager = DatabaseCleanupManager()
             
             if operation == "full":
-                results = await cleanup_manager.run_full_cleanup()
+                # 執行全面資料庫清理
+                results = await cleanup_manager.perform_comprehensive_cleanup(
+                    ctx.guild.id if ctx.guild else 0,
+                    {
+                        'ticket_retention_days': 90,
+                        'vote_retention_days': 60,
+                        'log_retention_days': 30,
+                        'archive_before_delete': True,
+                        'batch_size': 1000
+                    }
+                )
+            elif operation == "archive":
+                # 只執行歷史資料歸檔，不刪除
+                from bot.db.archive_dao import ArchiveDAO
+                archive_dao = ArchiveDAO()
+                
+                results = {}
+                results['tickets_archived'] = await archive_dao.archive_old_tickets(ctx.guild.id if ctx.guild else 0, 90, 1000)
+                results['votes_archived'] = await archive_dao.archive_old_votes(ctx.guild.id if ctx.guild else 0, 60, 1000)
+                results['activity_archived'] = await archive_dao.archive_user_activity(ctx.guild.id if ctx.guild else 0, "monthly")
             else:
                 # 基本清理（只清理日誌和臨時資料）
-                results = {}
-                results['system_logs'] = await cleanup_manager._cleanup_system_logs()
-                results['temporary_data'] = await cleanup_manager._cleanup_temporary_data()
+                results = await cleanup_manager.perform_comprehensive_cleanup(
+                    ctx.guild.id if ctx.guild else 0,
+                    {
+                        'ticket_retention_days': 180,  # 保留更長時間
+                        'vote_retention_days': 120,
+                        'log_retention_days': 7,  # 只清理7天前的日誌
+                        'archive_before_delete': True,
+                        'clean_logs': True,
+                        'batch_size': 500
+                    }
+                )
             
-            # 統計結果
-            total_deleted = sum(result.deleted_count for result in results.values() if hasattr(result, 'deleted_count'))
-            successful_operations = sum(1 for result in results.values() if hasattr(result, 'success') and result.success)
-            
-            embed = discord.Embed(
-                title="✅ 資料清理完成",
-                color=0x27ae60
-            )
-            embed.add_field(name="總刪除記錄", value=f"{total_deleted:,}", inline=True)
-            embed.add_field(name="成功操作", value=f"{successful_operations}/{len(results)}", inline=True)
-            embed.add_field(name="清理類型", value=operation, inline=True)
-            
-            # 詳細結果
-            details = []
-            for op_name, result in results.items():
-                if hasattr(result, 'success'):
-                    status = "✅" if result.success else "❌"
-                    deleted = getattr(result, 'deleted_count', 0)
-                    details.append(f"{status} {op_name}: {deleted:,} 條記錄")
-            
-            if details:
-                embed.add_field(
-                    name="清理詳情",
-                    value="\n".join(details[:10]),  # 限制顯示前10項
-                    inline=False
+            if results.get('success', False):
+                embed = discord.Embed(
+                    title="✅ 資料清理完成",
+                    color=0x27ae60
+                )
+                
+                if operation == "archive":
+                    # 歸檔操作結果
+                    total_archived = 0
+                    archive_details = []
+                    for op_name, result in results.items():
+                        if isinstance(result, dict) and 'archived' in result:
+                            archived_count = result['archived']
+                            total_archived += archived_count
+                            archive_details.append(f"📦 {op_name}: {archived_count:,} 條記錄")
+                    
+                    embed.add_field(name="總歸檔記錄", value=f"{total_archived:,}", inline=True)
+                    embed.add_field(name="操作類型", value="歷史資料歸檔", inline=True)
+                    
+                    if archive_details:
+                        embed.add_field(
+                            name="歸檔詳情",
+                            value="\n".join(archive_details),
+                            inline=False
+                        )
+                else:
+                    # 清理操作結果
+                    embed.add_field(name="總歸檔記錄", value=f"{results.get('total_items_archived', 0):,}", inline=True)
+                    embed.add_field(name="總清除記錄", value=f"{results.get('total_items_deleted', 0):,}", inline=True)
+                    embed.add_field(name="清理類型", value=operation, inline=True)
+                    
+                    # 詳細結果
+                    detailed_results = results.get('detailed_results', {})
+                    if detailed_results:
+                        details = []
+                        for op_name, result in detailed_results.items():
+                            if isinstance(result, dict):
+                                archived = result.get('archived', 0)
+                                deleted = result.get('deleted', 0)
+                                if archived > 0 or deleted > 0:
+                                    details.append(f"📊 {op_name}: 歸檔 {archived}, 清除 {deleted}")
+                        
+                        if details:
+                            embed.add_field(
+                                name="操作詳情",
+                                value="\n".join(details[:8]),  # 限制顯示前8項
+                                inline=False
+                            )
+            else:
+                embed = discord.Embed(
+                    title="❌ 清理失敗",
+                    description=f"錯誤: {results.get('error', '未知錯誤')}",
+                    color=0xe74c3c
                 )
             
             await message.edit(embed=embed)
@@ -1622,6 +1677,92 @@ class ConfirmResetView(discord.ui.View):
             )
             await ctx.send(embed=embed)
             logger.error(f"資料清理錯誤: {e}")
+
+    @commands.command(name='db_optimize', aliases=['資料庫優化'])
+    @commands.is_owner()
+    async def optimize_database(self, ctx):
+        """執行資料庫優化 (Bot 擁有者限定)"""
+        try:
+            embed = discord.Embed(
+                title="⚡ 開始資料庫優化",
+                description="正在分析和優化資料庫儲存...",
+                color=0xf39c12
+            )
+            message = await ctx.send(embed=embed)
+            
+            from bot.services.database_cleanup_manager import DatabaseCleanupManager
+            cleanup_manager = DatabaseCleanupManager()
+            
+            # 執行資料庫優化
+            results = await cleanup_manager.optimize_database_storage(ctx.guild.id if ctx.guild else 0)
+            
+            if results.get('success', False):
+                embed = discord.Embed(
+                    title="✅ 資料庫優化完成",
+                    color=0x27ae60
+                )
+                
+                optimization_results = results.get('results', {})
+                
+                # 壓縮結果
+                compression = optimization_results.get('compression', {})
+                if compression and not compression.get('error'):
+                    embed.add_field(
+                        name="📦 資料壓縮",
+                        value=f"壓縮歸檔: {compression.get('compressed_archives', 0)}\n"
+                              f"節省空間: {compression.get('space_saved_mb', 0):.1f}MB\n"
+                              f"壓縮比: {compression.get('compression_ratio', 1.0):.2f}x",
+                        inline=True
+                    )
+                
+                # 索引優化結果
+                indexes = optimization_results.get('indexes', {})
+                if indexes and not indexes.get('error'):
+                    embed.add_field(
+                        name="🗂️ 索引優化",
+                        value=f"分析索引: {indexes.get('indexes_analyzed', 0)}\n"
+                              f"優化索引: {indexes.get('indexes_optimized', 0)}\n"
+                              f"性能提升: {indexes.get('query_performance_improvement', 0)}%",
+                        inline=True
+                    )
+                
+                # 統計資訊
+                statistics = optimization_results.get('statistics', {})
+                if statistics:
+                    storage_analysis = statistics.get('storage_analysis', {})
+                    embed.add_field(
+                        name="📊 儲存分析",
+                        value=f"活躍資料: {storage_analysis.get('active_data_size_mb', 0):.1f}MB\n"
+                              f"歷史資料: {storage_analysis.get('archived_data_size_mb', 0):.1f}MB\n"
+                              f"總大小: {storage_analysis.get('total_size_mb', 0):.1f}MB",
+                        inline=True
+                    )
+                    
+                    # 優化建議
+                    recommendations = statistics.get('recommendations', [])
+                    if recommendations:
+                        embed.add_field(
+                            name="💡 優化建議",
+                            value="\n".join([f"• {rec}" for rec in recommendations[:3]]),
+                            inline=False
+                        )
+            else:
+                embed = discord.Embed(
+                    title="❌ 資料庫優化失敗",
+                    description=f"錯誤: {results.get('error', '未知錯誤')}",
+                    color=0xe74c3c
+                )
+            
+            await message.edit(embed=embed)
+            
+        except Exception as e:
+            embed = discord.Embed(
+                title="❌ 優化失敗",
+                description=f"錯誤: {str(e)}",
+                color=0xe74c3c
+            )
+            await ctx.send(embed=embed)
+            logger.error(f"資料庫優化錯誤: {e}")
 
     @commands.command(name='export', aliases=['匯出'])
     @commands.is_owner()
