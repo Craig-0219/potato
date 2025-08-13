@@ -629,7 +629,261 @@ async def is_vote_system_enabled(guild_id: int):
     """檢查投票系統是否啟用"""
     try:
         settings = await get_vote_settings(guild_id)
-        return settings and settings.get('is_enabled', True)
+        # 如果沒有設定記錄，默認啟用
+        if not settings:
+            return True
+        # 檢查 is_enabled 欄位，默認啟用
+        return settings.get('is_enabled', True)
     except Exception as e:
         logger.error(f"is_vote_system_enabled({guild_id}) 錯誤: {e}")
         return True  # 預設啟用
+
+# ===== 統計功能優化 =====
+
+async def get_total_vote_count(guild_id: int = None):
+    """獲取投票總數統計"""
+    try:
+        async with db_pool.connection() as conn:
+            async with conn.cursor() as cur:
+                if guild_id:
+                    await cur.execute("SELECT COUNT(*) FROM votes WHERE guild_id = %s", (guild_id,))
+                else:
+                    await cur.execute("SELECT COUNT(*) FROM votes")
+                
+                result = await cur.fetchone()
+                return result[0] if result else 0
+                
+    except Exception as e:
+        logger.error(f"get_total_vote_count({guild_id}) 錯誤: {e}")
+        return 0
+
+async def get_recent_votes(limit: int = 5, guild_id: int = None):
+    """獲取最近的投票"""
+    try:
+        async with db_pool.connection() as conn:
+            async with conn.cursor(aiomysql.DictCursor) as cur:
+                if guild_id:
+                    query = """
+                        SELECT id, title, start_time, end_time, is_multi, anonymous, 
+                               guild_id, channel_id, creator_id
+                        FROM votes 
+                        WHERE guild_id = %s
+                        ORDER BY start_time DESC 
+                        LIMIT %s
+                    """
+                    await cur.execute(query, (guild_id, limit))
+                else:
+                    query = """
+                        SELECT id, title, start_time, end_time, is_multi, anonymous,
+                               guild_id, channel_id, creator_id
+                        FROM votes 
+                        ORDER BY start_time DESC 
+                        LIMIT %s
+                    """
+                    await cur.execute(query, (limit,))
+                
+                rows = await cur.fetchall()
+                
+                # 處理時區和資料類型
+                results = []
+                for row in rows:
+                    row['is_multi'] = bool(row['is_multi'])
+                    row['anonymous'] = bool(row['anonymous'])
+                    
+                    if row['start_time'] and row['start_time'].tzinfo is None:
+                        row['start_time'] = row['start_time'].replace(tzinfo=timezone.utc)
+                    if row['end_time'] and row['end_time'].tzinfo is None:
+                        row['end_time'] = row['end_time'].replace(tzinfo=timezone.utc)
+                    
+                    results.append(row)
+                
+                return results
+                
+    except Exception as e:
+        logger.error(f"get_recent_votes({limit}, {guild_id}) 錯誤: {e}")
+        return []
+
+async def get_vote_participation_stats(vote_id: int):
+    """獲取投票參與統計詳情"""
+    try:
+        async with db_pool.connection() as conn:
+            async with conn.cursor() as cur:
+                # 獲取總參與人數
+                await cur.execute("""
+                    SELECT COUNT(DISTINCT user_id) as unique_users,
+                           COUNT(*) as total_responses
+                    FROM vote_responses WHERE vote_id = %s
+                """, (vote_id,))
+                
+                result = await cur.fetchone()
+                unique_users = result[0] if result else 0
+                total_responses = result[1] if result else 0
+                
+                # 獲取各選項的詳細統計
+                await cur.execute("""
+                    SELECT option_text, 
+                           COUNT(*) as vote_count,
+                           COUNT(DISTINCT user_id) as unique_voters
+                    FROM vote_responses 
+                    WHERE vote_id = %s 
+                    GROUP BY option_text
+                    ORDER BY vote_count DESC
+                """, (vote_id,))
+                
+                options_stats = []
+                async for row in cur:
+                    options_stats.append({
+                        'option': row[0],
+                        'votes': row[1],
+                        'unique_voters': row[2]
+                    })
+                
+                return {
+                    'unique_users': unique_users,
+                    'total_responses': total_responses,
+                    'options_stats': options_stats
+                }
+                
+    except Exception as e:
+        logger.error(f"get_vote_participation_stats({vote_id}) 錯誤: {e}")
+        return {
+            'unique_users': 0,
+            'total_responses': 0,
+            'options_stats': []
+        }
+
+async def get_guild_vote_stats(guild_id: int, days: int = 30):
+    """獲取指定伺服器的投票統計（指定天數內）"""
+    try:
+        async with db_pool.connection() as conn:
+            async with conn.cursor() as cur:
+                # 獲取基本統計
+                await cur.execute("""
+                    SELECT 
+                        COUNT(*) as total_votes,
+                        COUNT(CASE WHEN end_time > UTC_TIMESTAMP() THEN 1 END) as active_votes,
+                        COUNT(CASE WHEN end_time <= UTC_TIMESTAMP() THEN 1 END) as finished_votes
+                    FROM votes 
+                    WHERE guild_id = %s 
+                    AND start_time >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL %s DAY)
+                """, (guild_id, days))
+                
+                basic_stats = await cur.fetchone()
+                
+                # 獲取參與統計
+                await cur.execute("""
+                    SELECT COUNT(DISTINCT vr.user_id) as unique_participants,
+                           COUNT(*) as total_responses
+                    FROM vote_responses vr
+                    JOIN votes v ON vr.vote_id = v.id
+                    WHERE v.guild_id = %s 
+                    AND v.start_time >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL %s DAY)
+                """, (guild_id, days))
+                
+                participation_stats = await cur.fetchone()
+                
+                # 獲取最活躍的投票創建者
+                await cur.execute("""
+                    SELECT creator_id, COUNT(*) as votes_created
+                    FROM votes 
+                    WHERE guild_id = %s 
+                    AND start_time >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL %s DAY)
+                    GROUP BY creator_id
+                    ORDER BY votes_created DESC
+                    LIMIT 5
+                """, (guild_id, days))
+                
+                top_creators = await cur.fetchall()
+                
+                return {
+                    'total_votes': basic_stats[0] if basic_stats else 0,
+                    'active_votes': basic_stats[1] if basic_stats else 0,
+                    'finished_votes': basic_stats[2] if basic_stats else 0,
+                    'unique_participants': participation_stats[0] if participation_stats else 0,
+                    'total_responses': participation_stats[1] if participation_stats else 0,
+                    'top_creators': [{'user_id': row[0], 'votes_created': row[1]} for row in top_creators],
+                    'days_range': days
+                }
+                
+    except Exception as e:
+        logger.error(f"get_guild_vote_stats({guild_id}, {days}) 錯誤: {e}")
+        return {
+            'total_votes': 0,
+            'active_votes': 0,
+            'finished_votes': 0,
+            'unique_participants': 0,
+            'total_responses': 0,
+            'top_creators': [],
+            'days_range': days
+        }
+
+async def get_user_vote_history(user_id: int, guild_id: int = None, limit: int = 10):
+    """獲取使用者投票歷史"""
+    try:
+        async with db_pool.connection() as conn:
+            async with conn.cursor(aiomysql.DictCursor) as cur:
+                if guild_id:
+                    # 獲取該用戶創建的投票
+                    await cur.execute("""
+                        SELECT id, title, start_time, end_time, is_multi, anonymous
+                        FROM votes 
+                        WHERE creator_id = %s AND guild_id = %s
+                        ORDER BY start_time DESC 
+                        LIMIT %s
+                    """, (user_id, guild_id, limit))
+                else:
+                    await cur.execute("""
+                        SELECT id, title, start_time, end_time, is_multi, anonymous, guild_id
+                        FROM votes 
+                        WHERE creator_id = %s
+                        ORDER BY start_time DESC 
+                        LIMIT %s
+                    """, (user_id, limit))
+                
+                created_votes = await cur.fetchall()
+                
+                # 獲取該用戶參與的投票
+                if guild_id:
+                    await cur.execute("""
+                        SELECT DISTINCT v.id, v.title, v.start_time, v.end_time, 
+                               GROUP_CONCAT(vr.option_text) as voted_options
+                        FROM votes v
+                        JOIN vote_responses vr ON v.id = vr.vote_id
+                        WHERE vr.user_id = %s AND v.guild_id = %s
+                        GROUP BY v.id, v.title, v.start_time, v.end_time
+                        ORDER BY v.start_time DESC 
+                        LIMIT %s
+                    """, (user_id, guild_id, limit))
+                else:
+                    await cur.execute("""
+                        SELECT DISTINCT v.id, v.title, v.start_time, v.end_time, v.guild_id,
+                               GROUP_CONCAT(vr.option_text) as voted_options
+                        FROM votes v
+                        JOIN vote_responses vr ON v.id = vr.vote_id
+                        WHERE vr.user_id = %s
+                        GROUP BY v.id, v.title, v.start_time, v.end_time, v.guild_id
+                        ORDER BY v.start_time DESC 
+                        LIMIT %s
+                    """, (user_id, limit))
+                
+                participated_votes = await cur.fetchall()
+                
+                # 處理時區
+                for votes in [created_votes, participated_votes]:
+                    for vote in votes:
+                        if vote['start_time'] and vote['start_time'].tzinfo is None:
+                            vote['start_time'] = vote['start_time'].replace(tzinfo=timezone.utc)
+                        if vote['end_time'] and vote['end_time'].tzinfo is None:
+                            vote['end_time'] = vote['end_time'].replace(tzinfo=timezone.utc)
+                
+                return {
+                    'created_votes': list(created_votes),
+                    'participated_votes': list(participated_votes)
+                }
+                
+    except Exception as e:
+        logger.error(f"get_user_vote_history({user_id}, {guild_id}) 錯誤: {e}")
+        return {
+            'created_votes': [],
+            'participated_votes': []
+        }

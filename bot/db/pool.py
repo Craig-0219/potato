@@ -165,16 +165,21 @@ class MariaDBPool:
             if not self._initialized or not self.pool or self._closing:
                 return {
                     "status": "unhealthy",
-                    "error": "連線池未初始化或正在關閉"
+                    "error": "連線池未初始化或正在關閉",
+                    "latency": "N/A",
+                    "pool_status": "N/A"
                 }
 
+            # 測量延遲
+            start_time = asyncio.get_event_loop().time()
+            
             # 修復：添加連線池狀態檢查
             pool_info = {
-                "size": getattr(self.pool, 'size', 0),
-                "used": getattr(self.pool, 'used_size', 0),
-                "free": getattr(self.pool, 'free_size', 0),
-                "minsize": getattr(self.pool, 'minsize', 0),
-                "maxsize": getattr(self.pool, 'maxsize', 0)
+                "size": getattr(self.pool, '_size', getattr(self.pool, 'size', 0)),
+                "used": getattr(self.pool, '_used_size', getattr(self.pool, 'used_size', 0)), 
+                "free": getattr(self.pool, '_free_size', getattr(self.pool, 'free_size', 0)),
+                "minsize": getattr(self.pool, '_minsize', getattr(self.pool, 'minsize', 0)),
+                "maxsize": getattr(self.pool, '_maxsize', getattr(self.pool, 'maxsize', 0))
             }
 
             # 快速測試查詢
@@ -182,9 +187,18 @@ class MariaDBPool:
                 async with conn.cursor() as cursor:
                     await cursor.execute("SELECT DATABASE(), NOW(), CONNECTION_ID()")
                     db_name, now, connection_id = await cursor.fetchone()
+                    
+            # 計算延遲
+            end_time = asyncio.get_event_loop().time()
+            latency_ms = round((end_time - start_time) * 1000, 2)
+            
+            # 建構連線池狀態描述
+            pool_status = f"{pool_info['used']}/{pool_info['maxsize']} (已使用/最大)"
 
             return {
                 "status": "healthy",
+                "latency": f"{latency_ms}ms",
+                "pool_status": pool_status,
                 "database": {
                     "name": db_name,
                     "server_time": str(now),
@@ -197,7 +211,9 @@ class MariaDBPool:
             logger.error(f"健康檢查失敗：{e}")
             return {
                 "status": "unhealthy",
-                "error": str(e)
+                "error": str(e),
+                "latency": "N/A",
+                "pool_status": "N/A"
             }
 
 

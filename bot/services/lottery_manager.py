@@ -23,10 +23,64 @@ class LotteryManager:
         self.bot = bot
         self.dao = LotteryDAO()
         self._running_lotteries = {}  # lottery_id -> task
+        self._cache = {}  # 簡單的記憶體快取
+        self._cache_timeout = 300  # 5分鐘快取過期
+        self._last_cleanup = datetime.now()
         
         # 啟動背景任務
         if bot:
             self.lottery_scheduler.start()
+    
+    def _get_cache_key(self, *args) -> str:
+        """生成快取鍵"""
+        return ":".join(str(arg) for arg in args)
+    
+    def _is_cache_valid(self, timestamp: datetime) -> bool:
+        """檢查快取是否有效"""
+        return (datetime.now() - timestamp).total_seconds() < self._cache_timeout
+    
+    async def _get_cached_or_fetch(self, cache_key: str, fetch_func, *args):
+        """獲取快取或重新獲取"""
+        if cache_key in self._cache:
+            data, timestamp = self._cache[cache_key]
+            if self._is_cache_valid(timestamp):
+                return data
+        
+        # 快取過期或不存在，重新獲取
+        data = await fetch_func(*args)
+        self._cache[cache_key] = (data, datetime.now())
+        
+        # 定期清理過期快取
+        if (datetime.now() - self._last_cleanup).total_seconds() > 600:  # 10分鐘清理一次
+            await self._cleanup_cache()
+            self._last_cleanup = datetime.now()
+        
+        return data
+    
+    async def _cleanup_cache(self):
+        """清理過期快取"""
+        now = datetime.now()
+        expired_keys = [
+            key for key, (_, timestamp) in self._cache.items()
+            if (now - timestamp).total_seconds() >= self._cache_timeout
+        ]
+        
+        for key in expired_keys:
+            del self._cache[key]
+        
+        if expired_keys:
+            logger.debug(f"清理了 {len(expired_keys)} 個過期快取項目")
+    
+    def invalidate_cache(self, pattern: str = None):
+        """失效快取"""
+        if pattern:
+            # 失效匹配模式的快取
+            keys_to_remove = [key for key in self._cache.keys() if pattern in key]
+            for key in keys_to_remove:
+                del self._cache[key]
+        else:
+            # 清空所有快取
+            self._cache.clear()
 
     async def create_lottery(self, guild: discord.Guild, creator: discord.Member, 
                            lottery_config: Dict[str, Any]) -> Tuple[bool, str, Optional[int]]:
@@ -86,7 +140,8 @@ class LotteryManager:
             logger.error(f"創建抽獎失敗: {e}")
             return False, f"創建抽獎時發生錯誤: {str(e)}", None
 
-    async def start_lottery(self, lottery_id: int, channel: discord.TextChannel) -> Tuple[bool, str, Optional[discord.Message]]:
+    async def start_lottery(self, lottery_id: int, channel: discord.TextChannel, 
+                           use_interactive_view: bool = True) -> Tuple[bool, str, Optional[discord.Message]]:
         """開始抽獎"""
         try:
             lottery = await self.dao.get_lottery(lottery_id)
@@ -99,8 +154,18 @@ class LotteryManager:
             # 創建抽獎公告嵌入
             embed = await self._create_lottery_embed(lottery)
             
+            # 決定是否使用互動式視圖
+            view = None
+            if use_interactive_view and lottery['entry_method'] in ['command', 'both']:
+                # 動態導入以避免循環導入
+                from bot.views.lottery_views import LotteryParticipationView
+                view = LotteryParticipationView(lottery_id)
+            
             # 發送訊息
-            message = await channel.send(embed=embed)
+            if view:
+                message = await channel.send(embed=embed, view=view)
+            else:
+                message = await channel.send(embed=embed)
             
             # 如果是反應參與，添加反應
             if lottery['entry_method'] in ['reaction', 'both']:
@@ -113,7 +178,7 @@ class LotteryManager:
             if lottery['auto_end']:
                 await self._schedule_lottery_end(lottery_id, lottery['end_time'])
             
-            logger.info(f"抽獎開始: {lottery_id} - {lottery['name']}")
+            logger.info(f"抽獎開始: {lottery_id} - {lottery['name']} (互動式視圖: {use_interactive_view and view is not None})")
             return True, "抽獎已開始！", message
             
         except Exception as e:

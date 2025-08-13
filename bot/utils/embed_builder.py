@@ -509,3 +509,39 @@ def embed_from_dict(data: Dict[str, Any]) -> discord.Embed:
     except Exception as e:
         logger.error(f"從字典建立 Embed 失敗：{e}")
         return EmbedBuilder.error("格式錯誤", "無法解析嵌入格式")
+
+
+# ===== 新增方法以支持抽獎系統 =====
+# 為了向後兼容添加的靜態方法
+
+def add_static_methods():
+    """為 EmbedBuilder 添加靜態方法"""
+    
+    @staticmethod
+    def create_info_embed(title: str, description: str = None) -> discord.Embed:
+        """創建信息嵌入"""
+        return EmbedBuilder.build(title=title, description=description, color='info')
+    
+    @staticmethod 
+    def create_success_embed(title: str, description: str = None) -> discord.Embed:
+        """創建成功嵌入"""
+        return EmbedBuilder.build(title=title, description=description, color='success')
+    
+    @staticmethod
+    def create_error_embed(title: str, description: str = None) -> discord.Embed:
+        """創建錯誤嵌入"""
+        return EmbedBuilder.build(title=title, description=description, color='error')
+    
+    @staticmethod
+    def create_warning_embed(title: str, description: str = None) -> discord.Embed:
+        """創建警告嵌入"""
+        return EmbedBuilder.build(title=title, description=description, color='warning')
+    
+    # 動態添加方法到 EmbedBuilder 類
+    EmbedBuilder.create_info_embed = create_info_embed
+    EmbedBuilder.create_success_embed = create_success_embed
+    EmbedBuilder.create_error_embed = create_error_embed
+    EmbedBuilder.create_warning_embed = create_warning_embed
+
+# 執行添加
+add_static_methods()

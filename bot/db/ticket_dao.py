@@ -253,11 +253,14 @@ class TicketDAO:
                         logger.warning(f"用戶 {discord_id} 已達票券上限")
                         return None
                     
-                    # 建立票券
+                    # 建立票券 - 提供預設值避免NULL錯誤
+                    ticket_title = title or f"{ticket_type.title()} 票券"
+                    ticket_description = description or f"由 {username} 建立的 {ticket_type} 票券"
+                    
                     await cursor.execute("""
                         INSERT INTO tickets (discord_id, username, type, priority, channel_id, guild_id, title, description, created_at, last_activity)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
-                    """, (discord_id, username, ticket_type, priority, channel_id, guild_id, title, description))
+                    """, (discord_id, username, ticket_type, priority, channel_id, guild_id, ticket_title, ticket_description))
                     
                     ticket_id = cursor.lastrowid
                     

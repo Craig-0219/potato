@@ -393,7 +393,107 @@ class DataCleanupManager:
     
     async def _cleanup_old_tickets(self) -> CleanupResult:
         """清理舊的已關閉票券"""
-        return await self._generic_cleanup_by_date("tickets", "created_at", self.config.closed_ticket_retention_days)
+        table_name = "tickets"
+        cutoff_date = datetime.now() - timedelta(days=self.config.closed_ticket_retention_days)
+        
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor(aiomysql.DictCursor) as cursor:
+                    # 檢查表是否存在
+                    check_table_query = """
+                    SELECT COUNT(*) as count
+                    FROM information_schema.tables 
+                    WHERE table_schema = DATABASE() 
+                    AND table_name = %s
+                    """
+                    await cursor.execute(check_table_query, (table_name,))
+                    result = await cursor.fetchone()
+                    
+                    if not result or result['count'] == 0:
+                        logger.warning(f"⚠️ 表 {table_name} 不存在，跳過清理")
+                        return CleanupResult(
+                            table_name=table_name,
+                            records_before=0,
+                            records_after=0,
+                            deleted_count=0,
+                            cleanup_time=datetime.now(),
+                            success=True
+                        )
+                    
+                    # 獲取總記錄數
+                    await cursor.execute(f"SELECT COUNT(*) as count FROM {table_name}")
+                    result = await cursor.fetchone()
+                    total_records = result['count'] if result else 0
+                    
+                    # 計算要刪除的已關閉票券數 (狀態為 closed, resolved, archived)
+                    count_query = f"""
+                    SELECT COUNT(*) as count FROM {table_name} 
+                    WHERE status IN ('closed', 'resolved', 'archived') 
+                    AND closed_at IS NOT NULL 
+                    AND closed_at < %s
+                    """
+                    await cursor.execute(count_query, (cutoff_date,))
+                    result = await cursor.fetchone()
+                    records_to_delete = result['count'] if result else 0
+                    
+                    # 如果沒有 closed_at 欄位，改用 created_at
+                    if records_to_delete == 0:
+                        count_query = f"""
+                        SELECT COUNT(*) as count FROM {table_name} 
+                        WHERE status IN ('closed', 'resolved', 'archived') 
+                        AND created_at < %s
+                        """
+                        await cursor.execute(count_query, (cutoff_date,))
+                        result = await cursor.fetchone()
+                        records_to_delete = result['count'] if result else 0
+                    
+                    # 執行清理
+                    if records_to_delete > 0:
+                        # 先嘗試用 closed_at
+                        delete_query = f"""
+                        DELETE FROM {table_name} 
+                        WHERE status IN ('closed', 'resolved', 'archived') 
+                        AND closed_at IS NOT NULL 
+                        AND closed_at < %s
+                        """
+                        await cursor.execute(delete_query, (cutoff_date,))
+                        deleted_with_closed_at = cursor.rowcount
+                        
+                        # 如果還沒刪除完，用 created_at
+                        if deleted_with_closed_at == 0:
+                            delete_query = f"""
+                            DELETE FROM {table_name} 
+                            WHERE status IN ('closed', 'resolved', 'archived') 
+                            AND created_at < %s
+                            """
+                            await cursor.execute(delete_query, (cutoff_date,))
+                        
+                        await conn.commit()
+                    
+                    records_after = total_records - records_to_delete
+                    
+                    logger.info(f"🗑️ 已關閉票券清理: 刪除 {records_to_delete} 條記錄")
+                    
+                    return CleanupResult(
+                        table_name=table_name,
+                        records_before=total_records,
+                        records_after=records_after,
+                        deleted_count=records_to_delete,
+                        cleanup_time=datetime.now(),
+                        success=True
+                    )
+                    
+        except Exception as e:
+            logger.error(f"❌ 清理已關閉票券失敗: {e}")
+            return CleanupResult(
+                table_name=table_name,
+                records_before=0,
+                records_after=0,
+                deleted_count=0,
+                cleanup_time=datetime.now(),
+                success=False,
+                error_message=str(e)
+            )
     
     async def _cleanup_statistics_cache(self) -> CleanupResult:
         """清理統計快取資料"""

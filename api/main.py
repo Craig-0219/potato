@@ -17,10 +17,7 @@ from fastapi.openapi.utils import get_openapi
 # 導入路由
 from api.auth_routes import router as auth_router
 from api.ticket_routes import router as ticket_router
-<<<<<<< HEAD
 from api.analytics_routes import router as analytics_router
-=======
->>>>>>> a35f5d60d87ec4cc0114507a78c8527f0eed00ca
 
 # 導入中介軟體
 from api.middleware.auth_middleware import (
@@ -32,7 +29,7 @@ from api.middleware.auth_middleware import (
 
 # 導入服務
 from bot.services.auth_manager import auth_manager
-from bot.services.system_monitor import system_monitor
+from bot.services.system_monitor import system_monitor  
 from bot.services.realtime_sync_manager import realtime_sync
 from shared.logger import logger
 
@@ -44,21 +41,30 @@ async def lifespan(app: FastAPI):
     logger.info("🚀 啟動 API 服務...")
     
     try:
-        # 初始化認證管理器（不依賴資料庫連接）
+        # 首先初始化資料庫連線池
+        try:
+            from bot.db.database_manager import get_database_manager
+            db_manager = get_database_manager()
+            await db_manager.initialize()
+            logger.info("✅ 資料庫連線池初始化完成")
+        except Exception as e:
+            logger.warning(f"⚠️ 資料庫連線池初始化失敗: {e}")
+        
+        # 初始化認證管理器
         try:
             await auth_manager.initialize()
             logger.info("✅ 認證管理器初始化完成")
         except Exception as e:
             logger.warning(f"⚠️ 認證管理器初始化失敗，將在本機模式運行: {e}")
         
-        # 初始化系統監控器（不依賴資料庫連接）
+        # 初始化系統監控器
         try:
             await system_monitor.initialize()
             logger.info("✅ 系統監控器初始化完成")
         except Exception as e:
             logger.warning(f"⚠️ 系統監控器初始化失敗: {e}")
         
-        # 初始化即時同步管理器（不依賴資料庫連接）
+        # 初始化即時同步管理器
         try:
             await realtime_sync.initialize()
             logger.info("✅ 即時同步管理器初始化完成")
@@ -92,7 +98,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Potato Bot API",
     description="Discord 票券系統 API 介面",
-    version="2.0.0",
+    version="2.1.0",
     docs_url=None,  # 禁用預設文檔頁面
     redoc_url=None, # 禁用 ReDoc
     lifespan=lifespan
@@ -106,14 +112,14 @@ app.add_middleware(
     **get_cors_middleware_config()
 )
 
-# 安全標頭中介軟體
-app.add_middleware(SecurityHeadersMiddleware)
+# 安全標頭中介軟體 (暫時禁用，避免啟動錯誤)
+# app.add_middleware(SecurityHeadersMiddleware)
 
-# 速率限制中介軟體
-app.add_middleware(RateLimitMiddleware, requests_per_minute=120)
+# 速率限制中介軟體 (暫時禁用)
+# app.add_middleware(RateLimitMiddleware, requests_per_minute=120)
 
-# 認證中介軟體
-app.add_middleware(AuthMiddleware)
+# 認證中介軟體 (暫時禁用)
+# app.add_middleware(AuthMiddleware)
 
 # ===== 異常處理 =====
 
@@ -149,10 +155,7 @@ async def general_exception_handler(request: Request, exc: Exception):
 # 路由註冊
 app.include_router(auth_router)  # 認證相關路由
 app.include_router(ticket_router)  # 票券管理路由
-<<<<<<< HEAD
 app.include_router(analytics_router)  # 高級分析路由
-=======
->>>>>>> a35f5d60d87ec4cc0114507a78c8527f0eed00ca
 
 # ===== 基礎端點 =====
 
@@ -161,7 +164,7 @@ async def root():
     """API 根端點"""
     return {
         "service": "Potato Bot API",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "status": "running",
         "docs": "/docs",
         "health": "/health"
@@ -223,7 +226,7 @@ def custom_openapi():
     
     openapi_schema = get_openapi(
         title="Potato Bot API",
-        version="2.0.0",
+        version="2.1.0",
         description="""
         ## Discord 票券系統 API
         

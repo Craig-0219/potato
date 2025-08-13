@@ -370,53 +370,138 @@ class LotteryDAO(BaseDAO):
             return 0
 
     async def get_lottery_statistics(self, guild_id: int, days: int = 30) -> Dict[str, Any]:
-        """獲取抽獎統計"""
+        """獲取抽獎統計資料"""
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor(aiomysql.DictCursor) as cursor:
-                    start_date = datetime.now() - timedelta(days=days)
-                    
                     # 基本統計
-                    stats_query = """
+                    basic_query = """
                     SELECT 
                         COUNT(*) as total_lotteries,
                         COUNT(CASE WHEN status = 'active' THEN 1 END) as active_lotteries,
                         COUNT(CASE WHEN status = 'ended' THEN 1 END) as completed_lotteries,
                         COUNT(CASE WHEN status = 'cancelled' THEN 1 END) as cancelled_lotteries,
-                        AVG(winner_count) as avg_winners_per_lottery
-                    FROM lotteries
-                    WHERE guild_id = %s AND created_at >= %s
+                        AVG(winner_count) as avg_winner_count,
+                        COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY) THEN 1 END) as daily_lotteries,
+                        COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as weekly_lotteries,
+                        COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as monthly_lotteries
+                    FROM lotteries 
+                    WHERE guild_id = %s AND created_at >= DATE_SUB(NOW(), INTERVAL %s DAY)
                     """
                     
-                    await cursor.execute(stats_query, (guild_id, start_date))
+                    await cursor.execute(basic_query, (guild_id, days))
                     basic_stats = await cursor.fetchone()
                     
-                    # 參與者統計
+                    # 參與統計
                     participation_query = """
                     SELECT 
-                        COUNT(DISTINCT le.user_id) as unique_participants,
-                        COUNT(le.id) as total_entries,
-                        AVG(entry_count) as avg_entries_per_lottery
-                    FROM lottery_entries le
-                    JOIN lotteries l ON le.lottery_id = l.id
-                    LEFT JOIN (
-                        SELECT lottery_id, COUNT(*) as entry_count
-                        FROM lottery_entries
-                        GROUP BY lottery_id
-                    ) ec ON l.id = ec.lottery_id
-                    WHERE l.guild_id = %s AND l.created_at >= %s
+                        COUNT(*) as total_participations,
+                        COUNT(DISTINCT user_id) as unique_participants
+                    FROM lottery_entries lp
+                    JOIN lotteries l ON lp.lottery_id = l.id
+                    WHERE l.guild_id = %s AND lp.entry_time >= DATE_SUB(NOW(), INTERVAL %s DAY)
                     """
                     
-                    await cursor.execute(participation_query, (guild_id, start_date))
+                    await cursor.execute(participation_query, (guild_id, days))
                     participation_stats = await cursor.fetchone()
                     
-                    return {
-                        'period': f'最近 {days} 天',
-                        'basic_stats': basic_stats or {},
-                        'participation_stats': participation_stats or {},
-                        'generated_at': datetime.now().isoformat()
+                    # 中獎統計
+                    winner_query = """
+                    SELECT 
+                        COUNT(*) as total_wins,
+                        COUNT(DISTINCT user_id) as unique_winners
+                    FROM lottery_winners lw
+                    JOIN lotteries l ON lw.lottery_id = l.id
+                    WHERE l.guild_id = %s AND l.created_at >= DATE_SUB(NOW(), INTERVAL %s DAY)
+                    """
+                    
+                    await cursor.execute(winner_query, (guild_id, days))
+                    winner_stats = await cursor.fetchone()
+                    
+                    # 平均參與數
+                    avg_participants_query = """
+                    SELECT 
+                        AVG(participant_count) as avg_participants
+                    FROM (
+                        SELECT COUNT(*) as participant_count
+                        FROM lottery_entries lp
+                        JOIN lotteries l ON lp.lottery_id = l.id
+                        WHERE l.guild_id = %s AND l.created_at >= DATE_SUB(NOW(), INTERVAL %s DAY)
+                        GROUP BY lp.lottery_id
+                    ) as pc
+                    """
+                    
+                    await cursor.execute(avg_participants_query, (guild_id, days))
+                    avg_result = await cursor.fetchone()
+                    
+                    # 合併統計結果
+                    stats = {
+                        'total_lotteries': basic_stats['total_lotteries'] or 0,
+                        'active_lotteries': basic_stats['active_lotteries'] or 0,
+                        'completed_lotteries': basic_stats['completed_lotteries'] or 0,
+                        'cancelled_lotteries': basic_stats['cancelled_lotteries'] or 0,
+                        'daily_lotteries': basic_stats['daily_lotteries'] or 0,
+                        'weekly_lotteries': basic_stats['weekly_lotteries'] or 0,
+                        'monthly_lotteries': basic_stats['monthly_lotteries'] or 0,
+                        'total_participations': participation_stats['total_participations'] or 0,
+                        'unique_participants': participation_stats['unique_participants'] or 0,
+                        'total_wins': winner_stats['total_wins'] or 0,
+                        'unique_winners': winner_stats['unique_winners'] or 0,
+                        'avg_participants': float(avg_result['avg_participants'] or 0),
+                        'avg_winner_count': float(basic_stats['avg_winner_count'] or 1)
                     }
+                    
+                    return stats
                     
         except Exception as e:
             logger.error(f"獲取抽獎統計失敗: {e}")
             return {}
+
+    async def get_participant_count(self, lottery_id: int) -> int:
+        """獲取抽獎參與人數"""
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    query = "SELECT COUNT(*) FROM lottery_entries WHERE lottery_id = %s"
+                    await cursor.execute(query, (lottery_id,))
+                    result = await cursor.fetchone()
+                    return result[0] if result else 0
+                    
+        except Exception as e:
+            logger.error(f"獲取參與人數失敗: {e}")
+            return 0
+
+    async def get_user_lottery_history(self, guild_id: int, user_id: int, limit: int = 10) -> List[Dict]:
+        """獲取用戶抽獎歷史"""
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor(aiomysql.DictCursor) as cursor:
+                    query = """
+                    SELECT 
+                        l.id, l.name, l.status,
+                        lp.entry_time,
+                        CASE WHEN lw.id IS NOT NULL THEN 1 ELSE 0 END as is_winner,
+                        lw.win_position,
+                        lw.prize_data
+                    FROM lotteries l
+                    JOIN lottery_entries lp ON l.id = lp.lottery_id
+                    LEFT JOIN lottery_winners lw ON l.id = lw.lottery_id AND lp.user_id = lw.user_id
+                    WHERE l.guild_id = %s AND lp.user_id = %s
+                    ORDER BY lp.entry_time DESC
+                    LIMIT %s
+                    """
+                    
+                    await cursor.execute(query, (guild_id, user_id, limit))
+                    results = await cursor.fetchall()
+                    
+                    # 解析JSON欄位
+                    for result in results:
+                        if result['prize_data']:
+                            result['prize_data'] = json.loads(result['prize_data'])
+                    
+                    return results
+                    
+        except Exception as e:
+            logger.error(f"獲取用戶抽獎歷史失敗: {e}")
+            return []
+

@@ -1300,6 +1300,123 @@ class DashboardManager:
             'cache_ttl': self._cache_ttl,
             'memory_usage': sum(len(str(dashboard)) for dashboard in self._dashboard_cache.values())
         }
+    
+    async def _generate_performance_metrics(self, performance_data: Dict[str, Any]) -> Dict[str, Any]:
+        """生成性能指標"""
+        try:
+            ticket_metrics = performance_data.get('ticket_metrics', {})
+            system_metrics = performance_data.get('system_metrics', {})
+            workflow_metrics = performance_data.get('workflow_metrics', {})
+            
+            # 計算關鍵性能指標
+            metrics = {
+                # 票券相關指標
+                'avg_resolution_time': ticket_metrics.get('avg_resolution_hours', 0),
+                'resolution_rate': ticket_metrics.get('resolution_rate', 0),
+                'customer_satisfaction': ticket_metrics.get('satisfaction_score', 0),
+                'first_response_time': ticket_metrics.get('avg_first_response_minutes', 0),
+                
+                # 系統性能指標
+                'system_uptime': system_metrics.get('uptime_percentage', 99.5),
+                'response_latency': system_metrics.get('avg_response_ms', 150),
+                'error_rate': system_metrics.get('error_rate', 0.1),
+                
+                # 工作流程效率指標
+                'workflow_success_rate': workflow_metrics.get('success_rate', 95),
+                'avg_workflow_time': workflow_metrics.get('avg_execution_time', 30),
+                'automation_coverage': workflow_metrics.get('automation_rate', 75),
+                
+                # 綜合評分
+                'overall_performance_score': 0
+            }
+            
+            # 計算綜合性能評分 (0-100)
+            score_components = [
+                min(100, max(0, 100 - (metrics['avg_resolution_time'] - 2) * 10)),  # 解決時間評分
+                metrics['resolution_rate'],  # 解決率
+                metrics['customer_satisfaction'],  # 客戶滿意度
+                metrics['system_uptime'],  # 系統正常運行時間
+                min(100, max(0, 100 - metrics['response_latency'] / 10)),  # 響應延遲評分
+                metrics['workflow_success_rate'],  # 工作流程成功率
+            ]
+            
+            metrics['overall_performance_score'] = sum(score_components) / len(score_components)
+            
+            return metrics
+            
+        except Exception as e:
+            logger.error(f"生成性能指標失敗: {e}")
+            return {
+                'avg_resolution_time': 0,
+                'resolution_rate': 0,
+                'customer_satisfaction': 0,
+                'first_response_time': 0,
+                'system_uptime': 0,
+                'response_latency': 0,
+                'error_rate': 0,
+                'workflow_success_rate': 0,
+                'avg_workflow_time': 0,
+                'automation_coverage': 0,
+                'overall_performance_score': 0
+            }
+    
+    async def _generate_performance_insights(self, performance_data: Dict[str, Any]) -> List[str]:
+        """生成性能洞察建議"""
+        try:
+            insights = []
+            ticket_metrics = performance_data.get('ticket_metrics', {})
+            system_metrics = performance_data.get('system_metrics', {})
+            workflow_metrics = performance_data.get('workflow_metrics', {})
+            
+            # 票券處理建議
+            resolution_rate = ticket_metrics.get('resolution_rate', 0)
+            if resolution_rate < 80:
+                insights.append("⚠️ 票券解決率偏低，建議檢查處理流程和客服培訓")
+            elif resolution_rate > 95:
+                insights.append("✅ 票券解決率表現優秀，維持當前服務品質")
+            
+            avg_resolution_time = ticket_metrics.get('avg_resolution_hours', 0)
+            if avg_resolution_time > 4:
+                insights.append("⏱️ 平均解決時間較長，建議優化工作流程或增加人力")
+            elif avg_resolution_time < 1:
+                insights.append("🚀 回應時間優秀，客戶體驗良好")
+            
+            # 系統性能建議
+            uptime = system_metrics.get('uptime_percentage', 99.5)
+            if uptime < 99:
+                insights.append("🔧 系統正常運行時間需要改善，建議檢查基礎設施")
+            elif uptime > 99.9:
+                insights.append("💪 系統穩定性極佳，基礎設施運行良好")
+            
+            response_latency = system_metrics.get('avg_response_ms', 150)
+            if response_latency > 300:
+                insights.append("📡 系統回應延遲較高，建議優化網路或伺服器配置")
+            elif response_latency < 100:
+                insights.append("⚡ 系統回應速度優秀，用戶體驗良好")
+            
+            # 工作流程建議
+            success_rate = workflow_metrics.get('success_rate', 95)
+            if success_rate < 90:
+                insights.append("🔄 工作流程成功率需要改善，建議檢查自動化邏輯")
+            elif success_rate > 98:
+                insights.append("🎯 工作流程運行穩定，自動化效果優秀")
+            
+            automation_rate = workflow_metrics.get('automation_rate', 75)
+            if automation_rate < 50:
+                insights.append("🤖 自動化覆蓋率較低，建議增加更多自動化流程")
+            elif automation_rate > 90:
+                insights.append("🏆 自動化程度很高，有效提升工作效率")
+            
+            # 如果沒有特別的建議，提供通用建議
+            if not insights:
+                insights.append("📊 系統整體運行正常，持續監控各項指標")
+                insights.append("💡 建議定期檢視性能趨勢，持續優化服務品質")
+            
+            return insights[:5]  # 最多返回5條建議
+            
+        except Exception as e:
+            logger.error(f"生成性能洞察失敗: {e}")
+            return ["❌ 無法生成性能建議，請檢查系統狀態"]
 
 
 # 全域儀表板管理器實例

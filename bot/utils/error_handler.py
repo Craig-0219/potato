@@ -120,6 +120,16 @@ class GlobalErrorHandler:
         self._log_error(error_type, error, interaction)
         
         try:
+            # 檢查是否是互動超時或已失效
+            if "Unknown interaction" in str(error) or "10062" in str(error):
+                logger.warning(f"互動已超時或失效: {error}")
+                return  # 靜默處理，不嘗試回應
+            
+            # 檢查是否已經確認互動
+            if "already been acknowledged" in str(error) or "40060" in str(error):
+                logger.warning(f"互動已被確認: {error}")
+                return  # 靜默處理
+                
             # 檢查是否已經回應
             if interaction.response.is_done():
                 send_func = interaction.followup.send
@@ -169,7 +179,11 @@ class GlobalErrorHandler:
                 logger.error(traceback.format_exc())
                 
         except Exception as e:
-            logger.error(f"處理互動錯誤時發生錯誤：{e}")
+            # 如果是互動相關的錯誤，不記錄為嚴重錯誤
+            if any(keyword in str(e).lower() for keyword in ["unknown interaction", "already been acknowledged", "interaction has already"]):
+                logger.debug(f"互動處理警告：{e}")
+            else:
+                logger.error(f"處理互動錯誤時發生錯誤：{e}")
     
     async def handle_generic_error(self, event: str, *args, **kwargs):
         """處理一般事件錯誤"""

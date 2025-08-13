@@ -13,6 +13,11 @@ from discord import app_commands
 
 from bot.services.lottery_manager import LotteryManager
 from bot.utils.embed_builder import EmbedBuilder
+from bot.views.lottery_views import (
+    LotteryManagementView,
+    LotteryParticipationView,
+    LotteryCreationModal
+)
 from shared.logger import logger
 
 
@@ -23,7 +28,58 @@ class LotteryCore(commands.Cog):
         self.bot = bot
         self.lottery_manager = LotteryManager(bot)
 
-    @app_commands.command(name="create_lottery", description="創建新的抽獎活動")
+    @app_commands.command(name="lottery_panel", description="打開抽獎管理面板")
+    async def lottery_panel(self, interaction: discord.Interaction):
+        """打開抽獎管理面板"""
+        try:
+            # 檢查基本權限 (查看需要)
+            if not interaction.user.guild_permissions.send_messages:
+                await interaction.response.send_message("❌ 您沒有權限使用此功能", ephemeral=True)
+                return
+
+            view = LotteryManagementView()
+            
+            embed = EmbedBuilder.create_info_embed(
+                "🎲 抽獎系統管理面板",
+                "使用下方按鈕來管理抽獎活動\n\n"
+                "🎲 **創建新抽獎** - 創建新的抽獎活動\n"
+                "📋 **活動抽獎** - 查看目前進行中的抽獎\n"
+                "📊 **抽獎統計** - 查看抽獎系統統計資料\n"
+                "⚙️ **管理操作** - 進階管理功能"
+            )
+            
+            embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/🎲.png")
+            embed.set_footer(text="點擊按鈕開始使用抽獎系統")
+            
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"打開抽獎管理面板失敗: {e}")
+            await interaction.response.send_message("❌ 打開管理面板時發生錯誤", ephemeral=True)
+
+    @app_commands.command(name="create_lottery_quick", description="快速創建抽獎 (使用互動式表單)")
+    async def create_lottery_quick(self, interaction: discord.Interaction):
+        """快速創建抽獎"""
+        try:
+            # 檢查權限
+            if not interaction.user.guild_permissions.manage_messages:
+                await interaction.response.send_message("❌ 您需要「管理訊息」權限才能創建抽獎", ephemeral=True)
+                return
+            
+            modal = LotteryCreationModal()
+            await interaction.response.send_modal(modal)
+            
+        except Exception as e:
+            logger.error(f"打開抽獎創建表單失敗: {e}")
+            try:
+                if not interaction.response.is_done():
+                    await interaction.response.send_message("❌ 打開創建表單時發生錯誤", ephemeral=True)
+                else:
+                    await interaction.followup.send("❌ 打開創建表單時發生錯誤", ephemeral=True)
+            except Exception as followup_error:
+                logger.error(f"發送錯誤訊息失敗: {followup_error}")
+
+    @app_commands.command(name="create_lottery", description="創建新的抽獎活動 (傳統指令)")
     @app_commands.describe(
         name="抽獎名稱",
         description="抽獎描述",
@@ -415,6 +471,66 @@ class LotteryCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"處理抽獎反應移除錯誤: {e}")
+
+    @app_commands.command(name="my_lottery_history", description="查看我的抽獎參與歷史")
+    async def my_lottery_history(self, interaction: discord.Interaction):
+        """查看用戶抽獎歷史"""
+        try:
+            await interaction.response.defer(ephemeral=True)
+            
+            # 導入歷史視圖
+            from bot.views.lottery_dashboard_views import UserLotteryHistoryView
+            
+            # 創建用戶歷史視圖
+            history_view = UserLotteryHistoryView(interaction.guild.id, interaction.user.id)
+            
+            # 獲取初始歷史數據
+            history = await self.lottery_manager.dao.get_user_lottery_history(
+                interaction.guild.id,
+                interaction.user.id,
+                limit=5
+            )
+            
+            if not history:
+                embed = EmbedBuilder.create_info_embed(
+                    "📋 我的抽獎歷史",
+                    "您還沒有參與過任何抽獎活動"
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
+            
+            # 創建歷史嵌入
+            embed = EmbedBuilder.create_info_embed(
+                f"📋 <@{interaction.user.id}> 的抽獎歷史"
+            )
+            
+            for record in history:
+                status_emoji = {
+                    'active': '🟢',
+                    'ended': '✅',
+                    'cancelled': '❌'
+                }
+                
+                win_text = "🏆 中獎" if record.get('is_winner') else "📝 參與"
+                position_text = f" (第{record.get('win_position')}名)" if record.get('win_position') else ""
+                
+                embed.add_field(
+                    name=f"{status_emoji.get(record['status'], '❓')} {record['name']}",
+                    value=f"**狀態**: {win_text}{position_text}\n"
+                          f"**參與時間**: <t:{int(record['entry_time'].timestamp())}:F>",
+                    inline=False
+                )
+            
+            embed.set_footer(text=f"第 1 頁 • 共 {len(history)} 條記錄")
+            
+            await interaction.followup.send(embed=embed, view=history_view, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"查看抽獎歷史失敗: {e}")
+            if not interaction.response.is_done():
+                await interaction.response.send_message("❌ 查看抽獎歷史時發生錯誤", ephemeral=True)
+            else:
+                await interaction.followup.send("❌ 查看抽獎歷史時發生錯誤", ephemeral=True)
 
 
 async def setup(bot):

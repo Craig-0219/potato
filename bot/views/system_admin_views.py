@@ -8,6 +8,7 @@ import discord
 from discord.ui import View, Button, Select, Modal, TextInput, button, select
 from typing import List, Dict, Any, Optional
 from shared.logger import logger
+from datetime import datetime, timezone
 
 from bot.db.ticket_dao import TicketDAO
 from bot.db.welcome_dao import WelcomeDAO
@@ -15,26 +16,31 @@ from bot.db import vote_dao
 from bot.services.welcome_manager import WelcomeManager
 from bot.services.data_cleanup_manager import DataCleanupManager
 from bot.services.data_export_manager import DataExportManager
+from bot.utils.interaction_helper import BaseView, SafeInteractionHandler
 
 
-class SystemAdminPanel(View):
+class SystemAdminPanel(BaseView):
     """系統管理主面板"""
     
     def __init__(self, user_id: int, timeout=300):
-        super().__init__(timeout=timeout)
-        self.user_id = user_id
+        super().__init__(user_id=user_id, timeout=timeout)
         self.ticket_dao = TicketDAO()
         self.welcome_dao = WelcomeDAO()
         self.welcome_manager = WelcomeManager(self.welcome_dao)
     
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         """檢查用戶權限"""
-        if interaction.user.id != self.user_id:
-            await interaction.response.send_message("❌ 只有指令使用者可以操作此面板", ephemeral=True)
+        # 先檢查基類權限
+        if not await super().interaction_check(interaction):
             return False
         
+        # 檢查管理權限
         if not interaction.user.guild_permissions.manage_guild:
-            await interaction.response.send_message("❌ 需要管理伺服器權限", ephemeral=True)
+            await SafeInteractionHandler.safe_respond(
+                interaction,
+                content="❌ 需要管理伺服器權限", 
+                ephemeral=True
+            )
             return False
         
         return True
@@ -1253,7 +1259,16 @@ class VoteSettingsView(View):
         
         await interaction.response.edit_message(embed=embed, view=self)
     
-    @button(label="⚙️ 系統開關", style=discord.ButtonStyle.success, row=0)
+    @button(label="📋 管理活躍投票", style=discord.ButtonStyle.primary, row=0)
+    async def manage_active_votes_button(self, interaction: discord.Interaction, button: Button):
+        """管理活躍投票按鈕"""
+        await interaction.response.send_message(
+            embed=await self._create_active_votes_embed(interaction.guild),
+            view=ActiveVoteManageView(self.user_id),
+            ephemeral=True
+        )
+    
+    @button(label="⚙️ 系統開關", style=discord.ButtonStyle.success, row=1)
     async def toggle_system_button(self, interaction: discord.Interaction, button: Button):
         """切換系統開關按鈕"""
         # 取得當前設定
@@ -1281,7 +1296,7 @@ class VoteSettingsView(View):
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
     
-    @button(label="🔄 重新整理", style=discord.ButtonStyle.secondary, row=1)
+    @button(label="🔄 重新整理", style=discord.ButtonStyle.secondary, row=2)
     async def refresh_button(self, interaction: discord.Interaction, button: Button):
         """重新整理設定按鈕"""
         from bot.views.system_admin_views import SystemAdminPanel
@@ -1289,7 +1304,7 @@ class VoteSettingsView(View):
         embed = await admin_panel._create_vote_settings_embed(interaction.guild)
         await interaction.response.edit_message(embed=embed, view=self)
     
-    @button(label="❌ 關閉", style=discord.ButtonStyle.danger, row=1)
+    @button(label="❌ 關閉", style=discord.ButtonStyle.danger, row=2)
     async def close_button(self, interaction: discord.Interaction, button: Button):
         """關閉按鈕"""
         embed = discord.Embed(
@@ -1297,6 +1312,42 @@ class VoteSettingsView(View):
             color=0x95a5a6
         )
         await interaction.response.edit_message(embed=embed, view=None)
+    
+    async def _create_active_votes_embed(self, guild: discord.Guild) -> discord.Embed:
+        """創建活躍投票嵌入"""
+        active_votes = await vote_dao.get_active_votes()
+        
+        embed = discord.Embed(
+            title="📋 活躍投票管理",
+            color=0x3498db
+        )
+        
+        if not active_votes:
+            embed.description = "目前沒有進行中的投票"
+            embed.color = 0x95a5a6
+        else:
+            embed.description = f"共有 {len(active_votes)} 個進行中的投票"
+            
+            for vote in active_votes[:5]:  # 最多顯示5個
+                stats = await vote_dao.get_vote_statistics(vote['id'])
+                total = sum(stats.values())
+                
+                embed.add_field(
+                    name=f"#{vote['id']} - {vote['title'][:50]}",
+                    value=f"📊 總票數: {total}\n"
+                          f"⏰ 結束時間: {vote['end_time'].strftime('%m-%d %H:%M')}\n"
+                          f"🏷️ 模式: {'匿名' if vote['anonymous'] else '公開'}{'多選' if vote['is_multi'] else '單選'}",
+                    inline=True
+                )
+                
+            if len(active_votes) > 5:
+                embed.add_field(
+                    name="📌 提示",
+                    value=f"還有 {len(active_votes) - 5} 個投票未顯示",
+                    inline=False
+                )
+        
+        return embed
 
 
 class VoteChannelSelect(discord.ui.ChannelSelect):
@@ -2261,4 +2312,523 @@ class ExportFormatView(View):
             "system_logs": "系統日誌"
         }
         return names.get(self.data_type, self.data_type)
+
+
+class VoteAdminView(View):
+    """投票管理主面板"""
+    
+    def __init__(self, user_id: int = None, timeout=300):
+        super().__init__(timeout=timeout)
+        self.user_id = user_id
+    
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        """檢查用戶權限"""
+        if self.user_id and interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 只有指令使用者可以操作此面板", ephemeral=True)
+            return False
+        
+        if not interaction.user.guild_permissions.manage_messages:
+            await interaction.response.send_message("❌ 需要管理訊息權限", ephemeral=True)
+            return False
+        
+        return True
+    
+    @button(label="📋 查看活躍投票", style=discord.ButtonStyle.primary, row=0)
+    async def view_active_votes_button(self, interaction: discord.Interaction, button: Button):
+        """查看活躍投票按鈕"""
+        try:
+            await interaction.response.defer()
+            
+            votes = await vote_dao.get_active_votes(interaction.guild.id)
+            
+            if not votes:
+                embed = discord.Embed(
+                    title="📋 活躍投票",
+                    description="目前沒有進行中的投票",
+                    color=0x95a5a6
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
+            
+            embed = discord.Embed(
+                title="📋 活躍投票",
+                description=f"找到 {len(votes)} 個進行中的投票",
+                color=0x3498db
+            )
+            
+            for vote in votes[:10]:  # 只顯示前10個
+                vote_info = f"ID: {vote['id']}\n創建者: <@{vote['creator_id']}>\n結束時間: {vote['end_time'].strftime('%Y-%m-%d %H:%M')}"
+                embed.add_field(
+                    name=f"🗳️ {vote['title'][:50]}{'...' if len(vote['title']) > 50 else ''}",
+                    value=vote_info,
+                    inline=True
+                )
+            
+            view = ActiveVoteManageView(interaction.user.id)
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"查看活躍投票錯誤: {e}")
+            await interaction.followup.send("❌ 無法獲取投票資訊", ephemeral=True)
+    
+    @button(label="📊 投票統計", style=discord.ButtonStyle.secondary, row=0)
+    async def vote_statistics_button(self, interaction: discord.Interaction, button: Button):
+        """投票統計按鈕"""
+        try:
+            await interaction.response.defer()
+            
+            guild_stats = await vote_dao.get_guild_vote_stats(interaction.guild.id)
+            total_count = await vote_dao.get_total_vote_count(interaction.guild.id)
+            
+            embed = discord.Embed(
+                title="📊 投票系統統計",
+                description=f"{interaction.guild.name} 的投票系統概覽",
+                color=0x2ecc71
+            )
+            
+            embed.add_field(
+                name="📈 基本統計",
+                value=f"總投票數: {total_count}\n"
+                      f"活躍投票: {guild_stats.get('active_votes', 0)}\n"
+                      f"已完成投票: {guild_stats.get('completed_votes', 0)}",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="👥 參與統計",
+                value=f"總投票次數: {guild_stats.get('total_responses', 0)}\n"
+                      f"參與用戶: {guild_stats.get('unique_participants', 0)}\n"
+                      f"平均參與率: {guild_stats.get('avg_participation_rate', 0):.1f}%",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="📅 時間範圍",
+                value="統計範圍: 最近 30 天\n"
+                      f"更新時間: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+                inline=False
+            )
+            
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"獲取投票統計錯誤: {e}")
+            await interaction.followup.send("❌ 無法獲取投票統計", ephemeral=True)
+    
+    @button(label="🛠️ 投票設定", style=discord.ButtonStyle.secondary, row=1)
+    async def vote_settings_button(self, interaction: discord.Interaction, button: Button):
+        """投票設定按鈕"""
+        try:
+            embed = discord.Embed(
+                title="🛠️ 投票系統設定",
+                description="投票系統功能管理",
+                color=0xf39c12
+            )
+            
+            embed.add_field(
+                name="ℹ️ 功能說明",
+                value="• 投票系統已啟用並正常運作\n"
+                      "• 支援匿名和公開投票\n"
+                      "• 支援單選和多選模式\n"
+                      "• 自動統計和結果顯示",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="⚙️ 系統狀態",
+                value="🟢 投票系統: 已啟用\n"
+                      "🟢 統計功能: 正常\n"
+                      "🟢 資料庫: 連接正常",
+                inline=False
+            )
+            
+            view = VoteSettingsView(interaction.user.id)
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"投票設定錯誤: {e}")
+            await interaction.response.send_message("❌ 無法載入投票設定", ephemeral=True)
+
+
+class ActiveVoteManageView(View):
+    """活躍投票管理介面"""
+    
+    def __init__(self, user_id: int, timeout=300):
+        super().__init__(timeout=timeout)
+        self.user_id = user_id
+    
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        """檢查用戶權限"""
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 只有指令使用者可以操作此面板", ephemeral=True)
+            return False
+        
+        if not interaction.user.guild_permissions.manage_messages:
+            await interaction.response.send_message("❌ 需要管理訊息權限", ephemeral=True)
+            return False
+        
+        return True
+    
+    @button(label="📊 投票統計", style=discord.ButtonStyle.primary, row=0)
+    async def vote_statistics_button(self, interaction: discord.Interaction, button: Button):
+        """查看投票系統統計"""
+        try:
+            await interaction.response.defer()
+            
+            # 獲取統計數據
+            active_votes = await vote_dao.get_active_votes()
+            total_votes = await vote_dao.get_total_vote_count(interaction.guild.id)
+            guild_stats = await vote_dao.get_guild_vote_stats(interaction.guild.id, 30)
+            
+            embed = discord.Embed(
+                title="📊 投票系統統計",
+                description=f"🏠 {interaction.guild.name} - 過去30天統計",
+                color=0x2ecc71
+            )
+            
+            embed.add_field(
+                name="📈 總體統計",
+                value=f"歷史投票總數: {total_votes}\n"
+                      f"本月投票數: {guild_stats['total_votes']}\n"
+                      f"目前活躍投票: {guild_stats['active_votes']}\n"
+                      f"已完成投票: {guild_stats['finished_votes']}\n"
+                      f"系統狀態: {'🟢 正常' if guild_stats['active_votes'] < 20 else '🟡 繁忙'}",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="👥 參與統計",
+                value=f"獨特參與者: {guild_stats['unique_participants']}\n"
+                      f"總投票次數: {guild_stats['total_responses']}\n"
+                      f"平均參與度: {(guild_stats['total_responses'] / guild_stats['unique_participants']):.1f if guild_stats['unique_participants'] > 0 else 0} 票/人",
+                inline=True
+            )
+            
+            # 最活躍創建者
+            if guild_stats['top_creators']:
+                creators_info = []
+                for creator in guild_stats['top_creators'][:3]:
+                    user = interaction.guild.get_member(creator['user_id'])
+                    user_name = user.display_name if user else f"用戶 {creator['user_id']}"
+                    creators_info.append(f"{user_name}: {creator['votes_created']} 個投票")
+                
+                embed.add_field(
+                    name="🏆 活躍創建者 (TOP 3)",
+                    value="\n".join(creators_info) if creators_info else "無資料",
+                    inline=False
+                )
+            
+            # 近期投票活動
+            recent_votes = await vote_dao.get_recent_votes(limit=5, guild_id=interaction.guild.id)
+            if recent_votes:
+                recent_info = []
+                for vote in recent_votes:
+                    stats = await vote_dao.get_vote_statistics(vote['id'])
+                    total = sum(stats.values())
+                    status = "🟢" if vote['end_time'] > datetime.now(timezone.utc) else "🔴"
+                    recent_info.append(f"{status} #{vote['id']} {vote['title'][:25]} ({total}票)")
+                
+                embed.add_field(
+                    name="🕐 近期投票 (最新5個)",
+                    value="\n".join(recent_info),
+                    inline=False
+                )
+            
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"獲取投票統計錯誤: {e}")
+            await interaction.followup.send("❌ 無法獲取統計資料", ephemeral=True)
+    
+    @button(label="🗳️ 選擇投票管理", style=discord.ButtonStyle.secondary, row=0)
+    async def select_vote_button(self, interaction: discord.Interaction, button: Button):
+        """選擇要管理的投票"""
+        try:
+            active_votes = await vote_dao.get_active_votes()
+            
+            if not active_votes:
+                embed = discord.Embed(
+                    title="📋 沒有活躍投票",
+                    description="目前沒有進行中的投票",
+                    color=0x95a5a6
+                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
+                return
+            
+            # 創建選擇下拉選單
+            options = []
+            for vote in active_votes[:25]:  # Discord 限制最多25個選項
+                stats = await vote_dao.get_vote_statistics(vote['id'])
+                total = sum(stats.values())
+                
+                options.append(discord.SelectOption(
+                    label=f"#{vote['id']} - {vote['title'][:50]}",
+                    value=str(vote['id']),
+                    description=f"票數: {total} | 結束: {vote['end_time'].strftime('%m-%d %H:%M')}"
+                ))
+            
+            self.clear_items()
+            self.add_item(VoteManageSelect(self.user_id, options))
+            self.add_item(BackToActiveVoteManageButton(self.user_id))
+            
+            embed = discord.Embed(
+                title="🗳️ 選擇要管理的投票",
+                description="請從下拉選單中選擇要管理的投票",
+                color=0x3498db
+            )
+            
+            await interaction.response.edit_message(embed=embed, view=self)
+            
+        except Exception as e:
+            logger.error(f"選擇投票錯誤: {e}")
+            await interaction.response.send_message("❌ 無法載入投票列表", ephemeral=True)
+    
+    @button(label="🔄 重新整理", style=discord.ButtonStyle.secondary, row=1)
+    async def refresh_button(self, interaction: discord.Interaction, button: Button):
+        """重新整理投票列表"""
+        try:
+            vote_settings_view = VoteSettingsView(self.user_id)
+            embed = await vote_settings_view._create_active_votes_embed(interaction.guild)
+            
+            # 重新建立介面
+            new_view = ActiveVoteManageView(self.user_id)
+            
+            await interaction.response.edit_message(embed=embed, view=new_view)
+            
+        except Exception as e:
+            logger.error(f"重新整理錯誤: {e}")
+            await interaction.response.send_message("❌ 重新整理失敗", ephemeral=True)
+    
+    @button(label="❌ 關閉", style=discord.ButtonStyle.danger, row=1)
+    async def close_button(self, interaction: discord.Interaction, button: Button):
+        """關閉按鈕"""
+        embed = discord.Embed(
+            title="✅ 投票管理已關閉",
+            color=0x95a5a6
+        )
+        await interaction.response.edit_message(embed=embed, view=None)
+
+
+class VoteManageSelect(Select):
+    """投票管理選擇下拉選單"""
+    
+    def __init__(self, user_id: int, options):
+        self.user_id = user_id
+        super().__init__(
+            placeholder="選擇要管理的投票...",
+            options=options,
+            min_values=1,
+            max_values=1
+        )
+    
+    async def callback(self, interaction: discord.Interaction):
+        vote_id = int(self.values[0])
+        
+        try:
+            vote = await vote_dao.get_vote_by_id(vote_id)
+            if not vote:
+                await interaction.response.send_message("❌ 找不到該投票", ephemeral=True)
+                return
+            
+            stats = await vote_dao.get_vote_statistics(vote_id)
+            total = sum(stats.values())
+            
+            embed = discord.Embed(
+                title=f"🗳️ 投票管理 - #{vote_id}",
+                description=vote['title'],
+                color=0x3498db
+            )
+            
+            embed.add_field(
+                name="📊 投票資訊",
+                value=f"總票數: {total}\n"
+                      f"模式: {'匿名' if vote['anonymous'] else '公開'}{'多選' if vote['is_multi'] else '單選'}\n"
+                      f"結束時間: {vote['end_time'].strftime('%Y-%m-%d %H:%M')}",
+                inline=False
+            )
+            
+            if stats:
+                stats_text = []
+                for option, count in sorted(stats.items(), key=lambda x: x[1], reverse=True)[:5]:
+                    percent = (count / total * 100) if total > 0 else 0
+                    stats_text.append(f"{option}: {count} 票 ({percent:.1f}%)")
+                
+                embed.add_field(
+                    name="📈 目前結果 (前5名)",
+                    value="\n".join(stats_text),
+                    inline=False
+                )
+            
+            view = SingleVoteManageView(self.user_id, vote_id)
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"獲取投票詳情錯誤: {e}")
+            await interaction.response.send_message("❌ 無法獲取投票詳情", ephemeral=True)
+
+
+class SingleVoteManageView(View):
+    """單一投票管理介面"""
+    
+    def __init__(self, user_id: int, vote_id: int, timeout=300):
+        super().__init__(timeout=timeout)
+        self.user_id = user_id
+        self.vote_id = vote_id
+    
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return interaction.user.id == self.user_id
+    
+    @button(label="🛑 強制結束", style=discord.ButtonStyle.danger, row=0)
+    async def force_end_vote_button(self, interaction: discord.Interaction, button: Button):
+        """強制結束投票"""
+        try:
+            # 確認對話框
+            embed = discord.Embed(
+                title="⚠️ 確認強制結束投票",
+                description=f"你確定要強制結束投票 #{self.vote_id} 嗎？\n這個操作無法復原。",
+                color=0xe74c3c
+            )
+            
+            view = VoteConfirmActionView(self.user_id, self.vote_id, "force_end")
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"強制結束投票錯誤: {e}")
+            await interaction.response.send_message("❌ 操作失敗", ephemeral=True)
+    
+    @button(label="📊 詳細統計", style=discord.ButtonStyle.primary, row=0)
+    async def detailed_stats_button(self, interaction: discord.Interaction, button: Button):
+        """查看詳細統計"""
+        try:
+            await interaction.response.defer()
+            
+            vote = await vote_dao.get_vote_by_id(self.vote_id)
+            stats = await vote_dao.get_vote_statistics(self.vote_id)
+            participation_stats = await vote_dao.get_vote_participation_stats(self.vote_id)
+            
+            if not vote:
+                await interaction.followup.send("❌ 找不到該投票", ephemeral=True)
+                return
+            
+            total = sum(stats.values())
+            
+            embed = discord.Embed(
+                title=f"📊 詳細統計 - #{self.vote_id}",
+                description=vote['title'],
+                color=0x2ecc71
+            )
+            
+            embed.add_field(
+                name="🕐 時間資訊",
+                value=f"開始: {vote['start_time'].strftime('%Y-%m-%d %H:%M')}\n"
+                      f"結束: {vote['end_time'].strftime('%Y-%m-%d %H:%M')}\n"
+                      f"狀態: {'進行中' if vote['end_time'] > datetime.now(timezone.utc) else '已結束'}",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="⚙️ 設定",
+                value=f"匿名: {'是' if vote['anonymous'] else '否'}\n"
+                      f"多選: {'是' if vote['is_multi'] else '否'}\n"
+                      f"總票數: {total}",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="👥 參與分析",
+                value=f"獨特投票者: {participation_stats['unique_users']}\n"
+                      f"總投票次數: {participation_stats['total_responses']}\n"
+                      f"平均每人: {(participation_stats['total_responses'] / participation_stats['unique_users']):.1f if participation_stats['unique_users'] > 0 else 0} 票",
+                inline=True
+            )
+            
+            # 投票結果進度條
+            if stats:
+                from bot.utils.vote_utils import calculate_progress_bar
+                
+                results = []
+                for option, count in sorted(stats.items(), key=lambda x: x[1], reverse=True):
+                    percent = (count / total * 100) if total > 0 else 0
+                    bar = calculate_progress_bar(percent, 15)
+                    results.append(f"{option}\n{count} 票 ({percent:.1f}%) {bar}")
+                
+                embed.add_field(
+                    name="📈 投票結果",
+                    value="\n\n".join(results[:8]),  # 最多顯示8個選項
+                    inline=False
+                )
+            
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"獲取詳細統計錯誤: {e}")
+            await interaction.followup.send("❌ 無法獲取統計資料", ephemeral=True)
+
+
+class VoteConfirmActionView(View):
+    """投票確認操作介面"""
+    
+    def __init__(self, user_id: int, vote_id: int, action_type: str, timeout=60):
+        super().__init__(timeout=timeout)
+        self.user_id = user_id
+        self.vote_id = vote_id
+        self.action_type = action_type
+    
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return interaction.user.id == self.user_id
+    
+    @button(label="✅ 確認", style=discord.ButtonStyle.danger)
+    async def confirm_action(self, interaction: discord.Interaction, button: Button):
+        """確認執行操作"""
+        try:
+            if self.action_type == "force_end":
+                # 強制結束投票
+                success = await vote_dao.end_vote(self.vote_id)
+                
+                if success:
+                    # 發送結果通知
+                    from bot.cogs.vote import VoteCog
+                    vote_cog = interaction.client.get_cog("VoteCog")
+                    if vote_cog:
+                        try:
+                            await vote_cog._send_vote_result(self.vote_id)
+                        except Exception as e:
+                            logger.error(f"發送投票結果錯誤: {e}")
+                    
+                    embed = discord.Embed(
+                        title="✅ 投票已強制結束",
+                        description=f"投票 #{self.vote_id} 已成功結束並公告結果",
+                        color=0x2ecc71
+                    )
+                    await interaction.response.send_message(embed=embed, ephemeral=True)
+                else:
+                    await interaction.response.send_message("❌ 結束投票失敗", ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"確認操作錯誤: {e}")
+            await interaction.response.send_message("❌ 操作執行失敗", ephemeral=True)
+    
+    @button(label="❌ 取消", style=discord.ButtonStyle.secondary)
+    async def cancel_action(self, interaction: discord.Interaction, button: Button):
+        """取消操作"""
+        embed = discord.Embed(
+            title="❌ 操作已取消",
+            description="沒有執行任何變更",
+            color=0x95a5a6
+        )
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+class BackToActiveVoteManageButton(Button):
+    """返回活躍投票管理按鈕"""
+    
+    def __init__(self, user_id: int):
+        self.user_id = user_id
+        super().__init__(label="← 返回", style=discord.ButtonStyle.secondary)
+    
+    async def callback(self, interaction: discord.Interaction):
+        vote_settings_view = VoteSettingsView(self.user_id)
+        embed = await vote_settings_view._create_active_votes_embed(interaction.guild)
+        view = ActiveVoteManageView(self.user_id)
+        await interaction.response.edit_message(embed=embed, view=view)
 

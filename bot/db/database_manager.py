@@ -49,11 +49,8 @@ class DatabaseManager:
             await self._create_webhook_tables()
             await self._create_automation_tables()
             await self._create_security_tables()
-<<<<<<< HEAD
             await self._create_lottery_tables()
             await self._create_archive_tables()
-=======
->>>>>>> a35f5d60d87ec4cc0114507a78c8527f0eed00ca
             
             # 更新資料庫版本
             await self._update_database_version(self.current_version)
@@ -93,6 +90,10 @@ class DatabaseManager:
                     password_hash VARCHAR(255) NULL COMMENT '密碼雜湊',
                     permission_level ENUM('read_only', 'write', 'admin', 'super_admin') DEFAULT 'read_only' COMMENT '權限等級',
                     guild_id BIGINT NULL COMMENT '所屬伺服器 ID',
+                    roles JSON NULL COMMENT 'Discord 角色列表',
+                    permissions JSON NULL COMMENT '權限列表',
+                    is_admin BOOLEAN DEFAULT FALSE COMMENT '是否為管理員',
+                    is_staff BOOLEAN DEFAULT FALSE COMMENT '是否為客服人員',
                     is_active BOOLEAN DEFAULT TRUE COMMENT '是否啟用',
                     last_login TIMESTAMP NULL COMMENT '最後登入時間',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',
@@ -100,7 +101,9 @@ class DatabaseManager:
                     
                     INDEX idx_discord_id (discord_id),
                     INDEX idx_guild_id (guild_id),
-                    INDEX idx_permission_level (permission_level)
+                    INDEX idx_permission_level (permission_level),
+                    INDEX idx_is_admin (is_admin),
+                    INDEX idx_is_staff (is_staff)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
             
@@ -154,11 +157,8 @@ class DatabaseManager:
                     channel_id BIGINT NOT NULL COMMENT '頻道 ID',
                     guild_id BIGINT NOT NULL COMMENT '伺服器 ID',
                     assigned_to BIGINT NULL COMMENT '指派的客服 ID',
-<<<<<<< HEAD
                     assigned_at TIMESTAMP NULL COMMENT '指派時間',
                     first_response_at TIMESTAMP NULL COMMENT '首次回應時間',
-=======
->>>>>>> a35f5d60d87ec4cc0114507a78c8527f0eed00ca
                     rating INT NULL COMMENT '評分' CHECK (rating BETWEEN 1 AND 5),
                     rating_feedback TEXT NULL COMMENT '評分回饋',
                     tags JSON NULL COMMENT '標籤',
@@ -1163,7 +1163,6 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"❌ 安全審計表格創建失敗: {e}")
             raise
-<<<<<<< HEAD
     
     async def _create_lottery_tables(self):
         """創建抽獎系統相關表格"""
@@ -1368,8 +1367,6 @@ class DatabaseManager:
                         raise
                 await conn.commit()
                 logger.info("✅ 歷史資料歸檔表格創建完成")
-=======
->>>>>>> a35f5d60d87ec4cc0114507a78c8527f0eed00ca
 
 
 # ===== 單例模式實現 =====

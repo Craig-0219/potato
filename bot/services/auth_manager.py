@@ -130,12 +130,18 @@ class AuthenticationManager:
             # 檢查用戶角色和權限
             roles = [role.name for role in discord_user.roles if role.name != '@everyone']
             
-            # 判斷是否為管理員或客服
-            admin_roles = ['管理員', 'Admin', 'Owner']
-            staff_roles = ['客服', 'Staff', 'Support', 'Moderator'] + admin_roles
+            # 判斷是否為管理員或客服（支援模糊匹配）
+            admin_keywords = ['管理員', 'admin', 'owner', '服主', 'commander']
+            staff_keywords = ['客服', 'staff', 'support', 'moderator', 'mod'] + admin_keywords
             
-            is_admin = any(role in admin_roles for role in roles)
-            is_staff = any(role in staff_roles for role in roles)
+            is_admin = any(
+                any(keyword.lower() in role.lower() for keyword in admin_keywords)
+                for role in roles
+            )
+            is_staff = any(
+                any(keyword.lower() in role.lower() for keyword in staff_keywords) 
+                for role in roles
+            )
             
             # 基於角色設定權限
             permissions = []
@@ -181,19 +187,25 @@ class AuthenticationManager:
                     else:
                         # 創建新用戶
                         password_hash = self._hash_password(password) if password else None
+                        # 根據權限設定permission_level
+                        if is_admin:
+                            permission_level = 'admin'
+                        elif is_staff:
+                            permission_level = 'write'
+                        else:
+                            permission_level = 'read_only'
+                        
                         await cursor.execute("""
                             INSERT INTO api_users 
-                            (discord_id, username, password_hash, guild_id, roles, permissions, is_admin, is_staff)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                            (discord_id, username, discord_username, password_hash, guild_id, permission_level)
+                            VALUES (%s, %s, %s, %s, %s, %s)
                         """, (
                             str(discord_user.id),
                             discord_user.display_name,
+                            discord_user.name,
                             password_hash,
                             discord_user.guild.id,
-                            json.dumps(roles, ensure_ascii=False),
-                            json.dumps(permissions, ensure_ascii=False),
-                            is_admin,
-                            is_staff
+                            permission_level
                         ))
                         user_id = cursor.lastrowid
                     
@@ -342,10 +354,11 @@ class AuthenticationManager:
                 async with conn.cursor() as cursor:
                     await cursor.execute("""
                         INSERT INTO api_keys 
-                        (key_id, key_hash, user_id, name, permissions, expires_at)
-                        VALUES (%s, %s, %s, %s, %s, %s)
+                        (key_id, key_secret, key_hash, user_id, name, permissions, expires_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
                     """, (
                         key_id,
+                        key_secret,
                         key_hash,
                         user_id,
                         name,
@@ -377,8 +390,9 @@ class AuthenticationManager:
                 async with conn.cursor(aiomysql.DictCursor) as cursor:
                     # 驗證金鑰並獲取用戶資訊
                     await cursor.execute("""
-                        SELECT ak.*, au.discord_id, au.username, au.guild_id,
-                               au.roles, au.permissions, au.is_admin, au.is_staff
+                        SELECT ak.id, ak.key_id, ak.user_id, ak.permissions as key_permissions,
+                               au.discord_id, au.username, au.guild_id,
+                               au.roles, au.permissions as user_permissions, au.is_admin, au.is_staff
                         FROM api_keys ak
                         JOIN api_users au ON ak.user_id = au.id
                         WHERE ak.key_id = %s AND ak.key_hash = %s 
@@ -398,8 +412,8 @@ class AuthenticationManager:
                     await conn.commit()
                     
                     # 合併用戶權限和金鑰權限
-                    user_permissions = json.loads(result['permissions']) if result['permissions'] else []
-                    key_permissions = json.loads(result.get('permissions', '[]'))
+                    user_permissions = json.loads(result['user_permissions']) if result['user_permissions'] else []
+                    key_permissions = json.loads(result['key_permissions']) if result['key_permissions'] else []
                     
                     # 如果金鑰有特定權限，使用金鑰權限；否則使用用戶權限
                     final_permissions = key_permissions if key_permissions else user_permissions
@@ -514,7 +528,7 @@ class AuthenticationManager:
             async with self.db.connection() as conn:
                 async with conn.cursor(aiomysql.DictCursor) as cursor:
                     await cursor.execute("""
-                        SELECT id, key_id, name, permissions, expires_at, 
+                        SELECT id, key_id, name, permissions, permission_level, expires_at, 
                                last_used, created_at, is_active
                         FROM api_keys 
                         WHERE user_id = %s 

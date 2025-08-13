@@ -17,6 +17,7 @@ from bot.services.statistics_manager import StatisticsManager
 from bot.utils.embed_builder import EmbedBuilder
 from bot.views.dashboard_views import DashboardView, ChartDisplayView
 from shared.logger import logger
+from bot.utils.interaction_helper import SafeInteractionHandler, InteractionContext
 
 
 class DashboardCore(commands.Cog):
@@ -117,7 +118,13 @@ class DashboardCore(commands.Cog):
             
         except Exception as e:
             logger.error(f"生成系統概覽儀表板失敗: {e}")
-            await interaction.followup.send(f"❌ 生成儀表板失敗: {str(e)}", ephemeral=True)
+            try:
+                if "Unknown interaction" in str(e) or "10062" in str(e):
+                    logger.debug("系統概覽儀表板互動已過期，靜默處理")
+                    return
+                await interaction.followup.send(f"❌ 生成儀表板失敗: {str(e)}", ephemeral=True)
+            except Exception as followup_error:
+                logger.debug(f"回應系統概覽儀表板錯誤時失敗: {followup_error}")
     
     @app_commands.command(name="dashboard_performance", description="查看系統性能分析儀表板")
     @app_commands.describe(
@@ -176,7 +183,13 @@ class DashboardCore(commands.Cog):
             
         except Exception as e:
             logger.error(f"生成性能儀表板失敗: {e}")
-            await interaction.followup.send(f"❌ 生成性能儀表板失敗: {str(e)}", ephemeral=True)
+            try:
+                if "Unknown interaction" in str(e) or "10062" in str(e):
+                    logger.debug("性能儀表板互動已過期，靜默處理")
+                    return
+                await interaction.followup.send(f"❌ 生成性能儀表板失敗: {str(e)}", ephemeral=True)
+            except Exception as followup_error:
+                logger.debug(f"回應性能儀表板錯誤時失敗: {followup_error}")
     
     @app_commands.command(name="dashboard_prediction", description="查看智能預測分析儀表板")
     async def dashboard_prediction(self, interaction: discord.Interaction):
@@ -238,7 +251,13 @@ class DashboardCore(commands.Cog):
             
         except Exception as e:
             logger.error(f"生成預測儀表板失敗: {e}")
-            await interaction.followup.send(f"❌ 生成預測儀表板失敗: {str(e)}", ephemeral=True)
+            try:
+                if "Unknown interaction" in str(e) or "10062" in str(e):
+                    logger.debug("預測儀表板互動已過期，靜默處理")
+                    return
+                await interaction.followup.send(f"❌ 生成預測儀表板失敗: {str(e)}", ephemeral=True)
+            except Exception as followup_error:
+                logger.debug(f"回應預測儀表板錯誤時失敗: {followup_error}")
     
     @app_commands.command(name="dashboard_cache", description="管理儀表板快取")
     @app_commands.describe(
@@ -329,10 +348,12 @@ class DashboardCore(commands.Cog):
         try:
             # 檢查權限
             if not interaction.user.guild_permissions.manage_guild:
-                await interaction.response.send_message("❌ 需要管理伺服器權限", ephemeral=True)
+                await SafeInteractionHandler.safe_respond(interaction, content="❌ 需要管理伺服器權限", ephemeral=True)
                 return
             
-            await interaction.response.defer(ephemeral=True)
+            if not await SafeInteractionHandler.safe_defer(interaction, ephemeral=True):
+                logger.debug("實時儀表板互動無法延遲，可能已過期")
+                return
             
             # 獲取實時數據
             realtime_data = await self._get_realtime_data(interaction.guild.id)
@@ -416,11 +437,11 @@ class DashboardCore(commands.Cog):
                     inline=False
                 )
             
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await SafeInteractionHandler.safe_respond(interaction, embed=embed, ephemeral=True)
             
         except Exception as e:
             logger.error(f"獲取實時數據失敗: {e}")
-            await interaction.followup.send(f"❌ 獲取實時數據失敗: {str(e)}", ephemeral=True)
+            await SafeInteractionHandler.handle_interaction_error(interaction, e, "獲取實時數據")
     
     async def _get_realtime_data(self, guild_id: int) -> Dict[str, Any]:
         """獲取實時數據"""

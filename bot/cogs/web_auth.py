@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 
 from shared.logger import logger
 from bot.services.auth_manager import auth_manager
+from bot.utils.interaction_helper import SafeInteractionHandler
 from bot.utils.embed_builder import EmbedBuilder
 
 
@@ -26,7 +27,9 @@ class WebAuthCommands(commands.Cog):
     async def setup_web_password(self, interaction: discord.Interaction, password: str):
         """設定 Web 介面登入密碼"""
         try:
-            await interaction.response.defer(ephemeral=True)
+            if not await SafeInteractionHandler.safe_defer(interaction, ephemeral=True):
+                logger.debug("設定Web密碼互動無法延遲，可能已過期")
+                return
             
             # 驗證密碼長度
             if len(password) < 6:
@@ -34,7 +37,7 @@ class WebAuthCommands(commands.Cog):
                     title="❌ 密碼設定失敗",
                     description="密碼長度至少需要 6 個字元"
                 )
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                await SafeInteractionHandler.safe_respond(interaction, embed=embed, ephemeral=True)
                 return
             
             # 同步用戶到認證系統
@@ -84,16 +87,12 @@ class WebAuthCommands(commands.Cog):
                     description=message
                 )
             
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await SafeInteractionHandler.safe_respond(interaction, embed=embed, ephemeral=True)
             logger.info(f"用戶 {interaction.user} 設定 Web 密碼: {success}")
             
         except Exception as e:
             logger.error(f"設定 Web 密碼錯誤: {e}")
-            embed = EmbedBuilder.error(
-                title="❌ 系統錯誤",
-                description="設定密碼時發生錯誤，請稍後再試"
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await SafeInteractionHandler.handle_interaction_error(interaction, e, "設定 Web 密碼")
     
     @app_commands.command(name="create-api-key", description="創建 API 金鑰")
     @app_commands.describe(
@@ -104,7 +103,9 @@ class WebAuthCommands(commands.Cog):
                            name: str, expires_days: int = 30):
         """創建 API 金鑰"""
         try:
-            await interaction.response.defer(ephemeral=True)
+            if not await SafeInteractionHandler.safe_defer(interaction, ephemeral=True):
+                logger.debug("創建API金鑰互動無法延遲，可能已過期")
+                return
             
             # 先同步用戶以確保存在於認證系統中
             success, message, auth_user = await auth_manager.sync_discord_user(interaction.user)
@@ -113,7 +114,7 @@ class WebAuthCommands(commands.Cog):
                     title="❌ 用戶同步失敗",
                     description="請先使用 `/setup-web-password` 設定 Web 密碼"
                 )
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                await SafeInteractionHandler.safe_respond(interaction, embed=embed, ephemeral=True)
                 return
             
             # 檢查是否有權限創建 API 金鑰
@@ -122,7 +123,7 @@ class WebAuthCommands(commands.Cog):
                     title="❌ 權限不足",
                     description="只有客服人員和管理員可以創建 API 金鑰"
                 )
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                await SafeInteractionHandler.safe_respond(interaction, embed=embed, ephemeral=True)
                 return
             
             # 設定權限
@@ -172,22 +173,20 @@ class WebAuthCommands(commands.Cog):
                     description=message
                 )
             
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await SafeInteractionHandler.safe_respond(interaction, embed=embed, ephemeral=True)
             logger.info(f"用戶 {interaction.user} 創建 API 金鑰: {success}")
             
         except Exception as e:
             logger.error(f"創建 API 金鑰錯誤: {e}")
-            embed = EmbedBuilder.error(
-                title="❌ 系統錯誤",
-                description="創建 API 金鑰時發生錯誤，請稍後再試"
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await SafeInteractionHandler.handle_interaction_error(interaction, e, "創建 API 金鑰")
     
     @app_commands.command(name="list-api-keys", description="列出我的 API 金鑰")
     async def list_api_keys(self, interaction: discord.Interaction):
         """列出用戶的 API 金鑰"""
         try:
-            await interaction.response.defer(ephemeral=True)
+            if not await SafeInteractionHandler.safe_defer(interaction, ephemeral=True):
+                logger.debug("列出API金鑰互動無法延遲，可能已過期")
+                return
             
             # 獲取用戶認證資訊
             success, message, auth_user = await auth_manager.sync_discord_user(interaction.user)
@@ -196,7 +195,7 @@ class WebAuthCommands(commands.Cog):
                     title="❌ 用戶不存在",
                     description="請先使用 `/setup-web-password` 設定 Web 密碼"
                 )
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                await SafeInteractionHandler.safe_respond(interaction, embed=embed, ephemeral=True)
                 return
             
             # 獲取 API 金鑰列表
@@ -231,22 +230,20 @@ class WebAuthCommands(commands.Cog):
                 if len(api_keys) > 10:
                     embed.set_footer(text=f"僅顯示前 10 個金鑰，共 {len(api_keys)} 個")
             
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await SafeInteractionHandler.safe_respond(interaction, embed=embed, ephemeral=True)
             
         except Exception as e:
             logger.error(f"列出 API 金鑰錯誤: {e}")
-            embed = EmbedBuilder.error(
-                title="❌ 系統錯誤",
-                description="獲取 API 金鑰列表時發生錯誤"
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await SafeInteractionHandler.handle_interaction_error(interaction, e, "列出 API 金鑰")
     
     @app_commands.command(name="revoke-api-key", description="撤銷 API 金鑰")
     @app_commands.describe(key_id="要撤銷的 API 金鑰 ID")
     async def revoke_api_key(self, interaction: discord.Interaction, key_id: str):
         """撤銷 API 金鑰"""
         try:
-            await interaction.response.defer(ephemeral=True)
+            if not await SafeInteractionHandler.safe_defer(interaction, ephemeral=True):
+                logger.debug("撤銷API金鑰互動無法延遲，可能已過期")
+                return
             
             # 獲取用戶認證資訊
             success, message, auth_user = await auth_manager.sync_discord_user(interaction.user)
@@ -255,7 +252,7 @@ class WebAuthCommands(commands.Cog):
                     title="❌ 用戶不存在",
                     description="請先使用 `/setup-web-password` 設定 Web 密碼"
                 )
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                await SafeInteractionHandler.safe_respond(interaction, embed=embed, ephemeral=True)
                 return
             
             # 撤銷 API 金鑰
@@ -273,22 +270,20 @@ class WebAuthCommands(commands.Cog):
                     description="找不到指定的 API 金鑰或撤銷失敗"
                 )
             
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await SafeInteractionHandler.safe_respond(interaction, embed=embed, ephemeral=True)
             logger.info(f"用戶 {interaction.user} 撤銷 API 金鑰 {key_id}: {success}")
             
         except Exception as e:
             logger.error(f"撤銷 API 金鑰錯誤: {e}")
-            embed = EmbedBuilder.error(
-                title="❌ 系統錯誤",
-                description="撤銷 API 金鑰時發生錯誤"
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await SafeInteractionHandler.handle_interaction_error(interaction, e, "撤銷 API 金鑰")
     
     @app_commands.command(name="web-login-info", description="顯示 Web 登入資訊")
     async def web_login_info(self, interaction: discord.Interaction):
         """顯示 Web 登入資訊"""
         try:
-            await interaction.response.defer(ephemeral=True)
+            if not await SafeInteractionHandler.safe_defer(interaction, ephemeral=True):
+                logger.debug("Web登入資訊互動無法延遲，可能已過期")
+                return
             
             # 獲取用戶認證資訊
             success, message, auth_user = await auth_manager.sync_discord_user(interaction.user)
@@ -344,15 +339,11 @@ class WebAuthCommands(commands.Cog):
                 inline=False
             )
             
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await SafeInteractionHandler.safe_respond(interaction, embed=embed, ephemeral=True)
             
         except Exception as e:
             logger.error(f"顯示 Web 登入資訊錯誤: {e}")
-            embed = EmbedBuilder.error(
-                title="❌ 系統錯誤",
-                description="獲取登入資訊時發生錯誤"
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await SafeInteractionHandler.handle_interaction_error(interaction, e, "顯示 Web 登入資訊")
 
 
 async def setup(bot):

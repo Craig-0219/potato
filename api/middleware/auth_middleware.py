@@ -15,7 +15,8 @@ from shared.logger import logger
 class AuthMiddleware:
     """認證中介軟體"""
     
-    def __init__(self):
+    def __init__(self, app):
+        self.app = app
         # 不需要認證的路徑
         self.public_paths = {
             "/docs",
@@ -42,7 +43,7 @@ class AuthMiddleware:
             "/data"
         }
     
-    async def __call__(self, request: Request, call_next: Callable) -> Response:
+    async def __call__(self, scope, receive, send):
         """處理請求"""
         start_time = time.time()
         
@@ -254,32 +255,57 @@ def get_cors_middleware_config():
 class SecurityHeadersMiddleware:
     """安全標頭中介軟體"""
     
-    async def __call__(self, request: Request, call_next: Callable) -> Response:
-        response = await call_next(request)
+    def __init__(self, app):
+        self.app = app
+    
+    async def __call__(self, scope, receive, send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
         
-        # 添加安全標頭
-        response.headers.update({
-            "X-Content-Type-Options": "nosniff",
-            "X-Frame-Options": "DENY", 
-            "X-XSS-Protection": "1; mode=block",
-            "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-            "Referrer-Policy": "strict-origin-when-cross-origin"
-        })
+        request = Request(scope, receive)
         
-        return response
+        async def send_wrapper(message):
+            if message["type"] == "http.response.start":
+                # 添加安全標頭
+                headers = dict(message.get("headers", []))
+                headers.update({
+                    b"x-content-type-options": b"nosniff",
+                    b"x-frame-options": b"DENY", 
+                    b"x-xss-protection": b"1; mode=block",
+                    b"strict-transport-security": b"max-age=31536000; includeSubDomains",
+                    b"referrer-policy": b"strict-origin-when-cross-origin"
+                })
+                message["headers"] = list(headers.items())
+            await send(message)
+        
+        await self.app(scope, receive, send_wrapper)
 
 
 # 速率限制中介軟體 (簡化版)
 class RateLimitMiddleware:
     """速率限制中介軟體"""
     
-    def __init__(self, requests_per_minute: int = 60):
+    def __init__(self, app, requests_per_minute: int = 60):
+        self.app = app
         self.requests_per_minute = requests_per_minute
         self.request_counts = {}
         self.last_reset = {}
     
-    async def __call__(self, request: Request, call_next: Callable) -> Response:
-        client_ip = request.client.host if request.client else "unknown"
+    async def __call__(self, scope, receive, send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        
+        # 獲取客戶端 IP
+        client_ip = "unknown"
+        for name, value in scope.get("headers", []):
+            if name == b"x-forwarded-for":
+                client_ip = value.decode().split(",")[0].strip()
+                break
+        if client_ip == "unknown" and scope.get("client"):
+            client_ip = scope["client"][0]
+        
         current_time = time.time()
         
         # 重設計數器 (每分鐘)
@@ -291,20 +317,19 @@ class RateLimitMiddleware:
         self.request_counts[client_ip] += 1
         
         if self.request_counts[client_ip] > self.requests_per_minute:
-            return Response(
-                content='{"error": "速率限制：請求過於頻繁"}',
-                status_code=429,
-                media_type="application/json",
-                headers={"Retry-After": "60"}
-            )
+            # 返回 429 錯誤
+            await send({
+                "type": "http.response.start",
+                "status": 429,
+                "headers": [
+                    [b"content-type", b"application/json"],
+                    [b"retry-after", b"60"]
+                ]
+            })
+            await send({
+                "type": "http.response.body",
+                "body": b'{"error": "Rate limit exceeded"}'
+            })
+            return
         
-        response = await call_next(request)
-        
-        # 添加速率限制標頭
-        response.headers["X-RateLimit-Limit"] = str(self.requests_per_minute)
-        response.headers["X-RateLimit-Remaining"] = str(
-            max(0, self.requests_per_minute - self.request_counts[client_ip])
-        )
-        response.headers["X-RateLimit-Reset"] = str(int(self.last_reset[client_ip] + 60))
-        
-        return response
+        await self.app(scope, receive, send)
