@@ -404,8 +404,41 @@ class RefreshVotesButton(ui.Button):
     
     async def callback(self, interaction: discord.Interaction):
         """刷新投票列表"""
-        await interaction.response.send_message("🔄 資料已刷新", ephemeral=True, delete_after=2)
-        # TODO: 重新獲取投票資料並更新顯示
+        try:
+            # 重新獲取投票資料
+            from bot.db.vote_dao import VoteDAO
+            vote_dao = VoteDAO()
+            
+            # 獲取最新的投票資料
+            all_votes = await vote_dao.get_recent_votes(limit=100)
+            active_votes = [vote for vote in all_votes if vote.get('status') == 'active']
+            
+            # 更新 view 的投票資料
+            self.view.votes = active_votes
+            self.view.current_page = 0  # 重置到第一頁
+            
+            # 重新設置導航
+            self.view.clear_items()
+            self.view._setup_navigation()
+            
+            # 重新生成嵌入訊息
+            embed = await self.view.create_list_embed()
+            
+            await interaction.response.edit_message(embed=embed, view=self.view)
+            
+            # 發送刷新成功訊息
+            await interaction.followup.send(
+                f"🔄 資料已刷新！找到 {len(active_votes)} 個活動投票", 
+                ephemeral=True, 
+                delete_after=3
+            )
+            
+        except Exception as e:
+            await interaction.response.send_message(
+                f"❌ 刷新失敗: {str(e)}", 
+                ephemeral=True, 
+                delete_after=5
+            )
 
 
 class VoteManageSelectMenu(ui.Select):

@@ -729,7 +729,11 @@ class VoteDropdownSelect(ui.Select):
                         f"✅ 投票成功！您選擇了：{selected_options[0]}",
                         ephemeral=True
                     )
-                    # TODO: 更新投票顯示
+                    # 更新投票顯示
+                    try:
+                        await self._update_vote_display(interaction)
+                    except Exception as update_error:
+                        logger.error(f"更新投票顯示失敗: {update_error}")
                 else:
                     await interaction.response.send_message(
                         "❌ 投票失敗，請稍後再試",
@@ -755,11 +759,56 @@ class SubmitVoteButton(ui.Button):
     
     async def callback(self, interaction: discord.Interaction):
         """處理投票提交"""
-        # TODO: 實現多選投票提交邏輯
-        await interaction.response.send_message(
-            "多選投票提交功能開發中...",
-            ephemeral=True
-        )
+        try:
+            # 獲取用戶在此會話中的選擇
+            # 這裡應該從視圖狀態或緩存中獲取用戶的多重選擇
+            from bot.db.vote_dao import VoteDAO
+            vote_dao = VoteDAO()
+            
+            # 檢查是否有儲存的選擇（需要實現選擇暫存機制）
+            user_selections = getattr(self.view, 'user_selections', {}).get(interaction.user.id, [])
+            
+            if not user_selections:
+                await interaction.response.send_message(
+                    "❌ 您還沒有選擇任何選項，請先進行選擇",
+                    ephemeral=True
+                )
+                return
+            
+            # 提交多選投票
+            success = await vote_dao.record_vote(
+                self.vote_id,
+                interaction.user.id,
+                user_selections
+            )
+            
+            if success:
+                await interaction.response.send_message(
+                    f"✅ 多選投票提交成功！您選擇了：{', '.join(user_selections)}",
+                    ephemeral=True
+                )
+                
+                # 清除用戶選擇緩存
+                if hasattr(self.view, 'user_selections') and interaction.user.id in self.view.user_selections:
+                    del self.view.user_selections[interaction.user.id]
+                
+                # 更新投票顯示
+                try:
+                    await self._update_vote_display(interaction)
+                except Exception as update_error:
+                    logger.error(f"更新投票顯示失敗: {update_error}")
+            else:
+                await interaction.response.send_message(
+                    "❌ 投票提交失敗，請稍後再試",
+                    ephemeral=True
+                )
+                
+        except Exception as e:
+            logger.error(f"多選投票提交失敗: {e}")
+            await interaction.response.send_message(
+                "❌ 投票提交時發生錯誤",
+                ephemeral=True
+            )
 
 
 class ClearSelectionButton(ui.Button):
@@ -776,12 +825,37 @@ class ClearSelectionButton(ui.Button):
     
     async def callback(self, interaction: discord.Interaction):
         """處理清除選擇"""
-        # TODO: 實現清除選擇邏輯
-        await interaction.response.send_message(
-            "✅ 選擇已清除",
-            ephemeral=True,
-            delete_after=2
-        )
+        try:
+            # 清除用戶的暫存選擇
+            if hasattr(self.view, 'user_selections'):
+                if interaction.user.id in self.view.user_selections:
+                    del self.view.user_selections[interaction.user.id]
+                    await interaction.response.send_message(
+                        "✅ 選擇已清除，請重新進行選擇",
+                        ephemeral=True,
+                        delete_after=3
+                    )
+                else:
+                    await interaction.response.send_message(
+                        "ℹ️ 您目前沒有任何選擇需要清除",
+                        ephemeral=True,
+                        delete_after=2
+                    )
+            else:
+                # 初始化 user_selections 字典
+                self.view.user_selections = {}
+                await interaction.response.send_message(
+                    "ℹ️ 您目前沒有任何選擇需要清除",
+                    ephemeral=True,
+                    delete_after=2
+                )
+                
+        except Exception as e:
+            logger.error(f"清除選擇失敗: {e}")
+            await interaction.response.send_message(
+                "❌ 清除選擇時發生錯誤",
+                ephemeral=True
+            )
 
 
 class VoteInfoButton(ui.Button):
