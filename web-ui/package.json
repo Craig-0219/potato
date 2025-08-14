@@ -1,6 +1,6 @@
 {
   "name": "potato-bot-web-ui",
-  "version": "1.8.0",
+  "version": "2.2.0",
   "description": "Potato Discord Bot - 企業級 Web 管理界面",
   "private": true,
   "scripts": {

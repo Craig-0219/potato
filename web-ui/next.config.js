@@ -20,7 +20,7 @@ const nextConfig = {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
     API_BASE_URL: process.env.API_BASE_URL || 'http://localhost:8000/api/v1',
     APP_NAME: 'Potato Bot Dashboard',
-    APP_VERSION: '1.8.0',
+    APP_VERSION: '2.2.0',
   },
 
   // PWA 相關設置
