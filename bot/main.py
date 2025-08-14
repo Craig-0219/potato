@@ -54,7 +54,13 @@ ALL_EXTENSIONS = [
     "language_core",
     "workflow_core",
     "dashboard_core",
-    "webhook_core"
+    "webhook_core",
+    # v2.2.0 新增模組 - 創意內容生成
+    "ai_assistant_cog",
+    "image_tools_cog", 
+    "music_cog",
+    "content_analysis_cog",
+    "game_entertainment"  # 包含跨平台經濟功能
 ]
 
 class PotatoBot(commands.Bot):
@@ -69,7 +75,7 @@ class PotatoBot(commands.Bot):
         super().__init__(
             command_prefix=commands.when_mentioned_or('!'),
             intents=intents,
-            description="Potato Bot - 票券系統與投票系統（修復版）"
+            description="Potato Bot v2.2.0 - AI智能助手、創意工具、娛樂功能和跨平台經濟系統"
         )
         self.initial_extensions = [COGS_PREFIX + ext for ext in ALL_EXTENSIONS]
         self.error_handler = None
@@ -215,10 +221,10 @@ class PotatoBot(commands.Bot):
         logger.info(f"🤖 Bot 已登入：{self.user} (ID: {self.user.id})")
         logger.info(f"📊 已連接到 {len(self.guilds)} 個伺服器")
         
-        # 設置狀態
+        # 設置狀態 - v2.2.0 創意內容生成版本
         activity = discord.Activity(
             type=discord.ActivityType.watching,
-            name="票券系統 | /help"
+            name="v2.2.0 AI助手+音樂+圖片 | /help"
         )
         await self.change_presence(activity=activity)
         

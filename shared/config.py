@@ -56,6 +56,38 @@ TICKET_DEFAULT_SLA_MINUTES = int(os.getenv("TICKET_DEFAULT_SLA_MINUTES", 60))
 TICKET_DEFAULT_AUTO_CLOSE_HOURS = int(os.getenv("TICKET_DEFAULT_AUTO_CLOSE_HOURS", 24))
 TICKET_MAX_PER_USER = int(os.getenv("TICKET_MAX_PER_USER", 3))
 
+# v2.2.0 創意內容生成功能配置
+# AI Assistant Configuration
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
+OPENAI_MAX_TOKENS = int(os.getenv("OPENAI_MAX_TOKENS", 1000))
+AI_DAILY_FREE_QUOTA = int(os.getenv("AI_DAILY_FREE_QUOTA", 10))
+
+# Image Processing Configuration
+IMAGE_DAILY_FREE_QUOTA = int(os.getenv("IMAGE_DAILY_FREE_QUOTA", 5))
+IMAGE_MAX_SIZE_MB = int(os.getenv("IMAGE_MAX_SIZE_MB", 10))
+IMAGE_SUPPORTED_FORMATS = os.getenv("IMAGE_SUPPORTED_FORMATS", "jpg,jpeg,png,gif,webp").split(",")
+
+# Music System Configuration
+YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
+MUSIC_DAILY_FREE_QUOTA = int(os.getenv("MUSIC_DAILY_FREE_QUOTA", 20))
+MUSIC_MAX_QUEUE_SIZE = int(os.getenv("MUSIC_MAX_QUEUE_SIZE", 50))
+MUSIC_SEARCH_RESULTS_LIMIT = int(os.getenv("MUSIC_SEARCH_RESULTS_LIMIT", 10))
+
+# Content Analysis Configuration
+CONTENT_DAILY_FREE_QUOTA = int(os.getenv("CONTENT_DAILY_FREE_QUOTA", 15))
+CONTENT_ANALYSIS_CACHE_TTL = int(os.getenv("CONTENT_ANALYSIS_CACHE_TTL", 1800))
+
+# Cross-Platform Economy Configuration
+MINECRAFT_SERVER_API_URL = os.getenv("MINECRAFT_SERVER_API_URL")
+MINECRAFT_SERVER_API_KEY = os.getenv("MINECRAFT_SERVER_API_KEY")
+CROSS_PLATFORM_SYNC_INTERVAL = int(os.getenv("CROSS_PLATFORM_SYNC_INTERVAL", 300))
+
+# Economic System Configuration
+ECONOMY_STARTING_COINS = int(os.getenv("ECONOMY_STARTING_COINS", 1000))
+ECONOMY_DAILY_BONUS = int(os.getenv("ECONOMY_DAILY_BONUS", 100))
+ECONOMY_SERVICE_COSTS = os.getenv("ECONOMY_SERVICE_COSTS", "true").lower() == "true"
+
 def validate_config_enhanced():
     """增強的配置驗證（修復版）"""
     errors = []
