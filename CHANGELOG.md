@@ -4,7 +4,7 @@
 
 格式基於 [Keep a Changelog](https://keepachangelog.com/zh-TW/1.0.0/)，版本號遵循 [語義化版本](https://semver.org/lang/zh-TW/)。
 
-## [2.2.0] - 2025-01-XX - 創意內容生成版本 🎨
+## [2.2.0] - 2025-08-14 - 創意內容生成版本 🎨
 
 ### 新增功能 (Added)
 - ✨ **AI智能助手模組**: 完整的ChatGPT整合系統
