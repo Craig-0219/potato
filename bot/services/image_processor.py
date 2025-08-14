@@ -14,10 +14,24 @@ from typing import Dict, List, Optional, Any, Union, Tuple
 from datetime import datetime, timezone
 from dataclasses import dataclass
 from enum import Enum
-from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
 import requests
 import os
 import tempfile
+
+# 嘗試導入 PIL，提供友善的錯誤訊息
+try:
+    from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageEnhance
+    PIL_AVAILABLE = True
+except ImportError as e:
+    PIL_AVAILABLE = False
+    PIL_ERROR = str(e)
+    
+    # 創建假的類別以避免後續錯誤
+    class MockPILClass:
+        def __init__(self, *args, **kwargs):
+            raise ImportError(f"PIL (Pillow) not available: {PIL_ERROR}. Please install with: pip install Pillow>=9.0.0")
+    
+    Image = ImageDraw = ImageFont = ImageFilter = ImageEnhance = MockPILClass
 
 from shared.cache_manager import cache_manager, cached
 from shared.logger import logger
@@ -67,6 +81,12 @@ class ImageProcessor:
     """圖片處理器"""
     
     def __init__(self):
+        # 檢查 PIL 可用性
+        if not PIL_AVAILABLE:
+            logger.error(f"❌ PIL (Pillow) 未安裝: {PIL_ERROR}")
+            logger.error("請執行: pip install Pillow>=9.0.0")
+            
+        self.pil_available = PIL_AVAILABLE
         self.max_image_size = 10 * 1024 * 1024  # 10MB
         self.max_dimensions = (2000, 2000)
         self.supported_formats = ['.jpg', '.jpeg', '.png', '.gif', '.webp']
@@ -159,6 +179,18 @@ class ImageProcessor:
                           intensity: float = 1.0) -> ProcessedImage:
         """應用圖片特效"""
         start_time = datetime.now()
+        
+        # 檢查 PIL 可用性
+        if not self.pil_available:
+            return ProcessedImage(
+                image_data=b'',
+                format='PNG',
+                size=(0, 0),
+                file_size=0,
+                processing_time=0,
+                success=False,
+                error_message="PIL (Pillow) 未安裝，請執行: pip install Pillow>=9.0.0"
+            )
         
         try:
             # 下載圖片
@@ -308,6 +340,18 @@ class ImageProcessor:
                          background_image: Optional[str] = None) -> ProcessedImage:
         """創建迷因圖片"""
         start_time = datetime.now()
+        
+        # 檢查 PIL 可用性
+        if not self.pil_available:
+            return ProcessedImage(
+                image_data=b'',
+                format='PNG',
+                size=(0, 0),
+                file_size=0,
+                processing_time=0,
+                success=False,
+                error_message="PIL (Pillow) 未安裝，請執行: pip install Pillow>=9.0.0"
+            )
         
         try:
             # 獲取模板配置
@@ -481,6 +525,18 @@ class ImageProcessor:
     async def create_avatar_frame(self, avatar_url: str, frame_style: str = "circle") -> ProcessedImage:
         """為頭像添加框架"""
         start_time = datetime.now()
+        
+        # 檢查 PIL 可用性
+        if not self.pil_available:
+            return ProcessedImage(
+                image_data=b'',
+                format='PNG',
+                size=(0, 0),
+                file_size=0,
+                processing_time=0,
+                success=False,
+                error_message="PIL (Pillow) 未安裝，請執行: pip install Pillow>=9.0.0"
+            )
         
         try:
             # 下載頭像

@@ -21,6 +21,9 @@ from bot.views.vote_views import (
     MultiSelectView, FinalStepView, DurationSelectView,
     AnonSelectView, RoleSelectView, VoteButtonView
 )
+from bot.views.modern_vote_views import (
+    QuickVoteModal, VoteCreationConfirmView, ModernVoteView, VoteManagementView
+)
 from bot.utils.vote_utils import build_vote_embed, build_result_embed
 from shared.logger import logger
 
@@ -1051,6 +1054,65 @@ class NextPageButton(discord.ui.Button):
             color=0x95a5a6
         )
         await ctx.send(embed=embed)
+
+    # ============ 現代化 GUI 投票系統 ============
+
+    @app_commands.command(name="quick_vote", description="🗳️ 快速創建投票 (現代GUI)")
+    async def quick_vote(self, interaction: discord.Interaction):
+        """快速創建投票的現代GUI界面"""
+        try:
+            # 檢查投票系統是否啟用
+            vote_settings = await vote_dao.get_vote_settings(interaction.guild.id)
+            if not vote_settings or not vote_settings.get('is_enabled', True):
+                await interaction.response.send_message(
+                    "❌ 投票系統目前已停用，請聯絡管理員",
+                    ephemeral=True
+                )
+                return
+            
+            # 顯示快速投票模態
+            modal = QuickVoteModal()
+            await interaction.response.send_modal(modal)
+            
+        except Exception as e:
+            logger.error(f"快速投票命令錯誤: {e}")
+            await interaction.response.send_message(
+                "❌ 啟動快速投票時發生錯誤",
+                ephemeral=True
+            )
+
+    @app_commands.command(name="vote_panel", description="📊 投票管理面板 (現代GUI)")
+    @app_commands.default_permissions(manage_messages=True)
+    async def vote_panel(self, interaction: discord.Interaction):
+        """顯示投票管理面板"""
+        try:
+            embed = discord.Embed(
+                title="🗳️ 投票系統管理面板",
+                description="使用現代化GUI界面管理投票系統",
+                color=0x3498db
+            )
+            
+            embed.add_field(
+                name="🎯 主要功能",
+                value="• 🗳️ 創建新投票\n• ⚙️ 管理現有投票\n• 📊 查看投票統計",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="💡 使用說明",
+                value="點擊下方按鈕開始使用投票系統",
+                inline=False
+            )
+            
+            view = VoteManagementView()
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"投票面板命令錯誤: {e}")
+            await interaction.response.send_message(
+                "❌ 載入投票面板時發生錯誤",
+                ephemeral=True
+            )
 
 async def setup(bot):
     await bot.add_cog(VoteCog(bot))

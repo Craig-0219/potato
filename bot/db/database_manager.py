@@ -51,6 +51,7 @@ class DatabaseManager:
             await self._create_security_tables()
             await self._create_lottery_tables()
             await self._create_archive_tables()
+            await self._create_cross_platform_tables()  # v2.2.0 新增
             
             # 更新資料庫版本
             await self._update_database_version(self.current_version)
@@ -1367,6 +1368,132 @@ class DatabaseManager:
                         raise
                 await conn.commit()
                 logger.info("✅ 歷史資料歸檔表格創建完成")
+
+    async def _create_cross_platform_tables(self):
+        """創建跨平台經濟系統表格 - v2.2.0"""
+        logger.info("🔄 創建跨平台經濟系統表格...")
+        
+        tables = {
+            "cross_platform_users": """
+                CREATE TABLE IF NOT EXISTS cross_platform_users (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    discord_id BIGINT NOT NULL,
+                    minecraft_uuid VARCHAR(36) NOT NULL,
+                    guild_id BIGINT NOT NULL,
+                    username VARCHAR(255) DEFAULT '',
+                    linked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    INDEX idx_discord_guild (discord_id, guild_id),
+                    INDEX idx_minecraft_uuid (minecraft_uuid),
+                    UNIQUE KEY unique_discord_guild (discord_id, guild_id)
+                )
+            """,
+            
+            "cross_platform_transactions": """
+                CREATE TABLE IF NOT EXISTS cross_platform_transactions (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    transaction_type ENUM('sync_to_minecraft', 'sync_from_minecraft', 'transfer') NOT NULL,
+                    currency_type ENUM('coins', 'gems', 'experience') NOT NULL,
+                    amount DECIMAL(15,2) NOT NULL,
+                    discord_balance_before DECIMAL(15,2) DEFAULT 0,
+                    discord_balance_after DECIMAL(15,2) DEFAULT 0,
+                    minecraft_balance_before DECIMAL(15,2) DEFAULT 0,
+                    minecraft_balance_after DECIMAL(15,2) DEFAULT 0,
+                    transaction_id VARCHAR(100) UNIQUE,
+                    status ENUM('pending', 'completed', 'failed') DEFAULT 'pending',
+                    error_message TEXT DEFAULT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    processed_at TIMESTAMP NULL,
+                    FOREIGN KEY (user_id) REFERENCES cross_platform_users(id) ON DELETE CASCADE,
+                    INDEX idx_user_type (user_id, transaction_type),
+                    INDEX idx_created_at (created_at)
+                )
+            """,
+            
+            "platform_configs": """
+                CREATE TABLE IF NOT EXISTS platform_configs (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    guild_id BIGINT NOT NULL,
+                    platform_type ENUM('discord', 'minecraft') NOT NULL,
+                    config_key VARCHAR(100) NOT NULL,
+                    config_value TEXT,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    UNIQUE KEY unique_guild_platform_key (guild_id, platform_type, config_key),
+                    INDEX idx_guild_platform (guild_id, platform_type)
+                )
+            """,
+            
+            "cross_platform_achievements": """
+                CREATE TABLE IF NOT EXISTS cross_platform_achievements (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT NOT NULL,
+                    achievement_id VARCHAR(100) NOT NULL,
+                    achievement_type ENUM('discord', 'minecraft', 'cross_platform') NOT NULL,
+                    title VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    reward_coins DECIMAL(10,2) DEFAULT 0,
+                    reward_gems DECIMAL(10,2) DEFAULT 0,
+                    reward_experience DECIMAL(10,2) DEFAULT 0,
+                    unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    is_synced BOOLEAN DEFAULT FALSE,
+                    FOREIGN KEY (user_id) REFERENCES cross_platform_users(id) ON DELETE CASCADE,
+                    UNIQUE KEY unique_user_achievement (user_id, achievement_id),
+                    INDEX idx_user_type (user_id, achievement_type),
+                    INDEX idx_unlocked_at (unlocked_at)
+                )
+            """,
+            
+            "sync_logs": """
+                CREATE TABLE IF NOT EXISTS sync_logs (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id INT,
+                    sync_type ENUM('economy', 'achievements', 'full_sync') NOT NULL,
+                    direction ENUM('to_minecraft', 'from_minecraft', 'bidirectional') NOT NULL,
+                    status ENUM('started', 'completed', 'failed') NOT NULL,
+                    data_snapshot JSON,
+                    error_details TEXT DEFAULT NULL,
+                    sync_started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    sync_completed_at TIMESTAMP NULL,
+                    duration_ms INT DEFAULT NULL,
+                    FOREIGN KEY (user_id) REFERENCES cross_platform_users(id) ON DELETE SET NULL,
+                    INDEX idx_user_sync (user_id, sync_type),
+                    INDEX idx_sync_started (sync_started_at)
+                )
+            """
+        }
+        
+        async with self.db.connection() as conn:
+            async with conn.cursor() as cursor:
+                for table_name, create_sql in tables.items():
+                    try:
+                        await cursor.execute(create_sql)
+                        logger.info(f"✅ {table_name} 表格創建成功")
+                    except Exception as e:
+                        logger.error(f"❌ 創建 {table_name} 表格失敗: {e}")
+                        # 不拋出異常，繼續創建其他表格
+                        
+                # 插入初始配置
+                try:
+                    await cursor.execute("""
+                        INSERT IGNORE INTO platform_configs (guild_id, platform_type, config_key, config_value) VALUES
+                        (0, 'discord', 'economy_sync_enabled', 'true'),
+                        (0, 'discord', 'achievement_sync_enabled', 'true'),
+                        (0, 'minecraft', 'api_endpoint', 'http://localhost:8080/api'),
+                        (0, 'minecraft', 'sync_interval', '300'),
+                        (0, 'minecraft', 'currency_exchange_rate_coins', '1.0'),
+                        (0, 'minecraft', 'currency_exchange_rate_gems', '10.0'),
+                        (0, 'minecraft', 'currency_exchange_rate_experience', '0.1')
+                    """)
+                    logger.info("✅ 跨平台配置初始化完成")
+                except Exception as e:
+                    logger.warning(f"⚠️ 插入初始配置失敗: {e}")
+                
+                await conn.commit()
+                logger.info("✅ 跨平台經濟系統表格創建完成")
 
 
 # ===== 單例模式實現 =====

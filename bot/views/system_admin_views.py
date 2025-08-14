@@ -1229,6 +1229,45 @@ class VoteSettingsView(View):
         
         return True
     
+    @button(label="🚀 現代GUI投票", style=discord.ButtonStyle.success, row=0)
+    async def modern_vote_gui_button(self, interaction: discord.Interaction, button: Button):
+        """現代化GUI投票系統按鈕"""
+        try:
+            from bot.views.modern_vote_views import VoteManagementView
+            
+            embed = discord.Embed(
+                title="🚀 現代化GUI投票系統",
+                description="使用全新的圖形界面創建和管理投票",
+                color=0x3498db
+            )
+            
+            embed.add_field(
+                name="✨ 新功能特色",
+                value="• 🎯 直覺的拖拉式界面\n"
+                      "• ⚙️ 豐富的設定選項\n"
+                      "• 📊 即時統計更新\n"
+                      "• 🎨 美觀的視覺效果",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="🔧 可用功能",
+                value="• 快速創建投票\n"
+                      "• 管理現有投票\n"
+                      "• 查看詳細統計",
+                inline=False
+            )
+            
+            view = VoteManagementView()
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"現代GUI投票系統錯誤: {e}")
+            await interaction.response.send_message(
+                "❌ 啟動現代GUI投票系統時發生錯誤",
+                ephemeral=True
+            )
+
     @button(label="📺 設定投票頻道", style=discord.ButtonStyle.primary, row=0)
     async def set_vote_channel_button(self, interaction: discord.Interaction, button: Button):
         """設定預設投票頻道按鈕"""

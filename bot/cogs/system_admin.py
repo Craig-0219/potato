@@ -493,7 +493,7 @@ class SystemAdmin(commands.Cog):
                         async with conn.cursor(aiomysql.DictCursor) as cursor:
                             # 獲取表格統計
                             tables_info = {}
-                            main_tables = ['tickets', 'votes', 'ticket_logs', 'vote_results']
+                            main_tables = ['tickets', 'votes', 'ticket_logs', 'vote_responses']
                             
                             for table in main_tables:
                                 try:
@@ -563,7 +563,7 @@ class SystemAdmin(commands.Cog):
                     async with db.db.connection() as conn:
                         async with conn.cursor(aiomysql.DictCursor) as cursor:
                             # 主要表格
-                            main_tables = ['tickets', 'votes', 'ticket_logs', 'vote_results']
+                            main_tables = ['tickets', 'votes', 'ticket_logs', 'vote_responses']
                             reindex_results = {}
                             
                             for table in main_tables:
