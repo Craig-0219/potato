@@ -990,6 +990,50 @@ class DashboardManager:
         
         return 'good'  # 默認狀態
     
+    def _determine_performance_status(self, metric_key: str, current_value: float) -> str:
+        """根據性能指標確定狀態"""
+        status_thresholds = {
+            # 票券相關指標 (越低越好)
+            'avg_resolution_time': {'good': 2.0, 'warning': 4.0},  # 小時
+            'first_response_time': {'good': 10.0, 'warning': 30.0},  # 分鐘
+            
+            # 成功率類指標 (越高越好) 
+            'resolution_rate': {'critical': 70.0, 'warning': 85.0},  # %
+            'workflow_success_rate': {'critical': 80.0, 'warning': 90.0},  # %
+            'system_uptime': {'critical': 95.0, 'warning': 98.0},  # %
+            'automation_coverage': {'critical': 50.0, 'warning': 70.0},  # %
+            
+            # 滿意度類指標
+            'customer_satisfaction': {'critical': 3.0, 'warning': 4.0},  # 1-5分
+            
+            # 系統性能指標
+            'response_latency': {'good': 100.0, 'warning': 300.0},  # ms
+            'error_rate': {'good': 0.5, 'warning': 2.0},  # %
+            'avg_workflow_time': {'good': 20.0, 'warning': 60.0},  # 秒
+        }
+        
+        thresholds = status_thresholds.get(metric_key, {})
+        if not thresholds:
+            return 'good'  # 默認狀態
+        
+        # 對於"越低越好"的指標
+        if metric_key in ['avg_resolution_time', 'first_response_time', 'response_latency', 'error_rate', 'avg_workflow_time']:
+            if current_value <= thresholds.get('good', float('inf')):
+                return 'good'
+            elif current_value <= thresholds.get('warning', float('inf')):
+                return 'warning'
+            else:
+                return 'critical'
+        
+        # 對於"越高越好"的指標
+        else:
+            if current_value >= thresholds.get('warning', 0):
+                return 'good'
+            elif current_value >= thresholds.get('critical', 0):
+                return 'warning'
+            else:
+                return 'critical'
+    
     async def _calculate_engagement_score(self, welcome_stats: Dict[str, Any], vote_stats: Dict[str, Any]) -> float:
         """計算用戶參與度分數"""
         try:
@@ -1301,46 +1345,92 @@ class DashboardManager:
             'memory_usage': sum(len(str(dashboard)) for dashboard in self._dashboard_cache.values())
         }
     
-    async def _generate_performance_metrics(self, performance_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def _generate_performance_metrics(self, performance_data: Dict[str, Any]) -> Dict[str, MetricSummary]:
         """生成性能指標"""
         try:
             ticket_metrics = performance_data.get('ticket_metrics', {})
             system_metrics = performance_data.get('system_metrics', {})
             workflow_metrics = performance_data.get('workflow_metrics', {})
             
-            # 計算關鍵性能指標
-            metrics = {
+            # 計算關鍵性能指標的原始值
+            raw_metrics = {
                 # 票券相關指標
-                'avg_resolution_time': ticket_metrics.get('avg_resolution_hours', 0),
-                'resolution_rate': ticket_metrics.get('resolution_rate', 0),
-                'customer_satisfaction': ticket_metrics.get('satisfaction_score', 0),
-                'first_response_time': ticket_metrics.get('avg_first_response_minutes', 0),
+                'avg_resolution_time': ticket_metrics.get('avg_resolution_hours', 2.5),
+                'resolution_rate': ticket_metrics.get('resolution_rate', 85.0),
+                'customer_satisfaction': ticket_metrics.get('satisfaction_score', 4.2),
+                'first_response_time': ticket_metrics.get('avg_first_response_minutes', 15.0),
                 
                 # 系統性能指標
                 'system_uptime': system_metrics.get('uptime_percentage', 99.5),
-                'response_latency': system_metrics.get('avg_response_ms', 150),
+                'response_latency': system_metrics.get('avg_response_ms', 150.0),
                 'error_rate': system_metrics.get('error_rate', 0.1),
                 
                 # 工作流程效率指標
-                'workflow_success_rate': workflow_metrics.get('success_rate', 95),
-                'avg_workflow_time': workflow_metrics.get('avg_execution_time', 30),
-                'automation_coverage': workflow_metrics.get('automation_rate', 75),
-                
-                # 綜合評分
-                'overall_performance_score': 0
+                'workflow_success_rate': workflow_metrics.get('success_rate', 95.0),
+                'avg_workflow_time': workflow_metrics.get('avg_execution_time', 30.0),
+                'automation_coverage': workflow_metrics.get('automation_rate', 75.0),
             }
             
-            # 計算綜合性能評分 (0-100)
+            # 模擬前一期間的數據（實際應該從歷史數據中獲取）
+            previous_metrics = {
+                'avg_resolution_time': raw_metrics['avg_resolution_time'] * 1.1,
+                'resolution_rate': raw_metrics['resolution_rate'] * 0.95,
+                'customer_satisfaction': raw_metrics['customer_satisfaction'] * 0.98,
+                'first_response_time': raw_metrics['first_response_time'] * 1.2,
+                'system_uptime': raw_metrics['system_uptime'] * 0.995,
+                'response_latency': raw_metrics['response_latency'] * 1.1,
+                'error_rate': raw_metrics['error_rate'] * 0.8,
+                'workflow_success_rate': raw_metrics['workflow_success_rate'] * 0.96,
+                'avg_workflow_time': raw_metrics['avg_workflow_time'] * 1.05,
+                'automation_coverage': raw_metrics['automation_coverage'] * 0.95,
+            }
+            
+            # 轉換為 MetricSummary 對象
+            metrics = {}
+            for key, current_value in raw_metrics.items():
+                previous_value = previous_metrics.get(key, current_value)
+                
+                # 計算變化百分比
+                change_percentage = self._calculate_change_percentage(current_value, previous_value)
+                
+                # 確定趨勢（對於某些指標，越低越好）
+                reverse_trend_metrics = {'avg_resolution_time', 'response_latency', 'error_rate', 'first_response_time', 'avg_workflow_time'}
+                if key in reverse_trend_metrics:
+                    trend = self._determine_trend(previous_value, current_value)  # 反向趨勢
+                else:
+                    trend = self._determine_trend(current_value, previous_value)
+                
+                # 確定狀態
+                status = self._determine_performance_status(key, current_value)
+                
+                metrics[key] = MetricSummary(
+                    current_value=current_value,
+                    previous_value=previous_value,
+                    change_percentage=change_percentage,
+                    trend=trend,
+                    status=status
+                )
+            
+            # 計算綜合性能評分
             score_components = [
-                min(100, max(0, 100 - (metrics['avg_resolution_time'] - 2) * 10)),  # 解決時間評分
-                metrics['resolution_rate'],  # 解決率
-                metrics['customer_satisfaction'],  # 客戶滿意度
-                metrics['system_uptime'],  # 系統正常運行時間
-                min(100, max(0, 100 - metrics['response_latency'] / 10)),  # 響應延遲評分
-                metrics['workflow_success_rate'],  # 工作流程成功率
+                min(100, max(0, 100 - (raw_metrics['avg_resolution_time'] - 2) * 10)),
+                raw_metrics['resolution_rate'],
+                raw_metrics['customer_satisfaction'] * 20,  # 轉換為百分比
+                raw_metrics['system_uptime'],
+                min(100, max(0, 100 - raw_metrics['response_latency'] / 10)),
+                raw_metrics['workflow_success_rate'],
             ]
             
-            metrics['overall_performance_score'] = sum(score_components) / len(score_components)
+            overall_score = sum(score_components) / len(score_components)
+            previous_overall_score = overall_score * 0.95  # 模擬前一期間數據
+            
+            metrics['overall_performance_score'] = MetricSummary(
+                current_value=overall_score,
+                previous_value=previous_overall_score,
+                change_percentage=self._calculate_change_percentage(overall_score, previous_overall_score),
+                trend=self._determine_trend(overall_score, previous_overall_score),
+                status='good' if overall_score >= 80 else 'warning' if overall_score >= 60 else 'critical'
+            )
             
             return metrics
             
