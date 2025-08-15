@@ -43,7 +43,7 @@ COGS_PREFIX = "bot.cogs."
 ALL_EXTENSIONS = [
     "ticket_core",
     "ticket_listener", 
-    "vote",
+    "vote_core",
     "vote_listener",
     "welcome_core",
     "welcome_listener",
