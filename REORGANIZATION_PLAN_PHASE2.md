@@ -66,7 +66,7 @@
 #### 3. 類別命名不一致
 **Core 類別命名：**
 - ✅ 多數使用 `[Module]Core` 格式
-- ❌ `VoteCog` → 建議：`VoteCore`
+- ❌ `VoteCore` → 建議：`VoteCore`
 
 ## 📦 第二階段改進計劃
 
@@ -85,7 +85,7 @@
    ```
 
 2. **類別名稱統一**
-   - `VoteCog` → `VoteCore`
+   - `VoteCore` → `VoteCore`
 
 3. **匯入語句更新**
    - 更新所有相關的匯入語句

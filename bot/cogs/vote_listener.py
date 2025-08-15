@@ -18,7 +18,7 @@ class VoteListener(commands.Cog):
         if message.author.bot or not message.guild:
             return
 
-        cog = self.bot.get_cog("VoteCog")
+        cog = self.bot.get_cog("VoteCore")
         if not cog:
             return
         sessions = cog.vote_sessions
@@ -64,7 +64,7 @@ class VoteListener(commands.Cog):
         if interaction.type != discord.InteractionType.component:
             return
 
-        cog = self.bot.get_cog("VoteCog")
+        cog = self.bot.get_cog("VoteCore")
         if not cog:
             return
         sessions = cog.vote_sessions

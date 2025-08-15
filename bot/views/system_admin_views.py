@@ -2826,8 +2826,8 @@ class VoteConfirmActionView(View):
                 
                 if success:
                     # 發送結果通知
-                    from bot.cogs.vote import VoteCog
-                    vote_cog = interaction.client.get_cog("VoteCog")
+                    from bot.cogs.vote import VoteCore
+                    vote_cog = interaction.client.get_cog("VoteCore")
                     if vote_cog:
                         try:
                             await vote_cog._send_vote_result(self.vote_id)

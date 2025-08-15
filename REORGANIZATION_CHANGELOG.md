@@ -2,9 +2,37 @@
 
 ## 📋 重新組織概述
 
-為了提升程式碼可維護性和一致性，對投票系統相關檔案進行了重新組織和標準化命名。
+為了提升程式碼可維護性和一致性，對整個專案進行了系統性的重新組織和標準化命名。
+
+## 🗓️ 更新時間軸
+
+### Phase 1 (2025-08-14): 投票系統重組
+初期重組投票系統相關檔案。
+
+### Phase 2 (2025-08-15): 全面清理與現代化
+全面清理項目結構，投票系統GUI現代化，準備下階段開發。
 
 ## 🔄 檔案變更
+
+### Phase 2 新增內容
+
+#### 🗳️ 投票系統現代化
+- **GUI界面重構**: 將手動輸入改為現代化模態框界面
+- **多選投票修復**: 修復多選投票只能選一個的問題
+- **百分比顯示恢復**: 恢復投票選項旁的百分比統計顯示
+- **新增視圖組件**:
+  - `ComprehensiveVoteModal`: 完整投票創建模態框
+  - `VoteConfigurationView`: 投票配置視圖
+  - `VoteTypeSelectMenu`: 投票類型選擇下拉選單
+  - `AnonymityToggleButton`: 匿名選項切換按鈕
+  - `MultiSelectVoteButton`: 多選投票按鈕
+  - `SingleSelectVoteButton`: 單選投票按鈕
+
+#### 🧹 項目清理
+- **缓存清理**: 删除所有Python缓存文件和__pycache__目录
+- **日志整理**: 创建logs/目录，整理日志文件
+- **文件归档**: 创建transcripts/archive/目录，归档演示文件
+- **目录优化**: 优化项目目录结构，提升可维护性
 
 ### 重新命名
 
@@ -117,4 +145,63 @@ from bot.views.vote_views import (
 
 **更新日期：** 2025-08-15  
 **影響範圍：** 投票系統檔案架構  
+**向後相容性：** ✅ 完全相容
+
+---
+
+## 🔄 階段二更新 - 2025-08-15
+
+### 📋 Cogs 目錄標準化完成
+
+為了建立一致的命名慣例，將所有 Cog 檔案統一使用 `_core` 命名模式：
+
+#### 檔案重新命名
+- `bot/cogs/ai_assistant_cog.py` → `bot/cogs/ai_assistant_core.py`
+- `bot/cogs/content_analysis_cog.py` → `bot/cogs/content_analysis_core.py`
+- `bot/cogs/image_tools_cog.py` → `bot/cogs/image_tools_core.py`
+- `bot/cogs/music_cog.py` → `bot/cogs/music_core.py`
+- `bot/cogs/game_entertainment.py` → `bot/cogs/game_core.py`
+- `bot/cogs/system_admin.py` → `bot/cogs/system_admin_core.py`
+- `bot/cogs/web_auth.py` → `bot/cogs/web_auth_core.py`
+
+#### 類別名稱統一
+- `VoteCore` → `VoteCore`
+
+#### 影響的檔案更新
+- `bot/main.py` - 更新所有擴展名稱
+- `test_module_loading.py` - 更新測試模組列表
+- `test_slash_commands.py` - 更新測試檔案路徑
+
+### 🎯 改進效果
+
+1. **命名一致性達成**
+   - 所有 Core Cogs 使用 `*_core.py` 格式
+   - 所有 Listener Cogs 使用 `*_listener.py` 格式
+   - 類別名稱統一使用 `*Core` 格式
+
+2. **檔案組織優化**
+   - 15個 Core 檔案命名統一
+   - 3個 Listener 檔案命名一致
+   - 消除命名混淆
+
+3. **維護性提升**
+   - 更容易識別檔案類型和功能
+   - 新開發者學習成本降低
+   - 代碼結構更加清晰
+
+### ✅ 測試驗證
+
+- **語法檢查：** ✅ 通過
+- **模組載入測試：** ✅ 通過（結構正確）
+- **Git 提交準備：** ✅ 完成
+
+### 📊 統計資料
+
+- **重新命名檔案數：** 7個
+- **更新類別名稱：** 1個
+- **影響檔案數：** 11個
+- **測試檔案數：** 2個
+
+**階段二完成日期：** 2025-08-15  
+**影響範圍：** 全專案 Cogs 檔案架構標準化  
 **向後相容性：** ✅ 完全相容

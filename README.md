@@ -1,21 +1,27 @@
-# 🥔 Potato Bot v2.2.0
+# 🥔 Potato Bot v2.3.0
 
 > 多功能Discord機器人 - 整合AI助手、創意工具、娛樂功能和跨平台經濟系統
 
-[![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](https://github.com/Craig-0219/potato)
+[![Version](https://img.shields.io/badge/version-2.3.0-blue.svg)](https://github.com/Craig-0219/potato)
 [![Python](https://img.shields.io/badge/python-3.8+-green.svg)](https://www.python.org/)
 [![Discord.py](https://img.shields.io/badge/discord.py-2.0+-blue.svg)](https://discordpy.readthedocs.io/)
 [![License](https://img.shields.io/badge/license-MIT-orange.svg)](LICENSE)
 
 一個功能豐富的多功能 Discord 機器人，提供AI智能助手、創意內容生成、音樂娛樂、圖片處理和跨平台經濟整合等功能，讓您的Discord伺服器更有趣和智能！
 
-## 🔄 最新更新 (2025-08-15)
+## 🔄 最新更新 (2025-08-15 - v2.3.0)
 
-📋 **檔案重新組織完成**
-- 投票系統檔案已重新組織以提升可維護性
-- `vote.py` → `vote_core.py` (統一命名慣例)
-- 整合重複的投票視圖檔案到統一的 `vote_views.py`
-- 詳見 [重新組織更新日誌](./REORGANIZATION_CHANGELOG.md)
+🎉 **投票系統現代化完成**
+- ✅ **GUI界面重構**: 投票創建改為現代化模態框界面
+- ✅ **多選投票修復**: 修復多選投票只能投一個的問題
+- ✅ **百分比顯示恢復**: 恢復投票選項旁的百分比統計
+- ✅ **項目結構清理**: 完成檔案清理和組織優化
+
+🧹 **項目清理與優化**
+- 清理Python缓存文件和臨時文件
+- 整理日志文件和transcript歸檔
+- 優化目錄結構，提升可維護性
+- 詳見 [清理報告](./CLEANUP_REPORT.md) 和 [重新組織更新日誌](./REORGANIZATION_CHANGELOG.md)
 
 ## ✨ 功能特色
 

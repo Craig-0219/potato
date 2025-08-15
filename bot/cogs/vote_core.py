@@ -96,43 +96,35 @@ class VoteCore(commands.Cog):
 
     @app_commands.command(name="vote", description="開始建立一個投票 | Create a new vote")
     async def vote(self, interaction: discord.Interaction):
-        user_id = interaction.user.id
-        
-        # ✅ 檢查投票系統是否啟用
-        if not await vote_dao.is_vote_system_enabled(interaction.guild.id):
-            await interaction.response.send_message("❌ 投票系統已被停用。", ephemeral=True)
-            return
-        
-        # ✅ 檢查是否在指定投票頻道中
-        vote_settings = await vote_dao.get_vote_settings(interaction.guild.id)
-        if vote_settings and vote_settings.get('default_vote_channel_id'):
-            allowed_channel_id = vote_settings['default_vote_channel_id']
-            if interaction.channel.id != allowed_channel_id:
-                allowed_channel = interaction.guild.get_channel(allowed_channel_id)
-                channel_mention = allowed_channel.mention if allowed_channel else f"<#{allowed_channel_id}>"
-                await interaction.response.send_message(
-                    f"❌ 投票只能在指定的投票頻道 {channel_mention} 中建立。", 
-                    ephemeral=True
-                )
-                return
-        
-        # ✅ 使用鎖防止併發問題
-        async with self._session_lock:
-            # 檢查用戶是否正在建立其他投票
-            if user_id in VoteCore.vote_sessions:
-                await interaction.response.send_message("❗ 你已經在建立另一個投票了，請先完成或取消。", ephemeral=True)
+        """現代化 GUI 投票創建指令"""
+        try:
+            # ✅ 檢查投票系統是否啟用
+            if not await vote_dao.is_vote_system_enabled(interaction.guild.id):
+                await interaction.response.send_message("❌ 投票系統已被停用。", ephemeral=True)
                 return
             
-            VoteCore.vote_sessions[user_id] = {
-                "origin_channel": interaction.channel,
-                "channel_id": interaction.channel_id,
-                "guild_id": interaction.guild_id,
-                "start_time": datetime.now(timezone.utc),
-                "last_activity": datetime.now(timezone.utc)  # 追蹤活動時間
-            }
-        
-        await interaction.response.send_message("📝 請輸入投票標題：", ephemeral=True)
-        logger.debug(f"[Vote] 使用者 {user_id} 開始建立投票")
+            # ✅ 檢查是否在指定投票頻道中
+            vote_settings = await vote_dao.get_vote_settings(interaction.guild.id)
+            if vote_settings and vote_settings.get('default_vote_channel_id'):
+                allowed_channel_id = vote_settings['default_vote_channel_id']
+                if interaction.channel.id != allowed_channel_id:
+                    allowed_channel = interaction.guild.get_channel(allowed_channel_id)
+                    channel_mention = allowed_channel.mention if allowed_channel else f"<#{allowed_channel_id}>"
+                    await interaction.response.send_message(
+                        f"❌ 投票只能在指定的投票頻道 {channel_mention} 中建立。", 
+                        ephemeral=True
+                    )
+                    return
+            
+            # ✅ 直接顯示 GUI 模態框
+            from bot.views.vote_views import ComprehensiveVoteModal
+            modal = ComprehensiveVoteModal()
+            await interaction.response.send_modal(modal)
+            logger.debug(f"[Vote] 使用者 {interaction.user.id} 開始使用 GUI 建立投票")
+            
+        except Exception as e:
+            logger.error(f"[Vote] vote 指令錯誤：{e}")
+            await interaction.response.send_message("❌ 啟動投票創建時發生錯誤。", ephemeral=True)
 
     @app_commands.command(name="votes", description="查看目前進行中的投票 | View current active votes")
     async def votes(self, interaction: discord.Interaction):
@@ -1069,6 +1061,7 @@ class NextPageButton(discord.ui.Button):
                 return
             
             # 顯示快速投票模態
+            from bot.views.vote_views import QuickVoteModal
             modal = QuickVoteModal()
             await interaction.response.send_modal(modal)
             
