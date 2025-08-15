@@ -22,8 +22,9 @@ from bot.views.vote_views import (
     AnonSelectView, RoleSelectView, VoteButtonView
 )
 from bot.views.modern_vote_views import (
-    QuickVoteModal, VoteCreationConfirmView, ModernVoteView, VoteManagementView
+    QuickVoteModal, VoteCreationConfirmView, ModernVoteView 
 )
+from bot.views.vote_management_views import VoteManagementView
 from bot.utils.vote_utils import build_vote_embed, build_result_embed
 from shared.logger import logger
 
