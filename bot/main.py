@@ -127,7 +127,12 @@ class PotatoBot(commands.Bot):
                 await db_manager.initialize_all_tables(force_recreate=False)
                 logger.info("✅ 資料庫表格初始化完成")
                 
-                # 3. 健康檢查
+                # 3. 初始化投票模板系統
+                from bot.services.vote_template_manager import vote_template_manager
+                await vote_template_manager.initialize_predefined_templates()
+                logger.info("✅ 投票模板系統初始化完成")
+                
+                # 4. 健康檢查
                 health = await get_db_health()
                 if health.get("status") == "healthy":
                     logger.info("✅ 資料庫健康檢查通過")

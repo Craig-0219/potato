@@ -190,6 +190,78 @@ class StatisticsManager:
             logger.error(f"生成統計報告失敗: {e}")
             return {'error': str(e)}
     
+    async def generate_comprehensive_report(self, guild_id: Optional[int] = None, days: int = 30) -> Dict[str, Any]:
+        """生成綜合報告 - 修復缺失的方法"""
+        try:
+            logger.info(f"開始生成綜合報告 - Guild ID: {guild_id}, 天數: {days}")
+            
+            # 獲取基本統計數據
+            comprehensive_stats = await self.get_comprehensive_statistics(guild_id, days)
+            
+            if 'error' in comprehensive_stats:
+                return comprehensive_stats
+            
+            # 生成關鍵指標
+            ticket_stats = comprehensive_stats.get('ticket_statistics', {}).get('summary', {})
+            vote_stats = comprehensive_stats.get('vote_statistics', {}).get('summary', {})
+            system_stats = comprehensive_stats.get('system_statistics', {}).get('summary', {})
+            
+            # 計算關鍵績效指標
+            kpi_metrics = {
+                'ticket_resolution_rate': ticket_stats.get('resolution_rate', 0),
+                'average_rating': ticket_stats.get('avg_rating', 0),
+                'total_interactions': ticket_stats.get('total_tickets', 0) + vote_stats.get('total_votes', 0),
+                'system_health_score': 100.0 if system_stats.get('status') == 'healthy' else 0.0
+            }
+            
+            # 生成趨勢分析（簡化版）
+            trend_analysis = {
+                'ticket_trend': 'stable',  # 簡化版，實際應該基於歷史數據
+                'vote_trend': 'stable',
+                'engagement_trend': 'positive' if kpi_metrics['total_interactions'] > 0 else 'low'
+            }
+            
+            # 生成建議和洞察
+            insights = []
+            if ticket_stats.get('resolution_rate', 0) < 80:
+                insights.append("票券解決率偏低，建議檢查處理流程")
+            if vote_stats.get('total_votes', 0) == 0:
+                insights.append("投票參與度較低，可考慮推廣投票功能")
+            if kpi_metrics['average_rating'] < 3.0 and kpi_metrics['average_rating'] > 0:
+                insights.append("用戶滿意度有待改進，建議優化服務品質")
+            
+            if not insights:
+                insights.append("系統運行良好，各項指標正常")
+            
+            # 構建完整報告
+            comprehensive_report = {
+                **comprehensive_stats,
+                'kpi_metrics': kpi_metrics,
+                'trend_analysis': trend_analysis,
+                'insights': insights,
+                'report_metadata': {
+                    'report_type': 'comprehensive',
+                    'guild_id': guild_id,
+                    'analysis_period_days': days,
+                    'generated_timestamp': datetime.now().isoformat(),
+                    'data_freshness': 'real_time'
+                }
+            }
+            
+            logger.info("綜合報告生成成功")
+            return comprehensive_report
+            
+        except Exception as e:
+            logger.error(f"生成綜合報告失敗: {e}")
+            return {
+                'error': str(e),
+                'report_metadata': {
+                    'report_type': 'comprehensive',
+                    'status': 'failed',
+                    'error_timestamp': datetime.now().isoformat()
+                }
+            }
+    
     async def get_realtime_stats(self, guild_id: int) -> Dict[str, Any]:
         """獲取實時統計數據"""
         try:

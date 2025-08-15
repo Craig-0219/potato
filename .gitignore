@@ -1,12 +1,27 @@
-# Python
+# ====================================
+# Potato Bot - Git Ignore 配置
+# 版本: v3.0.0
+# 更新日期: 2025-08-15
+# ====================================
+
+# ====================================
+# Python 相關文件
+# ====================================
+
+# 環境變數和配置
 .env
 .env.*
 !.env.example
+!.env.template
+
+# Python 編譯和快取文件
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+
+# 打包和分發
 build/
 develop-eggs/
 dist/
@@ -24,59 +39,150 @@ wheels/
 *.egg
 MANIFEST
 
-# Virtual Environments
+# ====================================
+# 虛擬環境
+# ====================================
+
 venv/
 env/
 ENV/
 .venv/
+.env/
+virtualenv/
 
-# Logs
+# ====================================
+# 日誌和監控
+# ====================================
+
+# 日誌文件
 *.log
 logs/
 *.log.*
 
-# Database
+# 監控和性能分析
+.prof
+*.pyc
+.mypy_cache/
+
+# ====================================
+# 資料庫相關
+# ====================================
+
+# SQLite 資料庫
 *.db
 *.sqlite
 *.sqlite3
 database.db
-*.sql
 
-# IDE
+# SQL 腳本備份
+*.sql
+*.dump
+
+# MySQL/MariaDB
+*.ibd
+*.frm
+*.MYD
+*.MYI
+
+# ====================================
+# 開發工具和 IDE
+# ====================================
+
+# Visual Studio Code
 .vscode/
+*.code-workspace
+
+# PyCharm
 .idea/
+*.iml
+*.ipr
+*.iws
+
+# Vim
 *.swp
 *.swo
 *~
+.netrwhist
 
-# OS
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ====================================
+# 作業系統相關
+# ====================================
+
+# macOS
 .DS_Store
 .DS_Store?
 ._*
 .Spotlight-V100
 .Trashes
+.AppleDouble
+.LSOverride
+
+# Windows
 ehthumbs.db
 Thumbs.db
 desktop.ini
+$RECYCLE.BIN/
 
-# Node / Next.js
+# Linux
+.directory
+.trash-*
+
+# ====================================
+# Node.js / Next.js (Web UI)
+# ====================================
+
+# Dependencies
 node_modules/
 .npm/
+.yarn/
+yarn-error.log
+package-lock.json.bak
+
+# Build outputs
 .next/
 .nuxt/
 dist/
-coverage/
-.nyc_output/
+build/
+out/
+.output/
+
+# Cache and temporary files
 .cache/
 .parcel-cache/
+.nyc_output/
+.webpack/
+.rollup.cache/
+
+# Environment variables
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Next.js
 *.tsbuildinfo
 next-env.d.ts
 
-# Testing
+# Coverage and testing
+coverage/
+.coverage
+.nyc_output
+
+# ====================================
+# 測試相關
+# ====================================
+
+# pytest
 .pytest_cache/
 .coverage
 htmlcov/
@@ -87,50 +193,214 @@ coverage.xml
 *.cover
 .hypothesis/
 
-# Jupyter
+# Test databases
+test.db
+test_*.db
+testing.sqlite
+
+# ====================================
+# AI/ML 和 Jupyter
+# ====================================
+
+# Jupyter Notebooks
 .ipynb_checkpoints/
 *.ipynb
 
-# Redis
-dump.rdb
+# AI/ML 模型
+*.pkl
+*.model
+*.h5
+*.pt
+*.pth
+
+# ====================================
+# 容器化和部署
+# ====================================
 
 # Docker
 .dockerignore
 docker-compose.override.yml
+.docker/
+Dockerfile.local
 
-# Backup files
+# Kubernetes
+*.k8s.yml
+k8s-local/
+
+# ====================================
+# 資料庫和緩存
+# ====================================
+
+# Redis
+dump.rdb
+appendonly.aof
+
+# 資料庫備份
+*.backup
+backups/
+dumps/
+
+# ====================================
+# 敏感資料和金鑰
+# ====================================
+
+# API 金鑰和憑證
+*.key
+*.pem
+*.p12
+*.crt
+*.cer
+secrets/
+private/
+.secrets/
+
+# Discord Bot Token
+bot_token.txt
+discord_token.txt
+
+# 配置文件備份
+config.backup.json
+*.secret.json
+
+# ====================================
+# 匯出和備份文件
+# ====================================
+
+# 系統匯出
+exports/
+backups/
+dumps/
+archive/
+
+# 暫存文件
 *.bak
 *.backup
 *.tmp
 *.temp
-
-# API Keys and Secrets
-*.key
-*.pem
-*.p12
-secrets/
-private/
-
-# Export files
-exports/
-backups/
-dumps/
-
-# Development
-.dev/
-debug/
 temp/
 tmp/
 
-# Claude AI files
-.claude/
+# ====================================
+# 開發和除錯
+# ====================================
 
-# Development backup files
+# 開發暫存
+.dev/
+debug/
+debug.log
+.debug/
+
+# 效能分析
+.prof
+profiling/
+*.profile
+
+# 記憶體傾印
+*.hprof
+*.dump
+
+# ====================================
+# 文檔生成
+# ====================================
+
+# Sphinx documentation
+docs/_build/
+docs/.doctrees/
+.sphinx-build/
+
+# MkDocs
+site/
+
+# ====================================
+# AI 工具相關
+# ====================================
+
+# Claude AI 工作目錄
+.claude/
+.anthropic/
+
+# GPT/OpenAI 快取
+.openai_cache/
+
+# ====================================
+# 項目特定忽略
+# ====================================
+
+# 開發備份文件
 *-Craig.*
 *-backup.*
 *-old.*
+*-temp.*
 
-# Transcripts and exports (keep structure but ignore content)
+# 票券記錄 (保留結構但忽略內容)
 transcripts/*.html
 transcripts/*.json
 transcripts/*.txt
+
+# 但保留 archive 子目錄中的示例文件
+!transcripts/archive/
+
+# 測試報告
+*test_report*.json
+*test_report*.html
+
+# 本地配置覆蓋
+config.local.json
+settings.local.json
+
+# ====================================
+# 臨時開發文件
+# ====================================
+
+# 臨時測試文件
+test_*.py
+temp_*.py
+scratch_*.py
+
+# 實驗性功能
+experimental/
+prototype/
+
+# 本地腳本
+local_*.py
+my_*.py
+
+# ====================================
+# 版本控制忽略
+# ====================================
+
+# Git 相關
+.git/
+.gitmodules
+.gitattributes.local
+
+# Mercurial
+.hg/
+.hgignore
+
+# SVN
+.svn/
+
+# ====================================
+# 特殊情況
+# ====================================
+
+# 大型文件和媒體
+*.mp4
+*.avi
+*.mkv
+*.mp3
+*.wav
+*.flac
+*.zip
+*.tar.gz
+*.7z
+
+# 但允許小型示例文件
+!assets/samples/
+!docs/images/
+
+# 系統生成的文件
+.Trash-*
+$RECYCLE.BIN/
+.fuse_hidden*

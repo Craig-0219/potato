@@ -1,35 +1,9 @@
-# API 服務專用依賴
-# Core FastAPI
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
+# API 服務專用依賴文件
+# 此文件引用統一依賴清單中的生產環境配置
 
-# Authentication
-python-jose[cryptography]==3.3.0
-python-multipart==0.0.6
-passlib[bcrypt]==1.7.4
+# 使用生產環境依賴 (API 服務推薦配置):
+-r docs/requirements/requirements-production.txt
 
-# Async Database
-aiomysql==0.2.0
-
-# Real-time Features
-aioredis==2.0.1
-websockets==11.0.3
-
-# Data Processing (使用更新版本避免編譯問題)
-pandas>=2.1.0,<3.0.0
-openpyxl>=3.1.0
-
-# Monitoring & Logging
-psutil==5.9.6
-
-# HTTP Client
-httpx==0.25.2
-
-# Environment
-python-dotenv==1.0.0
-
-# Validation
-pydantic==2.5.0
-
-# Core Dependencies (from main requirements.txt)
-discord.py==2.5.2
+# 注意:
+# - API 服務建議使用精確版本依賴以確保穩定性
+# - 詳細配置說明請參考 docs/requirements/ 目錄

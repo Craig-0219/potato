@@ -1,32 +1,13 @@
-# requirements.txt
-# 這是Potato Bot的依賴項列表
-discord.py>=2.3.2
-aiomysql>=0.1.1
-python-dotenv>=1.0.0
-fastapi>=0.110.0
-uvicorn>=0.29.0
-asyncio-mqtt>=0.11.0  # 如果需要
-psutil>=5.9.0  # 用於系統監控
+# Potato Bot 主要依賴文件
+# 此文件引用 docs/requirements/ 下的統一依賴清單
 
-# 即時同步功能依賴
-websockets>=11.0.0
-aioredis>=2.0.0
+# 生產環境使用 (推薦):
+-r docs/requirements/requirements-production.txt
 
-# 認證系統依賴
-python-jose[cryptography]>=3.3.0
-passlib[bcrypt]>=1.7.4
+# 開發環境使用:
+# -r docs/requirements/requirements-development.txt
 
-# 數據處理依賴
-pandas>=2.0.0
-openpyxl>=3.1.0
-
-# v2.2.0 創意內容生成功能依賴
-openai>=1.0.0          # AI助手 - ChatGPT API整合
-Pillow>=9.0.0          # 圖片處理工具
-aiohttp>=3.8.0         # 異步HTTP請求
-youtube-dl>=2021.12.17 # 音樂系統 - YouTube支援
-yt-dlp>=2023.1.6       # YouTube下載 (youtube-dl的替代)
-PyNaCl>=1.5.0          # Discord語音支援
-requests>=2.28.0       # HTTP請求
-beautifulsoup4>=4.11.0 # HTML解析 (歌詞爬取)
-lxml>=4.9.0            # XML/HTML解析
+# 注意: 
+# - 生產環境建議使用 requirements-production.txt (精確版本)
+# - 開發環境建議使用 requirements-development.txt (包含開發工具)
+# - 完整依賴說明請參考 docs/requirements/requirements-combined.txt

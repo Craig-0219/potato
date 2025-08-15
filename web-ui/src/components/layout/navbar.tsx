@@ -15,6 +15,7 @@ export function Navbar() {
   const navigation = [
     { name: '儀表板', href: '/dashboard', icon: '📊' },
     { name: '票券管理', href: '/tickets', icon: '🎫' },
+    { name: '投票統計', href: '/votes', icon: '🗳️' },
     { name: '分析報告', href: '/analytics', icon: '📈' },
     { name: 'API 管理', href: '/api-management', icon: '🔧' },
   ]

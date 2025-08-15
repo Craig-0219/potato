@@ -1072,6 +1072,45 @@ class NextPageButton(discord.ui.Button):
                 ephemeral=True
             )
 
+    @app_commands.command(name="vote_template", description="🗳️ 使用投票模板快速創建投票")
+    async def vote_template(self, interaction: discord.Interaction):
+        """投票模板系統入口"""
+        try:
+            # ✅ 檢查投票系統是否啟用
+            if not await vote_dao.is_vote_system_enabled(interaction.guild.id):
+                await interaction.response.send_message("❌ 投票系統已被停用。", ephemeral=True)
+                return
+            
+            # ✅ 檢查是否在指定投票頻道中
+            vote_settings = await vote_dao.get_vote_settings(interaction.guild.id)
+            if vote_settings and vote_settings.get('default_vote_channel_id'):
+                allowed_channel_id = vote_settings['default_vote_channel_id']
+                if interaction.channel.id != allowed_channel_id:
+                    allowed_channel = interaction.guild.get_channel(allowed_channel_id)
+                    channel_mention = allowed_channel.mention if allowed_channel else f"<#{allowed_channel_id}>"
+                    await interaction.response.send_message(
+                        f"❌ 投票只能在指定的投票頻道 {channel_mention} 中建立。", 
+                        ephemeral=True
+                    )
+                    return
+            
+            # 顯示模板選擇界面
+            from bot.views.vote_template_views import TemplateSelectionView
+            template_view = TemplateSelectionView(interaction.user.id, interaction.guild.id)
+            embed = template_view.create_embed()
+            
+            await interaction.response.send_message(
+                embed=embed,
+                view=template_view,
+                ephemeral=True
+            )
+            
+            logger.debug(f"[Vote] 用戶 {interaction.user.id} 使用投票模板系統")
+            
+        except Exception as e:
+            logger.error(f"[Vote] vote_template 指令錯誤：{e}")
+            await interaction.response.send_message("❌ 啟動投票模板系統時發生錯誤。", ephemeral=True)
+
     @app_commands.command(name="vote_panel", description="📊 投票管理面板 (現代GUI)")
     @app_commands.default_permissions(manage_messages=True)
     async def vote_panel(self, interaction: discord.Interaction):
