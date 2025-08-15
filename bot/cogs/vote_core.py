@@ -25,7 +25,7 @@ from bot.views.vote_views import (
 from bot.utils.vote_utils import build_vote_embed, build_result_embed
 from shared.logger import logger
 
-class VoteCog(commands.Cog):
+class VoteCore(commands.Cog):
     vote_sessions: Dict[int, Dict[str, Any]] = {}  # 類型提示
     _vote_cache: Dict[int, Dict[str, Any]] = {}  # 投票資料快取
     _cache_timeout = 300  # 快取 5 分鐘
@@ -38,8 +38,8 @@ class VoteCog(commands.Cog):
     def cog_unload(self):
         self.announce_expired_votes.cancel()
         # 清理資源
-        VoteCog.vote_sessions.clear()
-        VoteCog._vote_cache.clear()
+        VoteCore.vote_sessions.clear()
+        VoteCore._vote_cache.clear()
 
     # ✅ 快取機制：減少重複資料庫查詢
     async def _get_vote_with_cache(self, vote_id: int) -> Optional[Dict[str, Any]]:
@@ -119,11 +119,11 @@ class VoteCog(commands.Cog):
         # ✅ 使用鎖防止併發問題
         async with self._session_lock:
             # 檢查用戶是否正在建立其他投票
-            if user_id in VoteCog.vote_sessions:
+            if user_id in VoteCore.vote_sessions:
                 await interaction.response.send_message("❗ 你已經在建立另一個投票了，請先完成或取消。", ephemeral=True)
                 return
             
-            VoteCog.vote_sessions[user_id] = {
+            VoteCore.vote_sessions[user_id] = {
                 "origin_channel": interaction.channel,
                 "channel_id": interaction.channel_id,
                 "guild_id": interaction.guild_id,
@@ -516,8 +516,8 @@ class VoteCog(commands.Cog):
             
             # 4. 檢查當前 sessions
             debug_info.append(f"\n🔍 **Session 狀態**")
-            debug_info.append(f"📝 當前活躍 session 數：{len(VoteCog.vote_sessions)}")
-            for user_id, session in list(VoteCog.vote_sessions.items())[:3]:
+            debug_info.append(f"📝 當前活躍 session 數：{len(VoteCore.vote_sessions)}")
+            for user_id, session in list(VoteCore.vote_sessions.items())[:3]:
                 debug_info.append(f"   用戶 {user_id}: {session.get('title', '無標題')}")
             
             # 5. 檢查時區設定
@@ -545,13 +545,13 @@ class VoteCog(commands.Cog):
     async def finalize_vote(self, user_id: int, guild: discord.Guild):
         """✅ 修復版本：正確的參數傳遞"""
         async with self._session_lock:
-            session = VoteCog.vote_sessions.get(user_id)
+            session = VoteCore.vote_sessions.get(user_id)
             if not session:
                 logger.debug("[Vote] finalize_vote：找不到使用者的 session")
                 return
             
             # 移除 session，避免重複處理
-            VoteCog.vote_sessions.pop(user_id, None)
+            VoteCore.vote_sessions.pop(user_id, None)
         
         try:
             # ✅ 資料驗證
@@ -743,13 +743,13 @@ class VoteCog(commands.Cog):
             expired_users = []
             
             async with self._session_lock:
-                for user_id, session in list(VoteCog.vote_sessions.items()):
+                for user_id, session in list(VoteCore.vote_sessions.items()):
                     last_activity = session.get('last_activity', session.get('start_time'))
                     if (now - last_activity).total_seconds() > 1800:  # 30 分鐘過期
                         expired_users.append(user_id)
                 
                 for user_id in expired_users:
-                    VoteCog.vote_sessions.pop(user_id, None)
+                    VoteCore.vote_sessions.pop(user_id, None)
             
             if expired_users:
                 logger.debug(f"[Vote] 清理了 {len(expired_users)} 個過期 session")
@@ -833,7 +833,7 @@ class PreviousPageButton(discord.ui.Button):
         new_page = view.current_page - 1
         
         # 重新執行歷史查詢
-        cog = interaction.client.get_cog("VoteCog")
+        cog = interaction.client.get_cog("VoteCore")
         if cog:
             await cog.vote_history.callback(cog, interaction, new_page, view.status)
 
@@ -846,7 +846,7 @@ class NextPageButton(discord.ui.Button):
         new_page = view.current_page + 1
         
         # 重新執行歷史查詢
-        cog = interaction.client.get_cog("VoteCog")
+        cog = interaction.client.get_cog("VoteCore")
         if cog:
             await cog.vote_history.callback(cog, interaction, new_page, view.status)
 
@@ -1113,4 +1113,4 @@ class NextPageButton(discord.ui.Button):
             )
 
 async def setup(bot):
-    await bot.add_cog(VoteCog(bot))
+    await bot.add_cog(VoteCore(bot))

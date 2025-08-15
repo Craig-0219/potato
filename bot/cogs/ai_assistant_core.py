@@ -1,4 +1,4 @@
-# bot/cogs/ai_assistant_cog.py - AI智能助手指令模組
+# bot/cogs/ai_assistant_core.py - AI智能助手指令模組
 """
 AI智能助手指令模組 v2.2.0
 提供AI對話、創意內容生成、代碼助手等功能的Discord指令

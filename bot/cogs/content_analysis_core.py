@@ -1,4 +1,4 @@
-# bot/cogs/content_analysis_cog.py - 內容分析工具指令模組
+# bot/cogs/content_analysis_core.py - 內容分析工具指令模組
 """
 內容分析工具指令模組 v2.2.0
 提供文本情感分析、內容安全檢查、連結分析等功能的Discord指令

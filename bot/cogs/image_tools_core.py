@@ -1,4 +1,4 @@
-# bot/cogs/image_tools_cog.py - 圖片處理工具指令模組
+# bot/cogs/image_tools_core.py - 圖片處理工具指令模組
 """
 圖片處理工具指令模組 v2.2.0
 提供迷因製作、圖片特效、頭像處理等功能的Discord指令

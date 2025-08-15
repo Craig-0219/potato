@@ -1,4 +1,4 @@
-# bot/cogs/game_entertainment.py - 遊戲娛樂系統核心
+# bot/cogs/game_core.py - 遊戲娛樂系統核心
 """
 遊戲娛樂系統核心模組 v2.2.0
 提供多樣化的遊戲和娛樂功能，讓 Discord 伺服器更加有趣和活躍

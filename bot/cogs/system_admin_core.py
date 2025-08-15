@@ -1,4 +1,4 @@
-# bot/cogs/system_admin.py
+# bot/cogs/system_admin_core.py
 """
 系統管理 Cog - 簡化版
 提供基本的系統管理功能

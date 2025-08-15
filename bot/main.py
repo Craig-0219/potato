@@ -47,20 +47,20 @@ ALL_EXTENSIONS = [
     "vote_listener",
     "welcome_core",
     "welcome_listener",
-    "system_admin",
+    "system_admin_core",
     "lottery_core",
-    "web_auth",
+    "web_auth_core",
     "ai_core",
     "language_core",
     "workflow_core",
     "dashboard_core",
     "webhook_core",
     # v2.2.0 新增模組 - 創意內容生成
-    "ai_assistant_cog",
-    "image_tools_cog", 
-    "music_cog",
-    "content_analysis_cog",
-    "game_entertainment"  # 包含跨平台經濟功能
+    "ai_assistant_core",
+    "image_tools_core", 
+    "music_core",
+    "content_analysis_core",
+    "game_core"  # 包含跨平台經濟功能
 ]
 
 class PotatoBot(commands.Bot):

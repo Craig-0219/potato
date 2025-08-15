@@ -1,4 +1,4 @@
-# bot/cogs/web_auth.py
+# bot/cogs/web_auth_core.py
 """
 Web 認證相關指令
 提供 Discord 用戶設定 Web 密碼和管理 API 金鑰的功能

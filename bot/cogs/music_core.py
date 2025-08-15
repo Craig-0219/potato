@@ -1,4 +1,4 @@
-# bot/cogs/music_cog.py - 音樂娛樂指令模組
+# bot/cogs/music_core.py - 音樂娛樂指令模組
 """
 音樂娛樂指令模組 v2.2.0
 提供音樂播放、歌詞查看、音樂問答等功能的Discord指令

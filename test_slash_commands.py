@@ -14,11 +14,11 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # 新增的 Cog 文件
 COG_FILES = [
-    "bot/cogs/ai_assistant_cog.py",
-    "bot/cogs/image_tools_cog.py", 
-    "bot/cogs/music_cog.py",
-    "bot/cogs/content_analysis_cog.py",
-    "bot/cogs/game_entertainment.py"
+    "bot/cogs/ai_assistant_core.py",
+    "bot/cogs/image_tools_core.py", 
+    "bot/cogs/music_core.py",
+    "bot/cogs/content_analysis_core.py",
+    "bot/cogs/game_core.py"
 ]
 
 def extract_slash_commands(file_path: str) -> list:
@@ -101,7 +101,7 @@ def analyze_command_categories(commands: list) -> dict:
             'image_tools': '🎨 圖片處理工具',
             'music': '🎵 音樂娛樂系統',
             'content_analysis': '📊 內容分析工具',
-            'game_entertainment': '🎮 遊戲娛樂系統'
+            'game_core': '🎮 遊戲娛樂系統'
         }.get(file_name, file_name)
         
         if category_name not in categories:

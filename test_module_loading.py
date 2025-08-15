@@ -14,11 +14,11 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 # 新增的模組列表
 NEW_MODULES = [
-    "bot.cogs.ai_assistant_cog",
-    "bot.cogs.image_tools_cog", 
-    "bot.cogs.music_cog",
-    "bot.cogs.content_analysis_cog",
-    "bot.cogs.game_entertainment"
+    "bot.cogs.ai_assistant_core",
+    "bot.cogs.image_tools_core", 
+    "bot.cogs.music_core",
+    "bot.cogs.content_analysis_core",
+    "bot.cogs.game_core"
 ]
 
 # 相關服務模組
