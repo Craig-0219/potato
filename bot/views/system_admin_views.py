@@ -1233,7 +1233,7 @@ class VoteSettingsView(View):
     async def modern_vote_gui_button(self, interaction: discord.Interaction, button: Button):
         """現代化GUI投票系統按鈕"""
         try:
-            from bot.views.modern_vote_views import VoteManagementView
+            from bot.views.vote_views import VoteManagementView
             
             embed = discord.Embed(
                 title="🚀 現代化GUI投票系統",

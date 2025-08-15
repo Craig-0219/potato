@@ -19,10 +19,7 @@ from functools import lru_cache
 from bot.db import vote_dao
 from bot.views.vote_views import (
     MultiSelectView, FinalStepView, DurationSelectView,
-    AnonSelectView, RoleSelectView, VoteButtonView
-)
-from bot.views.modern_vote_views import (
-    QuickVoteModal, VoteCreationConfirmView, ModernVoteView, 
+    AnonSelectView, RoleSelectView, VoteButtonView,
     VoteManagementView
 )
 from bot.utils.vote_utils import build_vote_embed, build_result_embed

@@ -1,216 +1,707 @@
-# vote_views.py - v5.1（支援即時更新統計視覺化 + 完整互動模組）
+# bot/views/vote_views_consolidated.py
+"""
+統一的投票系統視圖模組
+整合所有投票相關的 UI 組件
+"""
 
+import asyncio
+from datetime import datetime, timedelta, timezone
+from typing import Optional, List, Dict, Any, Literal
 import discord
-from discord.utils import MISSING
+from discord import ui
+
+from bot.utils.embed_builder import EmbedBuilder
+from bot.db import vote_dao
 from shared.logger import logger
 
-# ✅ 投票主互動 UI
+
+# ============ 基礎投票 UI 組件 ============
+
 class VoteButtonView(discord.ui.View):
-    def __init__(self, vote_id, options, allowed_roles, is_multi, anonymous, stats=None, total_votes=0):
+    """基礎投票按鈕視圖 - 用於用戶投票互動"""
+    
+    def __init__(self, vote_id, options, allowed_roles, is_multi, anonymous, stats=None, total=0):
         super().__init__(timeout=None)
         self.vote_id = vote_id
-        self.options = options  # ✅ 保存原始選項列表
-        self.allowed_roles = allowed_roles
+        self.options = options
+        self.allowed_roles = allowed_roles or []
         self.is_multi = is_multi
         self.anonymous = anonymous
         self.stats = stats or {}
-        self.total_votes = total_votes
-        self.selection = []  # 多選時暫存使用者選擇
-
-        if is_multi:
-            self.add_item(MultiChoiceSelect(vote_id, options, allowed_roles))
-            self.add_item(ClearSelectionButton(vote_id))
-            self.add_item(VoteSubmitButton(vote_id))
-        else:
-            for i, opt in enumerate(options):
-                label = self._format_option_label(opt)
-                self.add_item(VoteButton(label=label, vote_id=vote_id, opt=opt, option_index=i))
-
-    def _format_option_label(self, option):
-        """格式化選項標籤，移除進度條"""
-        count = self.stats.get(option, 0)
-        percent = (count / self.total_votes * 100) if self.total_votes else 0
-        return f"{option} | {count} 票 ({percent:.1f}%)"
-
-    async def refresh(self, interaction: discord.Interaction):
-        """重新載入按鈕 UI 內容（票數與百分比）"""
-        from bot.db import vote_dao
-        stats = await vote_dao.get_vote_statistics(self.vote_id)
-        total = sum(stats.values())
-        self.clear_items()
-        self.stats = stats
-        self.total_votes = total
-
-        if self.is_multi:
-            # ✅ 使用原始選項列表而不是 stats.keys()
-            self.add_item(MultiChoiceSelect(self.vote_id, self.options, self.allowed_roles))
-            self.add_item(ClearSelectionButton(self.vote_id))
-            self.add_item(VoteSubmitButton(self.vote_id))
-        else:
-            # ✅ 使用原始選項列表確保所有選項都顯示
-            for i, opt in enumerate(self.options):
-                label = self._format_option_label(opt)
-                self.add_item(VoteButton(label=label, vote_id=self.vote_id, opt=opt, option_index=i))
-
-        # 更新 Embed 顯示
-        from bot.utils.vote_utils import build_vote_embed
-        vote = await vote_dao.get_vote_by_id(self.vote_id)
-        embed = build_vote_embed(
-            vote['title'], vote['start_time'], vote['end_time'],
-            vote['is_multi'], vote['anonymous'], total, vote_id=self.vote_id
-        )
-        await interaction.message.edit(embed=embed, view=self)
-
-
-# ✅ 多選：選項選擇元件
-class MultiChoiceSelect(discord.ui.Select):
-    def __init__(self, vote_id, options, allowed_roles):
-        self.vote_id = vote_id
-        self.allowed_roles = allowed_roles
-        super().__init__(
-            placeholder="請選擇你想投的選項...",
-            min_values=1,
-            max_values=len(options),
-            options=[discord.SelectOption(label=opt) for opt in options],
-            custom_id=f"multi_select_{vote_id}"
-        )
-
-    async def callback(self, interaction: discord.Interaction):
-        # 避免循環導入
-        from bot.cogs.vote import VoteCog
-        cog = interaction.client.get_cog("VoteCog")
+        self.total = total
         
-        if not self._check_permission(interaction):
-            await interaction.response.send_message("❌ 你沒有權限參與此投票。", ephemeral=True)
-            return
+        # 動態生成投票按鈕
+        self._add_vote_buttons()
+    
+    def _add_vote_buttons(self):
+        """添加投票選項按鈕"""
+        for i, option in enumerate(self.options):
+            if i < 25:  # Discord 限制每個 View 最多 25 個組件
+                button = VoteButton(
+                    option=option,
+                    option_index=i,
+                    vote_id=self.vote_id,
+                    is_multi=self.is_multi,
+                    anonymous=self.anonymous
+                )
+                self.add_item(button)
 
-        self.view.selection = self.values
+
+class VoteButton(discord.ui.Button):
+    """投票選項按鈕"""
+    
+    def __init__(self, option: str, option_index: int, vote_id: int, is_multi: bool, anonymous: bool):
+        # 限制標籤長度
+        label = option[:20] + "..." if len(option) > 20 else option
+        
+        super().__init__(
+            label=label,
+            style=discord.ButtonStyle.primary,
+            custom_id=f"vote_{vote_id}_{option_index}"
+        )
+        
+        self.option = option
+        self.option_index = option_index
+        self.vote_id = vote_id
+        self.is_multi = is_multi
+        self.anonymous = anonymous
+    
+    async def callback(self, interaction: discord.Interaction):
+        """處理投票按鈕點擊"""
+        try:
+            # 檢查是否已投票
+            if await vote_dao.has_voted(self.vote_id, interaction.user.id):
+                await interaction.response.send_message("❌ 您已經投過票了", ephemeral=True)
+                return
+            
+            # 記錄投票
+            from bot.cogs.vote_core import VoteCog
+            cog = interaction.client.get_cog("VoteCog")
+            if cog:
+                await cog.handle_vote_submit(interaction, self.vote_id, [self.option])
+            else:
+                await interaction.response.send_message("❌ 投票系統暫時無法使用", ephemeral=True)
+                
+        except Exception as e:
+            logger.error(f"投票按鈕回調失敗: {e}")
+            await interaction.response.send_message("❌ 投票時發生錯誤", ephemeral=True)
+
+
+class VoteSubmitButton(discord.ui.Button):
+    """投票提交按鈕 - 用於多選投票"""
+    
+    def __init__(self, vote_id: int, selected_options: List[str]):
+        super().__init__(
+            label="✅ 提交投票",
+            style=discord.ButtonStyle.success,
+            emoji="✅"
+        )
+        self.vote_id = vote_id
+        self.selected_options = selected_options
+    
+    async def callback(self, interaction: discord.Interaction):
+        """處理投票提交"""
+        try:
+            from bot.cogs.vote_core import VoteCog
+            cog = interaction.client.get_cog("VoteCog")
+            if cog:
+                await cog.handle_vote_submit(interaction, self.vote_id, self.selected_options)
+            else:
+                await interaction.response.send_message("❌ 投票系統暫時無法使用", ephemeral=True)
+        except Exception as e:
+            logger.error(f"投票提交失敗: {e}")
+            await interaction.response.send_message("❌ 投票提交時發生錯誤", ephemeral=True)
+
+
+# ============ 現代化投票創建 UI ============
+
+class QuickVoteModal(ui.Modal):
+    """快速投票創建模態框"""
+    
+    def __init__(self):
+        super().__init__(title="🗳️ 快速創建投票", timeout=300)
+        
+        # 投票標題
+        self.title_input = ui.TextInput(
+            label="投票標題",
+            placeholder="例：今晚聚餐地點投票",
+            max_length=100,
+            required=True
+        )
+        self.add_item(self.title_input)
+        
+        # 投票選項
+        self.options_input = ui.TextInput(
+            label="投票選項 (用逗號分隔)",
+            placeholder="選項1, 選項2, 選項3",
+            style=discord.TextStyle.paragraph,
+            max_length=500,
+            required=True
+        )
+        self.add_item(self.options_input)
+        
+        # 持續時間
+        self.duration_input = ui.TextInput(
+            label="持續時間 (分鐘)",
+            placeholder="60",
+            default="60",
+            max_length=4,
+            required=True
+        )
+        self.add_item(self.duration_input)
+    
+    async def on_submit(self, interaction: discord.Interaction):
+        """處理快速投票創建"""
+        try:
+            # 解析選項
+            options = [opt.strip() for opt in self.options_input.value.split(',') if opt.strip()]
+            
+            if len(options) < 2:
+                await interaction.response.send_message("❌ 至少需要2個選項", ephemeral=True)
+                return
+            
+            if len(options) > 10:
+                await interaction.response.send_message("❌ 最多只能有10個選項", ephemeral=True)
+                return
+            
+            # 驗證持續時間
+            try:
+                duration = int(self.duration_input.value)
+                if duration < 1 or duration > 10080:  # 最多一週
+                    await interaction.response.send_message("❌ 持續時間必須在1-10080分鐘之間", ephemeral=True)
+                    return
+            except ValueError:
+                await interaction.response.send_message("❌ 持續時間必須是數字", ephemeral=True)
+                return
+            
+            await interaction.response.defer()
+            
+            # 創建投票配置
+            vote_config = {
+                'title': self.title_input.value,
+                'options': options,
+                'is_multi': False,  # 快速投票預設單選
+                'anonymous': False,  # 快速投票預設公開
+                'duration_minutes': duration,
+                'allowed_roles': [],  # 快速投票預設所有人可投
+                'creator_id': interaction.user.id,
+                'guild_id': interaction.guild.id,
+                'channel_id': interaction.channel.id
+            }
+            
+            # 顯示確認視圖
+            confirm_view = VoteCreationConfirmView(vote_config)
+            embed = self._create_preview_embed(vote_config)
+            
+            await interaction.followup.send(
+                embed=embed,
+                view=confirm_view,
+                ephemeral=True
+            )
+            
+        except Exception as e:
+            logger.error(f"快速投票創建失敗: {e}")
+            if not interaction.response.is_done():
+                await interaction.response.send_message("❌ 創建投票時發生錯誤", ephemeral=True)
+            else:
+                await interaction.followup.send("❌ 創建投票時發生錯誤", ephemeral=True)
+    
+    def _create_preview_embed(self, config: Dict[str, Any]) -> discord.Embed:
+        """創建預覽嵌入"""
+        embed = EmbedBuilder.create_info_embed(
+            "🗳️ 投票預覽",
+            f"**標題**: {config['title']}\n"
+            f"**持續時間**: {config['duration_minutes']} 分鐘\n"
+            f"**投票類型**: {'多選' if config['is_multi'] else '單選'}\n"
+            f"**匿名**: {'是' if config['anonymous'] else '否'}"
+        )
+        
+        options_text = "\n".join(f"{i+1}. {opt}" for i, opt in enumerate(config['options']))
+        embed.add_field(
+            name="📋 選項列表",
+            value=options_text,
+            inline=False
+        )
+        
+        embed.set_footer(text="請確認設定後點擊「創建投票」")
+        return embed
+
+
+class VoteCreationConfirmView(ui.View):
+    """投票創建確認視圖"""
+    
+    def __init__(self, vote_config: Dict[str, Any]):
+        super().__init__(timeout=120)
+        self.vote_config = vote_config
+    
+    @ui.button(label="✅ 創建投票", style=discord.ButtonStyle.green, emoji="✅")
+    async def confirm_creation(self, interaction: discord.Interaction, button: ui.Button):
+        """確認創建投票"""
+        try:
+            await interaction.response.defer(ephemeral=True)
+            
+            # 準備會話數據
+            start_time = datetime.now(timezone.utc)
+            end_time = start_time + timedelta(minutes=self.vote_config['duration_minutes'])
+            
+            session_data = {
+                'title': self.vote_config['title'],
+                'options': self.vote_config['options'],
+                'is_multi': self.vote_config['is_multi'],
+                'anonymous': self.vote_config['anonymous'],
+                'allowed_roles': self.vote_config['allowed_roles'],
+                'start_time': start_time,
+                'end_time': end_time,
+                'origin_channel': interaction.channel,
+                'guild_id': self.vote_config['guild_id']
+            }
+            
+            # 創建投票
+            vote_id = await vote_dao.create_vote(session_data, self.vote_config['creator_id'])
+            
+            if vote_id:
+                # 創建投票選項
+                for option in self.vote_config['options']:
+                    await vote_dao.add_vote_option(vote_id, option)
+                
+                # 創建投票視圖
+                from bot.utils.vote_utils import build_vote_embed
+                vote_embed = build_vote_embed(
+                    session_data['title'], session_data['start_time'], session_data['end_time'],
+                    session_data['is_multi'], session_data['anonymous'], 0, vote_id=vote_id
+                )
+                
+                vote_view = VoteButtonView(
+                    vote_id, session_data['options'], session_data['allowed_roles'],
+                    session_data['is_multi'], session_data['anonymous']
+                )
+                
+                # 發布投票
+                await interaction.channel.send(embed=vote_embed, view=vote_view)
+                
+                await interaction.followup.send(
+                    f"✅ 投票已成功創建！投票ID: {vote_id}",
+                    ephemeral=True
+                )
+                
+                # 禁用確認按鈕
+                for item in self.children:
+                    item.disabled = True
+                await interaction.edit_original_response(view=self)
+            else:
+                await interaction.followup.send("❌ 創建投票失敗，請稍後再試", ephemeral=True)
+                
+        except Exception as e:
+            logger.error(f"確認創建投票失敗: {e}")
+            await interaction.followup.send("❌ 創建投票時發生錯誤", ephemeral=True)
+    
+    @ui.button(label="❌ 取消", style=discord.ButtonStyle.grey, emoji="❌")
+    async def cancel_creation(self, interaction: discord.Interaction, button: ui.Button):
+        """取消創建"""
+        await interaction.response.send_message("❌ 已取消創建投票", ephemeral=True)
+        for item in self.children:
+            item.disabled = True
+        await interaction.edit_original_response(view=self)
+
+
+# ============ 投票管理面板 ============
+
+class VoteManagementView(ui.View):
+    """簡化的投票管理視圖 - 用於基本管理功能"""
+    
+    def __init__(self):
+        super().__init__(timeout=300)
+    
+    @ui.button(label="🗳️ 創建投票", style=discord.ButtonStyle.primary, emoji="🗳️", row=0)
+    async def create_vote(self, interaction: discord.Interaction, button: ui.Button):
+        """創建新投票"""
+        try:
+            modal = QuickVoteModal()
+            await interaction.response.send_modal(modal)
+        except Exception as e:
+            logger.error(f"創建投票按鈕錯誤: {e}")
+            await interaction.response.send_message("❌ 創建投票時發生錯誤", ephemeral=True)
+    
+    @ui.button(label="📊 查看統計", style=discord.ButtonStyle.secondary, emoji="📊", row=0)
+    async def view_stats(self, interaction: discord.Interaction, button: ui.Button):
+        """查看投票統計"""
+        try:
+            # 獲取當前進行中的投票
+            votes = await vote_dao.get_active_votes()
+            
+            if not votes:
+                await interaction.response.send_message("📭 目前沒有進行中的投票", ephemeral=True)
+                return
+            
+            embed = EmbedBuilder.create_info_embed(
+                "📊 進行中的投票",
+                f"目前有 {len(votes)} 個進行中的投票"
+            )
+            
+            for vote in votes[:5]:  # 只顯示前5個
+                stats = await vote_dao.get_vote_statistics(vote['id'])
+                total_votes = sum(stats.values())
+                
+                embed.add_field(
+                    name=f"#{vote['id']} - {vote['title'][:30]}{'...' if len(vote['title']) > 30 else ''}",
+                    value=f"🗳 總票數: {total_votes}\n⏱ 結束: <t:{int(vote['end_time'].timestamp())}:R>",
+                    inline=False
+                )
+            
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"查看統計錯誤: {e}")
+            await interaction.response.send_message("❌ 查看統計時發生錯誤", ephemeral=True)
+
+
+class VoteManagementPanelView(ui.View):
+    """完整的投票系統管理面板"""
+    
+    def __init__(self, guild_id: int, user_permissions: discord.Permissions):
+        super().__init__(timeout=300)
+        self.guild_id = guild_id
+        self.permissions = user_permissions
+        self._build_panel()
+    
+    def _build_panel(self):
+        """根據權限構建管理面板"""
+        # 基礎功能（所有人可用）
+        self.add_item(ActiveVotesButton(self.guild_id))
+        self.add_item(VoteHistoryButton(self.guild_id))
+        
+        # 管理員功能
+        if self.permissions.manage_guild:
+            self.add_item(VoteAnalyticsButton(self.guild_id))
+            self.add_item(ExportDataButton(self.guild_id))
+
+
+class ActiveVotesButton(ui.Button):
+    """查看活動投票按鈕"""
+    
+    def __init__(self, guild_id: int):
+        super().__init__(
+            label="🗳️ 活動投票",
+            style=discord.ButtonStyle.primary,
+            emoji="🗳️",
+            row=0
+        )
+        self.guild_id = guild_id
+    
+    async def callback(self, interaction: discord.Interaction):
+        """顯示活動投票列表"""
+        await interaction.response.defer(ephemeral=True)
+        
+        try:
+            # 獲取活動投票
+            active_votes = await vote_dao.get_active_votes()
+            
+            if not active_votes:
+                embed = EmbedBuilder.create_info_embed(
+                    "🗳️ 活動投票",
+                    "目前沒有進行中的投票"
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
+            
+            embed = EmbedBuilder.create_info_embed(
+                "🗳️ 活動投票列表",
+                f"目前有 {len(active_votes)} 個進行中的投票"
+            )
+            
+            for vote in active_votes[:10]:  # 限制顯示數量
+                stats = await vote_dao.get_vote_statistics(vote['id'])
+                total_votes = sum(stats.values())
+                
+                embed.add_field(
+                    name=f"#{vote['id']} - {vote['title'][:40]}",
+                    value=f"🗳 總票數: {total_votes}\n⏱ 結束: <t:{int(vote['end_time'].timestamp())}:R>",
+                    inline=True
+                )
+            
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"獲取活動投票失敗: {e}")
+            await interaction.followup.send("❌ 獲取活動投票時發生錯誤", ephemeral=True)
+
+
+class VoteHistoryButton(ui.Button):
+    """投票歷史按鈕"""
+    
+    def __init__(self, guild_id: int):
+        super().__init__(
+            label="📋 投票歷史",
+            style=discord.ButtonStyle.secondary,
+            emoji="📋",
+            row=0
+        )
+        self.guild_id = guild_id
+    
+    async def callback(self, interaction: discord.Interaction):
+        """顯示投票歷史"""
+        await interaction.response.defer(ephemeral=True)
+        
+        try:
+            # 獲取最近的投票歷史
+            history = await vote_dao.get_vote_history(1, "all")
+            
+            if not history:
+                embed = EmbedBuilder.create_info_embed(
+                    "📋 投票歷史",
+                    "沒有找到投票歷史記錄"
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
+            
+            embed = EmbedBuilder.create_info_embed(
+                "📋 投票歷史",
+                f"顯示最近 {len(history)} 筆投票記錄"
+            )
+            
+            for vote in history:
+                is_active = vote['end_time'] > datetime.now(timezone.utc)
+                status = "🟢 進行中" if is_active else "🔴 已結束"
+                
+                embed.add_field(
+                    name=f"#{vote['id']} - {vote['title'][:30]}",
+                    value=f"{status}\n📅 開始: {vote['start_time'].strftime('%m/%d %H:%M')}",
+                    inline=True
+                )
+            
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"獲取投票歷史失敗: {e}")
+            await interaction.followup.send("❌ 獲取投票歷史時發生錯誤", ephemeral=True)
+
+
+class VoteAnalyticsButton(ui.Button):
+    """投票分析按鈕"""
+    
+    def __init__(self, guild_id: int):
+        super().__init__(
+            label="📈 數據分析",
+            style=discord.ButtonStyle.secondary,
+            emoji="📈",
+            row=1
+        )
+        self.guild_id = guild_id
+    
+    async def callback(self, interaction: discord.Interaction):
+        """顯示投票分析"""
         await interaction.response.send_message(
-            f"✅ 你已選擇：{', '.join(self.values)}，請點擊下方確認送出。",
+            "📈 數據分析功能開發中...",
             ephemeral=True
         )
-        logger.debug(f"[Vote] 使用者選擇：{self.values}")
-
-    def _check_permission(self, interaction):
-        return not self.allowed_roles or any(role.id in self.allowed_roles for role in interaction.user.roles)
 
 
-# ✅ 多選：清除選擇
-class ClearSelectionButton(discord.ui.Button):
-    def __init__(self, vote_id):
-        super().__init__(label="清除選擇", style=discord.ButtonStyle.secondary, custom_id=f"clear_selection_{vote_id}")
-        self.vote_id = vote_id
-
+class ExportDataButton(ui.Button):
+    """資料匯出按鈕"""
+    
+    def __init__(self, guild_id: int):
+        super().__init__(
+            label="📥 匯出資料",
+            style=discord.ButtonStyle.secondary,
+            emoji="📥",
+            row=1
+        )
+        self.guild_id = guild_id
+    
     async def callback(self, interaction: discord.Interaction):
-        self.view.selection = []
-        await interaction.response.send_message("✅ 已清除你所有的選擇，請重新選擇。", ephemeral=True)
-        logger.debug("[Vote] 使用者清除了所有選擇")
+        """匯出投票資料"""
+        await interaction.response.send_message(
+            "📥 資料匯出功能開發中...",
+            ephemeral=True
+        )
 
 
-# ✅ 多選：確認送出按鈕
-class VoteSubmitButton(discord.ui.Button):
-    def __init__(self, vote_id):
-        super().__init__(label="確認送出", style=discord.ButtonStyle.success, custom_id=f"submit_vote_{vote_id}")
+# ============ 傳統投票創建視圖（保留向後相容性）============
 
-    async def callback(self, interaction: discord.Interaction):
-        from bot.cogs.vote import VoteCog  # 避免循環匯入
-        cog = interaction.client.get_cog("VoteCog")
-        if not cog:
+class MultiSelectView(discord.ui.View):
+    """多選/單選設定視圖"""
+    
+    def __init__(self, user_id: int):
+        super().__init__(timeout=60)
+        self.user_id = user_id
+
+    @discord.ui.button(label="單選投票", style=discord.ButtonStyle.primary, emoji="1️⃣", custom_id="single")
+    async def single_choice(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
             return
-        view: VoteButtonView = self.view
-        await cog.handle_vote_submit(interaction, view.vote_id, view.selection)
-        await view.refresh(interaction)
 
-
-# ✅ 單選：選項按鈕
-class VoteButton(discord.ui.Button):
-    def __init__(self, label, vote_id, opt, option_index):
-        super().__init__(label=label, style=discord.ButtonStyle.primary, custom_id=f"vote_{vote_id}_opt_{option_index}")
-        self.vote_id = vote_id
-        self.option = opt
-
-    async def callback(self, interaction: discord.Interaction):
-        from bot.cogs.vote import VoteCog
+        from bot.cogs.vote_core import VoteCog
         cog = interaction.client.get_cog("VoteCog")
-        if not cog:
+        if cog and self.user_id in cog.vote_sessions:
+            cog.vote_sessions[self.user_id]['is_multi'] = False
+            view = AnonSelectView(self.user_id)
+            await interaction.response.edit_message(content="選擇投票是否匿名：", view=view)
+
+    @discord.ui.button(label="多選投票", style=discord.ButtonStyle.secondary, emoji="🔢", custom_id="multi")
+    async def multi_choice(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
             return
-        await cog.handle_vote_submit(interaction, self.vote_id, [self.option])
-        await self.view.refresh(interaction)
 
-
-# ✅ 投票建立流程互動元件（選擇身分組）
-class RoleSelectView(discord.ui.View):
-    def __init__(self, user_id, roles):
-        super().__init__(timeout=None)
-        options = [
-            discord.SelectOption(label=r.name, value=str(r.id))
-            for r in roles if not r.is_bot_managed() and r.name != "@everyone"
-        ]
-        self.add_item(discord.ui.Select(
-            placeholder="選擇可投票的身分組（可多選）",
-            options=options,
-            custom_id=f"role_select_{user_id}",
-            min_values=1,
-            max_values=min(25, len(options))
-        ))
+        from bot.cogs.vote_core import VoteCog
+        cog = interaction.client.get_cog("VoteCog")
+        if cog and self.user_id in cog.vote_sessions:
+            cog.vote_sessions[self.user_id]['is_multi'] = True
+            view = AnonSelectView(self.user_id)
+            await interaction.response.edit_message(content="選擇投票是否匿名：", view=view)
 
 
 class AnonSelectView(discord.ui.View):
-    def __init__(self, user_id):
-        super().__init__(timeout=None)
-        self.add_item(discord.ui.Select(
-            placeholder="是否為匿名投票？",
-            options=[
-                discord.SelectOption(label="✅ 是", value="true"),
-                discord.SelectOption(label="❌ 否", value="false")
-            ],
-            custom_id=f"anon_select_{user_id}",
-            min_values=1,
-            max_values=1
-        ))
+    """匿名設定視圖"""
+    
+    def __init__(self, user_id: int):
+        super().__init__(timeout=60)
+        self.user_id = user_id
 
+    @discord.ui.button(label="公開投票", style=discord.ButtonStyle.primary, emoji="👁️", custom_id="public")
+    async def public_vote(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
+            return
 
-class MultiSelectView(discord.ui.View):
-    def __init__(self, user_id):
-        super().__init__(timeout=None)
-        self.add_item(discord.ui.Select(
-            placeholder="投票方式：單選 / 多選",
-            options=[
-                discord.SelectOption(label="單選", value="false"),
-                discord.SelectOption(label="多選", value="true")
-            ],
-            custom_id=f"multi_select_{user_id}",
-            min_values=1,
-            max_values=1
-        ))
+        from bot.cogs.vote_core import VoteCog
+        cog = interaction.client.get_cog("VoteCog")
+        if cog and self.user_id in cog.vote_sessions:
+            cog.vote_sessions[self.user_id]['anonymous'] = False
+            view = DurationSelectView(self.user_id)
+            await interaction.response.edit_message(content="選擇投票持續時間：", view=view)
+
+    @discord.ui.button(label="匿名投票", style=discord.ButtonStyle.secondary, emoji="🔒", custom_id="anonymous")
+    async def anonymous_vote(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
+            return
+
+        from bot.cogs.vote_core import VoteCog
+        cog = interaction.client.get_cog("VoteCog")
+        if cog and self.user_id in cog.vote_sessions:
+            cog.vote_sessions[self.user_id]['anonymous'] = True
+            view = DurationSelectView(self.user_id)
+            await interaction.response.edit_message(content="選擇投票持續時間：", view=view)
 
 
 class DurationSelectView(discord.ui.View):
-    def __init__(self, user_id):
-        super().__init__(timeout=None)
-        self.add_item(discord.ui.Select(
-            placeholder="選擇投票持續時間",
-            options=[
-                discord.SelectOption(label="5 分鐘", value="5"),
-                discord.SelectOption(label="15 分鐘", value="15"),
-                discord.SelectOption(label="30 分鐘", value="30"),
-                discord.SelectOption(label="1 小時", value="60"),
-                discord.SelectOption(label="2 小時", value="120"),
-                discord.SelectOption(label="6 小時", value="360"),
-                discord.SelectOption(label="12 小時", value="720"),
-                discord.SelectOption(label="24 小時", value="1440")
-            ],
-            custom_id=f"duration_select_{user_id}",
-            min_values=1,
-            max_values=1
-        ))
+    """投票持續時間選擇視圖"""
+    
+    def __init__(self, user_id: int):
+        super().__init__(timeout=60)
+        self.user_id = user_id
+
+    @discord.ui.button(label="30 分鐘", style=discord.ButtonStyle.primary, emoji="⏰", custom_id="30min")
+    async def duration_30min(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._set_duration(interaction, 30)
+
+    @discord.ui.button(label="1 小時", style=discord.ButtonStyle.primary, emoji="🕐", custom_id="1hour")
+    async def duration_1hour(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._set_duration(interaction, 60)
+
+    @discord.ui.button(label="6 小時", style=discord.ButtonStyle.primary, emoji="🕕", custom_id="6hours")
+    async def duration_6hours(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._set_duration(interaction, 360)
+
+    @discord.ui.button(label="24 小時", style=discord.ButtonStyle.primary, emoji="📅", custom_id="24hours")
+    async def duration_24hours(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._set_duration(interaction, 1440)
+
+    @discord.ui.button(label="3 天", style=discord.ButtonStyle.secondary, emoji="📆", custom_id="3days")
+    async def duration_3days(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._set_duration(interaction, 4320)
+
+    async def _set_duration(self, interaction: discord.Interaction, minutes: int):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
+            return
+
+        from bot.cogs.vote_core import VoteCog
+        cog = interaction.client.get_cog("VoteCog")
+        if cog and self.user_id in cog.vote_sessions:
+            session = cog.vote_sessions[self.user_id]
+            session['duration'] = minutes
+            session['end_time'] = datetime.now(timezone.utc) + timedelta(minutes=minutes)
+            
+            view = RoleSelectView(self.user_id)
+            await interaction.response.edit_message(content="選擇誰可以參與投票：", view=view)
+
+
+class RoleSelectView(discord.ui.View):
+    """權限選擇視圖"""
+    
+    def __init__(self, user_id: int):
+        super().__init__(timeout=60)
+        self.user_id = user_id
+
+    @discord.ui.button(label="所有人", style=discord.ButtonStyle.primary, emoji="🌍", custom_id="everyone")
+    async def everyone(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
+            return
+
+        from bot.cogs.vote_core import VoteCog
+        cog = interaction.client.get_cog("VoteCog")
+        if cog and self.user_id in cog.vote_sessions:
+            cog.vote_sessions[self.user_id]['allowed_roles'] = []
+            
+            view = FinalStepView(self.user_id)
+            embed = self._create_summary_embed(cog.vote_sessions[self.user_id])
+            await interaction.response.edit_message(content="", embed=embed, view=view)
+
+    @discord.ui.button(label="指定身分組", style=discord.ButtonStyle.secondary, emoji="👥", custom_id="roles")
+    async def specific_roles(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await interaction.response.send_message("指定身分組功能開發中...", ephemeral=True)
+
+    def _create_summary_embed(self, session: dict) -> discord.Embed:
+        """創建投票設定摘要"""
+        embed = discord.Embed(title="📝 投票設定確認", color=0x3498db)
+        embed.add_field(name="標題", value=session.get('title', '未設定'), inline=False)
+        
+        options_text = '\n'.join(f"{i+1}. {opt}" for i, opt in enumerate(session.get('options', [])))
+        embed.add_field(name="選項", value=options_text or "無選項", inline=False)
+        
+        embed.add_field(name="類型", value="多選" if session.get('is_multi') else "單選", inline=True)
+        embed.add_field(name="匿名", value="是" if session.get('anonymous') else "否", inline=True)
+        embed.add_field(name="持續時間", value=f"{session.get('duration', 0)} 分鐘", inline=True)
+        
+        return embed
 
 
 class FinalStepView(discord.ui.View):
-    def __init__(self, user_id, callback):
-        super().__init__(timeout=None)
-        self.add_item(discord.ui.Button(
-            label="✅ 確認建立投票",
-            style=discord.ButtonStyle.success,
-            custom_id=f"confirm_vote_{user_id}"
-        ))
+    """最終確認視圖"""
+    
+    def __init__(self, user_id: int):
+        super().__init__(timeout=60)
+        self.user_id = user_id
+
+    @discord.ui.button(label="✅ 創建投票", style=discord.ButtonStyle.success, emoji="✅")
+    async def create_vote(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
+            return
+
+        await interaction.response.edit_message(content="正在創建投票...", embed=None, view=None)
+        
+        from bot.cogs.vote_core import VoteCog
+        cog = interaction.client.get_cog("VoteCog")
+        if cog:
+            # 設定 start_time
+            session = cog.vote_sessions[self.user_id]
+            session['start_time'] = datetime.now(timezone.utc)
+            await cog.finalize_vote(self.user_id, interaction.guild)
+
+    @discord.ui.button(label="❌ 取消", style=discord.ButtonStyle.danger, emoji="❌")
+    async def cancel_vote(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
+            return
+
+        from bot.cogs.vote_core import VoteCog
+        cog = interaction.client.get_cog("VoteCog")
+        if cog and self.user_id in cog.vote_sessions:
+            del cog.vote_sessions[self.user_id]
+
+        await interaction.response.edit_message(content="❌ 投票創建已取消。", embed=None, view=None)
