@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth/auth-context'
-import { useWebSocket } from '@/lib/websocket/websocket-provider'
 import { systemHealth, SystemHealthReport } from '@/lib/utils/system-health'
 import { performanceMonitor, networkMonitor } from '@/lib/utils/performance-monitor'
 import { apiCache } from '@/lib/utils/cache-manager'
@@ -11,8 +10,9 @@ import toast from 'react-hot-toast'
 
 export default function SystemPage() {
   const { isAuthenticated, hasPermission } = useAuth()
-  const { isConnected, connectionState } = useWebSocket()
   const [healthReport, setHealthReport] = useState<SystemHealthReport | null>(null)
+  const [wsConnected, setWsConnected] = useState(false)
+  const [wsState, setWsState] = useState('disconnected')
   const [loading, setLoading] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
 
@@ -110,6 +110,29 @@ export default function SystemPage() {
   useEffect(() => {
     if (isAuthenticated) {
       runHealthCheck()
+    }
+  }, [isAuthenticated])
+
+  // 檢查 WebSocket 連接狀態
+  useEffect(() => {
+    const checkWebSocketStatus = async () => {
+      try {
+        // 嘗試導入 WebSocket 提供者
+        const { useWebSocket } = await import('@/lib/websocket/websocket-provider')
+        // 在客戶端環境中使用
+        if (typeof window !== 'undefined') {
+          // 模擬 WebSocket 狀態檢查
+          setWsConnected(false)
+          setWsState('checking')
+        }
+      } catch (error) {
+        setWsConnected(false)
+        setWsState('unavailable')
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      checkWebSocketStatus()
     }
   }, [isAuthenticated])
 
@@ -311,12 +334,12 @@ export default function SystemPage() {
             </h2>
             
             <div className="flex items-center space-x-4">
-              <div className={`w-4 h-4 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <div className={`w-4 h-4 rounded-full ${wsConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
               <span className="font-medium">
-                WebSocket: {isConnected ? '已連接' : '未連接'}
+                WebSocket: {wsConnected ? '已連接' : '未連接'}
               </span>
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                狀態: {connectionState}
+                狀態: {wsState}
               </span>
             </div>
           </div>

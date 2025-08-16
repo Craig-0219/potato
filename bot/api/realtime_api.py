@@ -341,5 +341,25 @@ async def auto_update_task():
         except Exception as e:
             logger.error(f"自動更新任務錯誤: {e}")
 
-# 啟動自動更新任務
-asyncio.create_task(auto_update_task())
+# 自動更新任務將在應用啟動時創建
+# 不在模組載入時啟動，避免事件循環問題
+auto_update_task_handle = None
+
+async def start_auto_update_task():
+    """啟動自動更新任務"""
+    global auto_update_task_handle
+    if auto_update_task_handle is None:
+        auto_update_task_handle = asyncio.create_task(auto_update_task())
+        logger.info("✅ 自動更新任務已啟動")
+
+async def stop_auto_update_task():
+    """停止自動更新任務"""
+    global auto_update_task_handle
+    if auto_update_task_handle and not auto_update_task_handle.done():
+        auto_update_task_handle.cancel()
+        try:
+            await auto_update_task_handle
+        except asyncio.CancelledError:
+            pass
+        auto_update_task_handle = None
+        logger.info("🔄 自動更新任務已停止")

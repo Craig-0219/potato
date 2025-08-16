@@ -2,35 +2,21 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/lib/auth/auth-context'
-import { Spinner } from '@/components/ui/spinner'
-import { LandingPage } from '@/components/landing/landing-page'
 
 export default function HomePage() {
-  const { isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      router.push('/dashboard')
-    }
-  }, [isAuthenticated, isLoading, router])
+    // 直接重定向到儀表板
+    router.push('/dashboard')
+  }, [router])
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Spinner size="lg" />
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="loading-spinner h-8 w-8" role="status" aria-label="載入中">
+        <span className="sr-only">載入中...</span>
       </div>
-    )
-  }
-
-  if (isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Spinner size="lg" />
-      </div>
-    )
-  }
-
-  return <LandingPage />
+      <p className="ml-4 text-gray-600">正在重定向到儀表板...</p>
+    </div>
+  )
 }

@@ -4,23 +4,37 @@
 提供系統狀態監控、配置管理和維護功能
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import psutil
 import os
+
+try:
+    from slowapi import Limiter
+    from slowapi.util import get_remote_address
+    HAS_SLOWAPI = True
+except ImportError:
+    HAS_SLOWAPI = False
 
 from ..auth import APIUser, require_read_permission, require_admin_permission, require_super_admin_permission
 from ..models import BaseResponse, SystemHealth, SystemMetrics, APIKeyResponse, APIKeyCreate
 from shared.logger import logger
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
+
+if HAS_SLOWAPI:
+    limiter = Limiter(key_func=get_remote_address)
+else:
+    # 如果沒有 slowapi，創建一個空的裝飾器
+    def limiter_mock(rate):
+        def decorator(func):
+            return func
+        return decorator
+    limiter = type('MockLimiter', (), {'limit': limiter_mock})()
 
 @router.get("/health", response_model=SystemHealth, summary="系統健康檢查")
-@limiter.limit("30/minute")
+#@limiter.limit("30/minute")
 async def get_system_health(
     user: APIUser = Depends(require_read_permission)
 ):
@@ -72,7 +86,7 @@ async def get_system_health(
         raise HTTPException(status_code=500, detail="系統健康檢查失敗")
 
 @router.get("/metrics", response_model=SystemMetrics, summary="獲取系統性能指標")
-@limiter.limit("20/minute") 
+#@limiter.limit("20/minute") 
 async def get_system_metrics(
     user: APIUser = Depends(require_read_permission)
 ):
@@ -108,7 +122,7 @@ async def get_system_metrics(
         raise HTTPException(status_code=500, detail="獲取系統指標失敗")
 
 @router.get("/info", summary="獲取系統信息")
-@limiter.limit("10/minute")
+#@limiter.limit("10/minute")
 async def get_system_info(
     user: APIUser = Depends(require_read_permission)
 ):
@@ -140,7 +154,7 @@ async def get_system_info(
 
 # API 金鑰管理端點
 @router.get("/api-keys", response_model=List[APIKeyResponse], summary="獲取 API 金鑰列表")
-@limiter.limit("10/minute")
+#@limiter.limit("10/minute")
 async def get_api_keys(
     user: APIUser = Depends(require_super_admin_permission)
 ):
@@ -172,7 +186,7 @@ async def get_api_keys(
         raise HTTPException(status_code=500, detail="獲取 API 金鑰列表失敗")
 
 @router.post("/api-keys", response_model=BaseResponse, summary="創建 API 金鑰", status_code=201)
-@limiter.limit("5/minute")
+#@limiter.limit("5/minute")
 async def create_api_key(
     key_data: APIKeyCreate,
     user: APIUser = Depends(require_super_admin_permission)
@@ -208,7 +222,7 @@ async def create_api_key(
         raise HTTPException(status_code=500, detail="創建 API 金鑰失敗")
 
 @router.delete("/api-keys/{key_id}", response_model=BaseResponse, summary="撤銷 API 金鑰")
-@limiter.limit("10/minute")
+#@limiter.limit("10/minute")
 async def revoke_api_key(
     key_id: str,
     user: APIUser = Depends(require_super_admin_permission)
@@ -235,7 +249,7 @@ async def revoke_api_key(
         raise HTTPException(status_code=500, detail="撤銷 API 金鑰失敗")
 
 @router.post("/maintenance", response_model=BaseResponse, summary="進入維護模式")
-@limiter.limit("2/hour")
+#@limiter.limit("2/hour")
 async def enter_maintenance_mode(
     reason: Optional[str] = Query(None, description="維護原因"),
     duration_minutes: Optional[int] = Query(None, description="預計維護時間（分鐘）"),

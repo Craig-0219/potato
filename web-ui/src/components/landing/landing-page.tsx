@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/auth/auth-context'
 import { Spinner } from '@/components/ui/spinner'
 import toast from 'react-hot-toast'
@@ -8,7 +9,16 @@ import toast from 'react-hot-toast'
 export function LandingPage() {
   const [apiKey, setApiKey] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const { login } = useAuth()
+  const { loginWithApiKey, isAuthenticated } = useAuth()
+  const router = useRouter()
+
+  // 如果已經認證，重定向到儀表板
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('🔄 用戶已認證，重定向到儀表板')
+      router.push('/dashboard')
+    }
+  }, [isAuthenticated, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -20,9 +30,20 @@ export function LandingPage() {
 
     setIsLoading(true)
     try {
-      await login(apiKey.trim())
+      const success = await loginWithApiKey(apiKey.trim())
+      
+      if (success) {
+        toast.success('登入成功！正在跳轉...')
+        // 短暫延遲後跳轉到儀表板
+        setTimeout(() => {
+          router.push('/dashboard')
+        }, 1000)
+      } else {
+        toast.error('登入失敗，請檢查您的 API 金鑰')
+      }
     } catch (error) {
-      // 錯誤處理已在 login 函數中完成
+      toast.error('登入過程中發生錯誤，請重試')
+      console.error('Login error:', error)
     } finally {
       setIsLoading(false)
     }
@@ -122,15 +143,54 @@ export function LandingPage() {
                 </form>
 
                 <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    還沒有 API 金鑰？
-                    <br />
-                    請聯繫系統管理員或使用 Discord 機器人的{' '}
-                    <code className="rounded bg-gray-100 px-1 text-xs dark:bg-gray-800">
-                      /api_key
-                    </code>{' '}
-                    指令生成。
-                  </p>
+                  <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400">
+                    <div className="rounded-lg bg-green-50 p-3 dark:bg-green-900/20">
+                      <p className="text-sm font-medium text-green-800 dark:text-green-200 mb-2">
+                        🤖 使用 Discord Bot API 金鑰登入
+                      </p>
+                      <div className="space-y-2 text-xs">
+                        <p className="text-green-700 dark:text-green-300">
+                          1. 在您的 Discord 伺服器中使用指令：<br/>
+                          <code className="bg-green-100 dark:bg-green-800 px-1 rounded">
+                            /create_api_key name:WebUI expires_days:30
+                          </code>
+                        </p>
+                        <p className="text-green-700 dark:text-green-300">
+                          2. 機器人會私訊您 API 金鑰 (格式：key_id.key_secret)
+                        </p>
+                        <p className="text-green-700 dark:text-green-300">
+                          3. 將完整的金鑰貼上到上方登入框中
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
+                      <p className="text-xs font-medium text-blue-800 dark:text-blue-200 mb-1">
+                        💻 開發測試用金鑰：
+                      </p>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <code className="text-xs font-mono text-blue-700 dark:text-blue-300">
+                            potato-admin-key-123
+                          </code>
+                          <span className="text-xs text-blue-600 dark:text-blue-400">(管理員)</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <code className="text-xs font-mono text-blue-700 dark:text-blue-300">
+                            potato-staff-key-456
+                          </code>
+                          <span className="text-xs text-blue-600 dark:text-blue-400">(員工)</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="rounded-lg bg-amber-50 p-3 dark:bg-amber-900/20">
+                      <p className="text-xs text-amber-800 dark:text-amber-200">
+                        ⚠️ <strong>注意：</strong>真實的 API 金鑰格式為 <code>key_id.key_secret</code>，
+                        例如：<code>A1B2C3D4.E5F6G7H8I9J0K1L2M3N4O5P6</code>
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

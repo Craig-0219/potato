@@ -39,6 +39,11 @@ from bot.db.pool import init_database, close_database, get_db_health
 from bot.utils.error_handler import setup_error_handling
 # Views現在由各個Cog自行註冊，不需要集中註冊
 
+# API Server 整合
+from bot.api.app import app as api_app
+import uvicorn
+import threading
+
 COGS_PREFIX = "bot.cogs."
 ALL_EXTENSIONS = [
     "ticket_core",
@@ -63,6 +68,9 @@ ALL_EXTENSIONS = [
     "game_core"  # 包含跨平台經濟功能
 ]
 
+# 全域 Bot 實例
+bot = None
+
 class PotatoBot(commands.Bot):
     def __init__(self):
         intents = discord.Intents.default()
@@ -82,6 +90,10 @@ class PotatoBot(commands.Bot):
         self.startup_time = None
         self._shutdown_event = asyncio.Event()
         self._background_tasks = set()
+        
+        # API Server 相關
+        self.api_server = None
+        self.api_thread = None
 
     async def setup_hook(self):
         """Bot 設定鉤子（修復版）"""
@@ -104,6 +116,9 @@ class PotatoBot(commands.Bot):
             
             # 5. 同步命令樹
             await self._sync_commands()
+            
+            # 6. 啟動整合的 API Server
+            await self._start_integrated_api_server()
             
             logger.info("✅ Bot 設定完成")
             
@@ -218,6 +233,64 @@ class PotatoBot(commands.Bot):
             logger.info(f"✅ 同步了 {len(synced)} 個斜線命令")
         except Exception as e:
             logger.error(f"❌ 同步命令失敗：{e}")
+    
+    async def _start_integrated_api_server(self):
+        """啟動整合的 API 伺服器"""
+        try:
+            # 取得 API 設定
+            api_host = os.getenv('API_HOST', '0.0.0.0')
+            api_port = int(os.getenv('API_PORT', '8000'))
+            
+            logger.info(f"🌐 啟動整合 API 伺服器於 {api_host}:{api_port}")
+            
+            def run_api_server():
+                """在單獨執行緒中執行 API 伺服器"""
+                asyncio.set_event_loop(asyncio.new_event_loop())
+                config = uvicorn.Config(
+                    app=api_app,
+                    host=api_host,
+                    port=api_port,
+                    log_level="info",
+                    access_log=True
+                )
+                server = uvicorn.Server(config)
+                self.api_server = server
+                asyncio.run(server.serve())
+            
+            # 在背景執行緒中啟動 API 伺服器
+            self.api_thread = threading.Thread(target=run_api_server, daemon=True)
+            self.api_thread.start()
+            
+            # 等待伺服器啟動
+            await asyncio.sleep(2)
+            logger.info(f"✅ API 伺服器已整合啟動 - http://{api_host}:{api_port}")
+            logger.info(f"📚 API 文檔位址: http://{api_host}:{api_port}/api/v1/docs")
+            
+        except Exception as e:
+            logger.error(f"❌ API 伺服器啟動失敗：{e}")
+    
+    async def close(self):
+        """關閉 Bot 和整合服務"""
+        logger.info("🔄 正在關閉 Bot 和整合服務...")
+        
+        # 關閉 API 伺服器
+        if self.api_server:
+            try:
+                self.api_server.should_exit = True
+                logger.info("✅ API 伺服器已關閉")
+            except Exception as e:
+                logger.error(f"❌ 關閉 API 伺服器時發生錯誤：{e}")
+        
+        # 關閉資料庫連接
+        try:
+            await close_database()
+            logger.info("✅ 資料庫連接已關閉")
+        except Exception as e:
+            logger.error(f"❌ 關閉資料庫時發生錯誤：{e}")
+        
+        # 關閉 Discord Bot
+        await super().close()
+        logger.info("✅ Discord Bot 已關閉")
 
     async def on_ready(self):
         """Bot 準備完成"""
@@ -547,7 +620,8 @@ async def main():
         logger.error("❌ 未找到 DISCORD_TOKEN，請檢查 .env 設定")
         sys.exit(1)
     
-    # 建立 Bot 實例
+    # 建立 Bot 實例並設為全域變數
+    global bot
     bot = PotatoBot()
     
     # 添加管理指令

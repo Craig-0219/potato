@@ -5,8 +5,8 @@
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+#from slowapi import Limiter, _rate_limit_exceeded_handler
+#from slowapi.util import get_remote_address
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timedelta
 
@@ -15,10 +15,10 @@ from ..models import BaseResponse, StaffPerformance, SystemMetrics
 from shared.logger import logger
 
 router = APIRouter()
-limiter = Limiter(key_func=get_remote_address)
+#limiter = Limiter(key_func=get_remote_address)
 
 @router.get("/dashboard", summary="獲取分析儀表板數據")
-@limiter.limit("20/minute")
+#@limiter.limit("20/minute")
 async def get_dashboard_data(
     guild_id: Optional[int] = Query(None, description="伺服器 ID"),
     period: str = Query("30d", pattern="^(1d|7d|30d|90d|1y)$", description="統計期間"),
@@ -70,7 +70,7 @@ async def get_dashboard_data(
         raise HTTPException(status_code=500, detail="獲取儀表板數據失敗")
 
 @router.get("/reports", summary="生成分析報告")
-@limiter.limit("5/minute") 
+#@limiter.limit("5/minute") 
 async def generate_report(
     report_type: str = Query(..., pattern="^(summary|detailed|performance|trend)$"),
     format: str = Query("json", pattern="^(json|csv|pdf)$"),
@@ -100,7 +100,7 @@ async def generate_report(
         raise HTTPException(status_code=500, detail="生成報告失敗")
 
 @router.get("/staff-performance", response_model=List[StaffPerformance], summary="獲取客服績效數據")
-@limiter.limit("10/minute")
+#@limiter.limit("10/minute")
 async def get_staff_performance(
     guild_id: Optional[int] = Query(None),
     days: int = Query(30, ge=1, le=365),

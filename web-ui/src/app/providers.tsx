@@ -5,6 +5,7 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { ThemeProvider } from 'next-themes'
 import { useState } from 'react'
 import { AuthProvider } from '@/lib/auth/auth-context'
+import { BotConnectionProvider } from '@/components/providers/bot-connection-provider'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => 
@@ -31,7 +32,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
         disableTransitionOnChange
       >
         <AuthProvider>
-          {children}
+          <BotConnectionProvider autoConnect={true}>
+            {children}
+          </BotConnectionProvider>
         </AuthProvider>
       </ThemeProvider>
       {process.env.NODE_ENV === 'development' && (

@@ -20,7 +20,7 @@ import {
   Eye,
   EyeOff,
   Star,
-  Template,
+  FileText,
   Plus,
   Wifi,
   WifiOff,
@@ -311,13 +311,19 @@ export default function VotesPage() {
                   <Vote className="w-6 h-6 sm:w-8 sm:h-8 text-brand-500" />
                   實時投票統計
                   {connectionStatus === 'connected' && (
-                    <Wifi className="w-5 h-5 text-success-500" title="實時連接中" />
+                    <span title="實時連接中">
+                      <Wifi className="w-5 h-5 text-success-500" />
+                    </span>
                   )}
                   {connectionStatus === 'disconnected' && (
-                    <WifiOff className="w-5 h-5 text-warning-500" title="離線模式" />
+                    <span title="離線模式">
+                      <WifiOff className="w-5 h-5 text-warning-500" />
+                    </span>
                   )}
                   {connectionStatus === 'connecting' && (
-                    <Loader2 className="w-5 h-5 animate-spin text-brand-500" title="連接中" />
+                    <span title="連接中">
+                      <Loader2 className="w-5 h-5 animate-spin text-brand-500" />
+                    </span>
                   )}
                 </h1>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 flex items-center gap-2">
@@ -339,7 +345,7 @@ export default function VotesPage() {
                   刷新
                 </Button>
                 <Button size="sm" className="btn-primary">
-                  <Template className="w-4 h-4 mr-2" />
+                  <FileText className="w-4 h-4 mr-2" />
                   <span className="hidden sm:inline">投票模板</span>
                   <span className="sm:hidden">模板</span>
                 </Button>
@@ -429,9 +435,9 @@ export default function VotesPage() {
               <TabsTrigger value="active" className="flex items-center gap-2 whitespace-nowrap">
                 <Clock className="w-4 h-4" />
                 <span>進行中投票</span>
-                {realTimeData?.active_votes.length > 0 && (
+                {(realTimeData?.active_votes?.length ?? 0) > 0 && (
                   <Badge variant="success" className="ml-1">
-                    {realTimeData.active_votes.length}
+                    {realTimeData?.active_votes?.length}
                   </Badge>
                 )}
               </TabsTrigger>

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useTheme } from 'next-themes'
+import { BotConnectionIndicator } from '@/components/bot/bot-connection-status'
 
 export function Navbar() {
   const { isAuthenticated, user, logout } = useAuth()
@@ -18,6 +19,7 @@ export function Navbar() {
     { name: '投票統計', href: '/votes', icon: '🗳️' },
     { name: '分析報告', href: '/analytics', icon: '📈' },
     { name: 'API 管理', href: '/api-management', icon: '🔧' },
+    { name: '系統監控', href: '/system-monitor', icon: '🖥️' },
   ]
 
   return (
@@ -52,6 +54,11 @@ export function Navbar() {
 
           {/* 右側控制 */}
           <div className="flex items-center space-x-4">
+            {/* Bot 连接状态 */}
+            <div className="hidden md:block">
+              <BotConnectionIndicator />
+            </div>
+
             {/* 主題切換 */}
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}

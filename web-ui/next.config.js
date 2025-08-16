@@ -5,12 +5,38 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   
+  // 允許跨域開發請求
+  allowedDevOrigins: ['36.50.249.118'],
+  
   // API 代理配置
   async rewrites() {
+    const botApiUrl = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:8000'
     return [
+      // 代理到 Discord Bot API
+      {
+        source: '/api/system/:path*',
+        destination: `${botApiUrl}/api/system/:path*`,
+      },
+      {
+        source: '/api/tickets/:path*',
+        destination: `${botApiUrl}/api/tickets/:path*`,
+      },
+      {
+        source: '/api/analytics/:path*',
+        destination: `${botApiUrl}/api/analytics/:path*`,
+      },
+      {
+        source: '/api/realtime/:path*',
+        destination: `${botApiUrl}/api/realtime/:path*`,
+      },
+      {
+        source: '/api/v1/:path*',
+        destination: `${botApiUrl}/api/v1/:path*`,
+      },
+      // 原有的代理配置
       {
         source: '/api/proxy/:path*',
-        destination: process.env.API_BASE_URL ? `${process.env.API_BASE_URL}/:path*` : 'http://localhost:8000/api/v1/:path*',
+        destination: process.env.API_BASE_URL ? `${process.env.API_BASE_URL}/:path*` : `${botApiUrl}/api/v1/:path*`,
       },
     ]
   },

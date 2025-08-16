@@ -4,9 +4,11 @@
   "description": "Potato Discord Bot - 企業級 Web 管理界面",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H 0.0.0.0 -p 3000",
+    "dev-local": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -H 0.0.0.0 -p 3000",
+    "start-local": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit"
   },

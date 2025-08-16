@@ -137,7 +137,7 @@ async def get_tickets(
         )
 
 @router.get("/{ticket_id}", response_model=TicketResponse, summary="獲取票券詳情")
-@limiter.limit("60/minute")
+#@limiter.limit("60/minute")
 async def get_ticket(
     ticket_id: int,
     user: APIUser = Depends(require_read_permission)
@@ -171,7 +171,7 @@ async def get_ticket(
         )
 
 @router.post("/", response_model=BaseResponse, summary="創建新票券", status_code=201)
-@limiter.limit("10/minute")
+#@limiter.limit("10/minute")
 async def create_ticket(
     ticket_data: TicketCreate,
     user: APIUser = Depends(require_write_permission)
@@ -209,7 +209,7 @@ async def create_ticket(
         )
 
 @router.put("/{ticket_id}", response_model=BaseResponse, summary="更新票券")
-@limiter.limit("20/minute")
+#@limiter.limit("20/minute")
 async def update_ticket(
     ticket_id: int,
     ticket_data: TicketUpdate,
@@ -266,7 +266,7 @@ async def update_ticket(
         )
 
 @router.delete("/{ticket_id}", response_model=BaseResponse, summary="刪除票券")
-@limiter.limit("10/minute")
+#@limiter.limit("10/minute")
 async def delete_ticket(
     ticket_id: int,
     user: APIUser = Depends(require_write_permission)
@@ -306,7 +306,7 @@ async def delete_ticket(
         )
 
 @router.post("/{ticket_id}/close", response_model=BaseResponse, summary="關閉票券")
-@limiter.limit("20/minute")
+#@limiter.limit("20/minute")
 async def close_ticket(
     ticket_id: int,
     reason: Optional[str] = None,
@@ -344,7 +344,7 @@ async def close_ticket(
         )
 
 @router.post("/{ticket_id}/assign", response_model=BaseResponse, summary="指派票券")
-@limiter.limit("20/minute")
+#@limiter.limit("20/minute")
 async def assign_ticket(
     ticket_id: int,
     assigned_to: int,
@@ -382,7 +382,7 @@ async def assign_ticket(
         )
 
 @router.post("/{ticket_id}/rating", response_model=BaseResponse, summary="為票券評分")
-@limiter.limit("10/minute")
+#@limiter.limit("10/minute")
 async def rate_ticket(
     ticket_id: int,
     rating: int = Query(..., ge=1, le=5, description="評分 (1-5)"),
@@ -421,7 +421,7 @@ async def rate_ticket(
         )
 
 @router.get("/statistics/overview", response_model=TicketStatistics, summary="獲取票券統計概覽")
-@limiter.limit("10/minute")
+#@limiter.limit("10/minute")
 async def get_ticket_statistics(
     guild_id: Optional[int] = Query(None, description="伺服器 ID 篩選"),
     days: int = Query(30, ge=1, le=365, description="統計天數"),
