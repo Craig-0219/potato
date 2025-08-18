@@ -25,10 +25,40 @@ export default function SystemMonitorPage() {
   // 取得系統指標
   const fetchSystemMetrics = async () => {
     try {
-      const response = await fetch('/api/system/metrics')
+      const response = await fetch('/api/system/public-metrics')
       if (response.ok) {
-        const data = await response.json()
-        setSystemMetrics(data)
+        const rawData = await response.json()
+        console.log('🔧 原始系統指標數據:', rawData) // 調試用
+        
+        // 轉換數據格式以符合UI組件期望的結構
+        const transformedData = {
+          cpu: {
+            usage: rawData.cpu_usage || 0,
+            load: 'N/A', // API 沒有提供這個數據
+            cores: 'N/A' // API 沒有提供這個數據
+          },
+          memory: {
+            usage: rawData.memory_usage || 0,
+            // 模擬記憶體數據以支持進度條顯示
+            total: 16 * 1024 * 1024 * 1024, // 假設 16GB 總記憶體
+            used: Math.round((rawData.memory_usage || 0) / 100 * 16 * 1024 * 1024 * 1024)
+          },
+          disk: {
+            usage: rawData.disk_usage || 0,
+            // 模擬磁碟數據以支持進度條顯示
+            total: 100 * 1024 * 1024 * 1024, // 假設 100GB 總磁碟
+            used: Math.round((rawData.disk_usage || 0) / 100 * 100 * 1024 * 1024 * 1024)
+          },
+          database: {
+            connections: rawData.database_connections || 0
+          },
+          network: {
+            requests: rawData.api_requests_per_minute || 0,
+            latency: rawData.bot_latency || 0
+          }
+        }
+        
+        setSystemMetrics(transformedData)
         setLastUpdated(new Date())
       }
     } catch (error) {
@@ -185,9 +215,8 @@ export default function SystemMonitorPage() {
                       style={{ width: `${systemMetrics.cpu?.usage || 0}%` }}
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-600 dark:text-gray-400">
-                    <div>負載: {systemMetrics.cpu?.load || '--'}</div>
-                    <div>核心: {systemMetrics.cpu?.cores || '--'}</div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">
+                    即時系統 CPU 使用率 (每秒更新)
                   </div>
                 </div>
               </CardContent>
@@ -204,10 +233,10 @@ export default function SystemMonitorPage() {
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>已使用</span>
+                    <span>使用率</span>
                     <span className="font-semibold">
                       {systemMetrics.memory ? 
-                        `${formatBytes(systemMetrics.memory.used)} / ${formatBytes(systemMetrics.memory.total)}` 
+                        `${systemMetrics.memory.usage.toFixed(1)}%` 
                         : '--'
                       }
                     </span>
@@ -216,16 +245,12 @@ export default function SystemMonitorPage() {
                     <div 
                       className="bg-green-500 h-2 rounded-full transition-all duration-300"
                       style={{ 
-                        width: `${systemMetrics.memory ? 
-                          (systemMetrics.memory.used / systemMetrics.memory.total * 100) : 0}%` 
+                        width: `${systemMetrics.memory?.usage || 0}%`
                       }}
                     />
                   </div>
                   <div className="text-xs text-gray-600 dark:text-gray-400">
-                    使用率: {systemMetrics.memory ? 
-                      `${((systemMetrics.memory.used / systemMetrics.memory.total) * 100).toFixed(1)}%` 
-                      : '--'
-                    }
+                    即時系統記憶體使用率
                   </div>
                 </div>
               </CardContent>
@@ -242,10 +267,10 @@ export default function SystemMonitorPage() {
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>已使用</span>
+                    <span>使用率</span>
                     <span className="font-semibold">
                       {systemMetrics.disk ? 
-                        `${formatBytes(systemMetrics.disk.used)} / ${formatBytes(systemMetrics.disk.total)}` 
+                        `${systemMetrics.disk.usage.toFixed(1)}%` 
                         : '--'
                       }
                     </span>
@@ -254,16 +279,12 @@ export default function SystemMonitorPage() {
                     <div 
                       className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
                       style={{ 
-                        width: `${systemMetrics.disk ? 
-                          (systemMetrics.disk.used / systemMetrics.disk.total * 100) : 0}%` 
+                        width: `${systemMetrics.disk?.usage || 0}%`
                       }}
                     />
                   </div>
                   <div className="text-xs text-gray-600 dark:text-gray-400">
-                    使用率: {systemMetrics.disk ? 
-                      `${((systemMetrics.disk.used / systemMetrics.disk.total) * 100).toFixed(1)}%` 
-                      : '--'
-                    }
+                    即時系統磁碟使用率
                   </div>
                 </div>
               </CardContent>

@@ -149,11 +149,25 @@ async def websocket_endpoint(websocket: WebSocket, guild_id: int, client_id: str
         manager.disconnect(websocket, guild_id, client_id)
 
 async def get_real_time_vote_stats(guild_id: int) -> Dict[str, Any]:
-    """獲取實時投票統計數據"""
+    """獲取實時投票統計數據 - MariaDB 相容版本"""
     try:
-        async with db_pool.connection() as conn:
+        # 為實時 API 創建獨立的資料庫連接以避免事件循環衝突
+        import aiomysql
+        import os
+        
+        conn = await aiomysql.connect(
+            host=os.getenv('DB_HOST', 'localhost'),
+            port=int(os.getenv('DB_PORT', 3306)),
+            user=os.getenv('DB_USER', 'root'),
+            password=os.getenv('DB_PASSWORD', ''),
+            db=os.getenv('DB_NAME', 'potato_db'),
+            charset='utf8mb4',
+            autocommit=True
+        )
+        
+        try:
             async with conn.cursor(aiomysql.DictCursor) as cursor:
-                # 獲取活躍投票
+                # 獲取活躍投票（基本資料）
                 await cursor.execute("""
                     SELECT 
                         v.id,
@@ -161,20 +175,8 @@ async def get_real_time_vote_stats(guild_id: int) -> Dict[str, Any]:
                         v.start_time,
                         v.end_time,
                         v.is_multi as is_multiple,
-                        v.is_anonymous,
-                        (SELECT COUNT(DISTINCT user_id) FROM vote_responses vr WHERE vr.vote_id = v.id) as total_participants,
-                        (SELECT JSON_ARRAYAGG(
-                            JSON_OBJECT(
-                                'option_id', vo.id,
-                                'text', vo.option_text,
-                                'votes', (
-                                    SELECT COUNT(*) 
-                                    FROM vote_responses vr2 
-                                    WHERE vr2.vote_id = v.id 
-                                    AND JSON_CONTAINS(vr2.selected_options, CAST(vo.id AS JSON))
-                                )
-                            )
-                        ) FROM vote_options vo WHERE vo.vote_id = v.id) as options_data
+                        v.anonymous as is_anonymous,
+                        (SELECT COUNT(DISTINCT user_id) FROM vote_responses vr WHERE vr.vote_id = v.id) as total_participants
                     FROM votes v
                     WHERE v.guild_id = %s 
                     AND v.end_time > NOW()
@@ -183,7 +185,25 @@ async def get_real_time_vote_stats(guild_id: int) -> Dict[str, Any]:
                 """, (guild_id,))
                 active_votes = await cursor.fetchall()
                 
-                # 獲取最近完成的投票
+                # 為每個活躍投票獲取選項數據
+                for vote in active_votes:
+                    await cursor.execute("""
+                        SELECT 
+                            vo.id as option_id,
+                            vo.option_text as text,
+                            (
+                                SELECT COUNT(*) 
+                                FROM vote_responses vr2 
+                                WHERE vr2.vote_id = %s 
+                                AND FIND_IN_SET(vo.id, REPLACE(REPLACE(REPLACE(vr2.selected_options, '[', ''), ']', ''), ' ', '')) > 0
+                            ) as votes
+                        FROM vote_options vo 
+                        WHERE vo.vote_id = %s
+                        ORDER BY vo.id
+                    """, (vote['id'], vote['id']))
+                    vote['options_data'] = await cursor.fetchall()
+                
+                # 獲取最近完成的投票（基本資料）
                 await cursor.execute("""
                     SELECT 
                         v.id,
@@ -191,20 +211,8 @@ async def get_real_time_vote_stats(guild_id: int) -> Dict[str, Any]:
                         v.start_time,
                         v.end_time,
                         v.is_multi as is_multiple,
-                        v.is_anonymous,
-                        (SELECT COUNT(DISTINCT user_id) FROM vote_responses vr WHERE vr.vote_id = v.id) as total_participants,
-                        (SELECT JSON_ARRAYAGG(
-                            JSON_OBJECT(
-                                'option_id', vo.id,
-                                'text', vo.option_text,
-                                'votes', (
-                                    SELECT COUNT(*) 
-                                    FROM vote_responses vr2 
-                                    WHERE vr2.vote_id = v.id 
-                                    AND JSON_CONTAINS(vr2.selected_options, CAST(vo.id AS JSON))
-                                )
-                            )
-                        ) FROM vote_options vo WHERE vo.vote_id = v.id) as options_data
+                        v.anonymous as is_anonymous,
+                        (SELECT COUNT(DISTINCT user_id) FROM vote_responses vr WHERE vr.vote_id = v.id) as total_participants
                     FROM votes v
                     WHERE v.guild_id = %s 
                     AND v.end_time <= NOW()
@@ -212,6 +220,24 @@ async def get_real_time_vote_stats(guild_id: int) -> Dict[str, Any]:
                     LIMIT 5
                 """, (guild_id,))
                 recent_completed = await cursor.fetchall()
+                
+                # 為每個已完成投票獲取選項數據
+                for vote in recent_completed:
+                    await cursor.execute("""
+                        SELECT 
+                            vo.id as option_id,
+                            vo.option_text as text,
+                            (
+                                SELECT COUNT(*) 
+                                FROM vote_responses vr2 
+                                WHERE vr2.vote_id = %s 
+                                AND FIND_IN_SET(vo.id, REPLACE(REPLACE(REPLACE(vr2.selected_options, '[', ''), ']', ''), ' ', '')) > 0
+                            ) as votes
+                        FROM vote_options vo 
+                        WHERE vo.vote_id = %s
+                        ORDER BY vo.id
+                    """, (vote['id'], vote['id']))
+                    vote['options_data'] = await cursor.fetchall()
                 
                 # 獲取今日統計
                 await cursor.execute("""
@@ -227,36 +253,58 @@ async def get_real_time_vote_stats(guild_id: int) -> Dict[str, Any]:
                 """, (guild_id,))
                 today_stats = await cursor.fetchone()
                 
-                # 處理選項數據
+                # 處理選項數據和數據類型轉換
                 def process_vote_data(votes):
+                    import decimal
+                    
+                    def convert_types(obj):
+                        """轉換資料庫類型為 JSON 可序列化類型"""
+                        if isinstance(obj, decimal.Decimal):
+                            return int(obj)
+                        elif isinstance(obj, dict):
+                            return {k: convert_types(v) for k, v in obj.items()}
+                        elif isinstance(obj, list):
+                            return [convert_types(item) for item in obj]
+                        return obj
+                    
                     processed = []
                     for vote in votes:
                         vote_data = dict(vote)
+                        
+                        # 現在 options_data 已經是字典列表，直接使用
                         if vote_data.get('options_data'):
-                            try:
-                                vote_data['options'] = json.loads(vote_data['options_data'])
-                            except:
-                                vote_data['options'] = []
+                            vote_data['options'] = vote_data['options_data']
                         else:
                             vote_data['options'] = []
-                        del vote_data['options_data']
+                        if 'options_data' in vote_data:
+                            del vote_data['options_data']
+                        
+                        # 轉換所有數據類型
+                        vote_data = convert_types(vote_data)
                         processed.append(vote_data)
                     return processed
+                
+                # 轉換統計數據類型
+                import decimal
+                def convert_decimal(value):
+                    return int(value) if isinstance(value, decimal.Decimal) else (value or 0)
                 
                 return {
                     'active_votes': process_vote_data(active_votes),
                     'recent_completed': process_vote_data(recent_completed),
                     'today_statistics': {
-                        'votes_created': today_stats['votes_created_today'] if today_stats else 0,
-                        'votes_completed': today_stats['votes_completed_today'] if today_stats else 0,
-                        'total_participants': today_stats['total_participants_today'] if today_stats else 0
+                        'votes_created': convert_decimal(today_stats['votes_created_today'] if today_stats else 0),
+                        'votes_completed': convert_decimal(today_stats['votes_completed_today'] if today_stats else 0),
+                        'total_participants': convert_decimal(today_stats['total_participants_today'] if today_stats else 0)
                     },
                     'summary': {
                         'active_count': len(active_votes),
-                        'total_active_participants': sum(vote.get('total_participants', 0) for vote in active_votes)
+                        'total_active_participants': sum(convert_decimal(vote.get('total_participants', 0)) for vote in active_votes)
                     },
                     'last_updated': datetime.now().isoformat()
                 }
+        finally:
+            conn.close()
                 
     except Exception as e:
         logger.error(f"獲取實時投票統計失敗: {e}")

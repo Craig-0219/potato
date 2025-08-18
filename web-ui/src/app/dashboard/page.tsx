@@ -1,10 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useAuth } from '@/lib/auth/auth-context'
-import { ApiClient } from '@/lib/api/client'
 import { Spinner } from '@/components/ui/spinner'
-import toast from 'react-hot-toast'
 
 interface DashboardData {
   tickets: {
@@ -28,114 +25,88 @@ interface DashboardData {
 }
 
 export default function DashboardPage() {
-  const { isAuthenticated, user } = useAuth()
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchDashboardData = async () => {
+  const fetchData = async () => {
+    console.log('🔄 開始獲取儀表板數據')
     try {
       setLoading(true)
       setError(null)
 
-      // 嘗試獲取真實 API 數據，如果失敗則使用模擬數據
-      let dashboardData: DashboardData
+      // 並行獲取多個 API 數據
+      const [ticketsRes, metricsRes, healthRes, analyticsRes] = await Promise.all([
+        fetch('/api/v1/statistics/tickets'),
+        fetch('/api/system/public-metrics'),
+        fetch('/api/system/public-health'),
+        fetch('/api/analytics/public-dashboard')
+      ])
 
-      try {
-        // 並行獲取多個 API 數據
-        const [ticketsResponse, systemResponse, analyticsResponse] = await Promise.all([
-          ApiClient.tickets.statistics(),
-          ApiClient.system.metrics(),
-          ApiClient.analytics.dashboard()
-        ])
+      console.log('✅ API 響應狀態:', {
+        tickets: ticketsRes.status,
+        metrics: metricsRes.status,
+        health: healthRes.status,
+        analytics: analyticsRes.status
+      })
 
-        // 轉換系統指標數據格式
-        const systemData = systemResponse.data.data || systemResponse.data
-        const transformedSystemData = {
-          uptime: systemData.system?.uptime || 0,
-          memory_usage: systemData.memory?.percent || 0,
-          cpu_usage: systemData.cpu?.usage || 0,
-          active_connections: systemData.network?.connections || 0 // 估算連接數
-        }
+      const [ticketsData, metricsData, healthData, analyticsData] = await Promise.all([
+        ticketsRes.json(),
+        metricsRes.json(),
+        healthRes.json(),
+        analyticsRes.json()
+      ])
 
-        dashboardData = {
-          tickets: ticketsResponse.data.data,
-          system: transformedSystemData,
-          analytics: analyticsResponse.data.data
+      console.log('📊 原始數據:', { ticketsData, metricsData, healthData, analyticsData })
+
+      const dashboardData: DashboardData = {
+        tickets: {
+          total: ticketsData.data?.total || 0,
+          open: ticketsData.data?.open || 0,
+          closed: ticketsData.data?.closed || 0,
+          high_priority: ticketsData.data?.priority_breakdown?.high || 0,
+          response_time_avg: ticketsData.data?.avg_resolution_time || 0
+        },
+        system: {
+          uptime: healthData.uptime || 0,
+          memory_usage: metricsData.memory_usage || 0,
+          cpu_usage: metricsData.cpu_usage || 0,
+          active_connections: metricsData.database_connections || 0
+        },
+        analytics: {
+          daily_tickets: analyticsData.data?.daily_tickets || 0,
+          resolution_rate: analyticsData.data?.resolution_rate || 0,
+          satisfaction_score: analyticsData.data?.satisfaction_score || 0
         }
-      } catch (apiError) {
-        console.warn('API 端點不可用，使用模擬數據:', apiError)
-        
-        // 使用模擬數據
-        dashboardData = {
-          tickets: {
-            total: 156,
-            open: 23,
-            closed: 133,
-            high_priority: 8,
-            response_time_avg: 2.5
-          },
-          system: {
-            uptime: 72000, // 20小時
-            memory_usage: 65.3,
-            cpu_usage: 23.7,
-            active_connections: 45
-          },
-          analytics: {
-            daily_tickets: 12,
-            resolution_rate: 94.2,
-            satisfaction_score: 4.6
-          }
-        }
-        
-        toast.success('使用示範數據展示介面')
       }
 
+      console.log('✅ 轉換後的數據:', dashboardData)
       setData(dashboardData)
 
     } catch (err: any) {
-      console.error('獲取儀表板數據錯誤:', err)
-      setError('無法載入儀表板數據，請重試')
-      toast.error('載入數據失敗')
+      console.error('❌ 獲取數據失敗:', err)
+      setError('載入數據失敗')
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchDashboardData()
-    }
-  }, [isAuthenticated])
-
-  // 檢查認證狀態，但只在非加載狀態下顯示
-  const { isLoading: authLoading } = useAuth()
+    console.log('🚀 Dashboard useEffect 觸發')
+    fetchData()
+  }, [])
   
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Spinner size="lg" className="mb-4" />
-          <p className="text-gray-600 dark:text-gray-400">正在驗證身份...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            請先登入
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400">
-            您需要登入才能查看儀表板
-          </p>
-        </div>
-      </div>
-    )
-  }
+  // 確保數據獲取 - 如果 3秒後還沒有數據，再次嘗試
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!data) {
+        console.log('🔄 3秒後重試獲取數據')
+        fetchData()
+      }
+    }, 3000)
+    
+    return () => clearTimeout(timer)
+  }, [data])
 
   if (loading) {
     return (
@@ -152,21 +123,8 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="text-red-500 mb-4">
-            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-            載入錯誤
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            {error}
-          </p>
-          <button
-            onClick={fetchDashboardData}
-            className="btn-primary"
-          >
+          <p className="text-red-500 mb-4">{error}</p>
+          <button onClick={fetchData} className="btn-primary">
             重新載入
           </button>
         </div>
@@ -201,7 +159,7 @@ export default function DashboardPage() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400">總票券數</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {(data.tickets?.total ?? 0).toLocaleString()}
+                    {data.tickets.total.toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -218,7 +176,7 @@ export default function DashboardPage() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400">開放票券</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {(data.tickets?.open ?? 0).toLocaleString()}
+                    {data.tickets.open.toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -235,7 +193,7 @@ export default function DashboardPage() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400">高優先級</p>
                   <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {(data.tickets?.high_priority ?? 0).toLocaleString()}
+                    {data.tickets.high_priority.toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -260,7 +218,7 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* 系統狀態和快速操作 */}
+        {/* 系統狀態 */}
         {data && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* 系統狀態 */}
@@ -272,7 +230,7 @@ export default function DashboardPage() {
                 <div className="flex justify-between items-center">
                   <span className="text-gray-600 dark:text-gray-400">系統運行時間</span>
                   <span className="font-semibold text-gray-900 dark:text-white">
-                    {Math.floor((data.system?.uptime ?? 0) / 3600)}h
+                    {Math.floor(data.system.uptime / 3600)}h
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -281,11 +239,11 @@ export default function DashboardPage() {
                     <div className="w-20 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
                       <div 
                         className="bg-blue-600 h-2 rounded-full" 
-                        style={{ width: `${data.system?.memory_usage ?? 0}%` }}
+                        style={{ width: `${data.system.memory_usage}%` }}
                       ></div>
                     </div>
                     <span className="font-semibold text-gray-900 dark:text-white">
-                      {(data.system?.memory_usage ?? 0).toFixed(1)}%
+                      {data.system.memory_usage.toFixed(1)}%
                     </span>
                   </div>
                 </div>
@@ -295,18 +253,18 @@ export default function DashboardPage() {
                     <div className="w-20 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
                       <div 
                         className="bg-green-600 h-2 rounded-full" 
-                        style={{ width: `${data.system?.cpu_usage ?? 0}%` }}
+                        style={{ width: `${data.system.cpu_usage}%` }}
                       ></div>
                     </div>
                     <span className="font-semibold text-gray-900 dark:text-white">
-                      {(data.system?.cpu_usage ?? 0).toFixed(1)}%
+                      {data.system.cpu_usage.toFixed(1)}%
                     </span>
                   </div>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600 dark:text-gray-400">活躍連線</span>
+                  <span className="text-gray-600 dark:text-gray-400">資料庫連線</span>
                   <span className="font-semibold text-gray-900 dark:text-white">
-                    {data.system?.active_connections ?? 0}
+                    {data.system.active_connections}
                   </span>
                 </div>
               </div>
@@ -337,7 +295,7 @@ export default function DashboardPage() {
                   </div>
                 </button>
                 <button 
-                  onClick={fetchDashboardData}
+                  onClick={fetchData}
                   className="btn-secondary text-left p-4"
                 >
                   <div className="font-semibold">🔄 刷新數據</div>
@@ -353,6 +311,11 @@ export default function DashboardPage() {
         {/* 底部資訊 */}
         <div className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
           <p>最後更新：{new Date().toLocaleString('zh-TW')}</p>
+          <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+            <p className="text-yellow-800 dark:text-yellow-200 text-xs">
+              ℹ️ Bot 即時連接功能暫時停用以避免瀏覽器阻擋問題。如需即時數據，請手動重新整理頁面。
+            </p>
+          </div>
         </div>
       </div>
     </div>

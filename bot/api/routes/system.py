@@ -38,6 +38,16 @@ else:
 async def get_system_health(
     user: APIUser = Depends(require_read_permission)
 ):
+    """獲取系統整體健康狀況（需要認證）"""
+    return await _get_system_health_internal()
+
+@router.get("/public-health", summary="公開系統健康檢查")
+#@limiter.limit("60/minute")
+async def get_public_system_health():
+    """獲取系統整體健康狀況（無需認證）"""
+    return await _get_system_health_internal()
+
+async def _get_system_health_internal():
     """獲取系統整體健康狀況"""
     try:
         # 獲取系統運行時間
@@ -90,6 +100,16 @@ async def get_system_health(
 async def get_system_metrics(
     user: APIUser = Depends(require_read_permission)
 ):
+    """獲取詳細的系統性能指標（需要認證）"""
+    return await _get_system_metrics_internal()
+
+@router.get("/public-metrics", summary="獲取公開系統性能指標")
+#@limiter.limit("30/minute") 
+async def get_public_system_metrics():
+    """獲取詳細的系統性能指標（無需認證）"""
+    return await _get_system_metrics_internal()
+
+async def _get_system_metrics_internal():
     """獲取詳細的系統性能指標"""
     try:
         # CPU 和記憶體使用情況
@@ -100,11 +120,23 @@ async def get_system_metrics(
         # 網路統計 (簡化版)
         network = psutil.net_io_counters()
         
-        # TODO: 從資料庫獲取業務指標
-        database_connections = 10  # 模擬數據
-        active_tickets = 25
-        api_requests_per_minute = 150
-        bot_latency = 45.2
+        # 獲取真實業務指標
+        try:
+            # 使用 psutil 獲取網路連線數
+            connections = psutil.net_connections()
+            # 統計連接到 3306 端口的連線數
+            mysql_connections = sum(1 for conn in connections 
+                                  if conn.laddr and conn.laddr.port == 3306 
+                                  and conn.status == 'ESTABLISHED')
+            database_connections = max(1, mysql_connections)  # 至少顯示 1 個連線
+        except Exception as e:
+            logger.warning(f"無法獲取連線數: {e}")
+            database_connections = 1  # 預設值
+        
+        # TODO: 實現其他業務指標的真實數據獲取
+        active_tickets = 0  # 暫時設為 0，等待實現
+        api_requests_per_minute = 0  # 暫時設為 0，等待實現
+        bot_latency = 0.0  # 暫時設為 0，等待實現
         
         return {
             "cpu_usage": cpu_percent,

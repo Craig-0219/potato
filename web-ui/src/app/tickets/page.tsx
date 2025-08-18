@@ -58,8 +58,15 @@ export default function TicketsPage() {
       try {
         const response = await ApiClient.tickets.list(params)
         setData(response.data.data)
-      } catch (apiError) {
-        console.warn('票券 API 不可用，使用模擬數據:', apiError)
+      } catch (apiError: any) {
+        // 檢查是否為認證錯誤
+        if (apiError.response?.status === 403 || apiError.response?.status === 401) {
+          console.warn('票券 API 需要認證:', apiError)
+          setError('查看票券列表需要管理員權限。票券包含敏感用戶資料，僅限授權人員查看。')
+          return
+        } else {
+          console.warn('票券 API 不可用，使用模擬數據:', apiError)
+        }
         
         // 使用模擬票券數據
         const mockTickets: Ticket[] = [
@@ -282,10 +289,21 @@ export default function TicketsPage() {
         {/* 錯誤狀態 */}
         {error && (
           <div className="text-center py-8">
-            <p className="text-red-500 mb-4">{error}</p>
-            <button onClick={() => fetchTickets(currentPage)} className="btn-primary">
-              重新載入
-            </button>
+            <div className="max-w-md mx-auto">
+              <div className="text-6xl mb-4">🔒</div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                需要管理員權限
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">{error}</p>
+              <div className="space-x-2">
+                <button onClick={() => window.location.href = '/'} className="btn-secondary">
+                  返回首頁
+                </button>
+                <button onClick={() => fetchTickets(currentPage)} className="btn-primary">
+                  重試
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

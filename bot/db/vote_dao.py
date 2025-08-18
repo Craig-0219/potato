@@ -296,9 +296,23 @@ async def get_vote_statistics(vote_id):
         return {}
 
 async def get_expired_votes_to_announce():
-    """查詢所有已過期但尚未公告的投票"""
+    """查詢所有已過期但尚未公告的投票 - 使用獨立連接避免事件循環衝突"""
     try:
-        async with db_pool.connection() as conn:
+        # 為背景任務創建獨立的資料庫連接
+        import aiomysql
+        import os
+        
+        conn = await aiomysql.connect(
+            host=os.getenv('DB_HOST', 'localhost'),
+            port=int(os.getenv('DB_PORT', 3306)),
+            user=os.getenv('DB_USER', 'root'),
+            password=os.getenv('DB_PASSWORD', ''),
+            db=os.getenv('DB_NAME', 'potato_db'),
+            charset='utf8mb4',
+            autocommit=True
+        )
+        
+        try:
             async with conn.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute("""
                     SELECT * FROM votes
@@ -326,21 +340,38 @@ async def get_expired_votes_to_announce():
                     processed_votes.append(row)
                         
                 return processed_votes
+        finally:
+            conn.close()
                 
     except Exception as e:
         logger.error(f"get_expired_votes_to_announce 錯誤: {e}")
         return []
 
 async def mark_vote_announced(vote_id):
-    """將已公告的投票標記為 announced = TRUE"""
+    """將已公告的投票標記為 announced = TRUE - 使用獨立連接避免事件循環衝突"""
     try:
-        async with db_pool.connection() as conn:
+        # 為背景任務創建獨立的資料庫連接
+        import aiomysql
+        import os
+        
+        conn = await aiomysql.connect(
+            host=os.getenv('DB_HOST', 'localhost'),
+            port=int(os.getenv('DB_PORT', 3306)),
+            user=os.getenv('DB_USER', 'root'),
+            password=os.getenv('DB_PASSWORD', ''),
+            db=os.getenv('DB_NAME', 'potato_db'),
+            charset='utf8mb4',
+            autocommit=True
+        )
+        
+        try:
             async with conn.cursor() as cur:
                 await cur.execute("""
                     UPDATE votes SET announced = TRUE WHERE id = %s
                 """, (vote_id,))
-                await conn.commit()
                 logger.debug(f"投票 #{vote_id} 已標記為已公告")
+        finally:
+            conn.close()
                 
     except Exception as e:
         logger.error(f"mark_vote_announced({vote_id}) 錯誤: {e}")

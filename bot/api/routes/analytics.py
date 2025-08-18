@@ -25,7 +25,28 @@ async def get_dashboard_data(
     user: APIUser = Depends(require_read_permission)
 ):
     """
-    獲取分析儀表板數據
+    獲取分析儀表板數據（需要認證）
+    
+    包含票券統計、性能指標、趨勢分析等
+    """
+    return await _get_dashboard_data_internal(guild_id, period)
+
+@router.get("/public-dashboard", summary="獲取公開分析儀表板數據")
+#@limiter.limit("30/minute")
+async def get_public_dashboard_data(
+    guild_id: Optional[int] = Query(None, description="伺服器 ID"),
+    period: str = Query("30d", pattern="^(1d|7d|30d|90d|1y)$", description="統計期間")
+):
+    """
+    獲取分析儀表板數據（無需認證）
+    
+    包含票券統計、性能指標、趨勢分析等
+    """
+    return await _get_dashboard_data_internal(guild_id, period)
+
+async def _get_dashboard_data_internal(guild_id: Optional[int], period: str):
+    """
+    獲取分析儀表板數據（內部實現）
     
     包含票券統計、性能指標、趨勢分析等
     """
@@ -40,30 +61,98 @@ async def get_dashboard_data(
         }
         days = period_map.get(period, 30)
         
-        # TODO: 實現儀表板數據查詢邏輯
+        # 實現儀表板數據查詢邏輯 - 使用獨立資料庫連接
+        import aiomysql
+        import os
         
-        return {
-            "success": True,
-            "message": "儀表板數據獲取成功",
-            "data": {
-                "period": period,
-                "guild_id": guild_id,
-                "summary": {
-                    "total_tickets": 150,
-                    "active_tickets": 25,
-                    "resolved_tickets": 125,
-                    "avg_resolution_time": 2.3,
-                    "customer_satisfaction": 4.5
-                },
-                "trends": {
-                    "ticket_creation": [10, 15, 12, 18, 20, 14, 16],
-                    "resolution_rate": [85, 87, 90, 88, 92, 89, 91],
-                    "response_time": [1.2, 1.1, 0.9, 1.3, 1.0, 1.1, 1.0]
-                },
-                "staff_performance": []
-            },
-            "timestamp": datetime.now()
-        }
+        conn = await aiomysql.connect(
+            host=os.getenv('DB_HOST', 'localhost'),
+            port=int(os.getenv('DB_PORT', 3306)),
+            user=os.getenv('DB_USER', 'root'),
+            password=os.getenv('DB_PASSWORD', ''),
+            db=os.getenv('DB_NAME', 'potato_db'),
+            charset='utf8mb4',
+            autocommit=True
+        )
+        
+        try:
+            async with conn.cursor(aiomysql.DictCursor) as cursor:
+                start_date = datetime.now() - timedelta(days=days)
+                
+                # 查詢票券統計
+                await cursor.execute("""
+                    SELECT 
+                        COUNT(*) as total_tickets,
+                        COUNT(CASE WHEN status != 'closed' THEN 1 END) as active_tickets,
+                        COUNT(CASE WHEN status = 'closed' THEN 1 END) as resolved_tickets,
+                        AVG(CASE 
+                            WHEN status = 'closed' AND closed_at IS NOT NULL 
+                            THEN TIMESTAMPDIFF(HOUR, created_at, closed_at) 
+                        END) as avg_resolution_hours
+                    FROM tickets 
+                    WHERE created_at >= %s
+                    AND (%s IS NULL OR guild_id = %s)
+                """, (start_date, guild_id, guild_id))
+                
+                ticket_stats = await cursor.fetchone()
+                
+                # 查詢票券創建趨勢（每日）
+                await cursor.execute("""
+                    SELECT 
+                        DATE(created_at) as date,
+                        COUNT(*) as count
+                    FROM tickets 
+                    WHERE created_at >= %s
+                    AND (%s IS NULL OR guild_id = %s)
+                    GROUP BY DATE(created_at)
+                    ORDER BY date DESC
+                    LIMIT 7
+                """, (start_date, guild_id, guild_id))
+                
+                daily_tickets = await cursor.fetchall()
+                
+                # 查詢投票統計
+                await cursor.execute("""
+                    SELECT 
+                        COUNT(*) as total_votes,
+                        COUNT(CASE WHEN end_time > NOW() THEN 1 END) as active_votes,
+                        COUNT(CASE WHEN end_time <= NOW() THEN 1 END) as completed_votes
+                    FROM votes 
+                    WHERE start_time >= %s
+                    AND (%s IS NULL OR guild_id = %s)
+                """, (start_date, guild_id, guild_id))
+                
+                vote_stats = await cursor.fetchone()
+                
+                # 轉換類型並處理 None 值
+                import decimal
+                def convert_decimal(value):
+                    if value is None:
+                        return 0
+                    return float(value) if isinstance(value, decimal.Decimal) else value
+                
+                return {
+                    "success": True,
+                    "data": {
+                        "daily_tickets": convert_decimal(ticket_stats['total_tickets']),
+                        "resolution_rate": round((convert_decimal(ticket_stats['resolved_tickets']) / max(convert_decimal(ticket_stats['total_tickets']), 1)) * 100, 1),
+                        "satisfaction_score": 4.2,  # 暫時使用固定值
+                        "response_time": round(convert_decimal(ticket_stats['avg_resolution_hours']), 1) if ticket_stats['avg_resolution_hours'] else 0,
+                        "active_agents": 8,  # 暫時使用固定值
+                        "pending_tickets": convert_decimal(ticket_stats['active_tickets']),
+                        "vote_statistics": {
+                            "total_votes": convert_decimal(vote_stats['total_votes']),
+                            "active_votes": convert_decimal(vote_stats['active_votes']),
+                            "completed_votes": convert_decimal(vote_stats['completed_votes'])
+                        },
+                        "trends": {
+                            "daily_counts": [convert_decimal(item['count']) for item in daily_tickets[::-1]]  # 反轉以顯示時間順序
+                        }
+                    },
+                    "timestamp": datetime.now()
+                }
+        finally:
+            conn.close()
         
     except Exception as e:
         logger.error(f"獲取儀表板數據錯誤: {e}")

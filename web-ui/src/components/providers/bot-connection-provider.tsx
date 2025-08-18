@@ -17,7 +17,7 @@ interface BotConnectionProviderProps {
 
 export function BotConnectionProvider({ 
   children, 
-  autoConnect = true 
+  autoConnect = false // 暫時禁用自動連接避免 ERR_BLOCKED_BY_CLIENT 錯誤
 }: BotConnectionProviderProps) {
   
   useEffect(() => {
@@ -60,41 +60,35 @@ export function BotConnectionProvider({
     botConnector.on('error', handleError)
     botConnector.on('notification', handleNotification)
 
-    // 如果啟用自動連線，則開始連線流程
-    if (autoConnect) {
-      console.log('🚀 啟動 Bot 自動連線...')
-      // 延遲一點時間確保頁面載入完成
-      setTimeout(() => {
-        botConnector.startAutoConnection().catch(error => {
-          console.error('自動連線失敗:', error)
-        })
-      }, 1000)
-    }
+    // 暫時完全禁用自動連線以避免 ERR_BLOCKED_BY_CLIENT 錯誤
+    console.log('🚫 Bot 自動連線已禁用以避免瀏覽器阻擋問題')
+    // if (autoConnect) {
+    //   console.log('🚀 啟動 Bot 自動連線...')
+    //   // 延遲一點時間確保頁面載入完成
+    //   setTimeout(() => {
+    //     botConnector.startAutoConnection().catch(error => {
+    //       console.error('自動連線失敗:', error)
+    //     })
+    //   }, 1000)
+    // }
 
-    // 頁面可見性變化時的處理
+    // 頁面可見性變化時的處理 - 暫時禁用避免 ERR_BLOCKED_BY_CLIENT
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // 頁面變為可見時，檢查連線狀態
-        if (!botConnector.isConnected()) {
-          console.log('頁面恢復可見，檢查 Bot 連線狀態')
-          botConnector.startAutoConnection().catch(error => {
-            console.error('重新連線失敗:', error)
-          })
-        }
+        // 暫時禁用自動重連以避免瀏覽器阻擋問題
+        console.log('頁面恢復可見，但自動連線已禁用')
       }
     }
 
-    // 網路狀態變化時的處理
+    // 網路狀態變化時的處理 - 暫時禁用避免 ERR_BLOCKED_BY_CLIENT
     const handleOnline = () => {
-      console.log('網路恢復，嘗試重新連線 Bot')
-      botConnector.reconnect().catch(error => {
-        console.error('網路恢復後重連失敗:', error)
-      })
+      console.log('網路恢復，但自動重連已禁用')
     }
 
     const handleOffline = () => {
       console.log('網路斷開')
-      toast.error('網路連線斷開，Bot 功能可能受影響')
+      // 暫時禁用 Bot 連線相關通知
+      // toast.error('網路連線斷開，Bot 功能可能受影響')
     }
 
     // 添加事件監聽器

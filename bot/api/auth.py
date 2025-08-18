@@ -186,10 +186,10 @@ def get_api_key_manager() -> APIKeyManager:
     return _api_key_manager
 
 # HTTP Bearer 安全方案
-security = HTTPBearer()
+bearer_security = HTTPBearer()
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Security(security)
+    credentials: HTTPAuthorizationCredentials = Security(bearer_security)
 ) -> APIUser:
     """獲取當前認證用戶"""
     try:

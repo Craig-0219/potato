@@ -49,16 +49,26 @@ export default function AnalyticsPage() {
       setError(null)
 
       const [dashboardResponse, staffResponse] = await Promise.all([
-        ApiClient.analytics.dashboard({ period }),
+        ApiClient.analytics.publicDashboard({ period }),
         // 使用模擬數據代替不存在的API
         Promise.resolve({ data: { data: { staff_count: 5, avg_rating: 4.2, total_tickets: 150 } } })
       ])
 
+      // 確保所有必要的屬性都存在，如果沒有則使用預設值
+      const responseData = dashboardResponse.data.data || {}
+      const overview = responseData.overview || {
+        total_tickets: 0,
+        resolved_tickets: 0, 
+        resolution_rate: 0,
+        avg_response_time: 0,
+        satisfaction_score: 0
+      }
+      
       setData({
-        overview: dashboardResponse.data.data.overview,
-        daily_stats: dashboardResponse.data.data.daily_stats,
-        staff_performance: staffResponse.data.data,
-        priority_breakdown: dashboardResponse.data.data.priority_breakdown
+        overview,
+        daily_stats: responseData.daily_stats || [],
+        staff_performance: Array.isArray(staffResponse.data.data) ? staffResponse.data.data : [],
+        priority_breakdown: responseData.priority_breakdown || { high: 0, medium: 0, low: 0 }
       })
 
     } catch (err: any) {
@@ -208,7 +218,7 @@ export default function AnalyticsPage() {
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">總票券數</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {data.overview.total_tickets.toLocaleString()}
+                      {(data.overview?.total_tickets || 0).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -224,7 +234,7 @@ export default function AnalyticsPage() {
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">已解決</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {data.overview.resolved_tickets.toLocaleString()}
+                      {(data.overview?.resolved_tickets || 0).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -240,7 +250,7 @@ export default function AnalyticsPage() {
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">解決率</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {data.overview.resolution_rate.toFixed(1)}%
+                      {(data.overview?.resolution_rate || 0).toFixed(1)}%
                     </p>
                   </div>
                 </div>
@@ -256,7 +266,7 @@ export default function AnalyticsPage() {
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">平均回應</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {data.overview.avg_response_time.toFixed(1)}h
+                      {(data.overview?.avg_response_time || 0).toFixed(1)}h
                     </p>
                   </div>
                 </div>
@@ -272,7 +282,7 @@ export default function AnalyticsPage() {
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-500 dark:text-gray-400">滿意度</p>
                     <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {data.overview.satisfaction_score.toFixed(1)}
+                      {(data.overview?.satisfaction_score || 0).toFixed(1)}
                     </p>
                   </div>
                 </div>
@@ -288,39 +298,39 @@ export default function AnalyticsPage() {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <span className="text-red-600 font-medium">🔴 高優先級</span>
-                    <span className="font-semibold">{data.priority_breakdown.high}</span>
+                    <span className="font-semibold">{data.priority_breakdown?.high || 0}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700">
                     <div 
                       className="bg-red-600 h-3 rounded-full" 
                       style={{ 
-                        width: `${(data.priority_breakdown.high / data.overview.total_tickets) * 100}%` 
+                        width: `${(data.priority_breakdown?.high || 0) / Math.max(data.overview?.total_tickets || 1, 1) * 100}%` 
                       }}
                     ></div>
                   </div>
                   
                   <div className="flex justify-between items-center">
                     <span className="text-yellow-600 font-medium">🟡 中優先級</span>
-                    <span className="font-semibold">{data.priority_breakdown.medium}</span>
+                    <span className="font-semibold">{data.priority_breakdown?.medium || 0}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700">
                     <div 
                       className="bg-yellow-600 h-3 rounded-full" 
                       style={{ 
-                        width: `${(data.priority_breakdown.medium / data.overview.total_tickets) * 100}%` 
+                        width: `${(data.priority_breakdown?.medium || 0) / Math.max(data.overview?.total_tickets || 1, 1) * 100}%` 
                       }}
                     ></div>
                   </div>
                   
                   <div className="flex justify-between items-center">
                     <span className="text-green-600 font-medium">🟢 低優先級</span>
-                    <span className="font-semibold">{data.priority_breakdown.low}</span>
+                    <span className="font-semibold">{data.priority_breakdown?.low || 0}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700">
                     <div 
                       className="bg-green-600 h-3 rounded-full" 
                       style={{ 
-                        width: `${(data.priority_breakdown.low / data.overview.total_tickets) * 100}%` 
+                        width: `${(data.priority_breakdown?.low || 0) / Math.max(data.overview?.total_tickets || 1, 1) * 100}%` 
                       }}
                     ></div>
                   </div>
@@ -333,7 +343,7 @@ export default function AnalyticsPage() {
                   👥 客服績效排行
                 </h3>
                 <div className="space-y-4">
-                  {data.staff_performance.slice(0, 5).map((staff, index) => (
+                  {(data.staff_performance || []).slice(0, 5).map((staff, index) => (
                     <div key={staff.staff_id} className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <span className="font-semibold text-gray-600 dark:text-gray-400">

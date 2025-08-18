@@ -9,16 +9,19 @@ import toast from 'react-hot-toast'
 export function LandingPage() {
   const [apiKey, setApiKey] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const { loginWithApiKey, isAuthenticated } = useAuth()
+  const { loginWithApiKey, isAuthenticated, user, isLoading: authLoading } = useAuth()
   const router = useRouter()
 
-  // 如果已經認證，重定向到儀表板
-  useEffect(() => {
-    if (isAuthenticated) {
-      console.log('🔄 用戶已認證，重定向到儀表板')
-      router.push('/dashboard')
-    }
-  }, [isAuthenticated, router])
+  // 調試認證狀態
+  console.log('🔍 Landing 認證狀態:', {
+    isAuthenticated,
+    authLoading,
+    userId: user?.id,
+    userName: user?.name
+  })
+
+  // 移除自動重定向邏輯，讓用戶手動點擊登入
+  // 這樣可以避免預設用戶認證狀態造成的重定向循環
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -29,23 +32,29 @@ export function LandingPage() {
     }
 
     setIsLoading(true)
+    console.log('🚀 開始登入流程...')
     try {
       const success = await loginWithApiKey(apiKey.trim())
+      console.log('🔍 登入結果:', success)
       
       if (success) {
         toast.success('登入成功！正在跳轉...')
+        console.log('✅ 登入成功，準備跳轉到儀表板')
         // 短暫延遲後跳轉到儀表板
         setTimeout(() => {
+          console.log('🔄 執行跳轉到儀表板')
           router.push('/dashboard')
         }, 1000)
       } else {
+        console.error('❌ 登入失敗')
         toast.error('登入失敗，請檢查您的 API 金鑰')
       }
     } catch (error) {
+      console.error('❌ 登入過程中發生錯誤:', error)
       toast.error('登入過程中發生錯誤，請重試')
-      console.error('Login error:', error)
     } finally {
       setIsLoading(false)
+      console.log('🏁 登入流程結束')
     }
   }
 
@@ -107,40 +116,63 @@ export function LandingPage() {
                   使用 API 金鑰登入
                 </h2>
                 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label htmlFor="apiKey" className="form-label">
-                      API 金鑰
-                    </label>
-                    <input
-                      id="apiKey"
-                      type="password"
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      className="form-input"
-                      placeholder="pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                      disabled={isLoading}
-                    />
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      請輸入您的 Potato Bot API 金鑰
-                    </p>
+{/* 如果已認證，顯示前往儀表板按鈕 */}
+                {isAuthenticated && !authLoading ? (
+                  <div className="text-center space-y-4">
+                    <div className="text-green-600 dark:text-green-400 mb-4">
+                      ✅ 歡迎回來，{user?.name}！
+                    </div>
+                    <button
+                      onClick={() => {
+                        console.log('🔄 跳轉到儀表板...')
+                        router.push('/dashboard')
+                      }}
+                      className="btn-primary w-full"
+                    >
+                      前往管理儀表板
+                    </button>
                   </div>
-                  
-                  <button
-                    type="submit"
-                    disabled={isLoading || !apiKey.trim()}
-                    className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isLoading ? (
-                      <>
-                        <Spinner size="sm" className="mr-2" />
-                        登入中...
-                      </>
-                    ) : (
-                      '登入管理面板'
-                    )}
-                  </button>
-                </form>
+                ) : authLoading ? (
+                  <div className="text-center space-y-4">
+                    <Spinner size="lg" className="mb-4" />
+                    <p className="text-gray-600 dark:text-gray-400">正在檢查認證狀態...</p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                      <label htmlFor="apiKey" className="form-label">
+                        API 金鑰
+                      </label>
+                      <input
+                        id="apiKey"
+                        type="password"
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                        className="form-input"
+                        placeholder="pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                        disabled={isLoading}
+                      />
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        請輸入您的 Potato Bot API 金鑰
+                      </p>
+                    </div>
+                    
+                    <button
+                      type="submit"
+                      disabled={isLoading || !apiKey.trim()}
+                      className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isLoading ? (
+                        <>
+                          <Spinner size="sm" className="mr-2" />
+                          登入中...
+                        </>
+                      ) : (
+                        '登入管理面板'
+                      )}
+                    </button>
+                  </form>
+                )}
 
                 <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
                   <div className="space-y-3 text-sm text-gray-600 dark:text-gray-400">

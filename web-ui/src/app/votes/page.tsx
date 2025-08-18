@@ -79,79 +79,86 @@ export default function VotesPage() {
   const reconnectAttempts = useRef(0)
   const maxReconnectAttempts = 5
 
-  // WebSocket 連接函數
+  // WebSocket 連接函數 - 暫時禁用以避免 ERR_BLOCKED_BY_CLIENT 錯誤
   const connectWebSocket = useCallback(() => {
-    try {
-      const guildId = 123456789 // 模擬公會ID，實際應從認證取得
-      const clientId = `web_client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-      const wsUrl = `ws://localhost:8000/api/realtime/ws/${guildId}/${clientId}`
-      
-      wsRef.current = new WebSocket(wsUrl)
-      
-      wsRef.current.onopen = () => {
-        console.log('WebSocket 連接已建立')
-        setConnectionStatus('connected')
-        reconnectAttempts.current = 0
-        
-        // 發送心跳
-        const heartbeat = setInterval(() => {
-          if (wsRef.current?.readyState === WebSocket.OPEN) {
-            wsRef.current.send(JSON.stringify({ type: 'ping' }))
-          } else {
-            clearInterval(heartbeat)
-          }
-        }, 25000)
-      }
-      
-      wsRef.current.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data)
-          
-          switch (message.type) {
-            case 'initial_data':
-            case 'data_update':
-            case 'auto_update':
-              setRealTimeData(message.data)
-              setLoading(false)
-              break
-            case 'pong':
-              // 心跳回應
-              break
-            default:
-              console.log('收到未知訊息類型:', message.type)
-          }
-        } catch (error) {
-          console.error('解析 WebSocket 訊息失敗:', error)
-        }
-      }
-      
-      wsRef.current.onclose = () => {
-        console.log('WebSocket 連接已關閉')
-        setConnectionStatus('disconnected')
-        
-        // 自動重連
-        if (reconnectAttempts.current < maxReconnectAttempts && autoRefresh) {
-          reconnectAttempts.current++
-          const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000)
-          
-          reconnectTimeoutRef.current = setTimeout(() => {
-            console.log(`嘗試重連 (${reconnectAttempts.current}/${maxReconnectAttempts})`)
-            connectWebSocket()
-          }, delay)
-        }
-      }
-      
-      wsRef.current.onerror = (error) => {
-        console.error('WebSocket 錯誤:', error)
-        setConnectionStatus('disconnected')
-      }
-      
-    } catch (error) {
-      console.error('建立 WebSocket 連接失敗:', error)
-      setConnectionStatus('disconnected')
-      // 如果 WebSocket 不可用，使用 HTTP 模式
-      fallbackToHttpMode()
-    }
+    console.log('🚫 WebSocket 連接已禁用以避免瀏覽器阻擋問題')
+    setConnectionStatus('disconnected')
+    // 直接使用模擬數據
+    fallbackToHttpMode()
+    return
+    
+    // 暫時註解掉所有 WebSocket 連接邏輯
+    // try {
+    //   const guildId = 123456789 // 模擬公會ID，實際應從認證取得
+    //   const clientId = `web_client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    //   const wsUrl = `ws://localhost:8000/api/realtime/ws/${guildId}/${clientId}`
+    //   
+    //   wsRef.current = new WebSocket(wsUrl)
+    //   
+    //   wsRef.current.onopen = () => {
+    //     console.log('WebSocket 連接已建立')
+    //     setConnectionStatus('connected')
+    //     reconnectAttempts.current = 0
+    //     
+    //     // 發送心跳
+    //     const heartbeat = setInterval(() => {
+    //       if (wsRef.current?.readyState === WebSocket.OPEN) {
+    //         wsRef.current.send(JSON.stringify({ type: 'ping' }))
+    //       } else {
+    //         clearInterval(heartbeat)
+    //       }
+    //     }, 25000)
+    //   }
+    //   
+    //   wsRef.current.onmessage = (event) => {
+    //     try {
+    //       const message = JSON.parse(event.data)
+    //       
+    //       switch (message.type) {
+    //         case 'initial_data':
+    //         case 'data_update':
+    //         case 'auto_update':
+    //           setRealTimeData(message.data)
+    //           setLoading(false)
+    //           break
+    //         case 'pong':
+    //           // 心跳回應
+    //           break
+    //         default:
+    //           console.log('收到未知訊息類型:', message.type)
+    //       }
+    //     } catch (error) {
+    //       console.error('解析 WebSocket 訊息失敗:', error)
+    //     }
+    //   }
+    //   
+    //   wsRef.current.onclose = () => {
+    //     console.log('WebSocket 連接已關閉')
+    //     setConnectionStatus('disconnected')
+    //     
+    //     // 自動重連
+    //     if (reconnectAttempts.current < maxReconnectAttempts && autoRefresh) {
+    //       reconnectAttempts.current++
+    //       const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000)
+    //       
+    //       reconnectTimeoutRef.current = setTimeout(() => {
+    //         console.log(`嘗試重連 (${reconnectAttempts.current}/${maxReconnectAttempts})`)
+    //         connectWebSocket()
+    //       }, delay)
+    //     }
+    //   }
+    //   
+    //   wsRef.current.onerror = (error) => {
+    //     console.error('WebSocket 錯誤:', error)
+    //     setConnectionStatus('disconnected')
+    //   }
+    //   
+    // } catch (error) {
+    //   console.error('建立 WebSocket 連接失敗:', error)
+    //   setConnectionStatus('disconnected')
+    //   // 如果 WebSocket 不可用，使用 HTTP 模式
+    //   fallbackToHttpMode()
+    // }
   }, [autoRefresh])
 
   // HTTP 模式備援
@@ -249,9 +256,10 @@ export default function VotesPage() {
     last_updated: new Date().toISOString()
   })
 
-  // 初始化連接
+  // 初始化連接 - 暫時禁用 WebSocket
   useEffect(() => {
-    connectWebSocket()
+    // connectWebSocket() // 暫時禁用以避免 ERR_BLOCKED_BY_CLIENT
+    fallbackToHttpMode() // 直接使用 HTTP 模式
     
     return () => {
       if (reconnectTimeoutRef.current) {

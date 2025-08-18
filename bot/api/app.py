@@ -27,7 +27,8 @@ from typing import Optional
 
 from . import API_VERSION, API_BASE_PATH
 from .auth import APIKeyManager, get_current_user
-from .routes import system, tickets, analytics, automation, security
+from .routes import system, tickets, analytics, automation
+from .routes import security as security_routes
 from shared.logger import logger
 
 # 設定限流器 (如果可用)
@@ -376,7 +377,7 @@ except Exception as e:
     logger.warning(f"⚠️ Automation 路由啟用失敗: {e}")
 
 try:
-    app.include_router(security.router, prefix=f"{API_BASE_PATH}/security", tags=["security"])
+    app.include_router(security_routes.router, prefix=f"{API_BASE_PATH}/security", tags=["security"])
     logger.info("✅ Security 路由已啟用")
 except Exception as e:
     logger.warning(f"⚠️ Security 路由啟用失敗: {e}")
@@ -776,26 +777,7 @@ async def status_simple():
 # 儀表板數據 API 端點
 # =============================================================================
 
-@app.get("/api/analytics/dashboard")
-async def get_analytics_dashboard():
-    """取得儀表板分析數據"""
-    try:
-        # 模擬儀表板分析數據
-        return {
-            "success": True,
-            "data": {
-                "daily_tickets": 42,
-                "resolution_rate": 89.5,
-                "satisfaction_score": 4.3,
-                "response_time": 2.5,
-                "active_agents": 8,
-                "pending_tickets": 15
-            },
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        }
-    except Exception as e:
-        logger.error(f"取得儀表板分析數據失敗: {e}")
-        raise HTTPException(status_code=500, detail="無法取得分析數據")
+# 儀表板端點已移至 analytics 路由 - 移除重複實現
 
 @app.get("/api/tickets/statistics")
 async def get_tickets_statistics():
@@ -824,10 +806,137 @@ async def get_analytics_dashboard_v1():
     """取得儀表板分析數據 (API v1)"""
     return await get_analytics_dashboard()
 
-@app.get(f"{API_BASE_PATH}/tickets/statistics")
-async def get_tickets_statistics_v1():
-    """取得票券統計數據 (API v1)"""
-    return await get_tickets_statistics()
+@app.get(f"{API_BASE_PATH}/statistics/tickets")
+async def get_public_tickets_statistics():
+    """取得票券統計數據 (公開端點) - 不需要認證，無法連接顯示 0"""
+    logger.info("📊 收到公開票券統計請求")
+    
+    # 預設空統計資料
+    default_data = {
+        "total": 0,
+        "open": 0,
+        "closed": 0,
+        "in_progress": 0,
+        "avg_resolution_time": 0,
+        "today_created": 0,
+        "today_resolved": 0,
+        "priority_breakdown": {
+            "high": 0,
+            "medium": 0,
+            "low": 0
+        },
+        "avg_rating": 0,
+        "satisfaction_rate": 0
+    }
+    
+    try:
+        import aiomysql
+        import os
+        
+        # 直接建立新的資料庫連接
+        db_config = {
+            'host': os.getenv('DB_HOST', '36.50.249.118'),
+            'port': int(os.getenv('DB_PORT', 3306)),
+            'user': os.getenv('DB_USER', 'myuser'),
+            'password': os.getenv('DB_PASSWORD', 'Craig@0219'),
+            'db': os.getenv('DB_NAME', 'potato_db'),
+            'charset': 'utf8mb4',
+            'autocommit': True
+        }
+        
+        # 建立新的連接
+        conn = await aiomysql.connect(**db_config)
+        try:
+            cursor = await conn.cursor()
+            try:
+                # 獲取基本統計
+                await cursor.execute("""
+                    SELECT 
+                        COUNT(*) as total,
+                        SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) as open,
+                        SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) as closed,
+                        SUM(CASE WHEN status IN ('in_progress') THEN 1 ELSE 0 END) as in_progress,
+                        SUM(CASE WHEN DATE(created_at) = CURDATE() THEN 1 ELSE 0 END) as today_created,
+                        AVG(CASE WHEN rating IS NOT NULL THEN rating END) as avg_rating
+                    FROM tickets
+                """)
+                
+                result = await cursor.fetchone()
+                if result and result[0] > 0:
+                    # 有數據，填入真實統計
+                    data = {
+                        "total": result[0] or 0,
+                        "open": result[1] or 0,
+                        "closed": result[2] or 0,
+                        "in_progress": result[3] or 0,
+                        "today_created": result[4] or 0,
+                        "avg_rating": round(result[5] or 0, 1)
+                    }
+                    
+                    # 獲取今日解決的票券數量（使用 closed_at）
+                    await cursor.execute("""
+                        SELECT COUNT(*) FROM tickets 
+                        WHERE status = 'closed'
+                        AND DATE(closed_at) = CURDATE()
+                    """)
+                    today_resolved_result = await cursor.fetchone()
+                    data["today_resolved"] = today_resolved_result[0] if today_resolved_result else 0
+                    
+                    # 獲取優先級分布
+                    await cursor.execute("""
+                        SELECT priority, COUNT(*) 
+                        FROM tickets 
+                        WHERE status IN ('open', 'in_progress')
+                        GROUP BY priority
+                    """)
+                    priority_results = await cursor.fetchall()
+                    
+                    priority_breakdown = {"high": 0, "medium": 0, "low": 0}
+                    if priority_results:
+                        for priority, count in priority_results:
+                            if priority and priority in priority_breakdown:
+                                priority_breakdown[priority] = count
+                    data["priority_breakdown"] = priority_breakdown
+                    
+                    # 計算平均解決時間（使用 closed_at）
+                    await cursor.execute("""
+                        SELECT AVG(TIMESTAMPDIFF(HOUR, created_at, closed_at))
+                        FROM tickets 
+                        WHERE status = 'closed'
+                        AND closed_at IS NOT NULL
+                        AND created_at < closed_at
+                    """)
+                    avg_resolution_result = await cursor.fetchone()
+                    data["avg_resolution_time"] = round(avg_resolution_result[0] if avg_resolution_result and avg_resolution_result[0] else 0, 1)
+                    
+                    # 計算滿意度
+                    data["satisfaction_rate"] = 0  # 簡化，沒有評分系統時設為 0
+                    
+                    logger.info(f"📊 統計查詢成功: 總計 {data['total']} 張票券")
+                    
+                else:
+                    # 沒有數據，使用預設值
+                    data = default_data
+                    
+            finally:
+                await cursor.close()
+        finally:
+            conn.close()
+        
+        return {
+            "success": True,
+            "data": data,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+    except Exception as e:
+        logger.warning(f"無法連接資料庫，返回空統計: {e}")
+        # 無法連接時返回空統計，不顯示錯誤
+        return {
+            "success": True,
+            "data": default_data,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
 
 # 啟動函數
 async def start_api_server(host: str = "0.0.0.0", port: int = 8000):

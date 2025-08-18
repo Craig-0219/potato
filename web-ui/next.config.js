@@ -2,7 +2,7 @@
 const nextConfig = {
   output: 'standalone',
   poweredByHeader: false,
-  reactStrictMode: true,
+  reactStrictMode: false, // 暫時禁用以解決認證狀態問題
   swcMinify: true,
   
   // 允許跨域開發請求
@@ -12,22 +12,35 @@ const nextConfig = {
   async rewrites() {
     const botApiUrl = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:8000'
     return [
-      // 代理到 Discord Bot API
+      // 代理到 Discord Bot API - 沒有 /v1 前綴的端點
       {
         source: '/api/system/:path*',
-        destination: `${botApiUrl}/api/system/:path*`,
+        destination: `${botApiUrl}/api/v1/system/:path*`,
       },
       {
         source: '/api/tickets/:path*',
-        destination: `${botApiUrl}/api/tickets/:path*`,
+        destination: `${botApiUrl}/api/v1/tickets/:path*`,
       },
       {
         source: '/api/analytics/:path*',
-        destination: `${botApiUrl}/api/analytics/:path*`,
+        destination: `${botApiUrl}/api/v1/analytics/:path*`,
       },
       {
         source: '/api/realtime/:path*',
         destination: `${botApiUrl}/api/realtime/:path*`,
+      },
+      // 代理到 Discord Bot API - 有 /v1 前綴的端點
+      {
+        source: '/api/v1/tickets/:path*',
+        destination: `${botApiUrl}/api/v1/tickets/:path*`,
+      },
+      {
+        source: '/api/v1/system/:path*',
+        destination: `${botApiUrl}/api/v1/system/:path*`,
+      },
+      {
+        source: '/api/v1/analytics/:path*',
+        destination: `${botApiUrl}/api/v1/analytics/:path*`,
       },
       {
         source: '/api/v1/:path*',

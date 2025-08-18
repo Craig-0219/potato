@@ -56,17 +56,45 @@ export default function ApiManagementPage() {
       setLoading(true)
       setError(null)
 
-      const [keysResponse, healthResponse, systemResponse] = await Promise.all([
-        ApiClient.system.apiKeys.list(),
-        ApiClient.system.health(),
-        ApiClient.system.metrics()
-      ])
+      // 優先使用公開版本的系統 API，認證版本僅用於 API 金鑰管理
+      let keysResponse, healthResponse, systemResponse
+      
+      try {
+        // 並行獲取數據：API 金鑰需要認證，系統指標使用公開版本
+        [keysResponse, healthResponse, systemResponse] = await Promise.all([
+          ApiClient.system.apiKeys.list().catch(() => ({ data: { data: [] } })), // 如果失敗返回空數組
+          ApiClient.system.publicHealth(),
+          ApiClient.system.publicMetrics()
+        ])
+      } catch (error: any) {
+        console.warn('API 調用失敗:', error)
+        // 設置默認值
+        keysResponse = { data: { data: [] } }
+        healthResponse = { data: { data: { status: 'unknown', components: {}, metrics: {} } } }
+        systemResponse = { data: { data: { cpu_usage: 0, memory_usage: 0, disk_usage: 0 } } }
+      }
 
       setApiKeys(keysResponse.data.data || [])
       
+      // 安全地合併系統健康數據和指標數據
+      const healthData = healthResponse.data.data || healthResponse.data || {}
+      const metricsData = systemResponse.data.data || systemResponse.data || {}
+      
       setSystemHealth({
-        ...healthResponse.data.data,
-        metrics: systemResponse.data.data
+        status: healthData.status || 'unknown',
+        timestamp: healthData.timestamp || new Date().toISOString(),
+        uptime: healthData.uptime || 0,
+        version: healthData.version || '1.8.0',
+        components: healthData.components || {},
+        metrics: {
+          cpu_usage: metricsData.cpu_usage || 0,
+          memory_usage: metricsData.memory_usage || 0,
+          disk_usage: metricsData.disk_usage || 0,
+          database_connections: metricsData.database_connections || 0,
+          active_tickets: metricsData.active_tickets || 0,
+          api_requests_per_minute: metricsData.api_requests_per_minute || 0,
+          bot_latency: metricsData.bot_latency || 0
+        }
       })
 
     } catch (err: any) {

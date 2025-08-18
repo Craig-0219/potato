@@ -15,6 +15,8 @@
 9. [🔧 系統管理使用指南](#系統管理使用指南)
 10. [🌐 Web 介面使用指南](#web-介面使用指南)
 11. [🔐 認證與權限管理](#認證與權限管理)
+12. [🚀 系統部署與維護](#系統部署與維護)
+13. [🔧 故障排除指南](#故障排除指南)
 
 ---
 
@@ -1080,24 +1082,433 @@ A: 指令會根據您的權限等級顯示，請確認您的角色權限
 
 ---
 
-## 📞 技術支援
+## 🌐 Web 介面使用指南
+
+Potato Bot 提供了功能豐富的 Web 管理界面，支援即時數據監控和系統管理。
+
+### 🚀 Web 界面訪問
+
+**訪問地址：** `http://your-server-ip:3000`
+
+**支援設備：**
+- 💻 桌面電腦（Windows、macOS、Linux）
+- 📱 智慧型手機（iOS、Android）
+- 📱 平板電腦（iPad、Android 平板）
+
+### 📊 主要功能頁面
+
+#### 🏠 管理儀表板 (`/dashboard`)
+**功能概覽：**
+- 📈 **票券統計** - 總數、開放、關閉、高優先級
+- 🖥️ **系統狀態** - 運行時間、CPU、記憶體使用率
+- ⚡ **快速操作** - 一鍵訪問常用功能
+
+**使用方法：**
+1. 訪問首頁自動載入儀表板
+2. 數據每 30 秒自動更新
+3. 點擊 🔄 刷新數據按鈕手動更新
+
+#### 🖥️ 系統監控 (`/system-monitor`)
+**實時監控：**
+- 📊 **系統資源** - CPU、記憶體、磁碟使用率
+- 🌐 **網路狀態** - 連接數、頻寬使用
+- 📈 **性能圖表** - 即時性能趨勢圖
+
+**進階功能：**
+- 歷史數據圖表
+- 告警設定
+- 性能分析報告
+
+#### 🎫 票券管理 (`/tickets`)
+**管理功能：**
+- 📋 **票券列表** - 分頁顯示所有票券
+- 🔍 **篩選搜尋** - 按狀態、優先級篩選
+- ⚙️ **狀態管理** - 更新票券狀態和優先級
+
+**權限說明：**
+- 👁️ **列表查看** - 需要管理員權限
+- ✏️ **狀態修改** - 需要寫入權限以上
+
+#### 📊 分析報告 (`/analytics`)
+**數據分析：**
+- 📈 **趨勢分析** - 票券趨勢、用戶活躍度
+- 📋 **統計報表** - 自定義時間範圍統計
+- 📊 **視覺化圖表** - 互動式數據圖表
+
+#### 🗳️ 投票系統 (`/votes`)
+**即時投票：**
+- 🔄 **WebSocket 即時更新** - 30 秒自動同步
+- 📊 **即時統計圖表** - 動態投票結果
+- 📱 **響應式設計** - 完美適配所有設備
+
+#### 🔧 API 管理 (`/api-management`)
+**權限管理：**
+- 🔑 **API 金鑰管理** - 創建、撤銷金鑰
+- 👥 **權限控制** - 四級權限架構
+- 📊 **使用統計** - 金鑰使用情況監控
+
+### 💡 使用技巧
+
+#### 響應式設計
+- **桌面** - 完整功能，多欄布局
+- **平板** - 適配布局，觸控優化
+- **手機** - 單欄布局，手勢導航
+
+#### 深色模式
+- 系統會自動偵測您的系統主題設定
+- 支援手動切換（如有相關功能）
+
+#### 鍵盤快捷鍵
+- `Ctrl + R` - 刷新頁面
+- `F5` - 重新載入數據
+- `Esc` - 關閉模態對話框
+
+---
+
+## 🔐 認證與權限管理
+
+Potato Bot 採用先進的 API 金鑰認證系統，提供多層次的權限控制。
+
+### 🎯 權限等級架構
+
+| 等級 | 代碼 | 權限範圍 | 適用對象 |
+|------|------|----------|----------|
+| 🔍 **唯讀** | `read_only` | 查看數據、生成報告 | 監控工具、一般用戶 |
+| ✏️ **讀寫** | `write` | 修改票券、回覆用戶 | 客服人員、版主 |
+| 👑 **管理員** | `admin` | 用戶管理、系統設定 | 伺服器管理員 |
+| 🎯 **超級管理員** | `super_admin` | 完整系統控制 | 系統管理員、開發者 |
+
+### 🔑 API 金鑰管理
+
+#### 創建管理員金鑰
+```bash
+# 在伺服器上執行
+cd /root/projects/potato
+
+python3 -c "
+import asyncio
+from bot.api.auth import APIKeyManager, PermissionLevel
+
+async def create_admin_key():
+    manager = APIKeyManager()
+    await manager.initialize()
+    raw_key, api_key = await manager.create_api_key(
+        name='Super Admin Key',
+        permission_level=PermissionLevel.SUPER_ADMIN,
+        expires_days=365
+    )
+    print(f'🔑 API Key: {raw_key}')
+    print(f'🆔 Key ID: {api_key.key_id}')
+
+asyncio.run(create_admin_key())
+"
+```
+
+#### 使用 API 金鑰
+**在程式中使用：**
+```javascript
+// HTTP 請求頭
+const headers = {
+    'Authorization': 'Bearer pk_your_32_character_api_key_here',
+    'Content-Type': 'application/json'
+};
+```
+
+### 🛡️ 安全最佳實踐
+
+1. **定期輪換金鑰** - 建議 3-6 個月更換
+2. **最小權限原則** - 僅授予必要權限
+3. **監控使用情況** - 定期檢查訪問日誌
+4. **安全儲存** - 使用環境變數保存金鑰
+
+---
+
+## 🚀 系統部署與維護
+
+### 📋 系統需求
+
+#### 硬體需求
+- **CPU**: 4核心以上（推薦 8核心）
+- **記憶體**: 8GB 以上（推薦 16GB）
+- **硬碟**: 100GB SSD（推薦 500GB）
+- **網路**: 100Mbps 上下行（推薦 1Gbps）
+
+#### 軟體需求
+- **作業系統**: Linux (Ubuntu 20.04+, CentOS 8+)
+- **Python**: 3.10+ (推薦 3.11)
+- **Node.js**: 18.17.0+ (推薦 20.x LTS)
+- **MySQL**: 8.0+ (推薦 8.0.35)
+- **Redis**: 6.0+ (推薦 7.0)
+
+### 🛠️ 快速部署
+
+#### 一鍵安裝腳本
+```bash
+# 下載專案
+git clone https://github.com/Craig-0219/potato.git
+cd potato
+
+# 安裝系統依賴
+sudo apt update
+sudo apt install python3.11 python3.11-pip nodejs npm mysql-server redis-server
+
+# 安裝 Python 依賴
+pip3 install -r requirements.txt
+
+# 設置環境變數
+cp .env.example .env
+# 編輯 .env 檔案，填入您的配置
+
+# 初始化資料庫
+python3 create_missing_tables.py
+
+# 安裝 Web UI 依賴
+cd web-ui
+npm install
+npm run build
+
+# 啟動服務
+cd ..
+python3 bot/main.py &  # 啟動 Discord Bot 和 API
+cd web-ui && npm start &  # 啟動 Web UI
+```
+
+#### Docker 部署 (推薦)
+```bash
+# 使用 Docker Compose
+docker-compose up -d
+
+# 檢查服務狀態
+docker-compose ps
+```
+
+### 📊 系統監控
+
+#### 關鍵指標監控
+```bash
+# CPU 和記憶體使用率
+htop
+
+# 網路連接狀況
+netstat -tulnp | grep -E "(3000|8000|3306)"
+
+# 磁碟空間使用
+df -h
+
+# 服務運行狀態
+systemctl status potato-bot
+systemctl status potato-web
+```
+
+#### 日誌檢查
+```bash
+# Discord Bot 日誌
+tail -f logs/bot.log
+
+# API 服務日誌
+tail -f logs/api.log
+
+# Web UI 日誌
+tail -f logs/web.log
+
+# 系統錯誤日誌
+tail -f logs/error.log
+```
+
+### 🔄 備份與恢復
+
+#### 數據備份
+```bash
+# MySQL 資料庫備份
+mysqldump -u root -p potato_bot > backup/potato_bot_$(date +%Y%m%d).sql
+
+# 設定檔備份
+tar -czf backup/config_$(date +%Y%m%d).tar.gz .env shared/config.py
+
+# 日誌備份
+tar -czf backup/logs_$(date +%Y%m%d).tar.gz logs/
+```
+
+#### 自動備份腳本
+```bash
+#!/bin/bash
+# backup.sh - 每日自動備份腳本
+
+BACKUP_DIR="/backup/potato-bot"
+DATE=$(date +%Y%m%d)
+
+# 創建備份目錄
+mkdir -p $BACKUP_DIR
+
+# 備份資料庫
+mysqldump -u root -p$DB_PASSWORD potato_bot > $BACKUP_DIR/db_$DATE.sql
+
+# 備份配置檔案
+cp .env $BACKUP_DIR/env_$DATE.bak
+
+# 清理舊備份（保留 30 天）
+find $BACKUP_DIR -name "*.sql" -mtime +30 -delete
+find $BACKUP_DIR -name "*.bak" -mtime +30 -delete
+
+echo "備份完成: $DATE"
+```
+
+---
+
+## 🔧 故障排除指南
+
+### 🚨 常見問題診斷
+
+#### 403 Forbidden 錯誤
+**問題現象：** 遠程訪問時出現 `403 Forbidden`
+
+**解決步驟：**
+1. 檢查 Next.js 代理設定
+2. 確認 FastAPI 服務運行正常
+3. 檢查防火牆設定
+4. 驗證 API 端點配置
+
+```bash
+# 檢查服務狀態
+curl http://localhost:8000/api/v1/system/public-health
+curl http://localhost:3000/api/system/public-health
+
+# 檢查代理配置
+cat web-ui/next.config.js | grep -A 10 "rewrites"
+```
+
+#### WebSocket 連接失敗
+**問題現象：** 即時數據無法更新
+
+**解決步驟：**
+1. 檢查 WebSocket 服務狀態
+2. 確認端口開放
+3. 檢查客戶端連接代碼
+4. 查看瀏覽器開發者工具
+
+```bash
+# 測試 WebSocket 連接
+wscat -c ws://localhost:8000/ws/votes
+
+# 檢查端口佔用
+netstat -tulnp | grep 8000
+```
+
+#### 資料庫連接問題
+**問題現象：** 數據載入失敗，出現資料庫錯誤
+
+**解決步驟：**
+1. 檢查 MySQL 服務狀態
+2. 確認連接字串正確
+3. 驗證使用者權限
+4. 檢查連接池設定
+
+```bash
+# 檢查 MySQL 狀態
+systemctl status mysql
+mysql -u root -p -e "SHOW PROCESSLIST;"
+
+# 測試連接
+python3 -c "
+from bot.db.pool import test_connection
+import asyncio
+asyncio.run(test_connection())
+"
+```
+
+#### 前端組件錯誤
+**問題現象：** React 運行時錯誤，頁面白屏
+
+**解決步驟：**
+1. 檢查瀏覽器開發者工具 Console
+2. 確認 API 數據結構
+3. 檢查組件 props 類型
+4. 驗證數據安全處理
+
+```javascript
+// 數據安全處理範例
+const safeData = {
+  ...apiResponse?.data || {},
+  metrics: {
+    cpu_usage: apiResponse?.data?.metrics?.cpu_usage || 0,
+    memory_usage: apiResponse?.data?.metrics?.memory_usage || 0,
+    bot_latency: apiResponse?.data?.metrics?.bot_latency || 0
+  }
+}
+```
+
+### 🛠️ 診斷工具
+
+#### 系統健康檢查
+```bash
+# 完整系統診斷
+python3 -c "
+import asyncio
+from bot.db.pool import get_db_health
+from bot.api.app import app
+
+async def health_check():
+    print('🔍 系統健康檢查...')
+    
+    # 資料庫健康檢查
+    db_status = await get_db_health()
+    print(f'📊 資料庫狀態: {db_status}')
+    
+    # API 服務檢查
+    print('🌐 API 服務: 正常運行')
+    
+    print('✅ 系統檢查完成')
+
+asyncio.run(health_check())
+"
+```
+
+#### 性能監控
+```bash
+# 系統資源監控
+top -p $(pgrep -f "python.*main.py")
+
+# 網路連接監控
+watch -n 1 "netstat -tulnp | grep -E '(3000|8000|3306)'"
+
+# 記憶體使用詳情
+ps aux | grep -E "(python|node)" | awk '{print $2, $4, $11}' | sort -k2 -nr
+```
+
+### 📞 技術支援
 
 如需協助，請：
 
 1. **查閱文檔** - 先查看本手冊和指令說明
-2. **使用幫助指令** - `/ticket_help`, `/vote_result help` 等
-3. **創建支援票券** - 使用票券系統報告問題
-4. **查看系統狀態** - 使用 `/system_status` 檢查系統
+2. **使用診斷工具** - 執行系統健康檢查
+3. **收集日誌** - 提供相關錯誤日誌
+4. **創建支援票券** - 使用票券系統報告問題
 
 **緊急聯絡方式：**
 - Discord 管理員頻道
 - 系統管理員私人訊息
 - 官方技術支援信箱
 
+**提供資訊：**
+- 系統版本資訊
+- 錯誤訊息截圖
+- 相關日誌檔案
+- 環境配置資訊
+
 ---
 
-**📝 手冊版本：** v2.1.0  
-**🕒 最後更新：** 2025-08-11  
-**📋 總頁數：** 約 50 頁
+## 📚 相關文檔
+
+- **[🔑 管理員權限設置指南](../system/ADMIN_PERMISSION_SETUP.md)** - 權限配置詳解
+- **[📊 專案狀態報告](../system/PROJECT_STATUS_REPORT_v3.0.1.md)** - 最新系統狀態
+- **[🚀 快速入門指南](QUICKSTART_v2.2.0.md)** - 部署安裝教學
+- **[📋 指令參考](COMMANDS.md)** - 完整指令清單
+
+---
+
+**📝 手冊版本：** v3.0.1  
+**🕒 最後更新：** 2025-08-17  
+**📋 總頁數：** 約 80 頁  
+**🎯 涵蓋功能：** 完整系統功能 + Web 介面 + 權限管理
 
 *本手冊持續更新中，如有疑問或建議，歡迎透過票券系統回報！*

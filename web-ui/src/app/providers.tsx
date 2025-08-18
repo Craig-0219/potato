@@ -32,7 +32,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         disableTransitionOnChange
       >
         <AuthProvider>
-          <BotConnectionProvider autoConnect={true}>
+          <BotConnectionProvider autoConnect={false}>
             {children}
           </BotConnectionProvider>
         </AuthProvider>
