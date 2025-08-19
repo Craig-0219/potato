@@ -113,10 +113,10 @@ export function LandingPage() {
             <div className="mx-auto max-w-md">
               <div className="card p-6">
                 <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
-                  使用 API 金鑰登入
+                  登入管理面板
                 </h2>
                 
-{/* 如果已認證，顯示前往儀表板按鈕 */}
+                {/* 如果已認證，顯示前往儀表板按鈕 */}
                 {isAuthenticated && !authLoading ? (
                   <div className="text-center space-y-4">
                     <div className="text-green-600 dark:text-green-400 mb-4">
@@ -138,24 +138,55 @@ export function LandingPage() {
                     <p className="text-gray-600 dark:text-gray-400">正在檢查認證狀態...</p>
                   </div>
                 ) : (
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                      <label htmlFor="apiKey" className="form-label">
-                        API 金鑰
-                      </label>
-                      <input
-                        id="apiKey"
-                        type="password"
-                        value={apiKey}
-                        onChange={(e) => setApiKey(e.target.value)}
-                        className="form-input"
-                        placeholder="pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  <div className="space-y-4">
+                    {/* Discord OAuth 登入 (主要方式) */}
+                    <div className="space-y-3">
+                      <button
+                        onClick={() => router.push('/auth/discord')}
+                        className="w-full flex items-center justify-center px-4 py-3 bg-discord-500 hover:bg-discord-600 text-white font-medium rounded-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
                         disabled={isLoading}
-                      />
-                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        請輸入您的 Potato Bot API 金鑰
+                      >
+                        <div className="flex items-center space-x-3">
+                          <span className="text-xl">💬</span>
+                          <span>使用 Discord 帳號登入</span>
+                        </div>
+                      </button>
+                      <p className="text-xs text-center text-gray-500 dark:text-gray-400">
+                        推薦方式 - 使用您的 Discord 帳號快速登入
                       </p>
                     </div>
+
+                    {/* 分隔線 */}
+                    <div className="relative my-6">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="bg-white dark:bg-gray-800 px-2 text-gray-500 dark:text-gray-400">
+                          或使用 API 金鑰
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* API 金鑰登入 (備用方式) */}
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                      <div>
+                        <label htmlFor="apiKey" className="form-label">
+                          API 金鑰
+                        </label>
+                        <input
+                          id="apiKey"
+                          type="password"
+                          value={apiKey}
+                          onChange={(e) => setApiKey(e.target.value)}
+                          className="form-input"
+                          placeholder="pk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                          disabled={isLoading}
+                        />
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          備用登入方式 - 請輸入您的 API 金鑰
+                        </p>
+                      </div>
                     
                     <button
                       type="submit"
@@ -170,8 +201,9 @@ export function LandingPage() {
                       ) : (
                         '登入管理面板'
                       )}
-                    </button>
-                  </form>
+                      </button>
+                    </form>
+                  </div>
                 )}
 
                 <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
@@ -229,9 +261,9 @@ export function LandingPage() {
 
             {/* 版本信息 */}
             <div className="mt-8 text-sm text-gray-500 dark:text-gray-400">
-              Potato Bot Dashboard v1.8.0
+              Potato Bot Dashboard v2.3.0
               <br />
-              現代化企業級 Discord 管理系統
+              企業級 Discord 管理系統 - 整合 Web 管理界面
             </div>
           </div>
         </div>

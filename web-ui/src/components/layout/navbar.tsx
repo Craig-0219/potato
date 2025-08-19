@@ -17,6 +17,7 @@ export function Navbar() {
     { name: '儀表板', href: '/dashboard', icon: '📊' },
     { name: '票券管理', href: '/tickets', icon: '🎫' },
     { name: '投票統計', href: '/votes', icon: '🗳️' },
+    { name: 'Bot 管理', href: '/bot-management', icon: '🤖' },
     { name: '分析報告', href: '/analytics', icon: '📈' },
     { name: 'API 管理', href: '/api-management', icon: '🔧' },
     { name: '系統監控', href: '/system-monitor', icon: '🖥️' },

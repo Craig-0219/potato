@@ -370,6 +370,14 @@ try:
 except Exception as e:
     logger.warning(f"⚠️ Analytics 路由啟用失敗: {e}")
 
+# OAuth 認證路由
+try:
+    from .routes import oauth
+    app.include_router(oauth.router, prefix=f"{API_BASE_PATH}/auth", tags=["oauth"])
+    logger.info("✅ OAuth 路由已啟用")
+except Exception as e:
+    logger.warning(f"⚠️ OAuth 路由啟用失敗: {e}")
+
 try:
     app.include_router(automation.router, prefix=f"{API_BASE_PATH}/automation", tags=["automation"])
     logger.info("✅ Automation 路由已啟用")

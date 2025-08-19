@@ -46,6 +46,11 @@ const nextConfig = {
         source: '/api/v1/:path*',
         destination: `${botApiUrl}/api/v1/:path*`,
       },
+      // Discord OAuth 回調代理
+      {
+        source: '/auth/discord/callback',
+        destination: `${botApiUrl}/api/v1/auth/discord/callback`,
+      },
       // 原有的代理配置
       {
         source: '/api/proxy/:path*',
@@ -59,7 +64,7 @@ const nextConfig = {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
     API_BASE_URL: process.env.API_BASE_URL || 'http://localhost:8000/api/v1',
     APP_NAME: 'Potato Bot Dashboard',
-    APP_VERSION: '2.2.0',
+    APP_VERSION: '2.3.0',
   },
 
   // PWA 相關設置

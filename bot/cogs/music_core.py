@@ -1,840 +1,647 @@
-# bot/cogs/music_core.py - 音樂娛樂指令模組
+# bot/cogs/music_core.py - 音樂系統核心
 """
-音樂娛樂指令模組 v2.2.0
-提供音樂播放、歌詞查看、音樂問答等功能的Discord指令
+Discord Bot 音樂系統 v2.3.0
+支援 YouTube 直接播放和 Discord GUI 控制介面
 """
 
 import discord
 from discord.ext import commands
-from discord import app_commands
-from typing import Dict, List, Optional, Any, Tuple
+from discord import app_commands, FFmpegPCMAudio, FFmpegOpusAudio
+from typing import Dict, List, Optional, Any, Union
 import asyncio
-import random
-import time
-from datetime import datetime, timezone
+import yt_dlp
+import urllib.parse
+import re
+from datetime import datetime, timedelta
+from enum import Enum
+import logging
 
-from bot.services.music_player import MusicPlayer, MusicSource, PlaybackState, RepeatMode
-from bot.services.economy_manager import EconomyManager
 from bot.utils.embed_builder import EmbedBuilder
-from shared.cache_manager import cache_manager
-from shared.prometheus_metrics import prometheus_metrics, track_command_execution
 from shared.logger import logger
 
-class MusicCog(commands.Cog):
-    """音樂娛樂功能"""
+# 禁用yt-dlp日誌
+logging.getLogger('yt_dlp').setLevel(logging.ERROR)
+
+class LoopMode(Enum):
+    """循環模式"""
+    NONE = "none"
+    SINGLE = "single" 
+    QUEUE = "queue"
+
+class MusicSource:
+    """音樂來源"""
+    def __init__(self, data: dict, requester: discord.Member):
+        self.title = data.get('title', 'Unknown')
+        self.url = data.get('url', '')
+        self.webpage_url = data.get('webpage_url', '')
+        self.duration = data.get('duration', 0)
+        self.thumbnail = data.get('thumbnail', '')
+        self.uploader = data.get('uploader', 'Unknown')
+        self.requester = requester
+        self.stream_url = data.get('formats', [{}])[0].get('url', '') if data.get('formats') else ''
+        
+    def __str__(self):
+        return f"**{self.title}** - {self.requester.mention}"
+        
+    @property
+    def duration_str(self) -> str:
+        """格式化時長"""
+        if not self.duration:
+            return "未知"
+        hours, remainder = divmod(self.duration, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        if hours:
+            return f"{hours}:{minutes:02d}:{seconds:02d}"
+        return f"{minutes}:{seconds:02d}"
+
+class MusicPlayer:
+    """音樂播放器"""
+    
+    def __init__(self, ctx: commands.Context):
+        self.bot = ctx.bot
+        self.guild = ctx.guild
+        self.channel = ctx.channel
+        self.cog = ctx.cog
+        
+        self.queue: List[MusicSource] = []
+        self.current: Optional[MusicSource] = None
+        self.voice_client: Optional[discord.VoiceClient] = None
+        self.loop_mode = LoopMode.NONE
+        self.volume = 0.5
+        self.is_playing = False
+        self.is_paused = False
+        self.skip_votes = set()
+        
+        # YT-DLP 配置
+        self.ytdl_format_options = {
+            'format': 'bestaudio/best',
+            'extractaudio': True,
+            'audioformat': 'mp3',
+            'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
+            'restrictfilenames': True,
+            'noplaylist': True,
+            'nocheckcertificate': True,
+            'ignoreerrors': False,
+            'logtostderr': False,
+            'quiet': True,
+            'no_warnings': True,
+            'default_search': 'auto',
+            'source_address': '0.0.0.0',
+        }
+        
+        self.ffmpeg_options = {
+            'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+            'options': '-vn'
+        }
+        
+        self.ytdl = yt_dlp.YoutubeDL(self.ytdl_format_options)
+        
+    async def connect_to_voice(self, channel: discord.VoiceChannel):
+        """連接到語音頻道"""
+        try:
+            if self.voice_client and self.voice_client.is_connected():
+                if self.voice_client.channel != channel:
+                    await self.voice_client.move_to(channel)
+                    logger.info(f"🔄 移動到語音頻道: {channel.name}")
+                else:
+                    logger.info(f"✅ 已在語音頻道: {channel.name}")
+            else:
+                self.voice_client = await channel.connect()
+                logger.info(f"🔗 連接到語音頻道: {channel.name}")
+        except Exception as e:
+            logger.error(f"❌ 語音連接失敗: {e}")
+            await self.send_embed("❌ 連接失敗", f"無法連接到語音頻道: {str(e)}", "error")
+            raise
+            
+    async def disconnect(self):
+        """斷開語音連接"""
+        if self.voice_client:
+            await self.voice_client.disconnect()
+            self.voice_client = None
+            
+    async def add_song(self, url_or_search: str, requester: discord.Member) -> Optional[MusicSource]:
+        """添加歌曲到播放列表"""
+        try:
+            # 檢查是否為 YouTube URL
+            if not self.is_youtube_url(url_or_search):
+                # 如果不是URL，進行搜索
+                url_or_search = f"ytsearch:{url_or_search}"
+                
+            # 提取音樂信息
+            data = await self.extract_info(url_or_search)
+            if not data:
+                return None
+                
+            # 如果是播放列表，取第一首歌
+            if 'entries' in data:
+                if not data['entries']:
+                    return None
+                data = data['entries'][0]
+                
+            source = MusicSource(data, requester)
+            self.queue.append(source)
+            
+            return source
+            
+        except Exception as e:
+            logger.error(f"添加歌曲失敗: {e}")
+            return None
+            
+    async def extract_info(self, url: str) -> Optional[dict]:
+        """提取音樂信息"""
+        try:
+            loop = asyncio.get_event_loop()
+            data = await loop.run_in_executor(
+                None, 
+                lambda: self.ytdl.extract_info(url, download=False)
+            )
+            return data
+        except Exception as e:
+            logger.error(f"提取音樂信息失敗: {e}")
+            return None
+            
+    def is_youtube_url(self, url: str) -> bool:
+        """檢查是否為有效的 YouTube URL"""
+        youtube_regex = re.compile(
+            r'(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/'
+            r'(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})'
+        )
+        return bool(youtube_regex.match(url))
+        
+    async def play_next(self):
+        """播放下一首歌曲"""
+        if self.loop_mode == LoopMode.SINGLE and self.current:
+            # 單曲循環
+            next_song = self.current
+        elif self.queue:
+            # 播放列表中的下一首
+            next_song = self.queue.pop(0)
+            if self.loop_mode == LoopMode.QUEUE and self.current:
+                # 隊列循環，將當前歌曲加回列表末尾
+                self.queue.append(self.current)
+        else:
+            # 沒有更多歌曲
+            self.current = None
+            self.is_playing = False
+            await self.send_embed("🎵 播放列表已結束", "所有歌曲播放完畢", "info")
+            return
+            
+        self.current = next_song
+        
+        try:
+            # 獲取音頻流
+            data = await self.extract_info(self.current.webpage_url)
+            if not data:
+                await self.play_next()
+                return
+                
+            # 找到最佳音頻格式
+            formats = data.get('formats', [])
+            audio_url = None
+            
+            for fmt in formats:
+                if fmt.get('acodec') != 'none':  # 確保有音頻
+                    audio_url = fmt.get('url')
+                    break
+                    
+            if not audio_url:
+                await self.play_next()
+                return
+                
+            # 創建音頻源
+            try:
+                source = FFmpegPCMAudio(audio_url, **self.ffmpeg_options)
+                logger.info(f"🎵 創建音頻源成功: {self.current.title}")
+            except Exception as e:
+                logger.error(f"❌ 創建音頻源失敗: {e}")
+                await self.send_embed("❌ 播放錯誤", f"音頻源創建失敗: {str(e)}", "error")
+                await self.play_next()
+                return
+            
+            # 播放音樂
+            try:
+                self.voice_client.play(
+                    source, 
+                    after=lambda e: asyncio.run_coroutine_threadsafe(
+                        self.play_next(), 
+                        self.bot.loop
+                    ).result() if not e else logger.error(f"播放錯誤: {e}")
+                )
+                logger.info(f"🎵 開始播放: {self.current.title}")
+            except Exception as e:
+                logger.error(f"❌ 播放失敗: {e}")
+                await self.send_embed("❌ 播放錯誤", f"無法播放音樂: {str(e)}", "error")
+                await self.play_next()
+                return
+            
+            self.is_playing = True
+            self.is_paused = False
+            
+            # 發送正在播放信息
+            await self.send_now_playing()
+            
+        except Exception as e:
+            logger.error(f"播放錯誤: {e}")
+            await self.send_embed("❌ 播放錯誤", str(e), "error")
+            await self.play_next()
+            
+    async def pause(self):
+        """暫停播放"""
+        if self.voice_client and self.voice_client.is_playing():
+            self.voice_client.pause()
+            self.is_paused = True
+            
+    async def resume(self):
+        """恢復播放"""
+        if self.voice_client and self.voice_client.is_paused():
+            self.voice_client.resume()
+            self.is_paused = False
+            
+    async def stop(self):
+        """停止播放"""
+        if self.voice_client:
+            self.voice_client.stop()
+            self.queue.clear()
+            self.current = None
+            self.is_playing = False
+            self.is_paused = False
+            
+    async def skip(self, force: bool = False):
+        """跳過當前歌曲"""
+        if not force:
+            # 需要投票跳過
+            return False
+            
+        if self.voice_client and self.voice_client.is_playing():
+            self.voice_client.stop()
+            
+        return True
+        
+    async def set_volume(self, volume: float):
+        """設置音量"""
+        self.volume = max(0.0, min(1.0, volume))
+        if self.voice_client and hasattr(self.voice_client.source, 'volume'):
+            self.voice_client.source.volume = self.volume
+            
+    async def send_embed(self, title: str, description: str, color: str = "info"):
+        """發送嵌入消息"""
+        if color == "success":
+            embed = EmbedBuilder.create_success_embed(title, description)
+        elif color == "error":
+            embed = EmbedBuilder.create_error_embed(title, description)
+        elif color == "warning":
+            embed = EmbedBuilder.create_warning_embed(title, description)
+        else:
+            embed = EmbedBuilder.create_info_embed(title, description)
+            
+        await self.channel.send(embed=embed)
+        
+    async def send_now_playing(self):
+        """發送正在播放信息"""
+        if not self.current:
+            return
+            
+        embed = EmbedBuilder.create_info_embed(
+            "🎵 正在播放",
+            f"**{self.current.title}**"
+        )
+        
+        embed.add_field(
+            name="詳細信息",
+            value=f"👤 上傳者: {self.current.uploader}\n"
+                  f"⏱️ 時長: {self.current.duration_str}\n"
+                  f"🎧 點播者: {self.current.requester.mention}",
+            inline=True
+        )
+        
+        if self.queue:
+            embed.add_field(
+                name="播放列表",
+                value=f"📝 還有 {len(self.queue)} 首歌曲等待播放",
+                inline=True
+            )
+            
+        embed.add_field(
+            name="播放模式",
+            value=f"🔁 {self.loop_mode.value}",
+            inline=True
+        )
+        
+        if self.current.thumbnail:
+            embed.set_thumbnail(url=self.current.thumbnail)
+            
+        await self.channel.send(embed=embed)
+
+class MusicCore(commands.Cog):
+    """音樂系統核心"""
     
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.music_player = MusicPlayer(bot)
-        self.economy_manager = EconomyManager()
+        self.players: Dict[int, MusicPlayer] = {}
+        logger.info("🎵 音樂系統核心初始化完成")
         
-        # 音樂服務費用 (金幣)
-        self.music_costs = {
-            "search": 3,
-            "lyrics": 5,
-            "quiz": 8,
-            "playlist_create": 10,
-            "premium_features": 15
-        }
+    def get_player(self, ctx: commands.Context) -> MusicPlayer:
+        """獲取音樂播放器"""
+        if ctx.guild.id not in self.players:
+            self.players[ctx.guild.id] = MusicPlayer(ctx)
+        return self.players[ctx.guild.id]
+    
+    async def _create_context_from_interaction(self, interaction: discord.Interaction):
+        """從互動創建context"""
+        # 創建一個假的 context 對象
+        class FakeContext:
+            def __init__(self, interaction, cog):
+                self.bot = interaction.client
+                self.guild = interaction.guild
+                self.channel = interaction.channel
+                self.cog = cog
+                self.user = interaction.user
+                self.author = interaction.user
+                
+        return FakeContext(interaction, self)
         
-        # 每日免費額度
-        self.daily_free_quota = 20
+    def cog_check(self, ctx):
+        """Cog檢查：確保在伺服器中使用"""
+        return ctx.guild is not None
         
-        logger.info("🎵 音樂娛樂指令模組初始化完成")
-
-    # ========== 基礎播放控制 ==========
-
-    @app_commands.command(name="play", description="播放音樂")
-    @app_commands.describe(query="搜尋關鍵詞或歌曲名稱")
-    async def play_music(self, interaction: discord.Interaction, query: str):
-        """播放音樂"""
+    async def cog_command_error(self, ctx, error):
+        """Cog錯誤處理"""
+        logger.error(f"音樂指令錯誤: {error}")
+        
+    @app_commands.command(name="play", description="🎵 播放音樂 - 支援 YouTube 網址或搜索關鍵字")
+    async def play(self, interaction: discord.Interaction, url_or_search: str):
+        """播放音樂指令"""
         try:
             await interaction.response.defer()
             
-            # 檢查語音頻道
-            if not interaction.user.voice:
-                await interaction.followup.send("❌ 請先加入語音頻道！", ephemeral=True)
-                return
-            
-            voice_channel = interaction.user.voice.channel
-            
-            # 檢查使用權限
-            can_use, cost_info = await self._check_usage_permission(
-                interaction.user.id, interaction.guild.id, "search"
-            )
-            
-            if not can_use:
-                embed = EmbedBuilder.build(
-                    title="❌ 使用受限",
-                    description=cost_info["message"],
-                    color=0xFF0000
+            # 檢查用戶是否在語音頻道
+            if not interaction.user.voice or not interaction.user.voice.channel:
+                embed = EmbedBuilder.create_error_embed(
+                    "❌ 請先加入語音頻道",
+                    "您需要先加入一個語音頻道才能播放音樂"
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
+                
+            # 創建臨時context用於播放器
+            ctx = await self._create_context_from_interaction(interaction)
+            player = self.get_player(ctx)
             
-            # 搜尋音樂
-            tracks = await self.music_player.search_youtube(query, max_results=1)
-            if not tracks:
-                await interaction.followup.send("❌ 找不到相關音樂，請嘗試其他關鍵詞。", ephemeral=True)
+            # 連接到語音頻道
+            await player.connect_to_voice(interaction.user.voice.channel)
+            
+            # 添加歌曲
+            source = await player.add_song(url_or_search, interaction.user)
+            
+            if not source:
+                embed = EmbedBuilder.create_error_embed(
+                    "❌ 無法播放",
+                    "無法找到或播放此音樂，請檢查網址或搜索關鍵字"
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
                 return
-            
-            track = tracks[0]
-            track.requested_by = interaction.user.id
-            
-            # 獲取或創建音樂會話
-            session = await self.music_player.get_session(interaction.guild.id)
-            if not session:
-                session = await self.music_player.create_session(
-                    interaction.guild.id,
-                    interaction.channel.id,
-                    voice_channel.id
-                )
-            
-            # 添加到播放佇列或直接播放
-            if session.current_track is None:
-                # 直接播放
-                success = await self.music_player.play_track(interaction.guild.id, track)
-                if success:
-                    action = "🎵 開始播放"
-                else:
-                    await interaction.followup.send("❌ 播放失敗，請稍後再試。", ephemeral=True)
-                    return
-            else:
-                # 添加到佇列
-                await self.music_player.add_to_queue(interaction.guild.id, track)
-                action = "➕ 已添加到播放佇列"
-            
-            # 扣除費用
-            if cost_info["cost"] > 0:
-                await self.economy_manager.add_coins(
-                    interaction.user.id, interaction.guild.id, -cost_info["cost"]
-                )
-            
-            # 記錄使用量
-            await self._record_daily_usage(interaction.user.id)
-            
-            embed = EmbedBuilder.build(
-                title=action,
-                description=f"**{track.title}**\n{track.artist}",
-                color=0x00FF00
+                
+            # 如果沒有正在播放，開始播放
+            if not player.is_playing:
+                await player.play_next()
+                
+            embed = EmbedBuilder.create_success_embed(
+                "✅ 已添加到播放列表",
+                f"**{source.title}**\n👤 {source.uploader}\n⏱️ {source.duration_str}"
             )
             
-            embed.set_thumbnail(url=track.thumbnail)
-            
-            embed.add_field(
-                name="📊 播放資訊",
-                value=f"時長: {self._format_duration(track.duration)}\n"
-                      f"來源: {track.source.value.title()}\n"
-                      f"請求者: {interaction.user.mention}" +
-                      (f"\n消耗金幣: {cost_info['cost']}🪙" if cost_info["cost"] > 0 else ""),
-                inline=True
-            )
-            
-            # 顯示佇列資訊
-            if session.queue:
+            if player.queue or player.current != source:
                 embed.add_field(
-                    name="📋 播放佇列",
-                    value=f"佇列中有 {len(session.queue)} 首歌曲",
+                    name="排隊位置",
+                    value=f"第 {len(player.queue)} 位",
                     inline=True
                 )
-            
+                
+            if source.thumbnail:
+                embed.set_thumbnail(url=source.thumbnail)
+                
             await interaction.followup.send(embed=embed)
             
-            # 記錄指標
-            track_command_execution("play", interaction.guild.id)
-            
         except Exception as e:
-            logger.error(f"❌ 播放音樂錯誤: {e}")
-            await interaction.followup.send("❌ 播放音樂時發生錯誤，請稍後再試。", ephemeral=True)
-
-    @app_commands.command(name="pause", description="暫停音樂播放")
-    async def pause_music(self, interaction: discord.Interaction):
-        """暫停音樂"""
-        try:
-            success = await self.music_player.pause_playback(interaction.guild.id)
-            
-            if success:
-                embed = EmbedBuilder.build(
-                    title="⏸️ 音樂已暫停",
-                    description="使用 `/resume` 繼續播放",
-                    color=0xFFAA00
-                )
-            else:
-                embed = EmbedBuilder.build(
-                    title="❌ 暫停失敗",
-                    description="目前沒有正在播放的音樂",
-                    color=0xFF0000
-                )
-            
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            
-        except Exception as e:
-            logger.error(f"❌ 暫停音樂錯誤: {e}")
-            await interaction.response.send_message("❌ 暫停音樂時發生錯誤。", ephemeral=True)
-
-    @app_commands.command(name="resume", description="恢復音樂播放")
-    async def resume_music(self, interaction: discord.Interaction):
-        """恢復音樂"""
-        try:
-            success = await self.music_player.resume_playback(interaction.guild.id)
-            
-            if success:
-                embed = EmbedBuilder.build(
-                    title="▶️ 音樂已恢復",
-                    description="繼續播放中...",
-                    color=0x00FF00
-                )
-            else:
-                embed = EmbedBuilder.build(
-                    title="❌ 恢復失敗",
-                    description="沒有暫停的音樂",
-                    color=0xFF0000
-                )
-            
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            
-        except Exception as e:
-            logger.error(f"❌ 恢復音樂錯誤: {e}")
-            await interaction.response.send_message("❌ 恢復音樂時發生錯誤。", ephemeral=True)
-
-    @app_commands.command(name="stop", description="停止音樂播放")
-    async def stop_music(self, interaction: discord.Interaction):
-        """停止音樂"""
-        try:
-            success = await self.music_player.stop_playback(interaction.guild.id)
-            
-            if success:
-                embed = EmbedBuilder.build(
-                    title="⏹️ 音樂已停止",
-                    description="播放佇列已保留",
-                    color=0xFF0000
-                )
-            else:
-                embed = EmbedBuilder.build(
-                    title="❌ 停止失敗",
-                    description="目前沒有正在播放的音樂",
-                    color=0xFF0000
-                )
-            
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            
-        except Exception as e:
-            logger.error(f"❌ 停止音樂錯誤: {e}")
-            await interaction.response.send_message("❌ 停止音樂時發生錯誤。", ephemeral=True)
-
-    @app_commands.command(name="skip", description="跳過當前歌曲")
-    async def skip_track(self, interaction: discord.Interaction):
-        """跳過歌曲"""
-        try:
-            next_track = await self.music_player.skip_track(interaction.guild.id)
-            
-            if next_track:
-                embed = EmbedBuilder.build(
-                    title="⏭️ 已跳過當前歌曲",
-                    description=f"現在播放: **{next_track.title}**\n{next_track.artist}",
-                    color=0x00AAFF
-                )
-                embed.set_thumbnail(url=next_track.thumbnail)
-            else:
-                embed = EmbedBuilder.build(
-                    title="❌ 跳過失敗",
-                    description="播放佇列是空的",
-                    color=0xFF0000
-                )
-            
-            await interaction.response.send_message(embed=embed)
-            
-        except Exception as e:
-            logger.error(f"❌ 跳過歌曲錯誤: {e}")
-            await interaction.response.send_message("❌ 跳過歌曲時發生錯誤。", ephemeral=True)
-
-    # ========== 播放佇列管理 ==========
-
-    @app_commands.command(name="queue", description="查看播放佇列")
-    async def view_queue(self, interaction: discord.Interaction):
-        """查看播放佇列"""
-        try:
-            session = await self.music_player.get_session(interaction.guild.id)
-            
-            if not session:
-                await interaction.response.send_message("❌ 目前沒有音樂會話。", ephemeral=True)
-                return
-            
-            embed = EmbedBuilder.build(
-                title="📋 播放佇列",
-                color=0x9B59B6
+            logger.error(f"播放指令錯誤: {e}")
+            embed = EmbedBuilder.create_error_embed(
+                "❌ 系統錯誤",
+                "音樂播放系統暫時無法使用，請稍後再試"
             )
+            await interaction.followup.send(embed=embed, ephemeral=True)
             
-            # 當前播放
-            if session.current_track:
+    @app_commands.command(name="music_control", description="🎛️ 音樂控制面板")
+    async def music_control(self, interaction: discord.Interaction):
+        """音樂控制面板"""
+        try:
+            # 檢查互動是否已被處理
+            if interaction.response.is_done():
+                logger.warning("音樂控制面板互動已被處理")
+                return
+                
+            # 立即延遲回應，避免超時
+            await interaction.response.defer()
+            
+            ctx = await self._create_context_from_interaction(interaction)
+            player = self.get_player(ctx)
+            
+            # 檢查語音連接狀態（但不阻止進入控制面板）
+            is_connected = player.voice_client and player.voice_client.is_connected()
+                
+            # 創建控制面板
+            from bot.views.music_views import MusicControlView
+            
+            if is_connected:
+                embed = EmbedBuilder.create_info_embed(
+                    "🎛️ 音樂控制面板",
+                    "使用下方按鈕控制音樂播放"
+                )
+            else:
+                embed = EmbedBuilder.create_warning_embed(
+                    "🎛️ 音樂控制面板",
+                    "Bot 目前未連接語音頻道，請先使用 `/play` 播放音樂"
+                )
+            
+            if player.current:
                 embed.add_field(
                     name="🎵 正在播放",
-                    value=f"**{session.current_track.title}**\n{session.current_track.artist}",
+                    value=f"**{player.current.title}**\n"
+                          f"👤 {player.current.uploader}\n"
+                          f"🎧 {player.current.requester.mention}",
                     inline=False
                 )
-            
-            # 佇列內容
-            if session.queue:
-                queue_text = []
-                for i, track in enumerate(session.queue[:10]):  # 只顯示前10首
-                    queue_text.append(f"{i+1}. **{track.title}** - {track.artist}")
                 
-                embed.add_field(
-                    name=f"📝 佇列 ({len(session.queue)} 首)",
-                    value="\n".join(queue_text) + 
-                          (f"\n... 還有 {len(session.queue)-10} 首" if len(session.queue) > 10 else ""),
-                    inline=False
-                )
-            else:
-                embed.add_field(
-                    name="📝 佇列",
-                    value="佇列是空的",
-                    inline=False
-                )
-            
             # 播放狀態
-            embed.add_field(
-                name="⚙️ 播放設定",
-                value=f"狀態: {session.state.value.title()}\n"
-                      f"重複: {session.repeat_mode.value.title()}\n"
-                      f"隨機: {'開啟' if session.shuffle else '關閉'}\n"
-                      f"音量: {int(session.volume * 100)}%",
-                inline=True
-            )
-            
-            await interaction.response.send_message(embed=embed)
-            
-        except Exception as e:
-            logger.error(f"❌ 查看佇列錯誤: {e}")
-            await interaction.response.send_message("❌ 查看佇列時發生錯誤。", ephemeral=True)
-
-    @app_commands.command(name="shuffle", description="隨機播放佇列")
-    async def shuffle_queue(self, interaction: discord.Interaction):
-        """隨機播放"""
-        try:
-            success = await self.music_player.shuffle_queue(interaction.guild.id)
-            
-            if success:
-                embed = EmbedBuilder.build(
-                    title="🔀 佇列已隨機排列",
-                    description="播放順序已打亂",
-                    color=0x9B59B6
-                )
+            if is_connected:
+                status = f"{'⏸️ 暫停' if player.is_paused else '▶️ 播放' if player.is_playing else '⏹️ 停止'}"
             else:
-                embed = EmbedBuilder.build(
-                    title="❌ 隨機失敗",
-                    description="佇列中歌曲不足",
-                    color=0xFF0000
-                )
-            
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            
-        except Exception as e:
-            logger.error(f"❌ 隨機播放錯誤: {e}")
-            await interaction.response.send_message("❌ 隨機播放時發生錯誤。", ephemeral=True)
-
-    @app_commands.command(name="clear", description="清空播放佇列")
-    async def clear_queue(self, interaction: discord.Interaction):
-        """清空佇列"""
-        try:
-            cleared_count = await self.music_player.clear_queue(interaction.guild.id)
-            
-            embed = EmbedBuilder.build(
-                title="🗑️ 佇列已清空",
-                description=f"已移除 {cleared_count} 首歌曲",
-                color=0xFF6B6B
+                status = "🔌 未連接"
+                
+            embed.add_field(
+                name="📊 播放狀態", 
+                value=f"{status}\n"
+                      f"🔊 音量: {int(player.volume * 100)}%\n"
+                      f"🔁 循環: {getattr(player.loop_mode, 'value', 'none')}",
+                inline=True
             )
             
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            
-        except Exception as e:
-            logger.error(f"❌ 清空佇列錯誤: {e}")
-            await interaction.response.send_message("❌ 清空佇列時發生錯誤。", ephemeral=True)
-
-    # ========== 音樂搜尋 ==========
-
-    @app_commands.command(name="search", description="搜尋音樂")
-    @app_commands.describe(
-        query="搜尋關鍵詞",
-        results="結果數量 (1-10)"
-    )
-    async def search_music(self, interaction: discord.Interaction, query: str, results: int = 5):
-        """搜尋音樂"""
-        try:
-            await interaction.response.defer()
-            
-            # 限制結果數量
-            results = max(1, min(10, results))
-            
-            # 檢查使用權限
-            can_use, cost_info = await self._check_usage_permission(
-                interaction.user.id, interaction.guild.id, "search"
-            )
-            
-            if not can_use:
-                embed = EmbedBuilder.build(
-                    title="❌ 使用受限",
-                    description=cost_info["message"],
-                    color=0xFF0000
-                )
-                await interaction.followup.send(embed=embed, ephemeral=True)
-                return
-            
-            # 搜尋音樂
-            tracks = await self.music_player.search_youtube(query, max_results=results)
-            
-            if not tracks:
-                await interaction.followup.send("❌ 找不到相關音樂，請嘗試其他關鍵詞。", ephemeral=True)
-                return
-            
-            # 扣除費用
-            if cost_info["cost"] > 0:
-                await self.economy_manager.add_coins(
-                    interaction.user.id, interaction.guild.id, -cost_info["cost"]
-                )
-            
-            # 記錄使用量
-            await self._record_daily_usage(interaction.user.id)
-            
-            embed = EmbedBuilder.build(
-                title=f"🔍 搜尋結果: {query}",
-                description=f"找到 {len(tracks)} 個結果",
-                color=0x00AAFF
-            )
-            
-            for i, track in enumerate(tracks):
+            if player.queue:
+                queue_preview = "\n".join([
+                    f"{i+1}. {song.title[:30]}..." if len(song.title) > 30 else f"{i+1}. {song.title}"
+                    for i, song in enumerate(player.queue[:5])
+                ])
+                if len(player.queue) > 5:
+                    queue_preview += f"\n... 還有 {len(player.queue) - 5} 首"
+                    
                 embed.add_field(
-                    name=f"{i+1}. {track.title}",
-                    value=f"**{track.artist}**\n"
-                          f"時長: {self._format_duration(track.duration)}\n"
-                          f"使用 `/play {track.title}` 播放",
-                    inline=False
-                )
-            
-            embed.add_field(
-                name="💡 提示",
-                value="點擊歌曲名稱複製到 `/play` 指令中播放" +
-                      (f"\n消耗金幣: {cost_info['cost']}🪙" if cost_info["cost"] > 0 else ""),
-                inline=False
-            )
-            
-            await interaction.followup.send(embed=embed)
-            
-            # 記錄指標
-            track_command_execution("search", interaction.guild.id)
-            
-        except Exception as e:
-            logger.error(f"❌ 搜尋音樂錯誤: {e}")
-            await interaction.followup.send("❌ 搜尋音樂時發生錯誤，請稍後再試。", ephemeral=True)
-
-    # ========== 歌詞功能 ==========
-
-    @app_commands.command(name="lyrics", description="查看當前播放歌曲的歌詞")
-    async def show_lyrics(self, interaction: discord.Interaction):
-        """顯示歌詞"""
-        try:
-            await interaction.response.defer()
-            
-            session = await self.music_player.get_session(interaction.guild.id)
-            if not session or not session.current_track:
-                await interaction.followup.send("❌ 目前沒有正在播放的音樂。", ephemeral=True)
-                return
-            
-            # 檢查使用權限
-            can_use, cost_info = await self._check_usage_permission(
-                interaction.user.id, interaction.guild.id, "lyrics"
-            )
-            
-            if not can_use:
-                embed = EmbedBuilder.build(
-                    title="❌ 使用受限",
-                    description=cost_info["message"],
-                    color=0xFF0000
-                )
-                await interaction.followup.send(embed=embed, ephemeral=True)
-                return
-            
-            # 獲取歌詞
-            lyrics = await self.music_player.get_lyrics(session.current_track)
-            
-            if lyrics:
-                # 扣除費用
-                if cost_info["cost"] > 0:
-                    await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, -cost_info["cost"]
-                    )
-                
-                # 記錄使用量
-                await self._record_daily_usage(interaction.user.id)
-                
-                # 分段發送歌詞
-                if len(lyrics) > 1500:
-                    parts = [lyrics[i:i+1500] for i in range(0, len(lyrics), 1500)]
-                    
-                    for i, part in enumerate(parts):
-                        embed = EmbedBuilder.build(
-                            title=f"🎵 歌詞 - {session.current_track.title} ({i+1}/{len(parts)})",
-                            description=f"```\n{part}\n```",
-                            color=0xFF69B4
-                        )
-                        
-                        if i == 0:
-                            embed.add_field(
-                                name="🎤 歌曲資訊",
-                                value=f"歌手: {session.current_track.artist}\n" +
-                                      (f"消耗金幣: {cost_info['cost']}🪙" if cost_info["cost"] > 0 else ""),
-                                inline=True
-                            )
-                        
-                        await interaction.followup.send(embed=embed)
-                        if i < len(parts) - 1:
-                            await asyncio.sleep(1)
-                else:
-                    embed = EmbedBuilder.build(
-                        title=f"🎵 歌詞 - {session.current_track.title}",
-                        description=f"```\n{lyrics}\n```",
-                        color=0xFF69B4
-                    )
-                    
-                    embed.add_field(
-                        name="🎤 歌曲資訊",
-                        value=f"歌手: {session.current_track.artist}\n" +
-                              (f"消耗金幣: {cost_info['cost']}🪙" if cost_info["cost"] > 0 else ""),
-                        inline=True
-                    )
-                    
-                    await interaction.followup.send(embed=embed)
-            else:
-                embed = EmbedBuilder.build(
-                    title="❌ 找不到歌詞",
-                    description="這首歌曲暫時沒有歌詞資料",
-                    color=0xFF0000
-                )
-                await interaction.followup.send(embed=embed, ephemeral=True)
-            
-            # 記錄指標
-            track_command_execution("lyrics", interaction.guild.id)
-            
-        except Exception as e:
-            logger.error(f"❌ 顯示歌詞錯誤: {e}")
-            await interaction.followup.send("❌ 獲取歌詞時發生錯誤，請稍後再試。", ephemeral=True)
-
-    # ========== 音樂問答 ==========
-
-    @app_commands.command(name="music_quiz", description="開始音樂問答遊戲")
-    @app_commands.describe(difficulty="問答難度")
-    @app_commands.choices(difficulty=[
-        app_commands.Choice(name="簡單", value="easy"),
-        app_commands.Choice(name="中等", value="medium"),
-        app_commands.Choice(name="困難", value="hard")
-    ])
-    async def music_quiz(self, interaction: discord.Interaction, difficulty: str = "medium"):
-        """音樂問答"""
-        try:
-            await interaction.response.defer()
-            
-            # 檢查使用權限
-            can_use, cost_info = await self._check_usage_permission(
-                interaction.user.id, interaction.guild.id, "quiz"
-            )
-            
-            if not can_use:
-                embed = EmbedBuilder.build(
-                    title="❌ 使用受限",
-                    description=cost_info["message"],
-                    color=0xFF0000
-                )
-                await interaction.followup.send(embed=embed, ephemeral=True)
-                return
-            
-            # 生成問答題目
-            question = await self.music_player.generate_music_quiz(difficulty)
-            
-            if not question:
-                await interaction.followup.send("❌ 生成問答失敗，請稍後再試。", ephemeral=True)
-                return
-            
-            # 扣除費用
-            if cost_info["cost"] > 0:
-                await self.economy_manager.add_coins(
-                    interaction.user.id, interaction.guild.id, -cost_info["cost"]
-                )
-            
-            # 記錄使用量
-            await self._record_daily_usage(interaction.user.id)
-            
-            # 創建問答embed
-            embed = EmbedBuilder.build(
-                title="🎮 音樂問答時間！",
-                description=f"**難度**: {difficulty.title()}\n\n"
-                           f"**問題**: 請問這首歌的{self._get_question_type_name(question.question_type)}是什麼？",
-                color=0xFFD700
-            )
-            
-            embed.set_thumbnail(url=question.track.thumbnail)
-            
-            # 添加選項
-            options_text = []
-            for i, option in enumerate(question.options):
-                options_text.append(f"{chr(65+i)}. {option}")
-            
-            embed.add_field(
-                name="📝 選項",
-                value="\n".join(options_text),
-                inline=False
-            )
-            
-            embed.add_field(
-                name="🎵 歌曲提示",
-                value=f"歌曲: {question.track.title}\n"
-                      f"歌手: {question.track.artist if question.question_type != 'artist' else '???'}",
-                inline=True
-            )
-            
-            embed.add_field(
-                name="⏱️ 答題說明",
-                value="請在30秒內回答\n"
-                      "使用表情符號 🅰️ 🅱️ 🇨 🇩 來回答" +
-                      (f"\n消耗金幣: {cost_info['cost']}🪙" if cost_info["cost"] > 0 else ""),
-                inline=True
-            )
-            
-            message = await interaction.followup.send(embed=embed)
-            
-            # 添加反應
-            reactions = ["🅰️", "🅱️", "🇨", "🇩"]
-            for i in range(len(question.options)):
-                await message.add_reaction(reactions[i])
-            
-            # 等待用戶回答
-            def check(reaction, user):
-                return (user.id == interaction.user.id and 
-                       str(reaction.emoji) in reactions[:len(question.options)] and
-                       reaction.message.id == message.id)
-            
-            try:
-                reaction, user = await self.bot.wait_for('reaction_add', timeout=30.0, check=check)
-                
-                # 檢查答案
-                answer_index = reactions.index(str(reaction.emoji))
-                user_answer = question.options[answer_index]
-                is_correct = user_answer == question.correct_answer
-                
-                # 計算獎勵
-                if is_correct:
-                    reward_coins = {"easy": 10, "medium": 20, "hard": 30}[difficulty]
-                    await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, reward_coins
-                    )
-                    
-                    result_embed = EmbedBuilder.build(
-                        title="🎉 答對了！",
-                        description=f"正確答案是: **{question.correct_answer}**\n"
-                                   f"獲得獎勵: {reward_coins}🪙",
-                        color=0x00FF00
-                    )
-                else:
-                    result_embed = EmbedBuilder.build(
-                        title="❌ 答錯了",
-                        description=f"正確答案是: **{question.correct_answer}**\n"
-                                   f"您的答案: **{user_answer}**",
-                        color=0xFF0000
-                    )
-                
-                await interaction.followup.send(embed=result_embed)
-                
-            except asyncio.TimeoutError:
-                timeout_embed = EmbedBuilder.build(
-                    title="⏰ 時間到！",
-                    description=f"正確答案是: **{question.correct_answer}**",
-                    color=0xFFAA00
-                )
-                await interaction.followup.send(embed=timeout_embed)
-            
-            # 記錄指標
-            track_command_execution("music_quiz", interaction.guild.id)
-            
-        except Exception as e:
-            logger.error(f"❌ 音樂問答錯誤: {e}")
-            await interaction.followup.send("❌ 音樂問答時發生錯誤，請稍後再試。", ephemeral=True)
-
-    # ========== 統計和設定 ==========
-
-    @app_commands.command(name="music_stats", description="查看音樂服務使用統計")
-    async def music_stats(self, interaction: discord.Interaction):
-        """音樂統計"""
-        try:
-            user_id = interaction.user.id
-            guild_id = interaction.guild.id
-            
-            # 獲取使用統計
-            daily_usage = await self._get_daily_usage(user_id)
-            
-            # 獲取經濟狀態
-            economy = await self.economy_manager.get_user_economy(user_id, guild_id)
-            
-            # 獲取會話統計
-            session_stats = await self.music_player.get_session_stats(guild_id)
-            
-            embed = EmbedBuilder.build(
-                title="🎵 音樂服務統計",
-                description=f"{interaction.user.display_name} 的音樂服務使用情況",
-                color=0x9B59B6
-            )
-            
-            embed.set_thumbnail(url=interaction.user.display_avatar.url)
-            
-            # 今日使用情況
-            remaining_free = max(0, self.daily_free_quota - daily_usage)
-            embed.add_field(
-                name="📅 今日使用",
-                value=f"已使用: {daily_usage}/{self.daily_free_quota} (免費)\n"
-                      f"剩餘免費額度: {remaining_free}",
-                inline=True
-            )
-            
-            # 經濟狀態
-            embed.add_field(
-                name="💰 經濟狀態",
-                value=f"金幣餘額: {economy.get('coins', 0):,}🪙\n"
-                      f"可用於音樂服務",
-                inline=True
-            )
-            
-            # 當前會話狀態
-            if session_stats:
-                embed.add_field(
-                    name="🎵 當前會話",
-                    value=f"狀態: {session_stats.get('state', 'stopped').title()}\n"
-                          f"佇列: {session_stats.get('queue_length', 0)} 首\n"
-                          f"音量: {int(session_stats.get('volume', 0.5) * 100)}%",
+                    name="📝 播放列表",
+                    value=queue_preview,
                     inline=True
                 )
-            
-            # 費用說明
-            cost_text = []
-            for service, cost in self.music_costs.items():
-                service_name = {
-                    "search": "🔍 音樂搜尋",
-                    "lyrics": "🎵 歌詞查看",
-                    "quiz": "🎮 音樂問答",
-                    "playlist_create": "📝 建立播放清單",
-                    "premium_features": "⭐ 進階功能"
-                }.get(service, service)
+            else:
+                embed.add_field(
+                    name="📝 播放列表",
+                    value="播放列表為空",
+                    inline=True
+                )
                 
-                cost_text.append(f"{service_name}: {cost}🪙")
+            view = MusicControlView(player)
+            await interaction.followup.send(embed=embed, view=view)
+            
+        except discord.InteractionResponded:
+            logger.warning("音樂控制面板互動已被回應")
+        except Exception as e:
+            logger.error(f"音樂控制面板錯誤: {e}")
+            try:
+                embed = EmbedBuilder.create_error_embed(
+                    "❌ 系統錯誤",
+                    "無法顯示音樂控制面板"
+                )
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(embed=embed, ephemeral=True)
+                else:
+                    await interaction.followup.send(embed=embed, ephemeral=True)
+            except:
+                pass
+            
+    @app_commands.command(name="queue", description="📝 查看播放列表")
+    async def queue(self, interaction: discord.Interaction):
+        """查看播放列表"""
+        try:
+            if interaction.response.is_done():
+                logger.warning("播放列表互動已被處理")
+                return
+                
+            ctx = await self._create_context_from_interaction(interaction)
+            player = self.get_player(ctx)
+            
+            if not player.current and not player.queue:
+                embed = EmbedBuilder.create_info_embed(
+                    "📝 播放列表",
+                    "播放列表目前為空"
+                )
+                await interaction.response.send_message(embed=embed)
+                return
+                
+            embed = EmbedBuilder.create_info_embed(
+                "📝 播放列表",
+                ""
+            )
+            
+            if player.current:
+                embed.add_field(
+                    name="🎵 正在播放",
+                    value=f"**{player.current.title}**\n"
+                          f"⏱️ {player.current.duration_str} | 🎧 {player.current.requester.mention}",
+                    inline=False
+                )
+                
+            if player.queue:
+                queue_text = ""
+                for i, song in enumerate(player.queue[:10], 1):
+                    queue_text += f"{i}. **{song.title}**\n"
+                    queue_text += f"   ⏱️ {song.duration_str} | 🎧 {song.requester.mention}\n\n"
+                    
+                if len(player.queue) > 10:
+                    queue_text += f"... 還有 {len(player.queue) - 10} 首歌曲"
+                    
+                embed.add_field(
+                    name="📋 接下來播放",
+                    value=queue_text,
+                    inline=False
+                )
+            else:
+                embed.add_field(
+                    name="📋 接下來播放",
+                    value="沒有更多歌曲",
+                    inline=False
+                )
+                
+            await interaction.response.send_message(embed=embed)
+            
+        except discord.InteractionResponded:
+            logger.warning("播放列表互動已被回應")
+        except Exception as e:
+            logger.error(f"播放列表指令錯誤: {e}")
+            try:
+                embed = EmbedBuilder.create_error_embed(
+                    "❌ 系統錯誤",
+                    "無法顯示播放列表"
+                )
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(embed=embed, ephemeral=True)
+                else:
+                    await interaction.followup.send(embed=embed, ephemeral=True)
+            except:
+                pass
+
+    @app_commands.command(name="music_menu", description="🎵 音樂系統主菜單")
+    async def music_menu(self, interaction: discord.Interaction):
+        """音樂系統主菜單"""
+        try:
+            # 檢查互動是否已被處理
+            if interaction.response.is_done():
+                logger.warning("音樂菜單互動已被處理")
+                return
+                
+            from bot.views.music_views import MusicMenuView
+            
+            embed = EmbedBuilder.create_info_embed(
+                "🎵 音樂系統",
+                "歡迎使用 Potato Bot 音樂系統！\n支援 YouTube 直接播放"
+            )
             
             embed.add_field(
-                name="💳 服務費用",
-                value="\n".join(cost_text),
+                name="🎯 主要功能",
+                value="🎵 播放音樂\n🎛️ 控制面板\n📝 播放列表\n🔍 搜索音樂",
                 inline=True
             )
             
             embed.add_field(
-                name="💡 費用說明",
-                value=f"• 每日前{self.daily_free_quota}次免費\n"
-                      "• 超出免費額度後按服務收費\n"
-                      "• 問答答對可獲得金幣獎勵",
-                inline=False
+                name="💡 使用提示",
+                value="• 直接貼上 YouTube 網址\n• 輸入歌曲名稱搜索\n• 支援完整播放控制",
+                inline=True
             )
             
-            embed.add_field(
-                name="🎵 可用指令",
-                value="• `/play` - 播放音樂\n"
-                      "• `/search` - 搜尋音樂\n"
-                      "• `/lyrics` - 查看歌詞\n"
-                      "• `/music_quiz` - 音樂問答\n"
-                      "• `/queue` - 查看播放佇列",
-                inline=False
-            )
+            view = MusicMenuView(self)
+            await interaction.response.send_message(embed=embed, view=view)
             
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            
+        except discord.InteractionResponded:
+            logger.warning("音樂菜單互動已被回應")
         except Exception as e:
-            logger.error(f"❌ 音樂統計錯誤: {e}")
-            await interaction.response.send_message("❌ 獲取音樂統計時發生錯誤。", ephemeral=True)
-
-    # ========== 輔助方法 ==========
-
-    def _format_duration(self, seconds: int) -> str:
-        """格式化時長"""
-        if seconds <= 0:
-            return "未知"
-        
-        minutes = seconds // 60
-        seconds = seconds % 60
-        
-        if minutes >= 60:
-            hours = minutes // 60
-            minutes = minutes % 60
-            return f"{hours}:{minutes:02d}:{seconds:02d}"
-        else:
-            return f"{minutes}:{seconds:02d}"
-
-    def _get_question_type_name(self, question_type: str) -> str:
-        """獲取問題類型名稱"""
-        names = {
-            "artist": "歌手",
-            "title": "歌名",
-            "genre": "音樂類型",
-            "year": "發行年份"
-        }
-        return names.get(question_type, "相關資訊")
-
-    async def _check_usage_permission(self, user_id: int, guild_id: int, 
-                                    service_type: str) -> tuple[bool, Dict[str, Any]]:
-        """檢查使用權限和費用"""
-        try:
-            # 檢查每日免費額度
-            daily_usage = await self._get_daily_usage(user_id)
-            
-            if daily_usage < self.daily_free_quota:
-                return True, {"cost": 0, "message": "免費額度內"}
-            
-            # 檢查金幣餘額
-            economy = await self.economy_manager.get_user_economy(user_id, guild_id)
-            cost = self.music_costs.get(service_type, 5)
-            
-            if economy.get("coins", 0) >= cost:
-                return True, {"cost": cost, "message": f"需要消耗 {cost}🪙"}
-            else:
-                return False, {
-                    "cost": cost,
-                    "message": f"金幣不足！需要 {cost}🪙，您目前有 {economy.get('coins', 0)}🪙"
-                }
-                
-        except Exception as e:
-            logger.error(f"❌ 檢查使用權限失敗: {e}")
-            return False, {"cost": 0, "message": "檢查權限時發生錯誤"}
-
-    async def _get_daily_usage(self, user_id: int) -> int:
-        """獲取每日使用次數"""
-        try:
-            cache_key = f"music_daily_usage:{user_id}"
-            usage = await cache_manager.get(cache_key)
-            return usage or 0
-            
-        except Exception as e:
-            logger.error(f"❌ 獲取每日使用量失敗: {e}")
-            return 0
-
-    async def _record_daily_usage(self, user_id: int):
-        """記錄每日使用次數"""
-        try:
-            cache_key = f"music_daily_usage:{user_id}"
-            current_usage = await self._get_daily_usage(user_id)
-            
-            # 設置到明天零點過期
-            from datetime import timedelta
-            tomorrow = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-            tomorrow += timedelta(days=1)
-            ttl = int((tomorrow - datetime.now(timezone.utc)).total_seconds())
-            
-            await cache_manager.set(cache_key, current_usage + 1, ttl)
-            
-        except Exception as e:
-            logger.error(f"❌ 記錄每日使用量失敗: {e}")
+            logger.error(f"音樂菜單錯誤: {e}")
+            try:
+                embed = EmbedBuilder.create_error_embed(
+                    "❌ 系統錯誤",
+                    "無法顯示音樂菜單"
+                )
+                if not interaction.response.is_done():
+                    await interaction.response.send_message(embed=embed, ephemeral=True)
+                else:
+                    await interaction.followup.send(embed=embed, ephemeral=True)
+            except:
+                pass
 
 async def setup(bot):
-    """設置 Cog"""
-    await bot.add_cog(MusicCog(bot))
+    await bot.add_cog(MusicCore(bot))
+    logger.info("✅ 音樂系統核心已載入")

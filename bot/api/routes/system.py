@@ -304,3 +304,197 @@ async def enter_maintenance_mode(
     except Exception as e:
         logger.error(f"進入維護模式錯誤: {e}")
         raise HTTPException(status_code=500, detail="進入維護模式失敗")
+
+# ========== Bot 設定管理端點 ==========
+
+@router.get("/bot-settings", response_model=Dict[str, Any], summary="獲取 Bot 設定")
+async def get_bot_settings(
+    user: APIUser = Depends(require_admin_permission)
+):
+    """獲取 Discord Bot 的各項設定"""
+    try:
+        from bot.db.pool import db_pool
+        
+        async with db_pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                # 獲取票券系統設定
+                await cursor.execute("""
+                    SELECT setting_key, setting_value 
+                    FROM ticket_settings 
+                    WHERE guild_id = %s
+                """, (0,))  # 使用 0 作為全局設定
+                ticket_rows = await cursor.fetchall()
+                
+                # 獲取歡迎系統設定
+                await cursor.execute("""
+                    SELECT setting_key, setting_value 
+                    FROM welcome_settings 
+                    WHERE guild_id = %s
+                """, (0,))
+                welcome_rows = await cursor.fetchall()
+                
+                # 獲取投票系統設定  
+                await cursor.execute("""
+                    SELECT setting_key, setting_value 
+                    FROM vote_settings 
+                    WHERE guild_id = %s
+                """, (0,))
+                vote_rows = await cursor.fetchall()
+        
+        # 組織設定數據
+        settings = {
+            "ticket_settings": {row[0]: row[1] for row in ticket_rows} if ticket_rows else {
+                "auto_assign": False,
+                "max_tickets_per_user": 3,
+                "staff_notifications": True
+            },
+            "welcome_settings": {row[0]: row[1] for row in welcome_rows} if welcome_rows else {
+                "enabled": False,
+                "welcome_channel": "",
+                "welcome_message": "歡迎 {user} 加入我們的社群！",
+                "auto_role": ""
+            },
+            "vote_settings": {row[0]: row[1] for row in vote_rows} if vote_rows else {
+                "default_duration": 24,
+                "allow_anonymous": False,
+                "auto_close": True
+            }
+        }
+        
+        return settings
+        
+    except Exception as e:
+        logger.error(f"獲取 Bot 設定錯誤: {e}")
+        raise HTTPException(status_code=500, detail="獲取 Bot 設定失敗")
+
+@router.post("/bot-settings/{section}", response_model=BaseResponse, summary="更新 Bot 設定")
+async def update_bot_settings(
+    section: str,
+    settings: Dict[str, Any],
+    user: APIUser = Depends(require_admin_permission)
+):
+    """更新 Discord Bot 的特定模組設定"""
+    try:
+        from bot.db.pool import db_pool
+        
+        # 驗證模組名稱
+        valid_sections = ['tickets', 'welcome', 'votes']
+        if section not in valid_sections:
+            raise HTTPException(status_code=400, detail=f"無效的模組名稱，支援: {', '.join(valid_sections)}")
+        
+        # 對應的資料表
+        table_mapping = {
+            'tickets': 'ticket_settings',
+            'welcome': 'welcome_settings', 
+            'votes': 'vote_settings'
+        }
+        
+        table_name = table_mapping[section]
+        
+        async with db_pool.acquire() as conn:
+            async with conn.cursor() as cursor:
+                # 更新設定
+                for key, value in settings.items():
+                    await cursor.execute(f"""
+                        INSERT INTO {table_name} (guild_id, setting_key, setting_value, updated_at)
+                        VALUES (%s, %s, %s, %s)
+                        ON DUPLICATE KEY UPDATE 
+                        setting_value = VALUES(setting_value),
+                        updated_at = VALUES(updated_at)
+                    """, (0, key, str(value), datetime.now()))
+                
+                await conn.commit()
+        
+        logger.info(f"Bot 設定已更新 - 模組: {section}, 用戶: {user.username}")
+        
+        return {
+            "success": True,
+            "message": f"{section} 模組設定已成功更新",
+            "data": {
+                "section": section,
+                "updated_settings": settings,
+                "updated_at": datetime.now()
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"更新 Bot 設定錯誤: {e}")
+        raise HTTPException(status_code=500, detail="更新 Bot 設定失敗")
+
+@router.get("/bot-commands", response_model=Dict[str, Any], summary="獲取 Bot 指令列表")
+async def get_bot_commands(
+    user: APIUser = Depends(require_read_permission)
+):
+    """獲取當前 Discord Bot 載入的指令列表"""
+    try:
+        from bot.main import bot
+        
+        if not bot:
+            raise HTTPException(status_code=503, detail="Bot 未啟動")
+        
+        # 獲取斜線指令
+        slash_commands = []
+        if hasattr(bot, 'tree') and bot.tree:
+            for command in bot.tree.get_commands():
+                slash_commands.append({
+                    "name": command.name,
+                    "description": command.description,
+                    "type": "slash",
+                    "module": getattr(command, 'module', 'unknown')
+                })
+        
+        # 獲取文字指令
+        text_commands = []
+        for command in bot.commands:
+            text_commands.append({
+                "name": command.name,
+                "description": command.help or "無描述",
+                "type": "text",
+                "module": command.cog_name if command.cog_name else 'unknown',
+                "aliases": list(command.aliases) if command.aliases else []
+            })
+        
+        # 獲取載入的擴展
+        loaded_extensions = list(bot.extensions.keys())
+        
+        return {
+            "total_slash_commands": len(slash_commands),
+            "total_text_commands": len(text_commands),
+            "loaded_extensions": loaded_extensions,
+            "slash_commands": slash_commands,
+            "text_commands": text_commands
+        }
+        
+    except Exception as e:
+        logger.error(f"獲取 Bot 指令列表錯誤: {e}")
+        raise HTTPException(status_code=500, detail="獲取 Bot 指令列表失敗")
+
+@router.post("/bot-reload-extension", response_model=BaseResponse, summary="重新載入 Bot 擴展")
+async def reload_bot_extension(
+    extension_name: str,
+    user: APIUser = Depends(require_admin_permission)
+):
+    """重新載入指定的 Bot 擴展模組"""
+    try:
+        from bot.main import bot
+        
+        if not bot:
+            raise HTTPException(status_code=503, detail="Bot 未啟動")
+        
+        # 重新載入擴展
+        await bot.reload_extension(extension_name)
+        
+        logger.info(f"Bot 擴展已重新載入: {extension_name}, 操作用戶: {user.username}")
+        
+        return {
+            "success": True,
+            "message": f"擴展 {extension_name} 已成功重新載入",
+            "data": {
+                "extension": extension_name,
+                "reloaded_at": datetime.now()
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"重新載入 Bot 擴展錯誤 ({extension_name}): {e}")
+        raise HTTPException(status_code=500, detail=f"重新載入擴展失敗: {str(e)}")

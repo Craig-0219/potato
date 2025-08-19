@@ -46,6 +46,7 @@ import threading
 
 COGS_PREFIX = "bot.cogs."
 ALL_EXTENSIONS = [
+    # 核心企業功能模組
     "ticket_core",
     "ticket_listener", 
     "vote_core",
@@ -53,19 +54,21 @@ ALL_EXTENSIONS = [
     "welcome_core",
     "welcome_listener",
     "system_admin_core",
-    "lottery_core",
     "web_auth_core",
     "ai_core",
     "language_core",
     "workflow_core",
     "dashboard_core",
     "webhook_core",
-    # v2.2.0 新增模組 - 創意內容生成
-    "ai_assistant_core",
-    "image_tools_core", 
-    "music_core",
-    "content_analysis_core",
-    "game_core"  # 包含跨平台經濟功能
+    # 娛樂功能模組
+    "entertainment_core",
+    "music_core"
+    # 之前移除的模組:
+    # "lottery_core" - 抽獎系統
+    # "ai_assistant_core" - AI對話助手
+    # "image_tools_core" - 圖片處理工具
+    # "content_analysis_core" - 內容分析
+    # "game_core" - 遊戲娛樂功能
 ]
 
 # 全域 Bot 實例
@@ -83,7 +86,7 @@ class PotatoBot(commands.Bot):
         super().__init__(
             command_prefix=commands.when_mentioned_or('!'),
             intents=intents,
-            description="Potato Bot v2.2.0 - AI智能助手、創意工具、娛樂功能和跨平台經濟系統"
+            description="Potato Bot v2.3.0 - 企業級 Discord 管理系統，整合票券、投票、歡迎系統與 Web 管理界面"
         )
         self.initial_extensions = [COGS_PREFIX + ext for ext in ALL_EXTENSIONS]
         self.error_handler = None
