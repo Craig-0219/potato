@@ -27,7 +27,7 @@ from typing import Optional
 
 from . import API_VERSION, API_BASE_PATH
 from .auth import APIKeyManager, get_current_user
-from .routes import system, tickets, analytics, automation
+from .routes import system, tickets, analytics, automation, economy
 from .routes import security as security_routes
 from shared.logger import logger
 
@@ -386,6 +386,9 @@ except Exception as e:
 
 try:
     app.include_router(security_routes.router, prefix=f"{API_BASE_PATH}/security", tags=["security"])
+    
+    # 跨平台經濟系統路由 - Phase 5 Stage 4
+    app.include_router(economy.router, tags=["economy"])
     logger.info("✅ Security 路由已啟用")
 except Exception as e:
     logger.warning(f"⚠️ Security 路由啟用失敗: {e}")

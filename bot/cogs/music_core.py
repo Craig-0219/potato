@@ -99,15 +99,55 @@ class MusicPlayer:
     async def connect_to_voice(self, channel: discord.VoiceChannel):
         """連接到語音頻道"""
         try:
+            # 檢查是否已經連接到相同頻道
             if self.voice_client and self.voice_client.is_connected():
-                if self.voice_client.channel != channel:
-                    await self.voice_client.move_to(channel)
-                    logger.info(f"🔄 移動到語音頻道: {channel.name}")
-                else:
+                if self.voice_client.channel == channel:
                     logger.info(f"✅ 已在語音頻道: {channel.name}")
-            else:
-                self.voice_client = await channel.connect()
-                logger.info(f"🔗 連接到語音頻道: {channel.name}")
+                    return
+                else:
+                    # 移動到新頻道
+                    try:
+                        await self.voice_client.move_to(channel)
+                        logger.info(f"🔄 移動到語音頻道: {channel.name}")
+                        return
+                    except Exception as move_error:
+                        logger.warning(f"移動失敗，嘗試重新連接: {move_error}")
+                        await self.disconnect()
+            
+            # 檢查是否有殘留的語音客戶端
+            guild_voice_client = channel.guild.voice_client
+            if guild_voice_client:
+                try:
+                    await guild_voice_client.disconnect()
+                    logger.info("清理殘留的語音連接")
+                except:
+                    pass
+            
+            # 建立新連接
+            self.voice_client = await channel.connect()
+            logger.info(f"🔗 連接到語音頻道: {channel.name}")
+            
+        except discord.errors.ClientException as e:
+            if "Already connected" in str(e):
+                logger.warning("語音客戶端已連接，嘗試使用現有連接")
+                guild_voice_client = channel.guild.voice_client
+                if guild_voice_client and guild_voice_client.is_connected():
+                    self.voice_client = guild_voice_client
+                    logger.info(f"✅ 使用現有語音連接: {channel.name}")
+                    return
+                else:
+                    logger.warning("現有連接無效，重新嘗試連接")
+                    # 清理無效連接並重試
+                    try:
+                        if guild_voice_client:
+                            await guild_voice_client.disconnect()
+                        self.voice_client = await channel.connect()
+                        logger.info(f"🔗 重新連接成功: {channel.name}")
+                        return
+                    except Exception as retry_error:
+                        logger.error(f"重新連接失敗: {retry_error}")
+            logger.error(f"❌ 語音連接失敗: {e}")
+            raise
         except Exception as e:
             logger.error(f"❌ 語音連接失敗: {e}")
             await self.send_embed("❌ 連接失敗", f"無法連接到語音頻道: {str(e)}", "error")
@@ -346,6 +386,33 @@ class MusicCore(commands.Cog):
             self.players[ctx.guild.id] = MusicPlayer(ctx)
         return self.players[ctx.guild.id]
     
+    def _check_voice_connection(self, player: MusicPlayer, guild) -> bool:
+        """增強的語音連接狀態檢測"""
+        try:
+            # 檢查 player 的 voice_client
+            player_connected = player.voice_client and player.voice_client.is_connected()
+            
+            # 檢查 guild 的 voice_client (更可靠)
+            guild_voice_client = guild.voice_client
+            guild_connected = guild_voice_client and guild_voice_client.is_connected()
+            
+            # 如果有不一致，同步 player 狀態
+            if guild_connected and not player_connected:
+                logger.info("🔄 同步語音客戶端狀態")
+                player.voice_client = guild_voice_client
+                return True
+            elif player_connected and not guild_connected:
+                logger.warning("⚠️ 語音客戶端狀態不一致，清理 player 狀態")
+                player.voice_client = None
+                return False
+            
+            # 兩者一致的情況
+            return player_connected and guild_connected
+            
+        except Exception as e:
+            logger.error(f"語音連接檢測錯誤: {e}")
+            return False
+    
     async def _create_context_from_interaction(self, interaction: discord.Interaction):
         """從互動創建context"""
         # 創建一個假的 context 對象
@@ -445,8 +512,8 @@ class MusicCore(commands.Cog):
             ctx = await self._create_context_from_interaction(interaction)
             player = self.get_player(ctx)
             
-            # 檢查語音連接狀態（但不阻止進入控制面板）
-            is_connected = player.voice_client and player.voice_client.is_connected()
+            # 檢查語音連接狀態（但不阻止進入控制面板）- 增強版檢測
+            is_connected = self._check_voice_connection(player, interaction.guild)
                 
             # 創建控制面板
             from bot.views.music_views import MusicControlView
@@ -592,6 +659,262 @@ class MusicCore(commands.Cog):
                     await interaction.response.send_message(embed=embed, ephemeral=True)
                 else:
                     await interaction.followup.send(embed=embed, ephemeral=True)
+            except:
+                pass
+
+    @app_commands.command(name="voice_debug", description="🔍 語音狀態調試")
+    async def voice_debug(self, interaction: discord.Interaction):
+        """語音狀態調試命令"""
+        try:
+            await interaction.response.defer()
+            
+            ctx = await self._create_context_from_interaction(interaction)
+            player = self.get_player(ctx)
+            
+            logger.info("🔍 開始語音狀態調試...")
+            
+            # 直接檢測，不調用複雜函數
+            logger.info("🔍 直接檢查 player.voice_client...")
+            player_vc = player.voice_client
+            logger.info(f"🔍 player.voice_client = {player_vc}")
+            
+            logger.info("🔍 直接檢查 guild.voice_client...")
+            guild_vc = interaction.guild.voice_client
+            logger.info(f"🔍 guild.voice_client = {guild_vc}")
+            
+            # 檢查連接狀態
+            player_connected = False
+            guild_connected = False
+            
+            if player_vc:
+                logger.info(f"🔍 player_vc.is_connected() = {player_vc.is_connected()}")
+                player_connected = player_vc.is_connected()
+            
+            if guild_vc:
+                logger.info(f"🔍 guild_vc.is_connected() = {guild_vc.is_connected()}")
+                logger.info(f"🔍 guild_vc.channel = {guild_vc.channel}")
+                guild_connected = guild_vc.is_connected()
+            
+            logger.info(f"🔍 最終結果: player_connected={player_connected}, guild_connected={guild_connected}")
+            
+            embed = EmbedBuilder.create_info_embed(
+                "🔍 語音狀態調試報告",
+                "詳細的語音連接狀態分析"
+            )
+            
+            # 詳細狀態信息
+            player_status = "✅ 已連接" if player_connected else "❌ 未連接"
+            guild_status = "✅ 已連接" if guild_connected else "❌ 未連接"
+            
+            embed.add_field(
+                name="連接狀態",
+                value=f"Player Voice Client: {player_status}\n"
+                      f"Guild Voice Client: {guild_status}",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="對象詳情",
+                value=f"Player 對象: {player_vc}\n"
+                      f"Guild 對象: {guild_vc}",
+                inline=False
+            )
+            
+            if guild_vc:
+                embed.add_field(
+                    name="Guild Voice Client 詳情",
+                    value=f"頻道: {guild_vc.channel}\n"
+                          f"連接狀態: {guild_vc.is_connected()}",
+                    inline=False
+                )
+            
+            # 問題診斷
+            if guild_connected and not player_connected:
+                embed.add_field(
+                    name="🚨 發現問題",
+                    value="Guild 已連接但 Player 未同步！\n這就是狀態顯示錯誤的原因。",
+                    inline=False
+                )
+            elif player_connected and not guild_connected:
+                embed.add_field(
+                    name="🚨 發現問題", 
+                    value="Player 認為已連接但 Guild 未連接！\n這是異常狀態。",
+                    inline=False
+                )
+            elif not player_connected and not guild_connected:
+                embed.add_field(
+                    name="ℹ️ 狀態正常",
+                    value="兩者都未連接，狀態一致。",
+                    inline=False
+                )
+            else:
+                embed.add_field(
+                    name="✅ 狀態正常",
+                    value="兩者都已連接，狀態一致。",
+                    inline=False
+                )
+            
+            await interaction.followup.send(embed=embed)
+            logger.info("🔍 語音狀態調試完成")
+            
+        except Exception as e:
+            logger.error(f"語音狀態調試錯誤: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            embed = EmbedBuilder.create_error_embed("❌ 調試失敗", str(e))
+            try:
+                await interaction.followup.send(embed=embed)
+            except:
+                pass
+
+    @app_commands.command(name="voice_connect", description="🔗 強制連接到語音頻道")
+    async def voice_connect(self, interaction: discord.Interaction):
+        """強制連接到語音頻道"""
+        try:
+            await interaction.response.defer()
+            
+            # 檢查用戶是否在語音頻道
+            if not interaction.user.voice or not interaction.user.voice.channel:
+                embed = EmbedBuilder.create_error_embed(
+                    "❌ 請先加入語音頻道",
+                    "您需要先加入一個語音頻道"
+                )
+                await interaction.followup.send(embed=embed)
+                return
+            
+            channel = interaction.user.voice.channel
+            logger.info(f"🔗 嘗試連接到語音頻道: {channel.name}")
+            
+            ctx = await self._create_context_from_interaction(interaction)
+            player = self.get_player(ctx)
+            
+            # 強制連接
+            try:
+                await player.connect_to_voice(channel)
+                
+                # 驗證連接
+                guild_vc = interaction.guild.voice_client
+                if guild_vc and guild_vc.is_connected():
+                    # 同步 player 狀態
+                    player.voice_client = guild_vc
+                    
+                    embed = EmbedBuilder.create_success_embed(
+                        "✅ 語音連接成功",
+                        f"Bot 已連接到 **{channel.name}**"
+                    )
+                    
+                    embed.add_field(
+                        name="連接詳情",
+                        value=f"頻道: {guild_vc.channel}\n"
+                              f"延遲: {guild_vc.latency:.2f}ms\n"
+                              f"連接狀態: {guild_vc.is_connected()}",
+                        inline=False
+                    )
+                else:
+                    embed = EmbedBuilder.create_error_embed(
+                        "❌ 連接失敗",
+                        "無法建立語音連接"
+                    )
+                
+                await interaction.followup.send(embed=embed)
+                
+            except Exception as e:
+                logger.error(f"語音連接錯誤: {e}")
+                import traceback
+                logger.error(traceback.format_exc())
+                
+                embed = EmbedBuilder.create_error_embed(
+                    "❌ 連接失敗",
+                    f"語音連接時發生錯誤: {str(e)}"
+                )
+                await interaction.followup.send(embed=embed)
+                
+        except Exception as e:
+            logger.error(f"語音連接命令錯誤: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+
+    @app_commands.command(name="connection_status", description="🤖 檢查 Bot 連接狀態")
+    async def connection_status(self, interaction: discord.Interaction):
+        """檢查 Bot 的連接狀態"""
+        try:
+            await interaction.response.defer()
+            
+            # 基本信息
+            bot = self.bot
+            guild_count = len(bot.guilds)
+            user_count = sum(guild.member_count for guild in bot.guilds)
+            
+            embed = EmbedBuilder.create_info_embed(
+                "🤖 Bot 狀態報告",
+                f"Bot: {bot.user.name}#{bot.user.discriminator}"
+            )
+            
+            embed.add_field(
+                name="連接統計",
+                value=f"🏰 伺服器數量: {guild_count}\n"
+                      f"👥 用戶數量: {user_count}\n"
+                      f"📡 延遲: {round(bot.latency * 1000)}ms",
+                inline=True
+            )
+            
+            # 當前伺服器信息
+            if interaction.guild:
+                guild = interaction.guild
+                embed.add_field(
+                    name="當前伺服器",
+                    value=f"📋 名稱: {guild.name}\n"
+                          f"🆔 ID: {guild.id}\n"
+                          f"👑 擁有者: {guild.owner}\n"
+                          f"👥 成員數: {guild.member_count}",
+                    inline=True
+                )
+                
+                # 語音頻道信息
+                voice_channels = [ch for ch in guild.channels if isinstance(ch, discord.VoiceChannel)]
+                embed.add_field(
+                    name="語音頻道",
+                    value=f"🎤 總數: {len(voice_channels)}\n"
+                          f"🔗 Bot 連接: {'是' if guild.voice_client else '否'}",
+                    inline=True
+                )
+            else:
+                embed.add_field(
+                    name="❌ 錯誤",
+                    value="無法獲取當前伺服器信息",
+                    inline=False
+                )
+            
+            # 所有伺服器列表
+            if guild_count > 0:
+                guilds_info = []
+                for i, guild in enumerate(bot.guilds[:5]):  # 只顯示前5個
+                    guilds_info.append(f"{i+1}. {guild.name} (ID: {guild.id})")
+                
+                if guild_count > 5:
+                    guilds_info.append(f"... 還有 {guild_count - 5} 個伺服器")
+                
+                embed.add_field(
+                    name="伺服器列表",
+                    value="\n".join(guilds_info),
+                    inline=False
+                )
+            else:
+                embed.add_field(
+                    name="⚠️ 警告",
+                    value="Bot 目前未連接到任何伺服器！\n這可能是語音問題的原因。",
+                    inline=False
+                )
+            
+            await interaction.followup.send(embed=embed)
+            
+        except Exception as e:
+            logger.error(f"Bot 狀態檢查錯誤: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            embed = EmbedBuilder.create_error_embed("❌ 檢查失敗", str(e))
+            try:
+                await interaction.followup.send(embed=embed)
             except:
                 pass
 

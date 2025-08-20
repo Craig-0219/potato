@@ -27,9 +27,13 @@ PyNaCl==1.5.0
 pandas==2.1.4
 openpyxl==3.1.2
 
-# AI 功能
+# AI 功能 - Phase 5 擴展
 openai==1.12.0
+anthropic==0.18.1
+google-generativeai==0.4.0
 Pillow==10.2.0
+textblob==0.17.1
+scikit-learn==1.4.0
 
 # 音樂系統
 yt-dlp==2024.3.10

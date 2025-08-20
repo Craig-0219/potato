@@ -870,7 +870,7 @@ class DashboardManager:
         try:
             # 獲取當前期間和前一期間的數據進行比較
             current_stats = await self.stats_manager.generate_comprehensive_report(guild_id, days)
-            previous_stats = await self.stats_manager.generate_comprehensive_report(guild_id, days, offset_days=days)
+            previous_stats = await self.stats_manager.generate_comprehensive_report(guild_id, days)
             
             metrics = {}
             

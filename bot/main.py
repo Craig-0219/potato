@@ -62,12 +62,13 @@ ALL_EXTENSIONS = [
     "webhook_core",
     # 娛樂功能模組
     "entertainment_core",
-    "music_core"
+    "music_core",
     # 之前移除的模組:
     # "lottery_core" - 抽獎系統
-    # "ai_assistant_core" - AI對話助手
-    # "image_tools_core" - 圖片處理工具
-    # "content_analysis_core" - 內容分析
+    "ai_assistant_core",    # AI對話助手 - Phase 5
+    "image_tools_core",     # 圖片處理工具 - Phase 5
+    "content_analysis_core", # 內容分析 - Phase 5
+    "cross_platform_economy_core", # 跨平台經濟系統 - Phase 5 Stage 4
     # "game_core" - 遊戲娛樂功能
 ]
 

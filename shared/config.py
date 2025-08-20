@@ -48,6 +48,30 @@ REDIS_URL = os.getenv("REDIS_URL")  # 可選的 Redis 連接
 TICKET_AUTO_ASSIGNMENT = os.getenv("TICKET_AUTO_ASSIGNMENT", "true").lower() == "true"
 TICKET_SLA_MONITORING = os.getenv("TICKET_SLA_MONITORING", "true").lower() == "true"
 TICKET_AUTO_REPLIES = os.getenv("TICKET_AUTO_REPLIES", "true").lower() == "true"
+
+# AI 助手配置 - Phase 5 新增
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")  # Claude API
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+
+# AI 使用限制
+AI_MAX_TOKENS = int(os.getenv("AI_MAX_TOKENS", "4000"))
+AI_RATE_LIMIT_USER = int(os.getenv("AI_RATE_LIMIT_USER", "10"))  # 每小時每用戶
+AI_RATE_LIMIT_GUILD = int(os.getenv("AI_RATE_LIMIT_GUILD", "100"))  # 每小時每伺服器
+
+# 圖片處理配置
+IMAGE_MAX_SIZE = int(os.getenv("IMAGE_MAX_SIZE", "50"))  # MB
+IMAGE_STORAGE_PATH = os.getenv("IMAGE_STORAGE_PATH", "/tmp/bot_images")
+CLOUD_STORAGE_BUCKET = os.getenv("CLOUD_STORAGE_BUCKET")  # 可選的雲端存儲
+
+# 內容分析配置
+CONTENT_ANALYSIS_ENABLED = os.getenv("CONTENT_ANALYSIS_ENABLED", "true").lower() == "true"
+SENTIMENT_ANALYSIS_THRESHOLD = float(os.getenv("SENTIMENT_ANALYSIS_THRESHOLD", "0.5"))
+
+# 經濟系統配置
+ECONOMY_ENABLED = os.getenv("ECONOMY_ENABLED", "true").lower() == "true"
+MINECRAFT_SERVER_HOST = os.getenv("MINECRAFT_SERVER_HOST")
+MINECRAFT_SERVER_PORT = int(os.getenv("MINECRAFT_SERVER_PORT", "25565"))
 TICKET_RATING_SYSTEM = os.getenv("TICKET_RATING_SYSTEM", "true").lower() == "true"
 TICKET_ADVANCED_STATS = os.getenv("TICKET_ADVANCED_STATS", "true").lower() == "true"
 

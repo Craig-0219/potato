@@ -17,6 +17,7 @@ from datetime import datetime, timezone, timedelta
 from bot.services.ai_assistant import ai_assistant, AIProvider, AITaskType, AIRequest
 from bot.services.economy_manager import EconomyManager
 from bot.utils.embed_builder import EmbedBuilder
+from bot.views.ai_assistant_views import AIMainMenuView, AIAssistantControlView
 from shared.cache_manager import cache_manager, cached
 from shared.prometheus_metrics import prometheus_metrics, track_command_execution
 from shared.logger import logger
@@ -44,7 +45,70 @@ class AIAssistantCog(commands.Cog):
         
         logger.info("🤖 AI助手指令模組初始化完成")
 
-    # ========== 基礎AI對話 ==========
+    # ========== Phase 5 統一 AI 管理界面 ==========
+
+    @app_commands.command(name="ai", description="🤖 AI 智能助手統一管理界面 - Phase 5")
+    async def ai_assistant_menu(self, interaction: discord.Interaction):
+        """AI 智能助手統一管理界面"""
+        try:
+            view = AIMainMenuView()
+            
+            embed = EmbedBuilder.create_info_embed(
+                "🤖 AI 智能助手 - Phase 5",
+                "歡迎使用全新的 AI 智能助手！現在支援多個 AI 模型和統一管理界面。"
+            )
+            
+            # 顯示可用功能
+            embed.add_field(
+                name="🎯 核心功能",
+                value="• **多模型支援**: OpenAI GPT-4, Claude, Gemini\n"
+                      "• **智能任務分類**: 聊天、代碼、翻譯、創作等\n"
+                      "• **統一管理界面**: 模型選擇、參數調整、統計查看\n"
+                      "• **使用量監控**: 實時追蹤 API 使用情況",
+                inline=False
+            )
+            
+            # 顯示可用模型狀態
+            available_models = []
+            if AIProvider.OPENAI in ai_assistant.available_providers:
+                available_models.append("✅ **OpenAI GPT-4**: 創意和代碼任務")
+            if AIProvider.CLAUDE in ai_assistant.available_providers:
+                available_models.append("✅ **Anthropic Claude**: 分析和推理")
+            if AIProvider.GEMINI in ai_assistant.available_providers:
+                available_models.append("✅ **Google Gemini**: 多模態任務")
+            
+            if available_models:
+                embed.add_field(
+                    name="🔧 可用模型",
+                    value="\n".join(available_models),
+                    inline=False
+                )
+            else:
+                embed.add_field(
+                    name="⚠️ 模型狀態",
+                    value="暫無可用的 AI 模型，請聯繫管理員配置 API 密鑰",
+                    inline=False
+                )
+            
+            embed.add_field(
+                name="🚀 開始使用",
+                value="點擊下方按鈕開始使用 AI 助手功能！",
+                inline=False
+            )
+            
+            embed.set_footer(text="Potato Bot v3.2.0 | Phase 5 AI 整合系統")
+            
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            
+        except Exception as e:
+            logger.error(f"AI 助手選單錯誤: {e}")
+            embed = EmbedBuilder.create_error_embed(
+                "❌ 系統錯誤",
+                "無法啟動 AI 助手管理界面"
+            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    # ========== 基礎AI對話 (兼容舊命令) ==========
 
     @app_commands.command(name="ask", description="與AI助手聊天對話")
     @app_commands.describe(message="您想說的話")

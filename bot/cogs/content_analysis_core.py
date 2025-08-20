@@ -43,6 +43,48 @@ class ContentAnalysisCog(commands.Cog):
         
         logger.info("📊 內容分析工具指令模組初始化完成")
 
+    # ========== 統一內容分析界面 ==========
+
+    @app_commands.command(name="content_analysis", description="打開內容分析工具管理界面")
+    async def content_analysis_interface(self, interaction: discord.Interaction):
+        """統一內容分析管理界面"""
+        try:
+            from bot.views.content_analysis_views import ContentAnalysisMainView
+            
+            view = ContentAnalysisMainView()
+            
+            embed = EmbedBuilder.create_info_embed(
+                "📊 內容分析工具",
+                "選擇要使用的內容分析功能。"
+            )
+            
+            embed.add_field(
+                name="🔧 可用功能",
+                value="• **情感分析**: 檢測文本情感傾向和關鍵詞\n"
+                      "• **安全檢測**: 識別有害內容和風險評估\n"
+                      "• **連結檢測**: 分析URL安全性和信譽\n"
+                      "• **內容統計**: 伺服器內容分析報告",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="🌐 支援語言",
+                value="**主要**: 繁體中文、英語\n**其他**: 簡體中文、混合語言",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="📏 限制",
+                value="**文本長度**: 最大 1000 字符\n**處理時間**: 通常 1-3 秒",
+                inline=True
+            )
+            
+            await interaction.response.send_message(embed=embed, view=view)
+            
+        except Exception as e:
+            logger.error(f"❌ 內容分析界面錯誤: {e}")
+            await interaction.response.send_message("❌ 啟動內容分析工具時發生錯誤。", ephemeral=True)
+
     # ========== 情感分析 ==========
 
     @app_commands.command(name="analyze_sentiment", description="分析文本情感傾向")

@@ -21,30 +21,56 @@ class SafeInteractionMixin:
     async def safe_respond(self, interaction: discord.Interaction, embed: discord.Embed = None, content: str = None, ephemeral: bool = True, view: discord.ui.View = None):
         """安全響應處理，避免超時和重複響應"""
         try:
+            # 檢查 interaction 是否仍然有效
+            if not interaction or not hasattr(interaction, 'response'):
+                logger.error("無效的 interaction 對象")
+                return
+                
             # 檢查是否已響應
             if interaction.response.is_done():
-                # 使用 followup
+                # 使用 followup - 檢查 view 參數
                 if embed:
-                    await interaction.followup.send(embed=embed, ephemeral=ephemeral, view=view)
+                    if view is not None:
+                        await interaction.followup.send(embed=embed, ephemeral=ephemeral, view=view)
+                    else:
+                        await interaction.followup.send(embed=embed, ephemeral=ephemeral)
                 else:
-                    await interaction.followup.send(content=content, ephemeral=ephemeral, view=view)
+                    if view is not None:
+                        await interaction.followup.send(content=content, ephemeral=ephemeral, view=view)
+                    else:
+                        await interaction.followup.send(content=content, ephemeral=ephemeral)
             else:
-                # 使用原始響應
+                # 使用原始響應 - 檢查 view 參數
                 if embed:
-                    await interaction.response.send_message(embed=embed, ephemeral=ephemeral, view=view)
+                    if view is not None:
+                        await interaction.response.send_message(embed=embed, ephemeral=ephemeral, view=view)
+                    else:
+                        await interaction.response.send_message(embed=embed, ephemeral=ephemeral)
                 else:
-                    await interaction.response.send_message(content=content, ephemeral=ephemeral, view=view)
+                    if view is not None:
+                        await interaction.response.send_message(content=content, ephemeral=ephemeral, view=view)
+                    else:
+                        await interaction.response.send_message(content=content, ephemeral=ephemeral)
         except discord.errors.InteractionResponded:
-            # 如果仍然失敗，嘗試 followup
+            # 如果仍然失敗，嘗試 followup - 檢查 view 參數
             try:
                 if embed:
-                    await interaction.followup.send(embed=embed, ephemeral=ephemeral, view=view)
+                    if view is not None:
+                        await interaction.followup.send(embed=embed, ephemeral=ephemeral, view=view)
+                    else:
+                        await interaction.followup.send(embed=embed, ephemeral=ephemeral)
                 else:
-                    await interaction.followup.send(content=content, ephemeral=ephemeral, view=view)
+                    if view is not None:
+                        await interaction.followup.send(content=content, ephemeral=ephemeral, view=view)
+                    else:
+                        await interaction.followup.send(content=content, ephemeral=ephemeral)
             except Exception as e:
                 logger.error(f"安全響應最終失敗: {e}")
+        except discord.errors.NotFound:
+            logger.warning("互動已過期或無效")
         except Exception as e:
             logger.error(f"安全響應錯誤: {e}")
+            logger.error(traceback.format_exc())
 
 class MusicControlView(discord.ui.View, SafeInteractionMixin):
     """音樂控制面板視圖 - 重寫版"""
@@ -284,6 +310,46 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
         super().__init__(timeout=300)
         self.music_cog = music_cog
         
+    def _check_voice_connection(self, player, guild) -> bool:
+        """增強的語音連接狀態檢測"""
+        try:
+            # 檢查 player 的 voice_client
+            player_connected = player.voice_client and player.voice_client.is_connected()
+            
+            # 檢查 guild 的 voice_client (更可靠)
+            guild_voice_client = guild.voice_client
+            guild_connected = guild_voice_client and guild_voice_client.is_connected()
+            
+            # 詳細日誌
+            logger.info(f"🔍 語音狀態檢測: player_connected={player_connected}, guild_connected={guild_connected}")
+            logger.info(f"🔍 Player voice_client: {player.voice_client}")
+            logger.info(f"🔍 Guild voice_client: {guild_voice_client}")
+            
+            if guild_voice_client:
+                logger.info(f"🔍 Guild voice_client channel: {guild_voice_client.channel}")
+                logger.info(f"🔍 Guild voice_client is_connected: {guild_voice_client.is_connected()}")
+            
+            # 如果有不一致，同步 player 狀態
+            if guild_connected and not player_connected:
+                logger.info("🔄 同步語音客戶端狀態")
+                player.voice_client = guild_voice_client
+                return True
+            elif player_connected and not guild_connected:
+                logger.warning("⚠️ 語音客戶端狀態不一致，清理 player 狀態")
+                player.voice_client = None
+                return False
+            
+            # 兩者一致的情況
+            result = player_connected and guild_connected
+            logger.info(f"🔍 最終結果: {result}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"語音連接檢測錯誤: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
+            return False
+        
     @discord.ui.button(label='🎵 播放音樂', style=discord.ButtonStyle.primary, custom_id='menu_play')
     async def play_music_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """播放音樂按鈕 - 重寫版"""
@@ -315,18 +381,28 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
         try:
             logger.info(f"控制面板按鈕被點擊 - 用戶: {interaction.user.name}")
             
+            # 檢查互動是否有效
+            if not interaction or not hasattr(interaction, 'response'):
+                logger.error("無效的 interaction 對象")
+                return
+                
             # 檢查是否已響應
             if interaction.response.is_done():
+                logger.warning("互動已被處理")
                 return
                 
             # 立即延遲回應
-            await interaction.response.defer(ephemeral=True)
+            try:
+                await interaction.response.defer(ephemeral=True)
+            except discord.errors.NotFound:
+                logger.warning("互動已過期")
+                return
             
             ctx = await self.music_cog._create_context_from_interaction(interaction)
             player = self.music_cog.get_player(ctx)
             
-            # 檢查語音連接狀態
-            is_connected = player.voice_client and player.voice_client.is_connected()
+            # 檢查語音連接狀態 - 增強版檢測
+            is_connected = self._check_voice_connection(player, interaction.guild)
                 
             if is_connected:
                 embed = EmbedBuilder.create_info_embed(
@@ -622,10 +698,13 @@ class SearchInputModal(discord.ui.Modal, title="🔍 搜索音樂"):
                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
                     results = await asyncio.wait_for(
                         loop.run_in_executor(executor, search_videos, query),
-                        timeout=15.0  # 15秒超時
+                        timeout=10.0  # 10秒超時
                     )
             except asyncio.TimeoutError:
                 logger.error(f"搜索超時: {query}")
+                return []
+            except Exception as e:
+                logger.error(f"搜索執行錯誤: {e}")
                 return []
             
             if not results or 'entries' not in results:

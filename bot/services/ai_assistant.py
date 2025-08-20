@@ -9,6 +9,7 @@ import aiohttp
 import json
 import time
 import re
+import uuid
 from typing import Dict, List, Optional, Any, Union
 from datetime import datetime, timezone, timedelta
 from dataclasses import dataclass, asdict
@@ -16,6 +17,10 @@ from enum import Enum
 
 from shared.cache_manager import cache_manager, cached
 from shared.logger import logger
+from shared.config import (
+    OPENAI_API_KEY, ANTHROPIC_API_KEY, GEMINI_API_KEY,
+    AI_MAX_TOKENS, AI_RATE_LIMIT_USER, AI_RATE_LIMIT_GUILD
+)
 
 class AIProvider(Enum):
     """AI服務提供商"""
@@ -65,23 +70,61 @@ class AIResponse:
             self.metadata = {}
 
 class AIAssistantManager:
-    """AI助手管理器"""
+    """AI助手管理器 - Phase 5 增強版"""
     
     def __init__(self):
-        self.api_keys = {}
+        # 初始化 API 密鑰
+        self.api_keys = {
+            AIProvider.OPENAI: OPENAI_API_KEY,
+            AIProvider.CLAUDE: ANTHROPIC_API_KEY,
+            AIProvider.GEMINI: GEMINI_API_KEY
+        }
+        
+        # 檢查 API 密鑰可用性
+        self.available_providers = []
+        for provider, key in self.api_keys.items():
+            if key:
+                self.available_providers.append(provider)
+                logger.info(f"✅ {provider.value} API 密鑰已配置")
+            else:
+                logger.warning(f"⚠️ {provider.value} API 密鑰未配置")
+        
         self.rate_limits = {
             AIProvider.OPENAI: {"rpm": 60, "tpm": 50000},  # 每分鐘請求數和token數
             AIProvider.CLAUDE: {"rpm": 30, "tpm": 30000},
             AIProvider.GEMINI: {"rpm": 100, "tpm": 100000}
         }
         
-        # AI模型配置
+        # 用戶使用統計 (內存快取)
+        self.usage_stats = {}
+        self.rate_limit_cache = {}
+        
+        # AI模型配置 - Phase 5 更新
         self.models = {
             AIProvider.OPENAI: {
                 "chat": "gpt-3.5-turbo",
                 "creative": "gpt-4",
-                "code": "gpt-3.5-turbo"
+                "code": "gpt-4",
+                "analysis": "gpt-4-turbo-preview"
+            },
+            AIProvider.CLAUDE: {
+                "chat": "claude-3-haiku-20240307",
+                "creative": "claude-3-sonnet-20240229", 
+                "code": "claude-3-sonnet-20240229",
+                "analysis": "claude-3-opus-20240229"
+            },
+            AIProvider.GEMINI: {
+                "chat": "gemini-pro",
+                "creative": "gemini-pro",
+                "code": "gemini-pro"
             }
+        }
+        
+        # API 端點配置
+        self.api_endpoints = {
+            AIProvider.OPENAI: "https://api.openai.com/v1/chat/completions",
+            AIProvider.CLAUDE: "https://api.anthropic.com/v1/messages",
+            AIProvider.GEMINI: "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent"
         }
         
         # 預設提示詞模板
@@ -292,9 +335,69 @@ class AIAssistantManager:
 
     async def _call_claude(self, messages: List[Dict[str, str]], 
                           ai_request: AIRequest) -> tuple[str, int]:
-        """調用Claude API (預留接口)"""
-        # 預留給未來Claude API整合
-        raise NotImplementedError("Claude API整合開發中")
+        """調用Claude API - Phase 5 實現"""
+        try:
+            api_key = self.api_keys.get(AIProvider.CLAUDE)
+            if not api_key:
+                raise ValueError("Claude API密鑰未配置")
+            
+            headers = {
+                "x-api-key": api_key,
+                "content-type": "application/json",
+                "anthropic-version": "2023-06-01"
+            }
+            
+            # 選擇模型
+            model = self.models[AIProvider.CLAUDE].get(
+                ai_request.task_type.value.split('_')[0], 
+                self.models[AIProvider.CLAUDE]["chat"]
+            )
+            
+            # 將 OpenAI 格式的 messages 轉換為 Claude 格式
+            system_message = ""
+            claude_messages = []
+            
+            for msg in messages:
+                if msg["role"] == "system":
+                    system_message = msg["content"]
+                else:
+                    claude_messages.append({
+                        "role": msg["role"],
+                        "content": msg["content"]
+                    })
+            
+            payload = {
+                "model": model,
+                "max_tokens": ai_request.max_tokens,
+                "temperature": ai_request.temperature,
+                "messages": claude_messages
+            }
+            
+            if system_message:
+                payload["system"] = system_message
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers=headers,
+                    json=payload,
+                    timeout=30
+                ) as response:
+                    
+                    if response.status != 200:
+                        error_text = await response.text()
+                        raise Exception(f"Claude API錯誤 {response.status}: {error_text}")
+                    
+                    result = await response.json()
+                    
+                    content = result["content"][0]["text"]
+                    tokens_used = result["usage"]["input_tokens"] + result["usage"]["output_tokens"]
+                    
+                    return content, tokens_used
+                    
+        except Exception as e:
+            logger.error(f"❌ Claude API調用失敗: {e}")
+            raise
 
     async def _call_gemini(self, messages: List[Dict[str, str]], 
                           ai_request: AIRequest) -> tuple[str, int]:

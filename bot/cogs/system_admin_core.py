@@ -115,6 +115,8 @@ class SystemAdmin(commands.Cog):
     async def system_status(self, interaction: discord.Interaction):
         """系統整體狀態 (斜線指令版本)"""
         try:
+            from bot.utils.interaction_helper import SafeInteractionHandler
+            
             if not await SafeInteractionHandler.safe_defer(interaction, ephemeral=True):
                 logger.debug("系統狀態互動無法延遲，可能已過期")
                 return

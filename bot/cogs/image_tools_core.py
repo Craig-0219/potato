@@ -1,7 +1,7 @@
 # bot/cogs/image_tools_core.py - 圖片處理工具指令模組
 """
-圖片處理工具指令模組 v2.2.0
-提供迷因製作、圖片特效、頭像處理等功能的Discord指令
+圖片處理工具指令模組 - Phase 5
+提供圖片格式轉換、特效處理、壓縮等功能的Discord指令
 """
 
 import discord
@@ -9,42 +9,164 @@ from discord.ext import commands
 from discord import app_commands
 from typing import Dict, List, Optional, Any, Tuple
 import asyncio
-import time
 import io
+import time
 from datetime import datetime, timezone
 
-from bot.services.image_processor import image_processor, ImageEffect, MemeTemplate
-from bot.services.economy_manager import EconomyManager
+from bot.services.image_processor import (
+    image_processor, ImageFormat, ImageEffect, ImageOperation, 
+    ImageProcessRequest
+)
+from bot.views.image_tools_views import ImageToolsMainView
 from bot.utils.embed_builder import EmbedBuilder
-from shared.cache_manager import cache_manager
-from shared.prometheus_metrics import prometheus_metrics, track_command_execution
 from shared.logger import logger
+
 
 class ImageToolsCog(commands.Cog):
     """圖片處理工具功能"""
     
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.economy_manager = EconomyManager()
-        
-        # 圖片處理費用 (金幣)
-        self.processing_costs = {
-            "effect": 8,
-            "meme": 12,
-            "avatar_frame": 10,
-            "custom_edit": 15
-        }
-        
-        # 每日免費額度
-        self.daily_free_quota = 5
-        
         logger.info("🖼️ 圖片處理工具指令模組初始化完成")
+
+    # ========== 統一圖片工具界面 ==========
+
+    @app_commands.command(name="image", description="打開圖片處理工具管理界面")
+    async def image_tools_interface(self, interaction: discord.Interaction):
+        """統一圖片工具管理界面"""
+        try:
+            view = ImageToolsMainView()
+            
+            embed = EmbedBuilder.create_info_embed(
+                "🖼️ 圖片處理工具",
+                "選擇要使用的圖片處理功能。"
+            )
+            
+            embed.add_field(
+                name="🔧 可用功能",
+                value="• **格式轉換**: PNG, JPEG, WEBP, GIF, BMP\n"
+                      "• **特效處理**: 濾鏡、色彩調整、模糊銳化\n"
+                      "• **圖片壓縮**: 智能壓縮，減少文件大小\n"
+                      "• **尺寸調整**: 自定義或預設尺寸",
+                inline=False
+            )
+            
+            embed.add_field(
+                name="📋 支援格式",
+                value="**輸入**: JPG, PNG, GIF, WEBP, BMP\n**輸出**: PNG, JPG, WEBP, GIF, BMP",
+                inline=True
+            )
+            
+            embed.add_field(
+                name="📏 限制",
+                value="**最大文件**: 10MB\n**最大尺寸**: 2000x2000",
+                inline=True
+            )
+            
+            await interaction.response.send_message(embed=embed, view=view)
+            
+        except Exception as e:
+            logger.error(f"❌ 圖片工具界面錯誤: {e}")
+            await interaction.response.send_message("❌ 啟動圖片工具時發生錯誤。", ephemeral=True)
+
+    # ========== 圖片格式轉換 ==========
+
+    @app_commands.command(name="convert_format", description="轉換圖片格式")
+    @app_commands.describe(
+        image="要轉換的圖片附件",
+        target_format="目標格式",
+        quality="輸出品質 (1-100，僅適用於 JPEG/WEBP)"
+    )
+    @app_commands.choices(target_format=[
+        app_commands.Choice(name="PNG", value="png"),
+        app_commands.Choice(name="JPEG", value="jpeg"),
+        app_commands.Choice(name="WEBP", value="webp"),
+        app_commands.Choice(name="GIF", value="gif"),
+        app_commands.Choice(name="BMP", value="bmp")
+    ])
+    async def convert_format(self, interaction: discord.Interaction, 
+                           image: discord.Attachment,
+                           target_format: str,
+                           quality: int = 85):
+        """轉換圖片格式"""
+        try:
+            await interaction.response.defer()
+            
+            # 驗證圖片
+            if not image.content_type or not image.content_type.startswith('image/'):
+                await interaction.followup.send("❌ 請上傳有效的圖片文件！", ephemeral=True)
+                return
+            
+            # 檢查文件大小
+            if image.size > 10 * 1024 * 1024:  # 10MB
+                await interaction.followup.send("❌ 圖片文件過大！請使用小於 10MB 的圖片。", ephemeral=True)
+                return
+            
+            # 驗證品質參數
+            quality = max(1, min(100, quality))
+            
+            # 創建處理請求
+            request = ImageProcessRequest(
+                image_url=image.url,
+                operation=ImageOperation.FORMAT_CONVERT,
+                parameters={},
+                output_format=ImageFormat(target_format),
+                quality=quality
+            )
+            
+            # 處理圖片
+            result = await image_processor.process_image(request)
+            
+            if result.success:
+                # 創建輸出文件
+                filename = f"converted_{int(time.time())}.{target_format}"
+                file = discord.File(
+                    io.BytesIO(result.image_data),
+                    filename=filename
+                )
+                
+                embed = EmbedBuilder.create_success_embed(
+                    "✅ 格式轉換完成",
+                    f"已成功轉換為 **{target_format.upper()}** 格式"
+                )
+                
+                embed.add_field(
+                    name="📊 處理資訊",
+                    value=f"原始格式: {image.content_type.split('/')[-1].upper()}\n"
+                          f"目標格式: {target_format.upper()}\n"
+                          f"處理時間: {result.processing_time:.2f}秒\n"
+                          f"輸出大小: {result.file_size/1024:.1f} KB\n"
+                          f"解析度: {result.size[0]}×{result.size[1]}",
+                    inline=True
+                )
+                
+                if target_format in ['jpeg', 'webp']:
+                    embed.add_field(
+                        name="🎚️ 品質設定",
+                        value=f"壓縮品質: {quality}%",
+                        inline=True
+                    )
+                
+                embed.set_footer(text=f"處理者: {interaction.user.display_name}")
+                
+                await interaction.followup.send(embed=embed, file=file)
+                
+            else:
+                embed = EmbedBuilder.create_error_embed(
+                    "❌ 轉換失敗",
+                    result.error_message or "格式轉換過程中發生未知錯誤"
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                
+        except Exception as e:
+            logger.error(f"❌ 格式轉換錯誤: {e}")
+            await interaction.followup.send("❌ 轉換圖片時發生錯誤，請稍後再試。", ephemeral=True)
 
     # ========== 圖片特效 ==========
 
-    @app_commands.command(name="image_effect", description="為圖片添加特效")
+    @app_commands.command(name="apply_effect", description="為圖片添加特效")
     @app_commands.describe(
-        image="要處理的圖片 (可以是附件或圖片URL)",
+        image="要處理的圖片附件",
         effect="特效類型",
         intensity="特效強度 (0.1-2.0)"
     )
@@ -54,80 +176,65 @@ class ImageToolsCog(commands.Cog):
         app_commands.Choice(name="復古", value="vintage"),
         app_commands.Choice(name="黑白", value="grayscale"),
         app_commands.Choice(name="復古色調", value="sepia"),
-        app_commands.Choice(name="霓虹", value="neon"),
-        app_commands.Choice(name="浮雕", value="emboss"),
-        app_commands.Choice(name="邊緣增強", value="edge_enhance")
+        app_commands.Choice(name="亮度調整", value="brightness"),
+        app_commands.Choice(name="對比度調整", value="contrast"),
+        app_commands.Choice(name="飽和度調整", value="saturation")
     ])
-    async def apply_image_effect(self, interaction: discord.Interaction, 
-                               image: discord.Attachment = None,
-                               effect: str = "vintage", 
-                               intensity: float = 1.0):
+    async def apply_effect(self, interaction: discord.Interaction,
+                          image: discord.Attachment,
+                          effect: str,
+                          intensity: float = 1.0):
         """應用圖片特效"""
         try:
             await interaction.response.defer()
             
-            # 檢查使用權限
-            can_use, cost_info = await self._check_usage_permission(
-                interaction.user.id, interaction.guild.id, "effect"
-            )
-            
-            if not can_use:
-                embed = EmbedBuilder.build(
-                    title="❌ 使用受限",
-                    description=cost_info["message"],
-                    color=0xFF0000
-                )
-                await interaction.followup.send(embed=embed, ephemeral=True)
+            # 驗證圖片
+            if not image.content_type or not image.content_type.startswith('image/'):
+                await interaction.followup.send("❌ 請上傳有效的圖片文件！", ephemeral=True)
                 return
             
-            # 獲取圖片URL
-            image_url = await self._get_image_url(interaction, image)
-            if not image_url:
-                await interaction.followup.send(
-                    "❌ 請提供圖片附件或在有圖片的消息上使用此指令！", 
-                    ephemeral=True
-                )
+            # 檢查文件大小
+            if image.size > 10 * 1024 * 1024:  # 10MB
+                await interaction.followup.send("❌ 圖片文件過大！請使用小於 10MB 的圖片。", ephemeral=True)
                 return
             
             # 驗證強度參數
             intensity = max(0.1, min(2.0, intensity))
             
-            # 處理圖片
-            try:
-                effect_enum = ImageEffect(effect)
-            except ValueError:
-                effect_enum = ImageEffect.VINTAGE
+            # 創建處理請求
+            request = ImageProcessRequest(
+                image_url=image.url,
+                operation=ImageOperation.APPLY_EFFECT,
+                parameters={
+                    'effect_type': effect,
+                    'intensity': intensity
+                },
+                output_format=ImageFormat.PNG
+            )
             
-            result = await image_processor.apply_effect(image_url, effect_enum, intensity)
+            # 處理圖片
+            result = await image_processor.process_image(request)
             
             if result.success:
-                # 扣除費用
-                if cost_info["cost"] > 0:
-                    await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, -cost_info["cost"]
-                    )
-                
-                # 記錄使用量
-                await self._record_daily_usage(interaction.user.id)
-                
-                # 創建文件
+                # 創建輸出文件
+                filename = f"effect_{effect}_{int(time.time())}.png"
                 file = discord.File(
                     io.BytesIO(result.image_data),
-                    filename=f"effect_{effect}_{int(time.time())}.png"
+                    filename=filename
                 )
                 
-                embed = EmbedBuilder.build(
-                    title=f"🎨 圖片特效 - {effect.title()}",
-                    description=f"特效強度: {intensity}",
-                    color=0x9B59B6
+                embed = EmbedBuilder.create_success_embed(
+                    f"🎨 {effect.title()} 特效已套用",
+                    f"特效強度: **{intensity}**"
                 )
                 
                 embed.add_field(
                     name="📊 處理資訊",
-                    value=f"處理時間: {result.processing_time:.2f}秒\n"
-                          f"圖片大小: {result.file_size/1024:.1f} KB\n"
-                          f"解析度: {result.size[0]}×{result.size[1]}" +
-                          (f"\n消耗金幣: {cost_info['cost']}🪙" if cost_info["cost"] > 0 else ""),
+                    value=f"特效類型: {effect.title()}\n"
+                          f"強度: {intensity}\n"
+                          f"處理時間: {result.processing_time:.2f}秒\n"
+                          f"輸出大小: {result.file_size/1024:.1f} KB\n"
+                          f"解析度: {result.size[0]}×{result.size[1]}",
                     inline=True
                 )
                 
@@ -136,216 +243,187 @@ class ImageToolsCog(commands.Cog):
                 await interaction.followup.send(embed=embed, file=file)
                 
             else:
-                embed = EmbedBuilder.build(
-                    title="❌ 圖片處理失敗",
-                    description=result.error_message or "處理過程中發生未知錯誤",
-                    color=0xFF0000
+                embed = EmbedBuilder.create_error_embed(
+                    "❌ 特效處理失敗",
+                    result.error_message or "特效處理過程中發生未知錯誤"
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
-            
-            # 記錄指標
-            track_command_execution("image_effect", interaction.guild.id)
-            
+                
         except Exception as e:
-            logger.error(f"❌ 圖片特效錯誤: {e}")
+            logger.error(f"❌ 特效處理錯誤: {e}")
             await interaction.followup.send("❌ 處理圖片時發生錯誤，請稍後再試。", ephemeral=True)
 
-    # ========== 迷因製作 ==========
+    # ========== 圖片壓縮 ==========
 
-    @app_commands.command(name="create_meme", description="創建迷因圖片")
+    @app_commands.command(name="compress_image", description="壓縮圖片以減少文件大小")
     @app_commands.describe(
-        template="迷因模板",
-        top_text="上方文字",
-        bottom_text="下方文字",
-        background_image="背景圖片 (可選)"
+        image="要壓縮的圖片附件",
+        quality="壓縮品質 (1-100，數值越低壓縮越大)"
     )
-    @app_commands.choices(template=[
-        app_commands.Choice(name="Drake指向", value="drake"),
-        app_commands.Choice(name="自定義文字", value="custom_text"),
-        app_commands.Choice(name="兩個按鈕", value="two_buttons"),
-        app_commands.Choice(name="改變我的想法", value="change_my_mind")
-    ])
-    async def create_meme(self, interaction: discord.Interaction,
-                         template: str,
-                         top_text: str,
-                         bottom_text: str = "",
-                         background_image: discord.Attachment = None):
-        """創建迷因圖片"""
+    async def compress_image(self, interaction: discord.Interaction,
+                            image: discord.Attachment,
+                            quality: int = 75):
+        """壓縮圖片"""
         try:
             await interaction.response.defer()
             
-            # 檢查使用權限
-            can_use, cost_info = await self._check_usage_permission(
-                interaction.user.id, interaction.guild.id, "meme"
-            )
-            
-            if not can_use:
-                embed = EmbedBuilder.build(
-                    title="❌ 使用受限",
-                    description=cost_info["message"],
-                    color=0xFF0000
-                )
-                await interaction.followup.send(embed=embed, ephemeral=True)
+            # 驗證圖片
+            if not image.content_type or not image.content_type.startswith('image/'):
+                await interaction.followup.send("❌ 請上傳有效的圖片文件！", ephemeral=True)
                 return
             
-            # 檢查文字長度
-            if len(top_text) > 100 or len(bottom_text) > 100:
-                await interaction.followup.send(
-                    "❌ 文字過長！每行文字請限制在100字符內。", 
-                    ephemeral=True
-                )
+            # 檢查文件大小
+            if image.size > 10 * 1024 * 1024:  # 10MB
+                await interaction.followup.send("❌ 圖片文件過大！請使用小於 10MB 的圖片。", ephemeral=True)
                 return
             
-            # 獲取背景圖片URL（如果有）
-            background_url = None
-            if background_image:
-                if background_image.content_type.startswith('image/'):
-                    background_url = background_image.url
-                else:
-                    await interaction.followup.send(
-                        "❌ 背景文件必須是圖片格式！", 
-                        ephemeral=True
-                    )
-                    return
+            # 驗證品質參數
+            quality = max(1, min(100, quality))
             
-            # 準備文字列表
-            texts = [top_text]
-            if bottom_text.strip():
-                texts.append(bottom_text)
+            # 根據原始格式選擇輸出格式
+            output_format = ImageFormat.JPEG  # 預設使用 JPEG 以獲得更好的壓縮
+            if 'png' in image.content_type and quality > 80:
+                output_format = ImageFormat.PNG  # 高品質時保持 PNG
             
-            # 創建迷因
-            try:
-                template_enum = MemeTemplate(template)
-            except ValueError:
-                template_enum = MemeTemplate.CUSTOM_TEXT
-            
-            result = await image_processor.create_meme(
-                template_enum, texts, background_url
+            # 創建處理請求
+            request = ImageProcessRequest(
+                image_url=image.url,
+                operation=ImageOperation.COMPRESS,
+                parameters={},
+                output_format=output_format,
+                quality=quality
             )
+            
+            # 處理圖片
+            result = await image_processor.process_image(request)
             
             if result.success:
-                # 扣除費用
-                if cost_info["cost"] > 0:
-                    await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, -cost_info["cost"]
-                    )
+                # 計算壓縮比
+                compression_ratio = (1 - result.file_size / image.size) * 100
                 
-                # 記錄使用量
-                await self._record_daily_usage(interaction.user.id)
-                
-                # 創建文件
+                # 創建輸出文件
+                filename = f"compressed_{int(time.time())}.{output_format.value}"
                 file = discord.File(
                     io.BytesIO(result.image_data),
-                    filename=f"meme_{template}_{int(time.time())}.png"
+                    filename=filename
                 )
                 
-                embed = EmbedBuilder.build(
-                    title="😂 迷因創作完成！",
-                    description=f"模板: {template.title()}",
-                    color=0xE74C3C
+                embed = EmbedBuilder.create_success_embed(
+                    "📦 圖片壓縮完成",
+                    f"壓縮品質: **{quality}%**"
                 )
                 
                 embed.add_field(
-                    name="📝 文字內容",
-                    value=f"上方: {top_text}\n" + 
-                          (f"下方: {bottom_text}" if bottom_text else ""),
+                    name="📊 壓縮結果",
+                    value=f"原始大小: {image.size/1024:.1f} KB\n"
+                          f"壓縮後: {result.file_size/1024:.1f} KB\n"
+                          f"壓縮比: {compression_ratio:.1f}%\n"
+                          f"處理時間: {result.processing_time:.2f}秒",
                     inline=True
                 )
                 
                 embed.add_field(
-                    name="📊 處理資訊",
-                    value=f"處理時間: {result.processing_time:.2f}秒\n"
-                          f"圖片大小: {result.file_size/1024:.1f} KB" +
-                          (f"\n消耗金幣: {cost_info['cost']}🪙" if cost_info["cost"] > 0 else ""),
+                    name="🔧 技術資訊",
+                    value=f"輸出格式: {output_format.value.upper()}\n"
+                          f"解析度: {result.size[0]}×{result.size[1]}\n"
+                          f"品質設定: {quality}%",
                     inline=True
                 )
                 
-                embed.set_footer(text=f"創作者: {interaction.user.display_name}")
+                # 根據壓縮效果調整顏色
+                color = 0x00FF00 if compression_ratio > 30 else 0xFFFF00 if compression_ratio > 10 else 0xFF0000
+                embed.color = color
+                
+                embed.set_footer(text=f"處理者: {interaction.user.display_name}")
                 
                 await interaction.followup.send(embed=embed, file=file)
                 
             else:
-                embed = EmbedBuilder.build(
-                    title="❌ 迷因創建失敗",
-                    description=result.error_message or "創建過程中發生未知錯誤",
-                    color=0xFF0000
+                embed = EmbedBuilder.create_error_embed(
+                    "❌ 壓縮失敗",
+                    result.error_message or "壓縮過程中發生未知錯誤"
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
-            
-            # 記錄指標
-            track_command_execution("create_meme", interaction.guild.id)
-            
+                
         except Exception as e:
-            logger.error(f"❌ 迷因創建錯誤: {e}")
-            await interaction.followup.send("❌ 創建迷因時發生錯誤，請稍後再試。", ephemeral=True)
+            logger.error(f"❌ 圖片壓縮錯誤: {e}")
+            await interaction.followup.send("❌ 壓縮圖片時發生錯誤，請稍後再試。", ephemeral=True)
 
-    # ========== 頭像處理 ==========
+    # ========== 圖片調整尺寸 ==========
 
-    @app_commands.command(name="avatar_frame", description="為頭像添加炫酷框架")
+    @app_commands.command(name="resize_image", description="調整圖片尺寸")
     @app_commands.describe(
-        user="要處理頭像的用戶 (默認為自己)",
-        frame_style="框架樣式"
+        image="要調整的圖片附件",
+        width="目標寬度（像素）",
+        height="目標高度（像素，可選）",
+        maintain_aspect="是否保持寬高比"
     )
-    @app_commands.choices(frame_style=[
-        app_commands.Choice(name="圓形", value="circle"),
-        app_commands.Choice(name="方形", value="square"),
-        app_commands.Choice(name="六邊形", value="hexagon")
-    ])
-    async def create_avatar_frame(self, interaction: discord.Interaction,
-                                user: discord.User = None,
-                                frame_style: str = "circle"):
-        """創建頭像框架"""
+    async def resize_image(self, interaction: discord.Interaction,
+                          image: discord.Attachment,
+                          width: int,
+                          height: Optional[int] = None,
+                          maintain_aspect: bool = True):
+        """調整圖片尺寸"""
         try:
             await interaction.response.defer()
             
-            # 檢查使用權限
-            can_use, cost_info = await self._check_usage_permission(
-                interaction.user.id, interaction.guild.id, "avatar_frame"
-            )
-            
-            if not can_use:
-                embed = EmbedBuilder.build(
-                    title="❌ 使用受限",
-                    description=cost_info["message"],
-                    color=0xFF0000
-                )
-                await interaction.followup.send(embed=embed, ephemeral=True)
+            # 驗證圖片
+            if not image.content_type or not image.content_type.startswith('image/'):
+                await interaction.followup.send("❌ 請上傳有效的圖片文件！", ephemeral=True)
                 return
             
-            # 獲取目標用戶
-            target_user = user or interaction.user
-            avatar_url = target_user.display_avatar.url
+            # 檢查文件大小
+            if image.size > 10 * 1024 * 1024:  # 10MB
+                await interaction.followup.send("❌ 圖片文件過大！請使用小於 10MB 的圖片。", ephemeral=True)
+                return
             
-            # 處理頭像
-            result = await image_processor.create_avatar_frame(avatar_url, frame_style)
+            # 驗證尺寸參數
+            width = max(1, min(2000, width))
+            if height:
+                height = max(1, min(2000, height))
+            
+            # 創建處理請求
+            request = ImageProcessRequest(
+                image_url=image.url,
+                operation=ImageOperation.RESIZE,
+                parameters={
+                    'width': width,
+                    'height': height,
+                    'maintain_aspect': maintain_aspect
+                },
+                output_format=ImageFormat.PNG
+            )
+            
+            # 處理圖片
+            result = await image_processor.process_image(request)
             
             if result.success:
-                # 扣除費用
-                if cost_info["cost"] > 0:
-                    await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, -cost_info["cost"]
-                    )
-                
-                # 記錄使用量
-                await self._record_daily_usage(interaction.user.id)
-                
-                # 創建文件
+                # 創建輸出文件
+                filename = f"resized_{width}x{result.size[1]}_{int(time.time())}.png"
                 file = discord.File(
                     io.BytesIO(result.image_data),
-                    filename=f"avatar_{frame_style}_{target_user.id}.png"
+                    filename=filename
                 )
                 
-                embed = EmbedBuilder.build(
-                    title=f"🖼️ {target_user.display_name} 的炫酷頭像",
-                    description=f"框架樣式: {frame_style.title()}",
-                    color=0x3498DB
+                embed = EmbedBuilder.create_success_embed(
+                    "📏 圖片尺寸調整完成",
+                    f"新尺寸: **{result.size[0]}×{result.size[1]}**"
                 )
                 
                 embed.add_field(
-                    name="📊 處理資訊",
-                    value=f"處理時間: {result.processing_time:.2f}秒\n"
-                          f"圖片大小: {result.file_size/1024:.1f} KB" +
-                          (f"\n消耗金幣: {cost_info['cost']}🪙" if cost_info["cost"] > 0 else ""),
+                    name="📊 調整資訊",
+                    value=f"目標寬度: {width}px\n" +
+                          (f"目標高度: {height}px\n" if height else "") +
+                          f"保持比例: {'是' if maintain_aspect else '否'}\n"
+                          f"實際尺寸: {result.size[0]}×{result.size[1]}\n"
+                          f"處理時間: {result.processing_time:.2f}秒",
+                    inline=True
+                )
+                
+                embed.add_field(
+                    name="💾 文件資訊",
+                    value=f"輸出大小: {result.file_size/1024:.1f} KB\n"
+                          f"格式: PNG",
                     inline=True
                 )
                 
@@ -354,187 +432,18 @@ class ImageToolsCog(commands.Cog):
                 await interaction.followup.send(embed=embed, file=file)
                 
             else:
-                embed = EmbedBuilder.build(
-                    title="❌ 頭像處理失敗",
-                    description=result.error_message or "處理過程中發生未知錯誤",
-                    color=0xFF0000
+                embed = EmbedBuilder.create_error_embed(
+                    "❌ 尺寸調整失敗",
+                    result.error_message or "尺寸調整過程中發生未知錯誤"
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
-            
-            # 記錄指標
-            track_command_execution("avatar_frame", interaction.guild.id)
-            
-        except Exception as e:
-            logger.error(f"❌ 頭像處理錯誤: {e}")
-            await interaction.followup.send("❌ 處理頭像時發生錯誤，請稍後再試。", ephemeral=True)
-
-    # ========== 使用統計 ==========
-
-    @app_commands.command(name="image_usage", description="查看圖片處理使用統計")
-    async def image_usage_stats(self, interaction: discord.Interaction):
-        """圖片處理使用統計"""
-        try:
-            user_id = interaction.user.id
-            
-            # 獲取使用統計
-            daily_usage = await self._get_daily_usage(user_id)
-            
-            # 獲取經濟狀態
-            economy = await self.economy_manager.get_user_economy(user_id, interaction.guild.id)
-            
-            embed = EmbedBuilder.build(
-                title="🖼️ 圖片處理使用統計",
-                description=f"{interaction.user.display_name} 的圖片處理服務使用情況",
-                color=0x9B59B6
-            )
-            
-            embed.set_thumbnail(url=interaction.user.display_avatar.url)
-            
-            # 今日使用情況
-            remaining_free = max(0, self.daily_free_quota - daily_usage)
-            embed.add_field(
-                name="📅 今日使用",
-                value=f"已使用: {daily_usage}/{self.daily_free_quota} (免費)\n"
-                      f"剩餘免費額度: {remaining_free}",
-                inline=True
-            )
-            
-            # 經濟狀態
-            embed.add_field(
-                name="💰 經濟狀態",
-                value=f"金幣餘額: {economy.get('coins', 0):,}🪙\n"
-                      f"可用於圖片處理服務",
-                inline=True
-            )
-            
-            # 費用說明
-            cost_text = []
-            for service, cost in self.processing_costs.items():
-                service_name = {
-                    "effect": "🎨 圖片特效",
-                    "meme": "😂 迷因製作",
-                    "avatar_frame": "🖼️ 頭像框架",
-                    "custom_edit": "✨ 自定義編輯"
-                }.get(service, service)
-                
-                cost_text.append(f"{service_name}: {cost}🪙")
-            
-            embed.add_field(
-                name="💳 服務費用",
-                value="\n".join(cost_text),
-                inline=True
-            )
-            
-            embed.add_field(
-                name="💡 費用說明",
-                value=f"• 每日前{self.daily_free_quota}次免費\n"
-                      "• 超出免費額度後按服務收費\n"
-                      "• 使用遊戲獲得的金幣支付",
-                inline=False
-            )
-            
-            embed.add_field(
-                name="🛠️ 可用功能",
-                value="• `/image_effect` - 圖片特效\n"
-                      "• `/create_meme` - 迷因製作\n"
-                      "• `/avatar_frame` - 頭像框架\n"
-                      "• 更多功能開發中...",
-                inline=False
-            )
-            
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            
-        except Exception as e:
-            logger.error(f"❌ 圖片處理使用統計錯誤: {e}")
-            await interaction.response.send_message("❌ 獲取使用統計時發生錯誤。", ephemeral=True)
-
-    # ========== 輔助方法 ==========
-
-    async def _get_image_url(self, interaction: discord.Interaction, 
-                           attachment: discord.Attachment = None) -> Optional[str]:
-        """獲取圖片URL"""
-        try:
-            # 優先使用附件
-            if attachment:
-                if attachment.content_type and attachment.content_type.startswith('image/'):
-                    return attachment.url
-                else:
-                    return None
-            
-            # 檢查最近的消息中是否有圖片
-            async for message in interaction.channel.history(limit=20):
-                # 檢查附件
-                for att in message.attachments:
-                    if att.content_type and att.content_type.startswith('image/'):
-                        return att.url
-                
-                # 檢查嵌入圖片
-                for embed in message.embeds:
-                    if embed.image:
-                        return embed.image.url
-                    if embed.thumbnail:
-                        return embed.thumbnail.url
-            
-            return None
-            
-        except Exception as e:
-            logger.error(f"❌ 獲取圖片URL失敗: {e}")
-            return None
-
-    async def _check_usage_permission(self, user_id: int, guild_id: int, 
-                                    service_type: str) -> tuple[bool, Dict[str, Any]]:
-        """檢查使用權限和費用"""
-        try:
-            # 檢查每日免費額度
-            daily_usage = await self._get_daily_usage(user_id)
-            
-            if daily_usage < self.daily_free_quota:
-                return True, {"cost": 0, "message": "免費額度內"}
-            
-            # 檢查金幣餘額
-            economy = await self.economy_manager.get_user_economy(user_id, guild_id)
-            cost = self.processing_costs.get(service_type, 10)
-            
-            if economy.get("coins", 0) >= cost:
-                return True, {"cost": cost, "message": f"需要消耗 {cost}🪙"}
-            else:
-                return False, {
-                    "cost": cost,
-                    "message": f"金幣不足！需要 {cost}🪙，您目前有 {economy.get('coins', 0)}🪙"
-                }
                 
         except Exception as e:
-            logger.error(f"❌ 檢查使用權限失敗: {e}")
-            return False, {"cost": 0, "message": "檢查權限時發生錯誤"}
+            logger.error(f"❌ 尺寸調整錯誤: {e}")
+            await interaction.followup.send("❌ 調整圖片時發生錯誤，請稍後再試。", ephemeral=True)
 
-    async def _get_daily_usage(self, user_id: int) -> int:
-        """獲取每日使用次數"""
-        try:
-            cache_key = f"image_daily_usage:{user_id}"
-            usage = await cache_manager.get(cache_key)
-            return usage or 0
-            
-        except Exception as e:
-            logger.error(f"❌ 獲取每日使用量失敗: {e}")
-            return 0
-
-    async def _record_daily_usage(self, user_id: int):
-        """記錄每日使用次數"""
-        try:
-            cache_key = f"image_daily_usage:{user_id}"
-            current_usage = await self._get_daily_usage(user_id)
-            
-            # 設置到明天零點過期
-            from datetime import timedelta
-            tomorrow = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
-            tomorrow += timedelta(days=1)
-            ttl = int((tomorrow - datetime.now(timezone.utc)).total_seconds())
-            
-            await cache_manager.set(cache_key, current_usage + 1, ttl)
-            
-        except Exception as e:
-            logger.error(f"❌ 記錄每日使用量失敗: {e}")
 
 async def setup(bot):
     """設置 Cog"""
     await bot.add_cog(ImageToolsCog(bot))
+    logger.info("✅ ImageToolsCog 已載入")
