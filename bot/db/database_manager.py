@@ -975,8 +975,13 @@ class DatabaseManager:
             raise
     
     async def _create_security_tables(self):
-        """創建安全審計系統表格"""
+        """創建企業級安全系統表格 - Phase 6"""
         try:
+            # 使用專門的安全表格初始化模組
+            from bot.db.migrations.security_tables import initialize_security_system
+            await initialize_security_system()
+            
+            # 保留舊的安全表格創建邏輯作為備份
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     

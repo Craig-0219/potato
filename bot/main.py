@@ -35,8 +35,11 @@ except ImportError:
     logger.error("❌ shared/config.py 不存在或設定不齊全")
     sys.exit(1)
 
-from bot.db.pool import init_database, close_database, get_db_health
+from bot.db.pool import init_database, close_database, get_db_health, db_pool
 from bot.utils.error_handler import setup_error_handling
+from bot.services.guild_manager import GuildManager
+from bot.utils.multi_tenant_security import multi_tenant_security
+import aiomysql
 # Views現在由各個Cog自行註冊，不需要集中註冊
 
 # API Server 整合
@@ -69,6 +72,8 @@ ALL_EXTENSIONS = [
     "image_tools_core",     # 圖片處理工具 - Phase 5
     "content_analysis_core", # 內容分析 - Phase 5
     "cross_platform_economy_core", # 跨平台經濟系統 - Phase 5 Stage 4
+    "security_admin_core",  # 企業級安全管理 - Phase 6 Stage 1
+    "guild_management_core", # 伺服器管理與GDPR合規 - Phase 6 Stage 3
     # "game_core" - 遊戲娛樂功能
 ]
 
@@ -98,6 +103,10 @@ class PotatoBot(commands.Bot):
         # API Server 相關
         self.api_server = None
         self.api_thread = None
+        
+        # 多租戶管理
+        self.guild_manager = None
+        self.multi_tenant_security = multi_tenant_security
 
     async def setup_hook(self):
         """Bot 設定鉤子（修復版）"""
@@ -115,13 +124,16 @@ class PotatoBot(commands.Bot):
             # 3. 載入擴展
             await self._load_extensions()
             
-            # 4. 註冊 Persistent Views
+            # 4. 初始化多租戶安全系統
+            await self._init_multi_tenant_security()
+            
+            # 5. 註冊 Persistent Views
             await self._register_views_delayed()
             
-            # 5. 同步命令樹
+            # 6. 同步命令樹
             await self._sync_commands()
             
-            # 6. 啟動整合的 API Server
+            # 7. 啟動整合的 API Server
             await self._start_integrated_api_server()
             
             logger.info("✅ Bot 設定完成")
@@ -167,6 +179,30 @@ class PotatoBot(commands.Bot):
                 else:
                     logger.error(f"❌ 資料庫初始化最終失敗：{e}")
                     raise
+    
+    async def _init_multi_tenant_security(self):
+        """初始化多租戶安全系統"""
+        logger.info("🔐 初始化多租戶安全系統...")
+        
+        try:
+            # 初始化伺服器管理表格
+            from bot.db.migrations.guild_management_tables import initialize_guild_management_system
+            await initialize_guild_management_system()
+            
+            # 初始化伺服器管理器
+            self.guild_manager = GuildManager(self)
+            
+            # 啟動備份服務
+            from bot.services.backup_service import backup_service
+            await backup_service.start_backup_scheduler()
+            logger.info("✅ 自動備份服務已啟動")
+            
+            # 初始化現有伺服器（在 ready 事件後執行）
+            logger.info("✅ 多租戶安全系統框架初始化完成")
+            
+        except Exception as e:
+            logger.error(f"❌ 多租戶安全系統初始化失敗: {e}")
+            # 不拋出異常，允許 bot 繼續運行
 
     async def _load_extensions(self):
         """載入擴展"""
@@ -312,6 +348,10 @@ class PotatoBot(commands.Bot):
         
         # 輸出啟動資訊
         await self._log_startup_info()
+        
+        # 初始化現有伺服器的多租戶設定
+        if self.guild_manager:
+            await self._initialize_existing_guilds()
 
     async def _log_startup_info(self):
         """記錄啟動資訊"""
@@ -336,22 +376,42 @@ class PotatoBot(commands.Bot):
             logger.info("📋 系統資訊收集需要 psutil 套件")
         except Exception as e:
             logger.warning(f"收集系統資訊失敗：{e}")
-
-    async def on_guild_join(self, guild):
-        """加入新伺服器"""
-        logger.info(f"🆕 加入新伺服器：{guild.name} (ID: {guild.id}, 成員: {guild.member_count})")
+    
+    async def _initialize_existing_guilds(self):
+        """初始化現有伺服器的多租戶設定"""
         try:
-            # 初始化伺服器設定
-            from bot.db.ticket_dao import TicketDAO
-            repository = TicketDAO()
-            await repository.create_default_settings(guild.id)
-            logger.info(f"✅ 已為 {guild.name} 建立預設設定")
+            logger.info(f"🏛️ 開始初始化 {len(self.guilds)} 個現有伺服器...")
+            
+            initialization_count = 0
+            for guild in self.guilds:
+                try:
+                    # 檢查是否已存在伺服器記錄
+                    async with db_pool.connection() as conn:
+                        async with conn.cursor() as cursor:
+                            await cursor.execute(
+                                "SELECT COUNT(*) FROM guild_info WHERE guild_id = %s",
+                                (guild.id,)
+                            )
+                            exists = (await cursor.fetchone())[0] > 0
+                    
+                    if not exists:
+                        # 只初始化新的伺服器
+                        await self.guild_manager.initialize_guild(guild)
+                        initialization_count += 1
+                        logger.info(f"✅ 初始化伺服器: {guild.name}")
+                    else:
+                        logger.debug(f"⏭️ 跳過已存在的伺服器: {guild.name}")
+                        
+                except Exception as e:
+                    logger.error(f"❌ 初始化伺服器 {guild.name} 失敗: {e}")
+                    continue
+            
+            logger.info(f"✅ 現有伺服器初始化完成，處理了 {initialization_count} 個新伺服器")
+            
         except Exception as e:
-            logger.error(f"❌ 初始化伺服器設定失敗：{e}")
+            logger.error(f"❌ 初始化現有伺服器失敗: {e}")
 
-    async def on_guild_remove(self, guild):
-        """離開伺服器"""
-        logger.info(f"👋 離開伺服器：{guild.name} (ID: {guild.id})")
+    # Guild events are now handled by GuildManager
 
     async def close(self):
         """優雅關閉（修復Task warnings）"""
