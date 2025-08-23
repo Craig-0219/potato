@@ -53,7 +53,7 @@ class CrossPlatformEconomyCore(commands.Cog):
 
     # ========== 管理員命令 ==========
 
-    @app_commands.command(name="setup_cross_platform", description="設定跨平台經濟同步")
+    # @app_commands.command(name="setup_cross_platform", description="設定跨平台經濟同步")  # 移至管理選單
     @app_commands.describe(
         minecraft_api="Minecraft 伺服器 API 端點",
         server_key="伺服器認證金鑰",
@@ -104,7 +104,7 @@ class CrossPlatformEconomyCore(commands.Cog):
             logger.error(f"❌ 設定跨平台同步失敗: {e}")
             await interaction.followup.send("❌ 設定過程中發生錯誤。", ephemeral=True)
 
-    @app_commands.command(name="economy_settings", description="查看或調整經濟系統設定")
+    # @app_commands.command(name="economy_settings", description="查看或調整經濟系統設定")  # 移至管理選單
     @app_commands.describe(
         daily_coins_base="每日基礎金幣獲得量",
         daily_coins_max="每日最大金幣獲得量",
@@ -200,7 +200,7 @@ class CrossPlatformEconomyCore(commands.Cog):
             logger.error(f"❌ 查看經濟設定失敗: {e}")
             await interaction.followup.send("❌ 獲取設定時發生錯誤。", ephemeral=True)
 
-    @app_commands.command(name="economy_stats", description="查看跨平台經濟統計")
+    # @app_commands.command(name="economy_stats", description="查看跨平台經濟統計")  # 移至管理選單
     async def economy_stats(self, interaction: discord.Interaction):
         """查看跨平台經濟統計"""
         try:
@@ -291,7 +291,7 @@ class CrossPlatformEconomyCore(commands.Cog):
             logger.error(f"❌ 查看經濟統計失敗: {e}")
             await interaction.followup.send("❌ 獲取統計時發生錯誤。", ephemeral=True)
 
-    @app_commands.command(name="force_sync", description="強制執行用戶跨平台同步")
+    # @app_commands.command(name="force_sync", description="強制執行用戶跨平台同步")  # 移至管理選單
     @app_commands.describe(user="要同步的用戶")
     async def force_sync(self, interaction: discord.Interaction, user: discord.Member):
         """強制執行用戶跨平台同步"""
@@ -345,7 +345,7 @@ class CrossPlatformEconomyCore(commands.Cog):
             logger.error(f"❌ 強制同步失敗: {e}")
             await interaction.followup.send("❌ 同步過程中發生錯誤。", ephemeral=True)
 
-    @app_commands.command(name="anti_inflation", description="手動執行抗通膨調整")
+    # @app_commands.command(name="anti_inflation", description="手動執行抗通膨調整")  # 移至管理選單
     async def manual_anti_inflation(self, interaction: discord.Interaction):
         """手動執行抗通膨調整"""
         try:
@@ -412,7 +412,7 @@ class CrossPlatformEconomyCore(commands.Cog):
 
     # ========== 用戶命令 ==========
 
-    @app_commands.command(name="my_economy", description="查看我的跨平台經濟狀況")
+    # @app_commands.command(name="my_economy", description="查看我的跨平台經濟狀況")  # 移至主選單
     async def my_economy(self, interaction: discord.Interaction):
         """查看用戶的跨平台經濟狀況"""
         try:
@@ -482,7 +482,7 @@ class CrossPlatformEconomyCore(commands.Cog):
 
     # ========== Zientis 整合命令 ==========
 
-    @app_commands.command(name="setup_zientis", description="設定 Zientis Minecraft 伺服器整合")
+    # @app_commands.command(name="setup_zientis", description="設定 Zientis Minecraft 伺服器整合")  # 移至管理選單
     @app_commands.describe(
         api_endpoint="Zientis API 端點 (例如: http://zientis.example.com:8080)",
         server_key="伺服器密鑰"
@@ -560,7 +560,7 @@ class CrossPlatformEconomyCore(commands.Cog):
                 "❌ 設置 Zientis 整合時發生錯誤。", ephemeral=True
             )
 
-    @app_commands.command(name="test_zientis_connection", description="測試與 Zientis 伺服器的連接")
+    # @app_commands.command(name="test_zientis_connection", description="測試與 Zientis 伺服器的連接")  # 已移除以節省指令空間
     async def test_zientis_connection(self, interaction: discord.Interaction):
         """測試與 Zientis 伺服器的連接"""
         if not interaction.user.guild_permissions.administrator:
@@ -654,7 +654,7 @@ class CrossPlatformEconomyCore(commands.Cog):
             
             await interaction.followup.send(embed=embed)
 
-    @app_commands.command(name="zientis_user_link", description="生成 Minecraft 帳戶綁定驗證碼")
+    # @app_commands.command(name="zientis_user_link", description="生成 Minecraft 帳戶綁定驗證碼")  # 移至主選單
     async def zientis_user_link(self, interaction: discord.Interaction):
         """生成用戶 Minecraft 帳戶綁定驗證碼"""
         try:

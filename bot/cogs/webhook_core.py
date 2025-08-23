@@ -44,7 +44,7 @@ class WebhookCore(commands.Cog):
     
     # ========== Webhook管理指令 ==========
     
-    @app_commands.command(name="webhook_create", description="創建新的Webhook")
+    # @app_commands.command(name="webhook_create", description="創庺新的Webhook")  # 移至管理選單
     @app_commands.describe(
         name="Webhook名稱",
         url="目標URL",
@@ -127,7 +127,7 @@ class WebhookCore(commands.Cog):
             logger.error(f"創建Webhook失敗: {e}")
             await interaction.followup.send(f"❌ 創建Webhook失敗: {str(e)}", ephemeral=True)
     
-    @app_commands.command(name="webhook_list", description="查看Webhook列表")
+    # @app_commands.command(name="webhook_list", description="查看Webhook列表")  # 移至管理選單
     @app_commands.describe(
         status="篩選Webhook狀態"
     )
@@ -204,7 +204,7 @@ class WebhookCore(commands.Cog):
             logger.error(f"獲取Webhook列表失敗: {e}")
             await interaction.response.send_message(f"❌ 獲取列表失敗: {str(e)}", ephemeral=True)
     
-    @app_commands.command(name="webhook_config", description="配置Webhook設定")
+    # @app_commands.command(name="webhook_config", description="配置Webhook設定")  # 移至管理選單
     @app_commands.describe(
         webhook_name="Webhook名稱"
     )
@@ -237,7 +237,7 @@ class WebhookCore(commands.Cog):
             logger.error(f"配置Webhook失敗: {e}")
             await interaction.response.send_message(f"❌ 配置失敗: {str(e)}", ephemeral=True)
     
-    @app_commands.command(name="webhook_test", description="測試Webhook")
+    # @app_commands.command(name="webhook_test", description="測試Webhook")  # 已移除以節省指令空間
     @app_commands.describe(
         webhook_name="Webhook名稱"
     )
@@ -305,7 +305,7 @@ class WebhookCore(commands.Cog):
             logger.error(f"測試Webhook失敗: {e}")
             await interaction.followup.send(f"❌ 測試失敗: {str(e)}", ephemeral=True)
     
-    @app_commands.command(name="webhook_stats", description="查看Webhook統計")
+    # @app_commands.command(name="webhook_stats", description="查看Webhook統計")  # 移至管理選單
     @app_commands.describe(
         webhook_name="Webhook名稱 (可選)"
     )
@@ -405,7 +405,7 @@ class WebhookCore(commands.Cog):
             logger.error(f"獲取Webhook統計失敗: {e}")
             await interaction.response.send_message(f"❌ 獲取統計失敗: {str(e)}", ephemeral=True)
     
-    @app_commands.command(name="webhook_delete", description="刪除Webhook")
+    # @app_commands.command(name="webhook_delete", description="刪除Webhook")  # 移至管理選單
     @app_commands.describe(
         webhook_name="要刪除的Webhook名稱"
     )

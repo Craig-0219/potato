@@ -69,6 +69,45 @@ class SafeInteractionHandler:
             return False
     
     @staticmethod
+    async def safe_followup(interaction: discord.Interaction, content: Optional[str] = None,
+                           embed: Optional[discord.Embed] = None,
+                           view: Optional[discord.ui.View] = None,
+                           ephemeral: bool = True) -> bool:
+        """安全發送 followup 訊息"""
+        try:
+            if not interaction or not hasattr(interaction, 'followup'):
+                logger.debug("互動對象無效或沒有 followup 屬性")
+                return False
+            
+            # 準備參數，過濾掉 None 值
+            kwargs = {}
+            if content is not None:
+                kwargs['content'] = content
+            if embed is not None:
+                kwargs['embed'] = embed
+            if view is not None:
+                kwargs['view'] = view
+            kwargs['ephemeral'] = ephemeral
+            
+            await interaction.followup.send(**kwargs)
+            return True
+            
+        except discord.HTTPException as e:
+            if "Unknown interaction" in str(e) or "10062" in str(e):
+                logger.debug("互動已失效或過期")
+                return False
+            elif "Interaction has already been acknowledged" in str(e) or "40060" in str(e):
+                logger.debug("互動已被確認")
+                return False
+            else:
+                logger.warning(f"Discord API 錯誤: {e}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"安全 followup 失敗: {e}")
+            return False
+    
+    @staticmethod
     async def safe_defer(interaction: discord.Interaction, ephemeral: bool = True) -> bool:
         """安全延遲互動回應"""
         try:

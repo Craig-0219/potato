@@ -13,10 +13,30 @@ from typing import Dict, Optional, Tuple, List, Any
 from enum import Enum
 import logging
 import smtplib
-from email.mime.text import MimeText
-from email.mime.multipart import MimeMultipart
 import asyncio
 import aiohttp
+
+# 設置臨時日誌以處理導入錯誤
+_temp_logger = logging.getLogger(__name__)
+
+try:
+    from email.mime.text import MimeText
+    from email.mime.multipart import MimeMultipart
+except (ImportError, AttributeError):
+    # 如果導入失敗，使用空實現來避免錯誤
+    _temp_logger.warning("Email MIME 模組導入失敗，使用空實現")
+    class MimeText:
+        def __init__(self, *args, **kwargs):
+            self.content = args[0] if args else ""
+        def as_string(self):
+            return self.content
+    class MimeMultipart:
+        def __init__(self, *args, **kwargs):
+            self.parts = []
+        def attach(self, part):
+            self.parts.append(part)
+        def as_string(self):
+            return "\n".join(p.as_string() if hasattr(p, 'as_string') else str(p) for p in self.parts)
 
 from bot.db.pool import db_pool
 

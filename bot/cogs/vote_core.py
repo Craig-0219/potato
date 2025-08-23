@@ -445,7 +445,7 @@ class VoteCore(commands.Cog):
 
     # ===== 診斷功能 =====
 
-    @app_commands.command(name="vote_debug", description="診斷投票系統問題（管理員用）")
+    # @app_commands.command(name="vote_debug", description="診斷投票系統問題（管理員用）")  # 已移除以節省指令空間
     @app_commands.checks.has_permissions(manage_guild=True)
     async def vote_debug(self, interaction: discord.Interaction):
         await interaction.response.defer()

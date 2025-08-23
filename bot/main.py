@@ -74,6 +74,7 @@ ALL_EXTENSIONS = [
     "cross_platform_economy_core", # 跨平台經濟系統 - Phase 5 Stage 4
     "security_admin_core",  # 企業級安全管理 - Phase 6 Stage 1
     "guild_management_core", # 伺服器管理與GDPR合規 - Phase 6 Stage 3
+    "menu_core",            # GUI 選單系統 - Phase 7 Stage 2
     # "game_core" - 遊戲娛樂功能
 ]
 

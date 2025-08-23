@@ -22,6 +22,11 @@ from shared.config import (
     AI_MAX_TOKENS, AI_RATE_LIMIT_USER, AI_RATE_LIMIT_GUILD
 )
 
+# 引入 Phase 7 新的 AI 服務
+from .ai.ai_engine_manager import AIEngineManager, AIProvider as NewAIProvider, ConversationContext
+from .ai.intent_recognition import IntentRecognizer, IntentType
+from .ai.conversation_manager import ConversationManager, ConversationFlow
+
 class AIProvider(Enum):
     """AI服務提供商"""
     OPENAI = "openai"
@@ -571,5 +576,228 @@ class AIAssistantManager:
         )
         return await self.process_request(request)
 
+class EnhancedAIAssistant:
+    """
+    🤖 Phase 7 增強型 AI 智能助手
+    整合意圖識別、對話管理和企業級 AI 引擎
+    """
+    
+    def __init__(self):
+        # Phase 7 新組件
+        self.ai_engine: Optional[AIEngineManager] = None
+        self.intent_recognizer: Optional[IntentRecognizer] = None
+        self.conversation_manager: Optional[ConversationManager] = None
+        
+        # 向後兼容的舊組件
+        self.legacy_manager = AIAssistantManager()
+        
+        # 初始化狀態
+        self.is_initialized = False
+        
+    async def initialize(self, config: Optional[Dict[str, Any]] = None):
+        """初始化增強型 AI 助手"""
+        if self.is_initialized:
+            return
+            
+        try:
+            # 默認配置
+            if not config:
+                config = {
+                    "openai_api_key": OPENAI_API_KEY,
+                    "anthropic_api_key": ANTHROPIC_API_KEY,
+                    "daily_cost_limit": 10.0,
+                    "max_tokens_per_request": 1000,
+                    "content_filter_enabled": True,
+                    "rate_limit_per_user": 10,
+                }
+            
+            # 初始化 AI 引擎管理器
+            if config.get("openai_api_key") or config.get("anthropic_api_key"):
+                self.ai_engine = AIEngineManager(config)
+                await self.ai_engine.__aenter__()
+            
+            # 初始化意圖識別器
+            self.intent_recognizer = IntentRecognizer(config)
+            
+            # 初始化對話管理器
+            if self.ai_engine and self.intent_recognizer:
+                self.conversation_manager = ConversationManager(
+                    self.ai_engine,
+                    self.intent_recognizer,
+                    config
+                )
+            
+            self.is_initialized = True
+            logger.info("✅ Phase 7 增強型 AI 助手初始化完成")
+            
+        except Exception as e:
+            logger.error(f"❌ AI 助手初始化失敗: {e}")
+            raise
+    
+    async def smart_chat(
+        self,
+        user_id: str,
+        guild_id: str,
+        channel_id: str,
+        message: str,
+        context: Optional[Dict[str, Any]] = None
+    ) -> str:
+        """
+        智能對話 - 支援意圖識別和多輪對話
+        
+        Args:
+            user_id: 用戶 ID
+            guild_id: 伺服器 ID
+            channel_id: 頻道 ID
+            message: 用戶訊息
+            context: 額外上下文
+            
+        Returns:
+            AI 回應內容
+        """
+        if not self.is_initialized:
+            await self.initialize()
+        
+        try:
+            # 如果新組件可用，使用智能對話管理
+            if self.conversation_manager:
+                # 獲取或創建對話會話
+                session_id = f"{guild_id}_{user_id}"
+                existing_session = await self.conversation_manager.get_session(session_id)
+                
+                if not existing_session:
+                    # 創建新會話
+                    session = await self.conversation_manager.start_conversation(
+                        user_id=user_id,
+                        guild_id=guild_id,
+                        channel_id=channel_id,
+                        initial_message=message
+                    )
+                    session_id = session.session_id
+                
+                # 處理訊息
+                response = await self.conversation_manager.process_message(session_id, message)
+                if response:
+                    return response
+            
+            # 回退到舊版 AI 助手
+            request = AIRequest(
+                user_id=int(user_id),
+                guild_id=int(guild_id),
+                task_type=AITaskType.CHAT,
+                prompt=message,
+                context=context or {},
+                provider=AIProvider.OPENAI
+            )
+            
+            legacy_response = await self.legacy_manager.process_request(request)
+            return legacy_response.content if legacy_response.success else "抱歉，我無法處理您的請求。"
+            
+        except Exception as e:
+            logger.error(f"❌ 智能對話處理失敗: {e}")
+            return "抱歉，我遇到了一些技術問題。請稍後再試。"
+    
+    async def recognize_intent(
+        self,
+        text: str,
+        user_id: str,
+        context: Optional[Dict[str, Any]] = None
+    ) -> Optional[IntentType]:
+        """識別用戶意圖"""
+        if not self.intent_recognizer:
+            return None
+        
+        try:
+            result = await self.intent_recognizer.recognize_intent(text, user_id, context or {})
+            return result.intent if result.confidence > 0.5 else None
+        except Exception as e:
+            logger.error(f"❌ 意圖識別失敗: {e}")
+            return None
+    
+    async def start_guided_conversation(
+        self,
+        user_id: str,
+        guild_id: str,
+        channel_id: str,
+        flow: ConversationFlow
+    ) -> Optional[str]:
+        """開始引導式對話"""
+        if not self.conversation_manager:
+            return None
+        
+        try:
+            session = await self.conversation_manager.start_conversation(
+                user_id=user_id,
+                guild_id=guild_id,
+                channel_id=channel_id,
+                initial_message="",
+                flow=flow
+            )
+            
+            # 返回流程開始訊息
+            if flow == ConversationFlow.TICKET_CREATION:
+                return "🎫 我來幫您建立支援票券！請告訴我您遇到的問題..."
+            elif flow == ConversationFlow.VOTE_CREATION:
+                return "🗳️ 我來幫您建立投票！首先請告訴我投票的標題..."
+            elif flow == ConversationFlow.WELCOME_SETUP:
+                return "👋 歡迎系統設定開始！我會協助您設定新成員歡迎功能..."
+            else:
+                return "✨ 我來協助您完成這個任務！"
+                
+        except Exception as e:
+            logger.error(f"❌ 引導式對話開始失敗: {e}")
+            return None
+    
+    async def get_conversation_stats(self, user_id: Optional[str] = None) -> Dict[str, Any]:
+        """獲取對話統計"""
+        stats = {"legacy_available": True, "enhanced_available": self.is_initialized}
+        
+        if self.conversation_manager:
+            sessions = await self.conversation_manager.list_active_sessions(user_id)
+            stats.update({
+                "active_sessions": len(sessions),
+                "conversation_manager_stats": await self.conversation_manager.get_statistics()
+            })
+        
+        if self.ai_engine:
+            stats["ai_engine_stats"] = await self.ai_engine.get_usage_statistics()
+        
+        return stats
+    
+    async def health_check(self) -> Dict[str, Any]:
+        """健康檢查"""
+        health = {
+            "legacy_manager": True,
+            "enhanced_features": self.is_initialized,
+            "components": {}
+        }
+        
+        if self.ai_engine:
+            health["components"]["ai_engine"] = await self.ai_engine.health_check()
+        
+        if self.conversation_manager:
+            health["components"]["conversation_manager"] = {
+                "active_sessions": len(await self.conversation_manager.list_active_sessions()),
+                "status": "healthy"
+            }
+        
+        return health
+    
+    async def shutdown(self):
+        """關閉 AI 助手"""
+        try:
+            if self.conversation_manager:
+                await self.conversation_manager.shutdown()
+            
+            if self.ai_engine:
+                await self.ai_engine.__aexit__(None, None, None)
+            
+            logger.info("🤖 增強型 AI 助手已關閉")
+        except Exception as e:
+            logger.error(f"❌ AI 助手關閉失敗: {e}")
+
 # 全域實例
 ai_assistant = AIAssistantManager()
+
+# Phase 7 增強型實例
+enhanced_ai_assistant = EnhancedAIAssistant()

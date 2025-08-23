@@ -896,8 +896,8 @@ class TicketCore(commands.Cog):
             logger.error(f"查看票券資訊錯誤: {e}")
             await interaction.response.send_message("❌ 查詢失敗，請稍後再試。", ephemeral=True)
 
-    @app_commands.command(name="tickets_test", description="測試票券列表指令")
-    async def test_tickets(self, interaction: discord.Interaction):
+    # @app_commands.command(name="tickets_test", description="測試票券列表指令")  # 已移除以節省指令空間  
+    async def test_tickets_disabled(self, interaction: discord.Interaction):
         """簡單的測試指令"""
         try:
             logger.info(f"🧪 tickets_test 指令被調用 - 用戶: {interaction.user}")

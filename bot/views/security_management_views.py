@@ -9,7 +9,7 @@ import json
 import logging
 
 from bot.services.security.mfa_manager import mfa_manager, MFAMethod
-from bot.services.security.rbac_manager import rbac_manager, Permission, APIKeyType
+from bot.services.security.rbac_manager import rbac_manager, Permission
 from bot.services.security.api_security import api_security
 from bot.utils.interaction_helper import SafeInteractionHandler
 

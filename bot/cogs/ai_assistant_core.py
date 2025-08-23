@@ -14,7 +14,9 @@ import time
 import json
 from datetime import datetime, timezone, timedelta
 
-from bot.services.ai_assistant import ai_assistant, AIProvider, AITaskType, AIRequest
+from bot.services.ai_assistant import ai_assistant, enhanced_ai_assistant, AIProvider, AITaskType, AIRequest
+from bot.services.ai.conversation_manager import ConversationFlow
+from bot.services.ai.intent_recognition import IntentType
 from bot.services.economy_manager import EconomyManager
 from bot.utils.embed_builder import EmbedBuilder
 from bot.views.ai_assistant_views import AIMainMenuView, AIAssistantControlView
@@ -44,6 +46,23 @@ class AIAssistantCog(commands.Cog):
         self.daily_free_quota = 10
         
         logger.info("🤖 AI助手指令模組初始化完成")
+    
+    async def cog_load(self):
+        """Cog 載入"""
+        """Cog 載入時初始化增強型 AI 助手"""
+        try:
+            await enhanced_ai_assistant.initialize()
+            logger.info("✅ Phase 7 增強型 AI 助手已載入")
+        except Exception as e:
+            logger.warning(f"⚠️ 增強型 AI 助手載入失敗，將使用傳統模式: {e}")
+    
+    async def cog_unload(self):
+        """Cog 卸載時清理資源"""
+        try:
+            await enhanced_ai_assistant.shutdown()
+            logger.info("🤖 AI 助手資源已清理")
+        except Exception as e:
+            logger.error(f"❌ AI 助手資源清理失敗: {e}")
 
     # ========== Phase 5 統一 AI 管理界面 ==========
 
@@ -719,6 +738,208 @@ class AIAssistantCog(commands.Cog):
             
         except Exception as e:
             logger.error(f"❌ 記錄每日使用量失敗: {e}")
+    
+    # ========== Phase 7 智能對話系統 ==========
+    
+    @app_commands.command(name="smart_chat", description="🧠 Phase 7 智能對話 - 支援意圖識別和多輪對話")
+    @app_commands.describe(message="要與 AI 說的話")
+    async def smart_chat(self, interaction: discord.Interaction, message: str):
+        """Phase 7 智能對話指令"""
+        await interaction.response.defer()
+        
+        try:
+            # 使用增強型 AI 助手進行智能對話
+            response = await enhanced_ai_assistant.smart_chat(
+                user_id=str(interaction.user.id),
+                guild_id=str(interaction.guild_id),
+                channel_id=str(interaction.channel_id),
+                message=message,
+                context={
+                    "username": interaction.user.display_name,
+                    "is_admin": interaction.user.guild_permissions.manage_guild
+                }
+            )
+            
+            # 如果回應太長，分割發送
+            if len(response) > 2000:
+                chunks = [response[i:i+2000] for i in range(0, len(response), 2000)]
+                await interaction.followup.send(chunks[0])
+                for chunk in chunks[1:]:
+                    await interaction.followup.send(chunk)
+            else:
+                await interaction.followup.send(response)
+                
+        except Exception as e:
+            logger.error(f"❌ Phase 7 智能對話失敗: {e}")
+            await interaction.followup.send(
+                "❌ 抱歉，我遇到了一些技術問題。請稍後再試或使用 `/ask` 指令。",
+                ephemeral=True
+            )
+    
+    @app_commands.command(name="start_ticket_flow", description="🎫 開始建立票券的引導式對話")
+    async def start_ticket_flow(self, interaction: discord.Interaction):
+        """開始票券建立引導式對話"""
+        await interaction.response.defer()
+        
+        try:
+            response = await enhanced_ai_assistant.start_guided_conversation(
+                user_id=str(interaction.user.id),
+                guild_id=str(interaction.guild_id),
+                channel_id=str(interaction.channel_id),
+                flow=ConversationFlow.TICKET_CREATION
+            )
+            
+            if response:
+                await interaction.followup.send(response)
+            else:
+                await interaction.followup.send(
+                    "❌ 無法啟動引導式對話，請使用傳統的 `/ticket create` 指令。",
+                    ephemeral=True
+                )
+                
+        except Exception as e:
+            logger.error(f"❌ 票券引導對話啟動失敗: {e}")
+            await interaction.followup.send(
+                "❌ 啟動引導對話失敗，請使用傳統的票券指令。",
+                ephemeral=True
+            )
+    
+    @app_commands.command(name="start_vote_flow", description="🗳️ 開始建立投票的引導式對話")
+    async def start_vote_flow(self, interaction: discord.Interaction):
+        """開始投票建立引導式對話"""
+        await interaction.response.defer()
+        
+        try:
+            response = await enhanced_ai_assistant.start_guided_conversation(
+                user_id=str(interaction.user.id),
+                guild_id=str(interaction.guild_id),
+                channel_id=str(interaction.channel_id),
+                flow=ConversationFlow.VOTE_CREATION
+            )
+            
+            if response:
+                await interaction.followup.send(response)
+            else:
+                await interaction.followup.send(
+                    "❌ 無法啟動引導式對話，請使用傳統的 `/vote create` 指令。",
+                    ephemeral=True
+                )
+                
+        except Exception as e:
+            logger.error(f"❌ 投票引導對話啟動失敗: {e}")
+            await interaction.followup.send(
+                "❌ 啟動引導對話失敗，請使用傳統的投票指令。", 
+                ephemeral=True
+            )
+    
+    @app_commands.command(name="start_welcome_flow", description="👋 開始設定歡迎系統的引導式對話")
+    async def start_welcome_flow(self, interaction: discord.Interaction):
+        """開始歡迎系統設定引導式對話"""
+        if not interaction.user.guild_permissions.manage_guild:
+            await interaction.response.send_message(
+                "❌ 只有管理員可以設定歡迎系統。", 
+                ephemeral=True
+            )
+            return
+            
+        await interaction.response.defer()
+        
+        try:
+            response = await enhanced_ai_assistant.start_guided_conversation(
+                user_id=str(interaction.user.id),
+                guild_id=str(interaction.guild_id),
+                channel_id=str(interaction.channel_id),
+                flow=ConversationFlow.WELCOME_SETUP
+            )
+            
+            if response:
+                await interaction.followup.send(response)
+            else:
+                await interaction.followup.send(
+                    "❌ 無法啟動引導式對話，請使用傳統的 `/welcome_setup` 指令。",
+                    ephemeral=True
+                )
+                
+        except Exception as e:
+            logger.error(f"❌ 歡迎設定引導對話啟動失敗: {e}")
+            await interaction.followup.send(
+                "❌ 啟動引導對話失敗，請使用傳統的歡迎指令。",
+                ephemeral=True
+            )
+    
+    @app_commands.command(name="ai_status", description="📊 查看 AI 系統狀態和統計")
+    async def ai_status(self, interaction: discord.Interaction):
+        """查看 AI 系統狀態"""
+        await interaction.response.defer()
+        
+        try:
+            # 獲取統計信息
+            stats = await enhanced_ai_assistant.get_conversation_stats(str(interaction.user.id))
+            health = await enhanced_ai_assistant.health_check()
+            
+            embed = discord.Embed(
+                title="📊 AI 系統狀態報告",
+                color=0x00ff88 if health.get("enhanced_features", False) else 0xffaa00
+            )
+            
+            # 系統狀態
+            status_text = "✅ 增強功能已啟用" if health.get("enhanced_features", False) else "⚠️ 僅傳統功能可用"
+            embed.add_field(
+                name="🤖 系統狀態",
+                value=status_text,
+                inline=True
+            )
+            
+            # 活躍會話
+            active_sessions = stats.get("active_sessions", 0)
+            embed.add_field(
+                name="💬 活躍對話",
+                value=f"{active_sessions} 個會話",
+                inline=True
+            )
+            
+            # AI 引擎狀態
+            if "ai_engine_stats" in stats:
+                ai_stats = stats["ai_engine_stats"]
+                total_requests = ai_stats.get("total_requests", 0)
+                total_cost = ai_stats.get("total_cost", 0.0)
+                
+                embed.add_field(
+                    name="📈 使用統計",
+                    value=f"總請求: {total_requests}\n成本: ${total_cost:.3f}",
+                    inline=True
+                )
+            
+            # 組件健康狀態
+            if "components" in health:
+                health_status = []
+                for component, status in health["components"].items():
+                    if isinstance(status, dict):
+                        if status.get("status") == "healthy":
+                            health_status.append(f"✅ {component}")
+                        else:
+                            health_status.append(f"❌ {component}")
+                    else:
+                        health_status.append(f"✅ {component}")
+                
+                if health_status:
+                    embed.add_field(
+                        name="🔧 組件狀態",
+                        value="\n".join(health_status),
+                        inline=False
+                    )
+            
+            embed.set_footer(text=f"查詢時間: {discord.utils.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
+            
+            await interaction.followup.send(embed=embed)
+            
+        except Exception as e:
+            logger.error(f"❌ AI 狀態查詢失敗: {e}")
+            await interaction.followup.send(
+                "❌ 無法獲取 AI 系統狀態，請稍後再試。",
+                ephemeral=True
+            )
+    
 
 async def setup(bot):
     """設置 Cog"""
