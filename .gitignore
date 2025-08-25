@@ -352,6 +352,16 @@ transcripts/*.txt
 *test_report*.json
 *test_report*.html
 
+# 安全掃描和工具生成文件
+.secrets.baseline
+bandit-report.json
+*bandit-report*
+
+# API 和系統生成的臨時文件
+bot_commands.json
+health_check.json
+*_commands.json
+
 # 本地配置覆蓋
 config.local.json
 settings.local.json

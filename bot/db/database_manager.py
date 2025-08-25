@@ -5,38 +5,40 @@
 """
 
 import asyncio
-from typing import Dict, List, Tuple, Optional, Any
+import json
+from typing import Any, Dict, List, Optional, Tuple
+
 from bot.db.pool import db_pool
 from shared.logger import logger
-import json
+
 
 class DatabaseManager:
     """資料庫管理器 - 負責資料表初始化和遷移"""
-    
+
     def __init__(self):
         self.db = db_pool
         self.current_version = "1.0.0"
         self._initialized = False
-        
+
     async def initialize_all_tables(self, force_recreate: bool = False):
         """初始化所有資料表"""
         if self._initialized and not force_recreate:
             logger.info("資料庫已初始化，跳過重複初始化")
             return
-            
+
         logger.info("🔄 開始初始化資料庫表格...")
         try:
             # 創建版本管理表
             await self._create_version_table()
-            
+
             # 檢查資料庫版本
             current_db_version = await self._get_database_version()
-            
+
             if force_recreate:
                 logger.warning("⚠️ 強制重建模式 - 將刪除所有現存表格")
                 await self._drop_all_tables()
                 current_db_version = None
-            
+
             # 創建各系統的表格
             await self._create_auth_tables()
             await self._create_ticket_tables()
@@ -51,37 +53,39 @@ class DatabaseManager:
             await self._create_lottery_tables()
             await self._create_archive_tables()
             await self._create_cross_platform_tables()  # v2.2.0 新增
-            
+
             # 更新資料庫版本
             await self._update_database_version(self.current_version)
 
             self._initialized = True
             logger.info("✅ 資料庫表格初始化完成")
-            
+
         except Exception as e:
             logger.error(f"❌ 資料庫初始化失敗：{e}")
             raise
-    
+
     async def _create_version_table(self):
         """創建版本管理表"""
         async with self.db.connection() as conn:
             async with conn.cursor() as cursor:
-                await cursor.execute("""
+                await cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS database_version (
                         id INT PRIMARY KEY DEFAULT 1,
                         version VARCHAR(20) NOT NULL,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                         CONSTRAINT single_row CHECK (id = 1)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """)
+                """
+                )
                 await conn.commit()
-    
+
     async def _create_auth_tables(self):
         """創建認證系統相關表格"""
         logger.info("🔐 創建認證系統表格...")
-        
+
         tables = {
-            'api_users': """
+            "api_users": """
                 CREATE TABLE IF NOT EXISTS api_users (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     discord_id VARCHAR(20) NOT NULL UNIQUE COMMENT 'Discord 用戶 ID',
@@ -98,7 +102,7 @@ class DatabaseManager:
                     last_login TIMESTAMP NULL COMMENT '最後登入時間',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
-                    
+
                     INDEX idx_discord_id (discord_id),
                     INDEX idx_guild_id (guild_id),
                     INDEX idx_permission_level (permission_level),
@@ -106,8 +110,7 @@ class DatabaseManager:
                     INDEX idx_is_staff (is_staff)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'api_keys': """
+            "api_keys": """
                 CREATE TABLE IF NOT EXISTS api_keys (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     key_id VARCHAR(32) NOT NULL UNIQUE COMMENT 'API 金鑰 ID',
@@ -120,15 +123,15 @@ class DatabaseManager:
                     expires_at TIMESTAMP NULL COMMENT '過期時間',
                     last_used TIMESTAMP NULL COMMENT '最後使用時間',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',
-                    
+
                     FOREIGN KEY (user_id) REFERENCES api_users(id) ON DELETE CASCADE,
                     INDEX idx_key_id (key_id),
                     INDEX idx_user_id (user_id),
                     INDEX idx_guild_id (guild_id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            """
+            """,
         }
-        
+
         async with self.db.connection() as conn:
             async with conn.cursor() as cursor:
                 for table_name, create_sql in tables.items():
@@ -139,13 +142,13 @@ class DatabaseManager:
                         logger.error(f"❌ 創建 {table_name} 表格失敗: {e}")
                         raise
             await conn.commit()
-    
+
     async def _create_ticket_tables(self):
         """創建票券系統相關表格"""
         logger.info("📋 創建票券系統表格...")
-        
+
         tables = {
-            'tickets': """
+            "tickets": """
                 CREATE TABLE IF NOT EXISTS tickets (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     discord_id VARCHAR(20) NOT NULL COMMENT '開票者 Discord ID',
@@ -167,7 +170,7 @@ class DatabaseManager:
                     closed_by VARCHAR(20) NULL COMMENT '關閉者 ID',
                     close_reason TEXT NULL COMMENT '關閉原因',
                     last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最後活動時間',
-                    
+
                     INDEX idx_guild_status (guild_id, status),
                     INDEX idx_assigned (assigned_to),
                     INDEX idx_created (created_at),
@@ -175,8 +178,7 @@ class DatabaseManager:
                     INDEX idx_discord_id (discord_id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'ticket_settings': """
+            "ticket_settings": """
                 CREATE TABLE IF NOT EXISTS ticket_settings (
                     guild_id BIGINT PRIMARY KEY COMMENT '伺服器 ID',
                     category_id BIGINT NULL COMMENT '分類頻道 ID',
@@ -192,8 +194,7 @@ class DatabaseManager:
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'ticket_logs': """
+            "ticket_logs": """
                 CREATE TABLE IF NOT EXISTS ticket_logs (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     ticket_id INT NOT NULL COMMENT '票券 ID',
@@ -201,14 +202,13 @@ class DatabaseManager:
                     details TEXT NULL COMMENT '操作詳情',
                     created_by VARCHAR(20) NULL COMMENT '操作者 ID',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    
+
                     INDEX idx_ticket (ticket_id),
                     INDEX idx_action (action),
                     INDEX idx_created (created_at)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'ticket_statistics_cache': """
+            "ticket_statistics_cache": """
                 CREATE TABLE IF NOT EXISTS ticket_statistics_cache (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     guild_id BIGINT NOT NULL COMMENT '伺服器 ID',
@@ -216,37 +216,36 @@ class DatabaseManager:
                     cache_data JSON NOT NULL COMMENT '快取資料',
                     expires_at TIMESTAMP NOT NULL COMMENT '過期時間',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    
+
                     UNIQUE KEY unique_cache (guild_id, cache_key),
                     INDEX idx_expires (expires_at)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'ticket_views': """
+            "ticket_views": """
                 CREATE TABLE IF NOT EXISTS ticket_views (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     ticket_id INT NOT NULL COMMENT '票券 ID',
                     user_id VARCHAR(20) NOT NULL COMMENT '查看者 ID',
                     viewed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    
+
                     INDEX idx_ticket (ticket_id),
                     INDEX idx_user (user_id),
                     INDEX idx_viewed (viewed_at)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            """
+            """,
         }
-        
+
         await self._create_tables_batch(tables, "票券系統")
-        
+
         # 創建票券指派系統表格
         await self._create_assignment_tables()
-    
+
     async def _create_assignment_tables(self):
         """創建票券指派系統相關表格"""
         logger.info("👥 創建指派系統表格...")
-        
+
         tables = {
-            'staff_workload': """
+            "staff_workload": """
                 CREATE TABLE IF NOT EXISTS staff_workload (
                     id INT PRIMARY KEY AUTO_INCREMENT COMMENT '主鍵',
                     guild_id BIGINT NOT NULL COMMENT '伺服器 ID',
@@ -258,15 +257,14 @@ class DatabaseManager:
                     last_assigned_at TIMESTAMP NULL COMMENT '最後指派時間',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '建立時間',
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
-                    
+
                     UNIQUE KEY uk_guild_staff (guild_id, staff_id),
                     INDEX idx_guild (guild_id),
                     INDEX idx_workload (current_tickets),
                     INDEX idx_last_assigned (last_assigned_at)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'assignment_history': """
+            "assignment_history": """
                 CREATE TABLE IF NOT EXISTS assignment_history (
                     id INT PRIMARY KEY AUTO_INCREMENT COMMENT '主鍵',
                     ticket_id INT NOT NULL COMMENT '票券 ID',
@@ -276,7 +274,7 @@ class DatabaseManager:
                     assignment_reason VARCHAR(255) DEFAULT 'manual' COMMENT '指派原因',
                     assignment_method ENUM('manual', 'auto_least_workload', 'auto_round_robin', 'auto_specialty') DEFAULT 'manual' COMMENT '指派方式',
                     assigned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '指派時間',
-                    
+
                     INDEX idx_ticket (ticket_id),
                     INDEX idx_assigned_to (assigned_to),
                     INDEX idx_assigned_by (assigned_by),
@@ -284,8 +282,7 @@ class DatabaseManager:
                     INDEX idx_method (assignment_method)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'staff_specialties': """
+            "staff_specialties": """
                 CREATE TABLE IF NOT EXISTS staff_specialties (
                     id INT PRIMARY KEY AUTO_INCREMENT COMMENT '主鍵',
                     guild_id BIGINT NOT NULL COMMENT '伺服器 ID',
@@ -295,7 +292,7 @@ class DatabaseManager:
                     is_active BOOLEAN DEFAULT TRUE COMMENT '是否啟用',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '建立時間',
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
-                    
+
                     UNIQUE KEY uk_guild_staff_specialty (guild_id, staff_id, specialty_type),
                     INDEX idx_guild (guild_id),
                     INDEX idx_staff (staff_id),
@@ -303,8 +300,7 @@ class DatabaseManager:
                     INDEX idx_active (is_active)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'assignment_rules': """
+            "assignment_rules": """
                 CREATE TABLE IF NOT EXISTS assignment_rules (
                     id INT PRIMARY KEY AUTO_INCREMENT COMMENT '主鍵',
                     guild_id BIGINT NOT NULL COMMENT '伺服器 ID',
@@ -316,24 +312,24 @@ class DatabaseManager:
                     is_active BOOLEAN DEFAULT TRUE COMMENT '是否啟用',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '建立時間',
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
-                    
+
                     UNIQUE KEY uk_guild_rule (guild_id, rule_name),
                     INDEX idx_guild (guild_id),
                     INDEX idx_ticket_type (ticket_type),
                     INDEX idx_priority (priority_level),
                     INDEX idx_active (is_active)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            """
+            """,
         }
-        
+
         await self._create_tables_batch(tables, "指派系統")
-    
+
     async def _create_vote_tables(self):
         """創建投票系統相關表格"""
         logger.info("🗳️ 創建投票系統表格...")
-        
+
         tables = {
-            'votes': """
+            "votes": """
                 CREATE TABLE IF NOT EXISTS votes (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     title VARCHAR(255) NOT NULL COMMENT '投票標題',
@@ -346,42 +342,39 @@ class DatabaseManager:
                     start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '開始時間',
                     end_time TIMESTAMP NOT NULL COMMENT '結束時間',
                     announced BOOLEAN DEFAULT FALSE COMMENT '是否已公告結果',
-                    
+
                     INDEX idx_guild_active (guild_id),
                     INDEX idx_creator (creator_id),
                     INDEX idx_end_time (end_time),
                     INDEX idx_announced (announced)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'vote_options': """
+            "vote_options": """
                 CREATE TABLE IF NOT EXISTS vote_options (
                     id INT AUTO_INCREMENT PRIMARY KEY,
                     vote_id INT NOT NULL COMMENT '投票 ID',
                     option_text VARCHAR(255) NOT NULL COMMENT '選項文字',
                     option_order INT DEFAULT 0 COMMENT '選項順序',
-                    
+
                     FOREIGN KEY (vote_id) REFERENCES votes(id) ON DELETE CASCADE,
                     INDEX idx_vote (vote_id),
                     INDEX idx_order (vote_id, option_order)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'vote_responses': """
+            "vote_responses": """
                 CREATE TABLE IF NOT EXISTS vote_responses (
                     vote_id INT NOT NULL COMMENT '投票 ID',
                     user_id BIGINT NOT NULL COMMENT '用戶 ID',
                     option_text VARCHAR(255) NOT NULL COMMENT '選擇的選項',
                     voted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '投票時間',
-                    
+
                     PRIMARY KEY (vote_id, user_id, option_text),
                     FOREIGN KEY (vote_id) REFERENCES votes(id) ON DELETE CASCADE,
                     INDEX idx_user (user_id),
                     INDEX idx_voted (voted_at)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'vote_settings': """
+            "vote_settings": """
                 CREATE TABLE IF NOT EXISTS vote_settings (
                     guild_id BIGINT PRIMARY KEY COMMENT '伺服器 ID',
                     default_vote_channel_id BIGINT NULL COMMENT '預設投票頻道 ID',
@@ -396,34 +389,44 @@ class DatabaseManager:
                     is_enabled BOOLEAN DEFAULT TRUE COMMENT '投票系統是否啟用',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '建立時間',
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
-                    
+
                     INDEX idx_default_channel (default_vote_channel_id),
                     INDEX idx_announcement_channel (announcement_channel_id),
                     INDEX idx_enabled (is_enabled)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            """
+            """,
         }
-        
+
         await self._create_tables_batch(tables, "投票系統")
-    
+
     async def _create_tables_batch(self, tables: Dict[str, str], system_name: str):
         """批次創建表格"""
-        async with self.db.connection() as conn:
-            async with conn.cursor() as cursor:
-                for table_name, sql in tables.items():
-                    try:
-                        await cursor.execute(sql)
-                        
-            logger.error(f"資料庫完整性驗證失敗：{e}")
-        
-        return result
-    
+        success_count = 0
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    for table_name, sql in tables.items():
+                        try:
+                            await cursor.execute(sql)
+                            logger.debug(f"✅ 表格 {table_name} 創建成功")
+                            success_count += 1
+                        except Exception as table_error:
+                            logger.error(f"❌ 創建表格 {table_name} 失敗: {table_error}")
+
+                    await conn.commit()
+                    logger.info(f"🎯 {system_name} 表格批次創建完成: {success_count}/{len(tables)}")
+
+        except Exception as e:
+            logger.error(f"❌ {system_name} 資料庫批次操作失敗: {e}")
+
+        return success_count
+
     async def _create_tag_tables(self):
         """創建標籤系統相關表格"""
         logger.info("🏷️ 創建標籤系統表格...")
-        
+
         tables = {
-            'ticket_tags': """
+            "ticket_tags": """
                 CREATE TABLE IF NOT EXISTS ticket_tags (
                     id INT PRIMARY KEY AUTO_INCREMENT COMMENT '主鍵',
                     guild_id BIGINT NOT NULL COMMENT '伺服器 ID',
@@ -437,7 +440,7 @@ class DatabaseManager:
                     created_by BIGINT NOT NULL COMMENT '建立者 ID',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '建立時間',
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
-                    
+
                     UNIQUE KEY uk_guild_name (guild_id, name),
                     INDEX idx_guild (guild_id),
                     INDEX idx_category (category),
@@ -445,27 +448,25 @@ class DatabaseManager:
                     INDEX idx_created_by (created_by)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'ticket_tag_mappings': """
+            "ticket_tag_mappings": """
                 CREATE TABLE IF NOT EXISTS ticket_tag_mappings (
                     id INT PRIMARY KEY AUTO_INCREMENT COMMENT '主鍵',
                     ticket_id INT NOT NULL COMMENT '票券 ID',
                     tag_id INT NOT NULL COMMENT '標籤 ID',
                     added_by BIGINT NOT NULL COMMENT '添加者 ID',
                     added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '添加時間',
-                    
+
                     UNIQUE KEY uk_ticket_tag (ticket_id, tag_id),
                     INDEX idx_ticket (ticket_id),
                     INDEX idx_tag (tag_id),
                     INDEX idx_added_by (added_by),
                     INDEX idx_added_at (added_at),
-                    
+
                     FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
                     FOREIGN KEY (tag_id) REFERENCES ticket_tags(id) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'tag_usage_stats': """
+            "tag_usage_stats": """
                 CREATE TABLE IF NOT EXISTS tag_usage_stats (
                     id INT PRIMARY KEY AUTO_INCREMENT COMMENT '主鍵',
                     guild_id BIGINT NOT NULL COMMENT '伺服器 ID',
@@ -474,18 +475,17 @@ class DatabaseManager:
                     last_used_at TIMESTAMP NULL COMMENT '最後使用時間',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '建立時間',
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
-                    
+
                     UNIQUE KEY uk_guild_tag (guild_id, tag_id),
                     INDEX idx_guild (guild_id),
                     INDEX idx_tag (tag_id),
                     INDEX idx_usage_count (usage_count),
                     INDEX idx_last_used (last_used_at),
-                    
+
                     FOREIGN KEY (tag_id) REFERENCES ticket_tags(id) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'tag_auto_rules': """
+            "tag_auto_rules": """
                 CREATE TABLE IF NOT EXISTS tag_auto_rules (
                     id INT PRIMARY KEY AUTO_INCREMENT COMMENT '主鍵',
                     guild_id BIGINT NOT NULL COMMENT '伺服器 ID',
@@ -498,37 +498,38 @@ class DatabaseManager:
                     created_by BIGINT NOT NULL COMMENT '建立者 ID',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '建立時間',
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
-                    
+
                     INDEX idx_guild (guild_id),
                     INDEX idx_tag (tag_id),
                     INDEX idx_trigger_type (trigger_type),
                     INDEX idx_active (is_active),
                     INDEX idx_priority (priority),
-                    
+
                     FOREIGN KEY (tag_id) REFERENCES ticket_tags(id) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            """
+            """,
         }
-        
+
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     for table_name, create_sql in tables.items():
-                        
+
                         await cursor.execute(create_sql)
-                    
+
                     await conn.commit()
                     logger.info(f"✅ 歡迎系統表格創建完成：{', '.join(tables.keys())}")
-                    
+
         except Exception as e:
             logger.error(f"❌ 歡迎系統表格創建失敗：{e}")
             raise
-    
+
     async def _create_workflow_tables(self):
         """創建工作流程系統相關表格"""
         logger.info("⚙️ 創建工作流程系統表格...")
-        
+
         from bot.db.workflow_dao import WorkflowDAO
+
         try:
             workflow_dao = WorkflowDAO()
             await workflow_dao._initialize()
@@ -536,12 +537,13 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"❌ 工作流程系統表格創建失敗：{e}")
             raise
-    
+
     async def _create_webhook_tables(self):
         """創建Webhook整合系統相關表格"""
         logger.info("🔗 創建Webhook整合系統表格...")
-        
+
         from bot.db.webhook_dao import WebhookDAO
+
         try:
             webhook_dao = WebhookDAO()
             await webhook_dao._initialize()
@@ -555,9 +557,10 @@ class DatabaseManager:
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    
+
                     # 自動化規則表
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         CREATE TABLE IF NOT EXISTS automation_rules (
                             id VARCHAR(36) PRIMARY KEY,
                             name VARCHAR(255) NOT NULL,
@@ -578,7 +581,7 @@ class DatabaseManager:
                             tags JSON,
                             priority INT DEFAULT 5,
                             cooldown_seconds INT DEFAULT 0,
-                            
+
                             INDEX idx_guild_id (guild_id),
                             INDEX idx_status (status),
                             INDEX idx_trigger_type (trigger_type),
@@ -586,10 +589,12 @@ class DatabaseManager:
                             INDEX idx_last_executed (last_executed),
                             INDEX idx_priority (priority)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                    """)
-                    
+                    """
+                    )
+
                     # 規則執行記錄表
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         CREATE TABLE IF NOT EXISTS automation_executions (
                             id VARCHAR(36) PRIMARY KEY,
                             rule_id VARCHAR(36) NOT NULL,
@@ -606,19 +611,21 @@ class DatabaseManager:
                             user_id BIGINT NULL,
                             channel_id BIGINT NULL,
                             message_id BIGINT NULL,
-                            
+
                             INDEX idx_rule_id (rule_id),
                             INDEX idx_guild_id (guild_id),
                             INDEX idx_started_at (started_at),
                             INDEX idx_success (success),
                             INDEX idx_completed_at (completed_at),
-                            
+
                             FOREIGN KEY (rule_id) REFERENCES automation_rules(id) ON DELETE CASCADE
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                    """)
-                    
+                    """
+                    )
+
                     # 規則變更歷史表
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         CREATE TABLE IF NOT EXISTS automation_rule_history (
                             id INT AUTO_INCREMENT PRIMARY KEY,
                             rule_id VARCHAR(36) NOT NULL,
@@ -626,18 +633,20 @@ class DatabaseManager:
                             change_type ENUM('created', 'updated', 'activated', 'deactivated', 'deleted') NOT NULL,
                             changes JSON,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            
+
                             INDEX idx_rule_id (rule_id),
                             INDEX idx_changed_by (changed_by),
                             INDEX idx_change_type (change_type),
                             INDEX idx_created_at (created_at),
-                            
+
                             FOREIGN KEY (rule_id) REFERENCES automation_rules(id) ON DELETE CASCADE
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                    """)
-                    
+                    """
+                    )
+
                     # 規則統計表
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         CREATE TABLE IF NOT EXISTS automation_statistics (
                             id INT AUTO_INCREMENT PRIMARY KEY,
                             rule_id VARCHAR(36) NOT NULL,
@@ -648,35 +657,38 @@ class DatabaseManager:
                             avg_execution_time DECIMAL(8,3) DEFAULT 0.000,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                            
+
                             UNIQUE KEY unique_rule_date (rule_id, date),
                             INDEX idx_rule_id (rule_id),
                             INDEX idx_date (date),
-                            
+
                             FOREIGN KEY (rule_id) REFERENCES automation_rules(id) ON DELETE CASCADE
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                    """)
-                    
+                    """
+                    )
+
                     await conn.commit()
                     logger.info("✅ 自動化規則表格創建完成")
-                    
+
         except Exception as e:
             logger.error(f"❌ 自動化規則表格創建失敗: {e}")
             raise
-    
+
     async def _create_security_tables(self):
         """創建企業級安全系統表格 - Phase 6"""
         try:
             # 使用專門的安全表格初始化模組
             from bot.db.migrations.security_tables import initialize_security_system
+
             await initialize_security_system()
-            
+
             # 保留舊的安全表格創建邏輯作為備份
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    
+
                     # 安全事件日誌表
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         CREATE TABLE IF NOT EXISTS security_events (
                             id VARCHAR(36) PRIMARY KEY,
                             event_type VARCHAR(50) NOT NULL,
@@ -692,7 +704,7 @@ class DatabaseManager:
                             session_id VARCHAR(36) NULL,
                             correlation_id VARCHAR(36) NULL,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            
+
                             INDEX idx_event_type (event_type),
                             INDEX idx_timestamp (timestamp),
                             INDEX idx_user_id (user_id),
@@ -702,10 +714,12 @@ class DatabaseManager:
                             INDEX idx_correlation_id (correlation_id),
                             INDEX idx_created_at (created_at)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                    """)
-                    
+                    """
+                    )
+
                     # 安全規則表
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         CREATE TABLE IF NOT EXISTS security_rules (
                             id VARCHAR(36) PRIMARY KEY,
                             name VARCHAR(255) NOT NULL,
@@ -721,17 +735,19 @@ class DatabaseManager:
                             updated_by BIGINT DEFAULT 0,
                             last_triggered TIMESTAMP NULL,
                             trigger_count INT DEFAULT 0,
-                            
+
                             INDEX idx_rule_type (rule_type),
                             INDEX idx_enabled (enabled),
                             INDEX idx_severity (severity),
                             INDEX idx_created_by (created_by),
                             INDEX idx_last_triggered (last_triggered)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                    """)
-                    
+                    """
+                    )
+
                     # 安全警報表
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         CREATE TABLE IF NOT EXISTS security_alerts (
                             id VARCHAR(36) PRIMARY KEY,
                             rule_id VARCHAR(36) NOT NULL,
@@ -746,21 +762,23 @@ class DatabaseManager:
                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                             resolved_at TIMESTAMP NULL,
                             resolution_note TEXT NULL,
-                            
+
                             INDEX idx_rule_id (rule_id),
                             INDEX idx_event_id (event_id),
                             INDEX idx_severity (severity),
                             INDEX idx_status (status),
                             INDEX idx_assigned_to (assigned_to),
                             INDEX idx_created_at (created_at),
-                            
+
                             FOREIGN KEY (rule_id) REFERENCES security_rules(id) ON DELETE CASCADE,
                             FOREIGN KEY (event_id) REFERENCES security_events(id) ON DELETE CASCADE
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                    """)
-                    
+                    """
+                    )
+
                     # 用戶會話表
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         CREATE TABLE IF NOT EXISTS user_sessions (
                             id VARCHAR(36) PRIMARY KEY,
                             user_id BIGINT NOT NULL,
@@ -773,7 +791,7 @@ class DatabaseManager:
                             last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                             activity_count INT DEFAULT 0,
                             risk_score DECIMAL(3,2) DEFAULT 0.00,
-                            
+
                             INDEX idx_user_id (user_id),
                             INDEX idx_guild_id (guild_id),
                             INDEX idx_session_start (session_start),
@@ -781,10 +799,12 @@ class DatabaseManager:
                             INDEX idx_last_activity (last_activity),
                             INDEX idx_risk_score (risk_score)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                    """)
-                    
+                    """
+                    )
+
                     # 合規報告表
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         CREATE TABLE IF NOT EXISTS compliance_reports (
                             id VARCHAR(36) PRIMARY KEY,
                             standard VARCHAR(20) NOT NULL,
@@ -798,7 +818,7 @@ class DatabaseManager:
                             recommendations JSON,
                             status ENUM('draft', 'final', 'archived') DEFAULT 'draft',
                             file_path VARCHAR(500) NULL,
-                            
+
                             INDEX idx_standard (standard),
                             INDEX idx_guild_id (guild_id),
                             INDEX idx_generated_by (generated_by),
@@ -806,10 +826,12 @@ class DatabaseManager:
                             INDEX idx_status (status),
                             INDEX idx_period (period_start, period_end)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                    """)
-                    
+                    """
+                    )
+
                     # 權限變更歷史表
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         CREATE TABLE IF NOT EXISTS permission_history (
                             id INT AUTO_INCREMENT PRIMARY KEY,
                             user_id BIGINT NOT NULL,
@@ -820,17 +842,19 @@ class DatabaseManager:
                             new_permissions JSON,
                             reason TEXT NULL,
                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            
+
                             INDEX idx_user_id (user_id),
                             INDEX idx_guild_id (guild_id),
                             INDEX idx_changed_by (changed_by),
                             INDEX idx_change_type (change_type),
                             INDEX idx_created_at (created_at)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                    """)
-                    
+                    """
+                    )
+
                     # 資料存取日誌表
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         CREATE TABLE IF NOT EXISTS data_access_logs (
                             id VARCHAR(36) PRIMARY KEY,
                             user_id BIGINT NOT NULL,
@@ -843,7 +867,7 @@ class DatabaseManager:
                             filters JSON,
                             sensitive_data BOOLEAN DEFAULT FALSE,
                             accessed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            
+
                             INDEX idx_user_id (user_id),
                             INDEX idx_guild_id (guild_id),
                             INDEX idx_table_name (table_name),
@@ -851,21 +875,22 @@ class DatabaseManager:
                             INDEX idx_sensitive_data (sensitive_data),
                             INDEX idx_accessed_at (accessed_at)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                    """)
-                    
+                    """
+                    )
+
                     await conn.commit()
                     logger.info("✅ 企業級安全審計表格創建完成")
-                    
+
         except Exception as e:
             logger.error(f"❌ 安全審計表格創建失敗: {e}")
             raise
-    
+
     async def _create_lottery_tables(self):
         """創建抽獎系統相關表格"""
         logger.info("🎲 創建抽獎系統表格...")
-        
+
         tables = {
-            'lotteries': """
+            "lotteries": """
                 CREATE TABLE IF NOT EXISTS lotteries (
                     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '抽獎ID',
                     guild_id BIGINT NOT NULL COMMENT '伺服器ID',
@@ -874,33 +899,32 @@ class DatabaseManager:
                     creator_id BIGINT NOT NULL COMMENT '創建者ID',
                     channel_id BIGINT NOT NULL COMMENT '抽獎頻道ID',
                     message_id BIGINT NULL COMMENT '抽獎訊息ID',
-                    
+
                     prize_type ENUM('role', 'item', 'custom') DEFAULT 'custom' COMMENT '獎品類型',
                     prize_data JSON NULL COMMENT '獎品資料',
                     winner_count INT DEFAULT 1 COMMENT '中獎人數',
-                    
+
                     entry_method ENUM('reaction', 'command', 'both') DEFAULT 'reaction' COMMENT '參與方式',
                     required_roles JSON NULL COMMENT '參與所需角色',
                     excluded_roles JSON NULL COMMENT '排除的角色',
                     min_account_age_days INT DEFAULT 0 COMMENT '最小帳號年齡(天)',
                     min_server_join_days INT DEFAULT 0 COMMENT '最小加入伺服器天數',
-                    
+
                     start_time TIMESTAMP NOT NULL COMMENT '開始時間',
                     end_time TIMESTAMP NOT NULL COMMENT '結束時間',
                     status ENUM('pending', 'active', 'ended', 'cancelled') DEFAULT 'pending' COMMENT '狀態',
                     auto_end BOOLEAN DEFAULT TRUE COMMENT '自動結束',
-                    
+
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
-                    
+
                     INDEX idx_guild_status (guild_id, status),
                     INDEX idx_creator (creator_id),
                     INDEX idx_end_time (end_time),
                     INDEX idx_channel (channel_id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'lottery_entries': """
+            "lottery_entries": """
                 CREATE TABLE IF NOT EXISTS lottery_entries (
                     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '參賽ID',
                     lottery_id INT NOT NULL COMMENT '抽獎ID',
@@ -910,7 +934,7 @@ class DatabaseManager:
                     entry_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '參與時間',
                     is_valid BOOLEAN DEFAULT TRUE COMMENT '是否有效',
                     validation_notes TEXT NULL COMMENT '驗證備註',
-                    
+
                     UNIQUE KEY unique_entry (lottery_id, user_id),
                     FOREIGN KEY (lottery_id) REFERENCES lotteries(id) ON DELETE CASCADE,
                     INDEX idx_lottery (lottery_id),
@@ -918,8 +942,7 @@ class DatabaseManager:
                     INDEX idx_entry_time (entry_time)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'lottery_winners': """
+            "lottery_winners": """
                 CREATE TABLE IF NOT EXISTS lottery_winners (
                     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '中獎ID',
                     lottery_id INT NOT NULL COMMENT '抽獎ID',
@@ -931,15 +954,14 @@ class DatabaseManager:
                     claimed_at TIMESTAMP NULL COMMENT '領取時間',
                     claim_status ENUM('pending', 'claimed', 'expired') DEFAULT 'pending' COMMENT '領取狀態',
                     claim_notes TEXT NULL COMMENT '領取備註',
-                    
+
                     FOREIGN KEY (lottery_id) REFERENCES lotteries(id) ON DELETE CASCADE,
                     INDEX idx_lottery (lottery_id),
                     INDEX idx_user (user_id),
                     INDEX idx_claim_status (claim_status)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'lottery_settings': """
+            "lottery_settings": """
                 CREATE TABLE IF NOT EXISTS lottery_settings (
                     guild_id BIGINT PRIMARY KEY COMMENT '伺服器ID',
                     default_duration_hours INT DEFAULT 24 COMMENT '預設抽獎時長(小時)',
@@ -952,9 +974,9 @@ class DatabaseManager:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間'
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            """
+            """,
         }
-        
+
         async with self.db.connection() as conn:
             async with conn.cursor() as cursor:
                 for table_name, create_sql in tables.items():
@@ -966,13 +988,13 @@ class DatabaseManager:
                         raise
                 await conn.commit()
                 logger.info("✅ 抽獎系統表格創建完成")
-    
+
     async def _create_archive_tables(self):
         """創建歷史資料歸檔相關表格"""
         logger.info("📦 創建歷史資料歸檔表格...")
-        
+
         tables = {
-            'ticket_archive': """
+            "ticket_archive": """
                 CREATE TABLE IF NOT EXISTS ticket_archive (
                     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '歸檔ID',
                     original_ticket_id INT NOT NULL COMMENT '原始票券ID',
@@ -983,14 +1005,13 @@ class DatabaseManager:
                     archive_reason VARCHAR(255) DEFAULT 'auto_cleanup' COMMENT '歸檔原因',
                     archived_by BIGINT NULL COMMENT '歸檔執行者ID',
                     archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '歸檔時間',
-                    
+
                     INDEX idx_original_ticket (original_ticket_id),
                     INDEX idx_guild (guild_id),
                     INDEX idx_archived_at (archived_at)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'vote_archive': """
+            "vote_archive": """
                 CREATE TABLE IF NOT EXISTS vote_archive (
                     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '歸檔ID',
                     original_vote_id INT NOT NULL COMMENT '原始投票ID',
@@ -1002,14 +1023,13 @@ class DatabaseManager:
                     archive_reason VARCHAR(255) DEFAULT 'auto_cleanup' COMMENT '歸檔原因',
                     archived_by BIGINT NULL COMMENT '歸檔執行者ID',
                     archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '歸檔時間',
-                    
+
                     INDEX idx_original_vote (original_vote_id),
                     INDEX idx_guild (guild_id),
                     INDEX idx_archived_at (archived_at)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'user_activity_archive': """
+            "user_activity_archive": """
                 CREATE TABLE IF NOT EXISTS user_activity_archive (
                     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '歸檔ID',
                     user_id BIGINT NOT NULL COMMENT '用戶ID',
@@ -1022,14 +1042,13 @@ class DatabaseManager:
                     first_activity TIMESTAMP NULL COMMENT '首次活動時間',
                     last_activity TIMESTAMP NULL COMMENT '最後活動時間',
                     archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '歸檔時間',
-                    
+
                     INDEX idx_user_guild (user_id, guild_id),
                     INDEX idx_period (activity_period),
                     INDEX idx_archived_at (archived_at)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            
-            'cleanup_schedules': """
+            "cleanup_schedules": """
                 CREATE TABLE IF NOT EXISTS cleanup_schedules (
                     id INT AUTO_INCREMENT PRIMARY KEY COMMENT '清理計畫ID',
                     guild_id BIGINT NOT NULL COMMENT '伺服器ID',
@@ -1043,15 +1062,15 @@ class DatabaseManager:
                     is_enabled BOOLEAN DEFAULT TRUE COMMENT '是否啟用',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
-                    
+
                     INDEX idx_guild (guild_id),
                     INDEX idx_next_run (next_run),
                     INDEX idx_cleanup_type (cleanup_type),
                     INDEX idx_enabled (is_enabled)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            """
+            """,
         }
-        
+
         async with self.db.connection() as conn:
             async with conn.cursor() as cursor:
                 for table_name, create_sql in tables.items():
@@ -1067,7 +1086,7 @@ class DatabaseManager:
     async def _create_cross_platform_tables(self):
         """創建跨平台經濟系統表格 - v2.2.0"""
         logger.info("🔄 創建跨平台經濟系統表格...")
-        
+
         tables = {
             "cross_platform_users": """
                 CREATE TABLE IF NOT EXISTS cross_platform_users (
@@ -1084,7 +1103,6 @@ class DatabaseManager:
                     UNIQUE KEY unique_discord_guild (discord_id, guild_id)
                 )
             """,
-            
             "cross_platform_transactions": """
                 CREATE TABLE IF NOT EXISTS cross_platform_transactions (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -1106,7 +1124,6 @@ class DatabaseManager:
                     INDEX idx_created_at (created_at)
                 )
             """,
-            
             "platform_configs": """
                 CREATE TABLE IF NOT EXISTS platform_configs (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -1121,7 +1138,6 @@ class DatabaseManager:
                     INDEX idx_guild_platform (guild_id, platform_type)
                 )
             """,
-            
             "cross_platform_achievements": """
                 CREATE TABLE IF NOT EXISTS cross_platform_achievements (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -1141,7 +1157,6 @@ class DatabaseManager:
                     INDEX idx_unlocked_at (unlocked_at)
                 )
             """,
-            
             "sync_logs": """
                 CREATE TABLE IF NOT EXISTS sync_logs (
                     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -1158,9 +1173,9 @@ class DatabaseManager:
                     INDEX idx_user_sync (user_id, sync_type),
                     INDEX idx_sync_started (sync_started_at)
                 )
-            """
+            """,
         }
-        
+
         async with self.db.connection() as conn:
             async with conn.cursor() as cursor:
                 for table_name, create_sql in tables.items():
@@ -1170,10 +1185,11 @@ class DatabaseManager:
                     except Exception as e:
                         logger.error(f"❌ 創建 {table_name} 表格失敗: {e}")
                         # 不拋出異常，繼續創建其他表格
-                        
+
                 # 插入初始配置
                 try:
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         INSERT IGNORE INTO platform_configs (guild_id, platform_type, config_key, config_value) VALUES
                         (0, 'discord', 'economy_sync_enabled', 'true'),
                         (0, 'discord', 'achievement_sync_enabled', 'true'),
@@ -1182,17 +1198,20 @@ class DatabaseManager:
                         (0, 'minecraft', 'currency_exchange_rate_coins', '1.0'),
                         (0, 'minecraft', 'currency_exchange_rate_gems', '10.0'),
                         (0, 'minecraft', 'currency_exchange_rate_experience', '0.1')
-                    """)
+                    """
+                    )
                     logger.info("✅ 跨平台配置初始化完成")
                 except Exception as e:
                     logger.warning(f"⚠️ 插入初始配置失敗: {e}")
-                
+
                 await conn.commit()
                 logger.info("✅ 跨平台經濟系統表格創建完成")
+
 
 # ===== 單例模式實現 =====
 
 _database_manager_instance = None
+
 
 def get_database_manager() -> DatabaseManager:
     """
@@ -1204,7 +1223,9 @@ def get_database_manager() -> DatabaseManager:
         _database_manager_instance = DatabaseManager()
     return _database_manager_instance
 
+
 # ===== 便利函數 =====
+
 
 async def initialize_database_system():
     """初始化整個資料庫系統的便利函數"""
@@ -1218,31 +1239,28 @@ async def initialize_database_system():
         logger.error(f"❌ 資料庫系統初始化失敗：{e}")
         return False
 
+
 async def get_database_health() -> Dict[str, Any]:
     """取得資料庫健康狀態"""
     try:
         db_manager = get_database_manager()
-        
+
         # 檢查連接
         async with db_manager.db.connection() as conn:
             async with conn.cursor() as cursor:
                 await cursor.execute("SELECT 1")
                 await cursor.fetchone()
-        
+
         # 取得系統狀態
         status = await db_manager.get_system_status()
-        
+
         return {
             "status": "healthy",
             "database_version": status.get("database_version"),
             "tables": status.get("tables", {}),
-            "connection": "active"
+            "connection": "active",
         }
-        
+
     except Exception as e:
         logger.error(f"資料庫健康檢查失敗：{e}")
-        return {
-            "status": "unhealthy",
-            "error": str(e),
-            "connection": "failed"
-        }
+        return {"status": "unhealthy", "error": str(e), "connection": "failed"}

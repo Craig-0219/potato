@@ -7,10 +7,11 @@ Discord Bot 主程式 - 修復版
 3. 添加健康檢查和監控
 4. 強化啟動流程
 """
-import os
-import sys
 import asyncio
+import os
 import signal
+import sys
+
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -23,35 +24,37 @@ try:
     from shared.logger import logger
 except ImportError:
     import logging
+
     logging.basicConfig(level=logging.INFO)
     logger = logging.getLogger("potato-bot")
 
 # config fallback
 try:
-    from shared.config import (
-        DISCORD_TOKEN, DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
-    )
+    from shared.config import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER, DISCORD_TOKEN
 except ImportError:
     logger.error("❌ shared/config.py 不存在或設定不齊全")
     sys.exit(1)
 
-from bot.db.pool import init_database, close_database, get_db_health, db_pool
-from bot.utils.error_handler import setup_error_handling
-from bot.services.guild_manager import GuildManager
-from bot.utils.multi_tenant_security import multi_tenant_security
+import threading
+
 import aiomysql
-# Views現在由各個Cog自行註冊，不需要集中註冊
+import uvicorn
 
 # API Server 整合
 from bot.api.app import app as api_app
-import uvicorn
-import threading
+from bot.db.pool import close_database, db_pool, get_db_health, init_database
+from bot.services.guild_manager import GuildManager
+from bot.utils.error_handler import setup_error_handling
+from bot.utils.multi_tenant_security import multi_tenant_security
+
+# Views現在由各個Cog自行註冊，不需要集中註冊
+
 
 COGS_PREFIX = "bot.cogs."
 ALL_EXTENSIONS = [
     # 核心企業功能模組
     "ticket_core",
-    "ticket_listener", 
+    "ticket_listener",
     "vote_core",
     "vote_listener",
     "welcome_core",
@@ -68,19 +71,20 @@ ALL_EXTENSIONS = [
     "music_core",
     # 之前移除的模組:
     # "lottery_core" - 抽獎系統
-    "ai_assistant_core",    # AI對話助手 - Phase 5
-    "image_tools_core",     # 圖片處理工具 - Phase 5
-    "content_analysis_core", # 內容分析 - Phase 5
-    "cross_platform_economy_core", # 跨平台經濟系統 - Phase 5 Stage 4
+    "ai_assistant_core",  # AI對話助手 - Phase 5
+    "image_tools_core",  # 圖片處理工具 - Phase 5
+    "content_analysis_core",  # 內容分析 - Phase 5
+    "cross_platform_economy_core",  # 跨平台經濟系統 - Phase 5 Stage 4
     "security_admin_core",  # 企業級安全管理 - Phase 6 Stage 1
-    "guild_management_core", # 伺服器管理與GDPR合規 - Phase 6 Stage 3
-    "menu_core",            # GUI 選單系統 - Phase 7 Stage 2
-    "fallback_commands",    # 備用前綴命令系統
+    "guild_management_core",  # 伺服器管理與GDPR合規 - Phase 6 Stage 3
+    "menu_core",  # GUI 選單系統 - Phase 7 Stage 2
+    "fallback_commands",  # 備用前綴命令系統
     # "game_core" - 遊戲娛樂功能
 ]
 
 # 全域 Bot 實例
 bot = None
+
 
 class PotatoBot(commands.Bot):
     def __init__(self):
@@ -92,20 +96,20 @@ class PotatoBot(commands.Bot):
         intents.members = True  # 重要：需要此權限來接收 on_member_join/remove 事件
 
         super().__init__(
-            command_prefix=commands.when_mentioned_or('!'),
+            command_prefix=commands.when_mentioned_or("!"),
             intents=intents,
-            description="Potato Bot v2.3.0 - 企業級 Discord 管理系統，整合票券、投票、歡迎系統與 Web 管理界面"
+            description="Potato Bot v2.3.0 - 企業級 Discord 管理系統，整合票券、投票、歡迎系統與 Web 管理界面",
         )
         self.initial_extensions = [COGS_PREFIX + ext for ext in ALL_EXTENSIONS]
         self.error_handler = None
         self.startup_time = None
         self._shutdown_event = asyncio.Event()
         self._background_tasks = set()
-        
+
         # API Server 相關
         self.api_server = None
         self.api_thread = None
-        
+
         # 多租戶管理
         self.guild_manager = None
         self.multi_tenant_security = multi_tenant_security
@@ -113,58 +117,61 @@ class PotatoBot(commands.Bot):
     async def setup_hook(self):
         """Bot 設定鉤子（修復版）"""
         logger.info("🚀 Bot 設定開始...")
-        
+
         try:
             # 1. 設置全局錯誤處理
             from bot.utils.error_handler import setup_error_handling
+
             self.error_handler = setup_error_handling(self)
             logger.info("✅ 錯誤處理器已設置")
-            
+
             # 2. 初始化資料庫
             await self._init_database_unified()
-            
+
             # 3. 載入擴展
             await self._load_extensions()
-            
+
             # 4. 初始化多租戶安全系統
             await self._init_multi_tenant_security()
-            
+
             # 5. 註冊 Persistent Views
             await self._register_views_delayed()
-            
+
             # 6. 同步命令樹
             await self._sync_commands()
-            
+
             # 7. 啟動整合的 API Server
             await self._start_integrated_api_server()
-            
+
             logger.info("✅ Bot 設定完成")
-            
+
         except Exception as e:
             logger.error(f"❌ Bot 設定失敗：{e}")
             raise
-    
+
     async def _init_database_unified(self, max_retries=3):
         """統一資料庫初始化（修正版）"""
         logger.info("🔄 開始統一資料庫初始化...")
-        
+
         for attempt in range(max_retries):
             try:
                 # 1. 建立連接池
                 await init_database(DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)
                 logger.info("✅ 資料庫連接池建立成功")
-                
+
                 # 2. 統一初始化所有表格
                 from bot.db.database_manager import get_database_manager
+
                 db_manager = get_database_manager()
                 await db_manager.initialize_all_tables(force_recreate=False)
                 logger.info("✅ 資料庫表格初始化完成")
-                
+
                 # 3. 初始化投票模板系統
                 from bot.services.vote_template_manager import vote_template_manager
+
                 await vote_template_manager.initialize_predefined_templates()
                 logger.info("✅ 投票模板系統初始化完成")
-                
+
                 # 4. 健康檢查
                 health = await get_db_health()
                 if health.get("status") == "healthy":
@@ -172,36 +179,40 @@ class PotatoBot(commands.Bot):
                     return
                 else:
                     raise Exception(f"資料庫健康檢查失敗：{health}")
-                    
+
             except Exception as e:
                 if attempt < max_retries - 1:
-                    wait_time = 2 ** attempt
-                    logger.warning(f"⚠️ 資料庫初始化失敗（嘗試 {attempt + 1}/{max_retries}），{wait_time}秒後重試：{e}")
+                    wait_time = 2**attempt
+                    logger.warning(
+                        f"⚠️ 資料庫初始化失敗（嘗試 {attempt + 1}/{max_retries}），{wait_time}秒後重試：{e}"
+                    )
                     await asyncio.sleep(wait_time)
                 else:
                     logger.error(f"❌ 資料庫初始化最終失敗：{e}")
                     raise
-    
+
     async def _init_multi_tenant_security(self):
         """初始化多租戶安全系統"""
         logger.info("🔐 初始化多租戶安全系統...")
-        
+
         try:
             # 初始化伺服器管理表格
             from bot.db.migrations.guild_management_tables import initialize_guild_management_system
+
             await initialize_guild_management_system()
-            
+
             # 初始化伺服器管理器
             self.guild_manager = GuildManager(self)
-            
+
             # 啟動備份服務
             from bot.services.backup_service import backup_service
+
             await backup_service.start_backup_scheduler()
             logger.info("✅ 自動備份服務已啟動")
-            
+
             # 初始化現有伺服器（在 ready 事件後執行）
             logger.info("✅ 多租戶安全系統框架初始化完成")
-            
+
         except Exception as e:
             logger.error(f"❌ 多租戶安全系統初始化失敗: {e}")
             # 不拋出異常，允許 bot 繼續運行
@@ -210,7 +221,7 @@ class PotatoBot(commands.Bot):
         """載入擴展"""
         loaded_count = 0
         failed_extensions = []
-        
+
         for extension in self.initial_extensions:
             try:
                 await self.load_extension(extension)
@@ -219,9 +230,9 @@ class PotatoBot(commands.Bot):
             except Exception as e:
                 logger.error(f"❌ 載入擴展 {extension} 失敗：{e}")
                 failed_extensions.append(extension)
-        
+
         logger.info(f"📦 已載入 {loaded_count}/{len(self.initial_extensions)} 個擴展")
-        
+
         if failed_extensions:
             logger.warning(f"⚠️ 失敗的擴展：{', '.join(failed_extensions)}")
 
@@ -233,11 +244,13 @@ class PotatoBot(commands.Bot):
             await asyncio.sleep(1)
             validation = self._validate_persistent_views()
             if validation.get("has_persistent_views"):
-                logger.info(f"✅ 成功註冊 {validation['persistent_view_count']} 個 Persistent Views")
+                logger.info(
+                    f"✅ 成功註冊 {validation['persistent_view_count']} 個 Persistent Views"
+                )
                 logger.info(f"📊 View註冊驗證結果：{validation}")
             else:
                 logger.warning("⚠️ 沒有找到已註冊的 Persistent Views")
-            
+
         except Exception as e:
             logger.error(f"❌ Views驗證失敗：{e}")
 
@@ -247,26 +260,30 @@ class PotatoBot(commands.Bot):
             validation_results = {
                 "has_persistent_views": False,
                 "persistent_view_count": 0,
-                "view_details": []
+                "view_details": [],
             }
-            
-            if hasattr(self, 'persistent_views') and self.persistent_views:
+
+            if hasattr(self, "persistent_views") and self.persistent_views:
                 validation_results["has_persistent_views"] = True
                 validation_results["persistent_view_count"] = len(self.persistent_views)
-                
+
                 for view in self.persistent_views:
                     view_info = {
                         "type": type(view).__name__,
-                        "timeout": getattr(view, 'timeout', None),
-                        "children_count": len(view.children) if hasattr(view, 'children') else 0
+                        "timeout": getattr(view, "timeout", None),
+                        "children_count": len(view.children) if hasattr(view, "children") else 0,
                     }
                     validation_results["view_details"].append(view_info)
-            
+
             return validation_results
-            
+
         except Exception as e:
             logger.error(f"❌ View註冊驗證失敗：{e}")
-            return {"has_persistent_views": False, "persistent_view_count": 0, "validation_error": str(e)}
+            return {
+                "has_persistent_views": False,
+                "persistent_view_count": 0,
+                "validation_error": str(e),
+            }
 
     async def _sync_commands(self):
         """同步命令樹（智能速率限制處理）"""
@@ -274,16 +291,17 @@ class PotatoBot(commands.Bot):
             # 檢查是否有現有命令
             existing_commands = self.tree.get_commands()
             logger.info(f"🔍 發現 {len(existing_commands)} 個本地命令等待同步")
-            
+
             # 檢查是否啟用命令同步（環境變數控制）
             import os
-            sync_enabled = os.getenv('SYNC_COMMANDS', 'true').lower() == 'true'
-            
+
+            sync_enabled = os.getenv("SYNC_COMMANDS", "true").lower() == "true"
+
             if not sync_enabled:
                 logger.info("🚫 命令同步已停用（SYNC_COMMANDS=false）")
                 logger.info("💡 如需啟用同步，請設定 SYNC_COMMANDS=true")
                 return
-            
+
             # 先檢查現有的 Discord 命令
             try:
                 discord_commands = await self.http.get_global_commands(self.application_id)
@@ -292,62 +310,59 @@ class PotatoBot(commands.Bot):
                     return
             except:
                 pass  # 如果檢查失敗，繼續嘗試同步
-            
+
             # 嘗試同步，但如果遇到速率限制就跳過
             synced = await self.tree.sync()
             logger.info(f"✅ 同步了 {len(synced)} 個斜線命令")
-            
+
         except discord.HTTPException as e:
             if "429" in str(e) or "Too Many Requests" in str(e):
                 logger.warning(f"⚠️ 遇到速率限制，停用自動同步")
                 logger.info("💡 請等待 24 小時後重試，或設定 SYNC_COMMANDS=false 停用同步")
                 # 設定環境變數停用後續同步嘗試
                 import os
-                os.environ['SYNC_COMMANDS'] = 'false'
+
+                os.environ["SYNC_COMMANDS"] = "false"
             else:
                 logger.error(f"❌ 同步命令失敗：{e}")
         except Exception as e:
             logger.error(f"❌ 同步命令失敗：{e}")
-    
+
     async def _start_integrated_api_server(self):
         """啟動整合的 API 伺服器"""
         try:
             # 取得 API 設定
-            api_host = os.getenv('API_HOST', '0.0.0.0')
-            api_port = int(os.getenv('API_PORT', '8000'))
-            
+            api_host = os.getenv("API_HOST", "0.0.0.0")
+            api_port = int(os.getenv("API_PORT", "8000"))
+
             logger.info(f"🌐 啟動整合 API 伺服器於 {api_host}:{api_port}")
-            
+
             def run_api_server():
                 """在單獨執行緒中執行 API 伺服器"""
                 asyncio.set_event_loop(asyncio.new_event_loop())
                 config = uvicorn.Config(
-                    app=api_app,
-                    host=api_host,
-                    port=api_port,
-                    log_level="info",
-                    access_log=True
+                    app=api_app, host=api_host, port=api_port, log_level="info", access_log=True
                 )
                 server = uvicorn.Server(config)
                 self.api_server = server
                 asyncio.run(server.serve())
-            
+
             # 在背景執行緒中啟動 API 伺服器
             self.api_thread = threading.Thread(target=run_api_server, daemon=True)
             self.api_thread.start()
-            
+
             # 等待伺服器啟動
             await asyncio.sleep(2)
             logger.info(f"✅ API 伺服器已整合啟動 - http://{api_host}:{api_port}")
             logger.info(f"📚 API 文檔位址: http://{api_host}:{api_port}/api/v1/docs")
-            
+
         except Exception as e:
             logger.error(f"❌ API 伺服器啟動失敗：{e}")
-    
+
     async def close(self):
         """關閉 Bot 和整合服務"""
         logger.info("🔄 正在關閉 Bot 和整合服務...")
-        
+
         # 關閉 API 伺服器
         if self.api_server:
             try:
@@ -355,14 +370,14 @@ class PotatoBot(commands.Bot):
                 logger.info("✅ API 伺服器已關閉")
             except Exception as e:
                 logger.error(f"❌ 關閉 API 伺服器時發生錯誤：{e}")
-        
+
         # 關閉資料庫連接
         try:
             await close_database()
             logger.info("✅ 資料庫連接已關閉")
         except Exception as e:
             logger.error(f"❌ 關閉資料庫時發生錯誤：{e}")
-        
+
         # 關閉 Discord Bot
         await super().close()
         logger.info("✅ Discord Bot 已關閉")
@@ -370,20 +385,19 @@ class PotatoBot(commands.Bot):
     async def on_ready(self):
         """Bot 準備完成"""
         self.startup_time = discord.utils.utcnow()
-        
+
         logger.info(f"🤖 Bot 已登入：{self.user} (ID: {self.user.id})")
         logger.info(f"📊 已連接到 {len(self.guilds)} 個伺服器")
-        
+
         # 設置狀態 - v2.2.0 創意內容生成版本
         activity = discord.Activity(
-            type=discord.ActivityType.watching,
-            name="v2.2.0 AI助手+音樂+圖片 | /help"
+            type=discord.ActivityType.watching, name="v2.2.0 AI助手+音樂+圖片 | /help"
         )
         await self.change_presence(activity=activity)
-        
+
         # 輸出啟動資訊
         await self._log_startup_info()
-        
+
         # 初始化現有伺服器的多租戶設定
         if self.guild_manager:
             await self._initialize_existing_guilds()
@@ -392,31 +406,32 @@ class PotatoBot(commands.Bot):
         """記錄啟動資訊"""
         try:
             # 收集系統資訊
-            import psutil
             import platform
-            
+
+            import psutil
+
             system_info = {
                 "Python": platform.python_version(),
                 "Discord.py": discord.__version__,
                 "平台": platform.system(),
                 "CPU": f"{psutil.cpu_count()} 核心",
-                "記憶體": f"{psutil.virtual_memory().total // (1024**3)} GB"
+                "記憶體": f"{psutil.virtual_memory().total // (1024**3)} GB",
             }
-            
+
             logger.info("📋 系統資訊：")
             for key, value in system_info.items():
                 logger.info(f"  {key}: {value}")
-                
+
         except ImportError:
             logger.info("📋 系統資訊收集需要 psutil 套件")
         except Exception as e:
             logger.warning(f"收集系統資訊失敗：{e}")
-    
+
     async def _initialize_existing_guilds(self):
         """初始化現有伺服器的多租戶設定"""
         try:
             logger.info(f"🏛️ 開始初始化 {len(self.guilds)} 個現有伺服器...")
-            
+
             initialization_count = 0
             for guild in self.guilds:
                 try:
@@ -424,39 +439,58 @@ class PotatoBot(commands.Bot):
                     async with db_pool.connection() as conn:
                         async with conn.cursor() as cursor:
                             await cursor.execute(
-                                "SELECT COUNT(*) FROM guild_info WHERE guild_id = %s",
-                                (guild.id,)
+                                "SELECT COUNT(*) FROM guild_info WHERE guild_id = %s", (guild.id,)
                             )
                             exists = (await cursor.fetchone())[0] > 0
-                    
+
                     if not exists:
                         # 只初始化新的伺服器
                         await self.guild_manager.initialize_guild(guild)
                         initialization_count += 1
                         logger.info(f"✅ 初始化伺服器: {guild.name}")
                     else:
+                        logger.debug(f"跳過伺服器初始化: {guild.name}")
 
-        # 調用父類關閉方法
-        await super().close()
-        logger.info("✅ Bot已關閉")
+                except Exception as guild_error:
+                    logger.error(f"初始化伺服器 {guild.name} 失敗: {guild_error}")
+
+            logger.info(f"✅ 完成初始化 {initialization_count} 個新伺服器")
+
+        except Exception as e:
+            logger.error(f"初始化現有伺服器失敗: {e}")
+
+    async def close(self):
+        """關閉 Bot"""
+        try:
+            logger.info("🔄 開始關閉 Bot...")
+
+            # 關閉相關服務
+            if hasattr(self, "backup_service") and self.backup_service:
+                await self.backup_service.stop()
+
+            # 調用父類關閉方法
+            await super().close()
+            logger.info("✅ Bot已關閉")
+        except Exception as e:
+            logger.error(f"關閉 Bot 時發生錯誤: {e}")
 
     def get_uptime(self) -> str:
         """取得運行時間"""
         if not self.startup_time:
             return "未知"
-        
+
         delta = discord.utils.utcnow() - self.startup_time
         days = delta.days
         hours, remainder = divmod(delta.seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
-        
+
         if days > 0:
             return f"{days}天 {hours}小時 {minutes}分鐘"
         elif hours > 0:
             return f"{hours}小時 {minutes}分鐘"
         else:
             return f"{minutes}分鐘 {seconds}秒"
-        
+
     def create_background_task(self, coro):
         """創建背景任務（修復Task tracking）"""
         task = asyncio.create_task(coro)
@@ -464,9 +498,11 @@ class PotatoBot(commands.Bot):
         task.add_done_callback(self._background_tasks.discard)
         return task
 
+
 # ===== 第一組重複指令已移除，保留後面完整版本 =====
 
-@commands.command(name='reload')
+
+@commands.command(name="reload")
 @commands.is_owner()
 async def reload_extension(ctx, extension_name: str):
     """重新載入擴展"""
@@ -478,7 +514,8 @@ async def reload_extension(ctx, extension_name: str):
         await ctx.send(f"❌ 重新載入失敗：{e}")
         logger.error(f"重新載入擴展失敗：{e}")
 
-@commands.command(name='load')
+
+@commands.command(name="load")
 @commands.is_owner()
 async def load_extension(ctx, extension_name: str):
     """載入擴展"""
@@ -490,7 +527,8 @@ async def load_extension(ctx, extension_name: str):
         await ctx.send(f"❌ 載入失敗：{e}")
         logger.error(f"載入擴展失敗：{e}")
 
-@commands.command(name='unload')
+
+@commands.command(name="unload")
 @commands.is_owner()
 async def unload_extension(ctx, extension_name: str):
     """卸載擴展"""
@@ -502,7 +540,8 @@ async def unload_extension(ctx, extension_name: str):
         await ctx.send(f"❌ 卸載失敗：{e}")
         logger.error(f"卸載擴展失敗：{e}")
 
-@commands.command(name='sync')
+
+@commands.command(name="sync")
 @commands.is_owner()
 async def sync_commands(ctx):
     """同步命令"""
@@ -514,89 +553,92 @@ async def sync_commands(ctx):
         await ctx.send(f"❌ 同步失敗：{e}")
         logger.error(f"同步命令失敗：{e}")
 
-@commands.command(name='dbstatus')
+
+@commands.command(name="dbstatus")
 @commands.is_owner()
 async def database_status(ctx):
     """資料庫狀態"""
     try:
         from bot.db.database_manager import get_database_manager
-        
+
         db_manager = get_database_manager()
         status = await db_manager.get_database_status()
-        
+
         embed = discord.Embed(
             title="📊 資料庫狀態",
-            color=discord.Color.green() if status.get('healthy') else discord.Color.orange()
+            color=discord.Color.green() if status.get("healthy") else discord.Color.orange(),
         )
-        
+
         # 基本資訊
         embed.add_field(
             name="連接資訊",
             value=f"狀態：{'✅ 正常' if status.get('healthy') else '⚠️ 異常'}\n版本：{status.get('version', 'Unknown')}",
-            inline=True
+            inline=True,
         )
-        
+
         # 表格統計
-        if status.get('tables'):
+        if status.get("tables"):
             table_info = []
-            for table, count in status['tables'].items():
+            for table, count in status["tables"].items():
                 table_info.append(f"• {table}: {count} 筆")
             embed.add_field(
-                name="資料表",
-                value="\n".join(table_info[:5]),  # 限制顯示數量
-                inline=True
+                name="資料表", value="\n".join(table_info[:5]), inline=True  # 限制顯示數量
             )
-        
+
         await ctx.send(embed=embed)
-        
+
     except Exception as e:
         await ctx.send(f"❌ 取得資料庫狀態失敗：{e}")
         logger.error(f"取得資料庫狀態失敗：{e}")
 
-@commands.command(name='status')
+
+@commands.command(name="status")
 @commands.is_owner()
 async def bot_status(ctx):
     """Bot 狀態"""
     try:
         # 收集狀態資訊
         db_health = await get_db_health()
-        
+
         from bot.utils.embed_builder import EmbedBuilder
-        
-        embed = EmbedBuilder.status_embed({
-            "overall_status": "healthy" if db_health.get('status') == 'healthy' else "degraded",
-            "基本資訊": {
-                "伺服器數量": len(ctx.bot.guilds),
-                "延遲": f"{round(ctx.bot.latency * 1000) if ctx.bot.latency is not None and not (ctx.bot.latency != ctx.bot.latency) else 'N/A'}ms",
-                "運行時間": ctx.bot.get_uptime()
-            },
-            "資料庫": {
-                "狀態": db_health.get('status', 'unknown'),
-                "連接池": f"{db_health.get('pool', {}).get('free', 0)} 可用"
-            },
-            "擴展": {
-                "已載入": len(ctx.bot.extensions),
-                "列表": ", ".join([ext.split('.')[-1] for ext in ctx.bot.extensions])
+
+        embed = EmbedBuilder.status_embed(
+            {
+                "overall_status": "healthy" if db_health.get("status") == "healthy" else "degraded",
+                "基本資訊": {
+                    "伺服器數量": len(ctx.bot.guilds),
+                    "延遲": f"{round(ctx.bot.latency * 1000) if ctx.bot.latency is not None and not (ctx.bot.latency != ctx.bot.latency) else 'N/A'}ms",
+                    "運行時間": ctx.bot.get_uptime(),
+                },
+                "資料庫": {
+                    "狀態": db_health.get("status", "unknown"),
+                    "連接池": f"{db_health.get('pool', {}).get('free', 0)} 可用",
+                },
+                "擴展": {
+                    "已載入": len(ctx.bot.extensions),
+                    "列表": ", ".join([ext.split(".")[-1] for ext in ctx.bot.extensions]),
+                },
             }
-        })
-        
+        )
+
         # 錯誤統計
         if ctx.bot.error_handler:
             error_stats = ctx.bot.error_handler.get_error_stats()
-            if error_stats['total_errors'] > 0:
+            if error_stats["total_errors"] > 0:
                 embed.add_field(
                     name="錯誤統計",
                     value=f"總錯誤數：{error_stats['total_errors']}\n前三錯誤：{', '.join(list(error_stats['top_errors'].keys())[:3])}",
-                    inline=False
+                    inline=False,
                 )
-        
+
         await ctx.send(embed=embed)
-        
+
     except Exception as e:
         await ctx.send(f"❌ 取得狀態失敗：{e}")
         logger.error(f"取得狀態失敗：{e}")
 
-@commands.command(name='health')
+
+@commands.command(name="health")
 @commands.is_owner()
 async def health_check(ctx):
     """健康檢查"""
@@ -606,90 +648,96 @@ async def health_check(ctx):
             "資料庫連接": False,
             "命令同步": False,
             "Persistent Views": False,
-            "擴展載入": False
+            "擴展載入": False,
         }
-        
+
         # 檢查資料庫
         try:
             db_health = await get_db_health()
-            checks["資料庫連接"] = db_health.get('status') == 'healthy'
+            checks["資料庫連接"] = db_health.get("status") == "healthy"
         except:
             pass
-        
+
         # 檢查命令
         checks["命令同步"] = len(ctx.bot.tree.get_commands()) > 0
-        
+
         # 檢查 Views
         validation = ctx.bot._validate_persistent_views()
         checks["Persistent Views"] = validation.get("has_persistent_views", False)
-        
+
         # 檢查擴展
         checks["擴展載入"] = len(ctx.bot.extensions) > 0
-        
+
         # 建立回應
         status_text = ""
         all_healthy = True
-        
+
         for check_name, is_healthy in checks.items():
             emoji = "✅" if is_healthy else "❌"
             status_text += f"{emoji} {check_name}\n"
             if not is_healthy:
                 all_healthy = False
-        
+
         overall_emoji = "✅" if all_healthy else "⚠️"
-        
+
         from bot.utils.embed_builder import EmbedBuilder
+
         embed = EmbedBuilder.build(
             title=f"{overall_emoji} 健康檢查結果",
             description=status_text,
-            color='success' if all_healthy else 'warning'
+            color="success" if all_healthy else "warning",
         )
-        
+
         await ctx.send(embed=embed)
-        
+
     except Exception as e:
         await ctx.send(f"❌ 健康檢查失敗：{e}")
         logger.error(f"健康檢查失敗：{e}")
 
-@commands.command(name='restart')
+
+@commands.command(name="restart")
 @commands.is_owner()
 async def restart_bot(ctx):
     """重啟 Bot（需要外部進程管理）"""
     await ctx.send("🔄 正在重啟 Bot...")
     logger.info("收到重啟命令")
-    
+
     # 優雅關閉
     await ctx.bot.close()
 
+
 # ===== 信號處理 =====
+
 
 def setup_signal_handlers(bot):
     """設置信號處理器"""
-    
+
     def signal_handler(signum, frame):
         logger.info(f"收到信號 {signum}，正在關閉...")
         asyncio.create_task(bot.close())
-    
+
     # Unix 信號
     if sys.platform != "win32":
         signal.signal(signal.SIGTERM, signal_handler)
         signal.signal(signal.SIGINT, signal_handler)
 
+
 # ===== 主函數 =====
+
 
 async def main():
     """主函數"""
     load_dotenv()
-    
+
     # 驗證環境變數
     if not DISCORD_TOKEN:
         logger.error("❌ 未找到 DISCORD_TOKEN，請檢查 .env 設定")
         sys.exit(1)
-    
+
     # 建立 Bot 實例並設為全域變數
     global bot
     bot = PotatoBot()
-    
+
     # 添加管理指令
     bot.add_command(reload_extension)
     bot.add_command(load_extension)
@@ -699,10 +747,10 @@ async def main():
     bot.add_command(bot_status)
     bot.add_command(health_check)
     bot.add_command(restart_bot)
-    
+
     # 設置信號處理
     setup_signal_handlers(bot)
-    
+
     # 啟動 Bot
     async with bot:
         try:
@@ -717,43 +765,45 @@ async def main():
             if not bot.is_closed():
                 await bot.close()
 
+
 # ===== 啟動檢查 =====
+
 
 def pre_startup_checks():
     """啟動前檢查"""
     checks = []
-    
+
     # 檢查 Python 版本
     if sys.version_info < (3, 8):
         checks.append("❌ Python 版本必須 >= 3.8")
     else:
         checks.append(f"✅ Python {sys.version_info.major}.{sys.version_info.minor}")
-    
+
     # 檢查必要模組
-    required_modules = ['discord', 'aiomysql', 'dotenv']
+    required_modules = ["discord", "aiomysql", "dotenv"]
     for module in required_modules:
         try:
             __import__(module)
             checks.append(f"✅ {module}")
         except ImportError:
             checks.append(f"❌ 缺少模組：{module}")
-    
+
     # 檢查環境變數
     if DISCORD_TOKEN:
         checks.append("✅ DISCORD_TOKEN")
     else:
         checks.append("❌ 缺少 DISCORD_TOKEN")
-    
+
     if DB_HOST and DB_USER and DB_PASSWORD and DB_NAME:
         checks.append("✅ 資料庫設定")
     else:
         checks.append("❌ 資料庫設定不完整")
-    
+
     # 輸出檢查結果
     logger.info("🔍 啟動前檢查：")
     for check in checks:
         logger.info(f"  {check}")
-    
+
     # 檢查是否有失敗項目
     failed_checks = [check for check in checks if check.startswith("❌")]
     if failed_checks:
@@ -761,9 +811,10 @@ def pre_startup_checks():
         for failed in failed_checks:
             logger.error(f"  {failed}")
         return False
-    
+
     logger.info("✅ 啟動前檢查通過")
     return True
+
 
 # ===== 入口點 =====
 
@@ -771,20 +822,21 @@ if __name__ == "__main__":
     # 設置事件循環策略（Windows 相容性）
     if sys.platform == "win32":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-    
+
     try:
         # 啟動前檢查
         if not pre_startup_checks():
             sys.exit(1)
-        
+
         # 啟動 Bot
         asyncio.run(main())
-        
+
     except KeyboardInterrupt:
         logger.info("👋 程式已終止")
     except Exception as e:
         logger.error(f"❌ 程式執行錯誤：{e}")
         import traceback
+
         logger.error(traceback.format_exc())
         sys.exit(1)
     finally:

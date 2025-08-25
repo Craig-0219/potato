@@ -1,1 +1,0 @@
-{"status":"healthy","timestamp":"2025-08-24T02:13:42.311701","uptime":623395.3090178967,"version":"1.8.0","components":{"database":"healthy","discord_bot":"healthy","api_server":"healthy","cache":"healthy"},"metrics":{"cpu_usage":64.1,"memory_usage":58.0,"disk_usage":29.5,"process_count":147.0,"network_io":0.0}}
