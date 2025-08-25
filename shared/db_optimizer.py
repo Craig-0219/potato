@@ -188,7 +188,7 @@ class DatabaseOptimizer:
     async def analyze_query(self, query: str, params: tuple = None) -> QueryAnalysis:
         """分析單個查詢"""
         start_time = time.time()
-        query_hash = hashlib.md5(query.encode()).hexdigest()
+        query_hash = hashlib.sha256(query.encode()).hexdigest()[:32]  # 使用 SHA256
         
         try:
             # 執行 EXPLAIN 分析

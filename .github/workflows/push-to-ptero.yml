@@ -57,7 +57,7 @@ jobs:
           if ! git diff --cached --quiet; then
             git commit -m "deploy(from ${GITHUB_REF_NAME} - ${GITHUB_SHA:0:7})"
             # 用 GITHUB_TOKEN 驗證推送到同一個 repo 的 ptero 分支
-            git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:ptero
+            git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:ptero
           else
             echo "No changes to deploy"
           fi

@@ -61,7 +61,8 @@ AI_RATE_LIMIT_GUILD = int(os.getenv("AI_RATE_LIMIT_GUILD", "100"))  # 每小時�
 
 # 圖片處理配置
 IMAGE_MAX_SIZE = int(os.getenv("IMAGE_MAX_SIZE", "50"))  # MB
-IMAGE_STORAGE_PATH = os.getenv("IMAGE_STORAGE_PATH", "/tmp/bot_images")
+import tempfile
+IMAGE_STORAGE_PATH = os.getenv("IMAGE_STORAGE_PATH", os.path.join(tempfile.gettempdir(), "bot_images"))
 CLOUD_STORAGE_BUCKET = os.getenv("CLOUD_STORAGE_BUCKET")  # 可選的雲端存儲
 
 # 內容分析配置

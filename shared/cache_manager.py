@@ -474,7 +474,16 @@ class MultiLevelCacheManager:
             data = await self.redis.get(f"cache:{key}")
             if data:
                 if self.config.enable_compression:
-                    return pickle.loads(data.encode('latin-1'))
+                    # 使用 JSON 代替 pickle 以提高安全性
+                    import base64
+                    import gzip
+                    try:
+                        compressed_data = base64.b64decode(data.encode('latin-1'))
+                        decompressed_data = gzip.decompress(compressed_data)
+                        return json.loads(decompressed_data.decode('utf-8'))
+                    except Exception:
+                        # 回退到 JSON（為了兼容性）
+                        return json.loads(data)
                 else:
                     return json.loads(data)
             return None
@@ -653,7 +662,7 @@ def cached(key_prefix: str = "", ttl: int = 300, strategy: CacheStrategy = Cache
                 key_parts.extend(f"{k}={v}" for k, v in list(kwargs.items())[:3])
             
             cache_key = ":".join(filter(None, key_parts))
-            cache_key = hashlib.md5(cache_key.encode()).hexdigest()[:16]  # 縮短鍵長度
+            cache_key = hashlib.sha256(cache_key.encode()).hexdigest()[:16]  # 使用 SHA256 代替 MD5
             
             # 嘗試從快取讀取
             result = await cache_manager.get(cache_key)
