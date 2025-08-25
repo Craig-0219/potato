@@ -1,0 +1,32 @@
+# Potato Bot 精簡版依賴清單
+# 僅包含核心必需依賴
+
+# Discord 機器人核心
+discord.py==2.3.2
+
+# 資料庫
+aiomysql==0.2.0
+
+# Web 框架（用於 API）
+fastapi==0.104.1
+uvicorn==0.24.0
+
+# 基本工具
+pydantic==2.5.0
+python-dotenv==1.0.0
+
+# 加密和安全
+PyJWT==2.8.0
+cryptography==41.0.7
+
+# HTTP 客戶端
+httpx==0.25.2
+
+# 日期時間處理
+python-dateutil==2.8.2
+
+# 系統工具
+psutil==5.9.6
+
+# 日誌增強
+colorlog==6.8.0
