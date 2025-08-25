@@ -26,9 +26,10 @@ jobs:
             --exclude='*' \
             ./ /tmp/ptero/
 
-            install -D -m 0644 \
-            potato/docs/requirements/requirements-production.txt \
-            /tmp/ptero/potato/docs/requirements/requirements-production.txt
+         test -f potato/docs/requirements/requirements-production.txt
+         install -D -m 0644 potato/docs/requirements/requirements-production.txt /tmp/ptero/requirements.txt
+
+         find /tmp/ptero -maxdepth 5 -type f | sort
 
       - name: Commit & push to ptero
         run: |
