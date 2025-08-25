@@ -12,7 +12,6 @@ from shared.logger import logger
 
 from bot.db.welcome_dao import WelcomeDAO
 
-
 class WelcomeManager:
     """歡迎系統管理器"""
     
@@ -68,57 +67,7 @@ class WelcomeManager:
                 return result
             
             if not settings.get('is_enabled'):
-                logger.debug(f"📴 歡迎系統已停用 - 伺服器: {guild_id}")
-                return result
-            
-            logger.info(f"⚙️ 歡迎設定載入成功 - 伺服器: {guild_id}, 設定: {list(settings.keys())}")
-            
-            # 檢查是否有重複處理的限制（預設總是處理）
-            allow_repeat = settings.get('allow_repeat_welcome', True)
-            if not allow_repeat:
-                # 檢查是否已經處理過此用戶
-                recent_logs = await self.welcome_dao.get_recent_welcome_log(guild_id, user_id, hours=24)
-                if recent_logs:
-                    logger.debug(f"⏭️ 跳過重複歡迎處理 - 用戶: {user_id}, 最近處理: {recent_logs[0].get('created_at')}")
-                    return result
-            
-            # 分配自動身分組
-            if settings.get('auto_role_enabled') and settings.get('auto_roles'):
-                assigned_roles = await self._assign_auto_roles(member, settings['auto_roles'])
-                result['roles_assigned'] = assigned_roles
-            
-            # 發送歡迎訊息到頻道
-            if settings.get('welcome_channel_id') and settings.get('welcome_message'):
-                welcome_sent = await self._send_welcome_message(member, settings)
-                result['welcome_sent'] = welcome_sent
                 
-                if not welcome_sent:
-                    result['errors'].append("無法發送歡迎訊息到頻道")
-            
-            # 發送私訊歡迎
-            if settings.get('welcome_dm_enabled') and settings.get('welcome_dm_message'):
-                dm_sent = await self._send_welcome_dm(member, settings)
-                result['dm_sent'] = dm_sent
-                
-                if not dm_sent:
-                    result['errors'].append("無法發送私訊歡迎")
-            
-            # 記錄事件
-            await self.welcome_dao.log_welcome_event(
-                guild_id=guild_id,
-                user_id=user_id,
-                username=username,
-                action_type='join',
-                welcome_sent=result['welcome_sent'],
-                roles_assigned=result['roles_assigned'],
-                dm_sent=result['dm_sent'],
-                error_message='; '.join(result['errors']) if result['errors'] else None
-            )
-            
-            logger.info(f"處理成員加入完成: {username} -> {guild_id}")
-            
-        except Exception as e:
-            logger.error(f"處理成員加入錯誤: {e}")
             result['success'] = False
             result['errors'].append(str(e))
             
@@ -201,12 +150,7 @@ class WelcomeManager:
                     try:
                         await member.add_roles(role, reason="自動身分組分配")
                         assigned_roles.append(role_id)
-                        logger.debug(f"分配身分組: {role.name} -> {member}")
-                    except discord.Forbidden:
-                        logger.warning(f"沒有權限分配身分組: {role.name}")
-                    except Exception as e:
-                        logger.error(f"分配身分組錯誤: {e}")
-                        
+
         except Exception as e:
             logger.error(f"自動身分組分配錯誤: {e}")
         
@@ -310,10 +254,7 @@ class WelcomeManager:
             return True
             
         except discord.Forbidden:
-            logger.debug(f"無法發送私訊給用戶: {member}")
-            return False
-        except Exception as e:
-            logger.error(f"發送私訊歡迎錯誤: {e}")
+            
             return False
     
     async def _create_welcome_embed(self, member: discord.Member, content: str, 

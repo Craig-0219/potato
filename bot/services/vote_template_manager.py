@@ -8,7 +8,6 @@ from typing import Dict, List, Optional, Any
 from bot.db.vote_template_dao import vote_template_dao
 from shared.logger import logger
 
-
 class VoteTemplateManager:
     """投票模板管理器"""
     
@@ -288,7 +287,6 @@ class VoteTemplateManager:
         except Exception as e:
             logger.error(f"搜尋模板失敗: {e}")
             return []
-
 
 # 建立全域實例
 vote_template_manager = VoteTemplateManager()

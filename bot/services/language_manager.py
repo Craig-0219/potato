@@ -11,7 +11,6 @@ from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime, timezone
 from shared.logger import logger
 
-
 class LanguageManager:
     """多語言支援管理器"""
     
@@ -67,13 +66,7 @@ class LanguageManager:
             if os.path.exists(file_path):
                 with open(file_path, 'r', encoding='utf-8') as f:
                     self.language_packs[lang_code] = json.load(f)
-                logger.debug(f"載入語言包: {lang_code}")
-            else:
-                logger.warning(f"語言包文件不存在: {file_path}")
-                
-        except Exception as e:
-            logger.error(f"載入語言包 {lang_code} 錯誤: {e}")
-    
+
     def _create_default_language_packs(self, language_dir: str):
         """創建預設語言包"""
         # 繁體中文語言包

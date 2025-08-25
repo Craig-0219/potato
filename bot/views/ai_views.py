@@ -9,7 +9,6 @@ from discord.ext import commands
 from typing import List, Dict, Any, Optional
 from shared.logger import logger
 
-
 class AIReplyView(discord.ui.View):
     """AI 回覆建議選擇界面"""
     
@@ -104,7 +103,6 @@ class AIReplyView(discord.ui.View):
         for item in self.children:
             item.disabled = True
 
-
 class AIReplyEditModal(discord.ui.Modal):
     """AI 回覆編輯模態對話框"""
     
@@ -177,7 +175,6 @@ class AIReplyEditModal(discord.ui.Modal):
         except Exception as e:
             logger.error(f"AI 回覆提交錯誤: {e}")
             await interaction.response.send_message(f"❌ 發送回覆時發生錯誤：{str(e)}", ephemeral=True)
-
 
 class AITagSuggestionView(discord.ui.View):
     """AI 標籤建議應用界面"""
@@ -256,7 +253,6 @@ class AITagSuggestionView(discord.ui.View):
         for item in self.children:
             item.disabled = True
 
-
 class AITagSelect(discord.ui.Select):
     """AI 標籤選擇下拉選單"""
     
@@ -304,7 +300,6 @@ class AITagSelect(discord.ui.Select):
         except Exception as e:
             logger.error(f"標籤選擇錯誤: {e}")
             await interaction.response.send_message(f"❌ 應用標籤時發生錯誤：{str(e)}", ephemeral=True)
-
 
 class AIPriorityView(discord.ui.View):
     """AI 優先級評估結果界面"""
@@ -426,7 +421,6 @@ class AIPriorityView(discord.ui.View):
         """處理超時"""
         for item in self.children:
             item.disabled = True
-
 
 class AIFeedbackModal(discord.ui.Modal):
     """AI 建議回饋模態對話框"""

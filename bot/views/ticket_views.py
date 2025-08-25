@@ -75,7 +75,6 @@ class TicketTypeSelect(Select):
                 "❌ 建立票券時發生錯誤，請稍後再試或聯繫管理員。", ephemeral=True
             )
 
-
 # ============ 優先級選擇 View ============
 
 class PrioritySelectView(View):
@@ -233,7 +232,6 @@ class PrioritySelect(Select):
                 )
             except:
                 pass
-
 
 # ============ 單一票券操作區 View ============
 
@@ -395,7 +393,6 @@ class RatingButton(Button):
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.send_message("請點擊下方進行評分：", ephemeral=True, view=RatingView(ticket_id=self.custom_id.split('_')[-1]))
-
 
 # ============ 評分/回饋專用 View ============
 

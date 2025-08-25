@@ -20,7 +20,6 @@ from bot.views.lottery_views import (
 )
 from shared.logger import logger
 
-
 class LotteryCore(commands.Cog):
     """抽獎系統核心功能"""
     
@@ -531,7 +530,6 @@ class LotteryCore(commands.Cog):
                 await interaction.response.send_message("❌ 查看抽獎歷史時發生錯誤", ephemeral=True)
             else:
                 await interaction.followup.send("❌ 查看抽獎歷史時發生錯誤", ephemeral=True)
-
 
 async def setup(bot):
     await bot.add_cog(LotteryCore(bot))

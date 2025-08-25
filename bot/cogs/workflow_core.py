@@ -16,7 +16,6 @@ from bot.db.workflow_dao import WorkflowDAO
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 
-
 class WorkflowCore(commands.Cog):
     """智能工作流程核心功能"""
     
@@ -612,7 +611,6 @@ class WorkflowCore(commands.Cog):
         }
         
         return templates.get(template_type)
-
 
 async def setup(bot):
     await bot.add_cog(WorkflowCore(bot))

@@ -10,7 +10,6 @@ import json
 from typing import Dict, List, Optional, Any
 from shared.logger import logger
 
-
 class VoteTemplateDAO:
     """投票模板資料存取層"""
     
@@ -316,7 +315,6 @@ class VoteTemplateDAO:
         except Exception as e:
             logger.error(f"取得用戶收藏模板失敗: {e}")
             return []
-
 
 # 建立全域實例
 vote_template_dao = VoteTemplateDAO()

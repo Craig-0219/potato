@@ -25,7 +25,6 @@ except ImportError as e:
 
 from shared.logger import logger
 
-
 class ImageFormat(Enum):
     """支援的圖片格式"""
     PNG = "png"
@@ -33,7 +32,6 @@ class ImageFormat(Enum):
     WEBP = "webp" 
     GIF = "gif"
     BMP = "bmp"
-
 
 class ImageEffect(Enum):
     """圖片特效類型"""
@@ -46,7 +44,6 @@ class ImageEffect(Enum):
     CONTRAST = "contrast"
     SATURATION = "saturation"
 
-
 class ImageOperation(Enum):
     """圖片處理操作"""
     RESIZE = "resize"
@@ -54,7 +51,6 @@ class ImageOperation(Enum):
     FORMAT_CONVERT = "format_convert"
     APPLY_EFFECT = "apply_effect"
     WATERMARK = "watermark"
-
 
 @dataclass
 class ImageProcessRequest:
@@ -64,7 +60,6 @@ class ImageProcessRequest:
     parameters: Dict[str, Any]
     output_format: ImageFormat = ImageFormat.PNG
     quality: int = 85
-
 
 @dataclass
 class ProcessedImage:
@@ -76,7 +71,6 @@ class ProcessedImage:
     processing_time: float = 0.0
     error_message: Optional[str] = None
     format: str = "png"
-
 
 class ImageProcessor:
     """圖片處理器"""
@@ -389,7 +383,6 @@ class ImageProcessor:
                 success=False,
                 error_message=f"批量處理失敗: {str(e)}"
             )]
-
 
 # 全域實例
 image_processor = ImageProcessor()

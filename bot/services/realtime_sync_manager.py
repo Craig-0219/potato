@@ -37,7 +37,6 @@ from shared.logger import logger
 from bot.db.pool import db_pool
 import aiomysql
 
-
 class SyncEventType(Enum):
     """同步事件類型"""
     TICKET_CREATED = "ticket_created"
@@ -49,7 +48,6 @@ class SyncEventType(Enum):
     USER_JOINED = "user_joined"
     USER_LEFT = "user_left"
     STAFF_STATUS_CHANGED = "staff_status_changed"
-
 
 @dataclass
 class SyncEvent:
@@ -64,7 +62,6 @@ class SyncEvent:
     def __post_init__(self):
         if self.timestamp is None:
             self.timestamp = datetime.now()
-
 
 class RealtimeSyncManager:
     """即時同步管理器"""
@@ -330,8 +327,7 @@ class RealtimeSyncManager:
                     
         except Exception as e:
             # 即使日誌記錄失敗也不影響主要功能
-            logger.debug(f"記錄同步事件日誌失敗: {e}")
-    
+
     async def add_websocket_subscriber(self, websocket):
         """添加 WebSocket 訂閱者"""
         self.subscribers.add(websocket)
@@ -401,7 +397,6 @@ class RealtimeSyncManager:
         
         self.subscribers.clear()
         logger.info("即時同步管理器已關閉")
-
 
 # 全局同步管理器實例
 realtime_sync = RealtimeSyncManager()

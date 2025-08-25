@@ -939,7 +939,6 @@ class AIAssistantCog(commands.Cog):
                 "❌ 無法獲取 AI 系統狀態，請稍後再試。",
                 ephemeral=True
             )
-    
 
 async def setup(bot):
     """設置 Cog"""

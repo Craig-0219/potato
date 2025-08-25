@@ -14,7 +14,6 @@ from bot.utils.embed_builder import EmbedBuilder
 from bot.db import vote_dao
 from shared.logger import logger
 
-
 # ============ 基礎投票 UI 組件 ============
 
 class VoteButtonView(discord.ui.View):
@@ -67,7 +66,6 @@ class VoteButtonView(discord.ui.View):
                     )
                 self.add_item(button)
 
-
 class SingleSelectVoteButton(discord.ui.Button):
     """單選投票按鈕"""
     
@@ -108,7 +106,6 @@ class SingleSelectVoteButton(discord.ui.Button):
         except Exception as e:
             logger.error(f"單選投票按鈕回調失敗: {e}")
             await interaction.response.send_message("❌ 投票時發生錯誤", ephemeral=True)
-
 
 class MultiSelectVoteButton(discord.ui.Button):
     """多選投票按鈕"""
@@ -164,7 +161,6 @@ class MultiSelectVoteButton(discord.ui.Button):
             logger.error(f"多選投票按鈕回調失敗: {e}")
             await interaction.response.send_message("❌ 投票時發生錯誤", ephemeral=True)
 
-
 class MultiSelectSubmitButton(discord.ui.Button):
     """多選投票提交按鈕"""
     
@@ -198,7 +194,6 @@ class MultiSelectSubmitButton(discord.ui.Button):
         except Exception as e:
             logger.error(f"多選投票提交失敗: {e}")
             await interaction.response.send_message("❌ 投票提交時發生錯誤", ephemeral=True)
-
 
 class VoteButton(discord.ui.Button):
     """舊版投票選項按鈕 - 保持向後相容性"""
@@ -239,7 +234,6 @@ class VoteButton(discord.ui.Button):
             logger.error(f"投票按鈕回調失敗: {e}")
             await interaction.response.send_message("❌ 投票時發生錯誤", ephemeral=True)
 
-
 class VoteSubmitButton(discord.ui.Button):
     """投票提交按鈕 - 用於多選投票"""
     
@@ -264,7 +258,6 @@ class VoteSubmitButton(discord.ui.Button):
         except Exception as e:
             logger.error(f"投票提交失敗: {e}")
             await interaction.response.send_message("❌ 投票提交時發生錯誤", ephemeral=True)
-
 
 # ============ 現代化投票創建 UI ============
 
@@ -378,7 +371,6 @@ class ComprehensiveVoteModal(ui.Modal):
         embed.set_footer(text="配置完成後點擊「創建投票」")
         return embed
 
-
 class QuickVoteModal(ui.Modal):
     """快速投票創建模態框"""
     
@@ -490,7 +482,6 @@ class QuickVoteModal(ui.Modal):
         embed.set_footer(text="請確認設定後點擊「創建投票」")
         return embed
 
-
 class VoteConfigurationView(ui.View):
     """投票配置視圖 - 包含單選/多選和匿名選項"""
     
@@ -542,7 +533,6 @@ class VoteConfigurationView(ui.View):
         embed.set_footer(text="配置完成後點擊「✅ 創建投票」")
         return embed
 
-
 class VoteTypeSelectMenu(ui.Select):
     """投票類型選擇下拉選單"""
     
@@ -584,7 +574,6 @@ class VoteTypeSelectMenu(ui.Select):
         embed = view.update_embed(interaction)
         await interaction.response.edit_message(embed=embed, view=view)
 
-
 class AnonymityToggleButton(ui.Button):
     """匿名選項切換按鈕"""
     
@@ -606,7 +595,6 @@ class AnonymityToggleButton(ui.Button):
         
         embed = view.update_embed(interaction)
         await interaction.response.edit_message(embed=embed, view=view)
-
 
 class CreateVoteButton(ui.Button):
     """創建投票按鈕"""
@@ -681,7 +669,6 @@ class CreateVoteButton(ui.Button):
             logger.error(f"創建投票失敗: {e}")
             await interaction.followup.send("❌ 創建投票時發生錯誤", ephemeral=True)
 
-
 class CancelConfigButton(ui.Button):
     """取消配置按鈕"""
     
@@ -699,7 +686,6 @@ class CancelConfigButton(ui.Button):
         for item in self.view.children:
             item.disabled = True
         await interaction.edit_original_response(view=self.view)
-
 
 class VoteCreationConfirmView(ui.View):
     """投票創建確認視圖"""
@@ -777,7 +763,6 @@ class VoteCreationConfirmView(ui.View):
             item.disabled = True
         await interaction.edit_original_response(view=self)
 
-
 # ============ 投票管理面板 ============
 
 class VoteManagementView(ui.View):
@@ -828,7 +813,6 @@ class VoteManagementView(ui.View):
             logger.error(f"查看統計錯誤: {e}")
             await interaction.response.send_message("❌ 查看統計時發生錯誤", ephemeral=True)
 
-
 class VoteManagementPanelView(ui.View):
     """完整的投票系統管理面板"""
     
@@ -848,7 +832,6 @@ class VoteManagementPanelView(ui.View):
         if self.permissions.manage_guild:
             self.add_item(VoteAnalyticsButton(self.guild_id))
             self.add_item(ExportDataButton(self.guild_id))
-
 
 class ActiveVotesButton(ui.Button):
     """查看活動投票按鈕"""
@@ -899,7 +882,6 @@ class ActiveVotesButton(ui.Button):
             logger.error(f"獲取活動投票失敗: {e}")
             await interaction.followup.send("❌ 獲取活動投票時發生錯誤", ephemeral=True)
 
-
 class VoteHistoryButton(ui.Button):
     """投票歷史按鈕"""
     
@@ -949,7 +931,6 @@ class VoteHistoryButton(ui.Button):
             logger.error(f"獲取投票歷史失敗: {e}")
             await interaction.followup.send("❌ 獲取投票歷史時發生錯誤", ephemeral=True)
 
-
 class VoteAnalyticsButton(ui.Button):
     """投票分析按鈕"""
     
@@ -969,7 +950,6 @@ class VoteAnalyticsButton(ui.Button):
             ephemeral=True
         )
 
-
 class ExportDataButton(ui.Button):
     """資料匯出按鈕"""
     
@@ -988,7 +968,6 @@ class ExportDataButton(ui.Button):
             "📥 資料匯出功能開發中...",
             ephemeral=True
         )
-
 
 # ============ 傳統投票創建視圖（保留向後相容性）============
 
@@ -1025,7 +1004,6 @@ class MultiSelectView(discord.ui.View):
             view = AnonSelectView(self.user_id)
             await interaction.response.edit_message(content="選擇投票是否匿名：", view=view)
 
-
 class AnonSelectView(discord.ui.View):
     """匿名設定視圖"""
     
@@ -1058,7 +1036,6 @@ class AnonSelectView(discord.ui.View):
             cog.vote_sessions[self.user_id]['anonymous'] = True
             view = DurationSelectView(self.user_id)
             await interaction.response.edit_message(content="選擇投票持續時間：", view=view)
-
 
 class DurationSelectView(discord.ui.View):
     """投票持續時間選擇視圖"""
@@ -1102,7 +1079,6 @@ class DurationSelectView(discord.ui.View):
             view = RoleSelectView(self.user_id)
             await interaction.response.edit_message(content="選擇誰可以參與投票：", view=view)
 
-
 class RoleSelectView(discord.ui.View):
     """權限選擇視圖"""
     
@@ -1142,7 +1118,6 @@ class RoleSelectView(discord.ui.View):
         embed.add_field(name="持續時間", value=f"{session.get('duration', 0)} 分鐘", inline=True)
         
         return embed
-
 
 class FinalStepView(discord.ui.View):
     """最終確認視圖"""

@@ -75,6 +75,7 @@ ALL_EXTENSIONS = [
     "security_admin_core",  # 企業級安全管理 - Phase 6 Stage 1
     "guild_management_core", # 伺服器管理與GDPR合規 - Phase 6 Stage 3
     "menu_core",            # GUI 選單系統 - Phase 7 Stage 2
+    "fallback_commands",    # 備用前綴命令系統
     # "game_core" - 遊戲娛樂功能
 ]
 
@@ -268,10 +269,43 @@ class PotatoBot(commands.Bot):
             return {"has_persistent_views": False, "persistent_view_count": 0, "validation_error": str(e)}
 
     async def _sync_commands(self):
-        """同步命令樹"""
+        """同步命令樹（智能速率限制處理）"""
         try:
+            # 檢查是否有現有命令
+            existing_commands = self.tree.get_commands()
+            logger.info(f"🔍 發現 {len(existing_commands)} 個本地命令等待同步")
+            
+            # 檢查是否啟用命令同步（環境變數控制）
+            import os
+            sync_enabled = os.getenv('SYNC_COMMANDS', 'true').lower() == 'true'
+            
+            if not sync_enabled:
+                logger.info("🚫 命令同步已停用（SYNC_COMMANDS=false）")
+                logger.info("💡 如需啟用同步，請設定 SYNC_COMMANDS=true")
+                return
+            
+            # 先檢查現有的 Discord 命令
+            try:
+                discord_commands = await self.http.get_global_commands(self.application_id)
+                if discord_commands and len(discord_commands) > 0:
+                    logger.info(f"✅ Discord 已有 {len(discord_commands)} 個註冊命令，跳過同步")
+                    return
+            except:
+                pass  # 如果檢查失敗，繼續嘗試同步
+            
+            # 嘗試同步，但如果遇到速率限制就跳過
             synced = await self.tree.sync()
             logger.info(f"✅ 同步了 {len(synced)} 個斜線命令")
+            
+        except discord.HTTPException as e:
+            if "429" in str(e) or "Too Many Requests" in str(e):
+                logger.warning(f"⚠️ 遇到速率限制，停用自動同步")
+                logger.info("💡 請等待 24 小時後重試，或設定 SYNC_COMMANDS=false 停用同步")
+                # 設定環境變數停用後續同步嘗試
+                import os
+                os.environ['SYNC_COMMANDS'] = 'false'
+            else:
+                logger.error(f"❌ 同步命令失敗：{e}")
         except Exception as e:
             logger.error(f"❌ 同步命令失敗：{e}")
     
@@ -401,40 +435,7 @@ class PotatoBot(commands.Bot):
                         initialization_count += 1
                         logger.info(f"✅ 初始化伺服器: {guild.name}")
                     else:
-                        logger.debug(f"⏭️ 跳過已存在的伺服器: {guild.name}")
-                        
-                except Exception as e:
-                    logger.error(f"❌ 初始化伺服器 {guild.name} 失敗: {e}")
-                    continue
-            
-            logger.info(f"✅ 現有伺服器初始化完成，處理了 {initialization_count} 個新伺服器")
-            
-        except Exception as e:
-            logger.error(f"❌ 初始化現有伺服器失敗: {e}")
 
-    # Guild events are now handled by GuildManager
-
-    async def close(self):
-        """優雅關閉（修復Task warnings）"""
-        logger.info("🔄 Bot正在關閉...")
-        
-        try:
-            # 設置關閉標誌
-            self._shutdown_event.set()
-            
-            # 等待背景任務完成
-            if self._background_tasks:
-                logger.info(f"⏳ 等待 {len(self._background_tasks)} 個背景任務完成...")
-                await asyncio.gather(*self._background_tasks, return_exceptions=True)
-            
-            # 關閉資料庫連接
-            from bot.db.pool import close_database
-            await close_database()
-            logger.info("✅ 資料庫連接已關閉")
-            
-        except Exception as e:
-            logger.error(f"❌ 關閉過程中發生錯誤：{e}")
-        
         # 調用父類關閉方法
         await super().close()
         logger.info("✅ Bot已關閉")

@@ -18,7 +18,6 @@ import re
 
 from shared.logger import logger
 
-
 class SecurityEventType(Enum):
     """安全事件類型"""
     LOGIN_SUCCESS = "login_success"
@@ -36,14 +35,12 @@ class SecurityEventType(Enum):
     DATABASE_QUERY = "database_query"
     API_CALL = "api_call"
 
-
 class RiskLevel(Enum):
     """風險等級"""
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
     CRITICAL = "critical"
-
 
 class AuditAction(Enum):
     """審計動作類型"""
@@ -56,7 +53,6 @@ class AuditAction(Enum):
     EXPORT = "export"
     IMPORT = "import"
 
-
 class ComplianceStandard(Enum):
     """合規標準"""
     GDPR = "gdpr"
@@ -64,7 +60,6 @@ class ComplianceStandard(Enum):
     SOX = "sox"
     ISO27001 = "iso27001"
     PCI_DSS = "pci_dss"
-
 
 @dataclass
 class SecurityEvent:
@@ -83,7 +78,6 @@ class SecurityEvent:
     session_id: Optional[str] = None
     correlation_id: Optional[str] = None
 
-
 @dataclass
 class SecurityRule:
     """安全規則數據類"""
@@ -98,7 +92,6 @@ class SecurityRule:
     created_at: datetime
     created_by: int
 
-
 @dataclass
 class ComplianceReport:
     """合規報告數據類"""
@@ -112,7 +105,6 @@ class ComplianceReport:
     summary: Dict[str, Any]
     violations: List[Dict[str, Any]]
     recommendations: List[str]
-
 
 class SecurityAuditManager:
     """企業級安全審計管理器"""
@@ -904,7 +896,6 @@ class SecurityAuditManager:
             {'user_id': user_id, **stats}
             for user_id, stats in sorted_users
         ]
-
 
 # 全域實例
 security_audit_manager = SecurityAuditManager()

@@ -10,7 +10,6 @@ from datetime import datetime, timezone, timedelta
 from bot.db.base_dao import BaseDAO
 from shared.logger import logger
 
-
 class WelcomeDAO(BaseDAO):
     """歡迎系統資料存取物件"""
     

@@ -216,7 +216,6 @@ class MariaDBPool:
                 "pool_status": "N/A"
             }
 
-
     async def close(self):
         """關閉連線池（修復Task warnings）"""
         async with self._lock:

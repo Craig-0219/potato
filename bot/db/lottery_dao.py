@@ -14,7 +14,6 @@ import aiomysql
 from .base_dao import BaseDAO
 from shared.logger import logger
 
-
 @dataclass
 class LotteryData:
     """抽獎資料類別"""
@@ -39,7 +38,6 @@ class LotteryData:
     auto_end: bool = True
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-
 
 class LotteryDAO(BaseDAO):
     """抽獎系統資料存取物件"""

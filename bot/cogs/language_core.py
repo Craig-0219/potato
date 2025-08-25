@@ -14,7 +14,6 @@ from shared.logger import logger
 from bot.services.language_manager import LanguageManager
 from bot.db.language_dao import LanguageDAO
 
-
 class LanguageCore(commands.Cog):
     """多語言核心管理指令"""
     
@@ -603,7 +602,6 @@ class LanguageCore(commands.Cog):
         
         except Exception as e:
             logger.error(f"語言偵測事件錯誤: {e}")
-
 
 async def setup(bot):
     """載入擴展"""

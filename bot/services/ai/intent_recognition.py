@@ -238,12 +238,7 @@ class IntentRecognizer:
                     "context": context
                 }
             )
-            
-            logger.debug(f"🎯 意圖識別結果: {best_intent.value} (信心度: {confidence:.2f})")
-            return result
-            
-        except Exception as e:
-            logger.error(f"❌ 意圖識別失敗: {e}")
+
             return IntentResult(
                 intent=IntentType.UNKNOWN,
                 confidence=0.0,

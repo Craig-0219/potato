@@ -18,7 +18,6 @@ from shared.logger import logger
 from bot.db.pool import db_pool
 import aiomysql
 
-
 @dataclass
 class AuthUser:
     """認證用戶資料結構"""
@@ -31,7 +30,6 @@ class AuthUser:
     is_admin: bool = False
     is_staff: bool = False
     created_at: datetime = None
-
 
 class AuthenticationManager:
     """API 認證管理器"""
@@ -578,7 +576,6 @@ class AuthenticationManager:
         except Exception as e:
             logger.error(f"撤銷 API 金鑰失敗: {e}")
             return False
-
 
 # 全局認證管理器實例
 auth_manager = AuthenticationManager()

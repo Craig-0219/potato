@@ -15,7 +15,6 @@ from bot.db.workflow_dao import WorkflowDAO
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 
-
 class WorkflowDesignerView(View):
     """工作流程設計器主界面"""
     
@@ -44,7 +43,6 @@ class WorkflowDesignerView(View):
         
         return True
 
-
 class CreateWorkflowButton(Button):
     """創建工作流程按鈕"""
     
@@ -58,7 +56,6 @@ class CreateWorkflowButton(Button):
     async def callback(self, interaction: discord.Interaction):
         modal = CreateWorkflowModal()
         await interaction.response.send_modal(modal)
-
 
 class EditWorkflowButton(Button):
     """編輯工作流程按鈕"""
@@ -80,7 +77,6 @@ class EditWorkflowButton(Button):
         )
         
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
 
 class WorkflowListSelect(Select):
     """工作流程列表選擇器"""
@@ -118,7 +114,6 @@ class WorkflowListSelect(Select):
         )
         
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
 
 class WorkflowEditView(View):
     """工作流程編輯界面"""
@@ -204,7 +199,6 @@ class WorkflowEditView(View):
             logger.error(f"儲存工作流程失敗: {e}")
             await interaction.response.send_message(f"❌ 儲存失敗: {str(e)}", ephemeral=True)
 
-
 class TriggerEditView(View):
     """觸發器編輯界面"""
     
@@ -230,7 +224,6 @@ class TriggerEditView(View):
         )
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 class TriggerTypeSelect(Select):
     """觸發類型選擇器"""
@@ -286,7 +279,6 @@ class TriggerTypeSelect(Select):
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-
 class ActionsEditView(View):
     """動作編輯界面"""
     
@@ -338,7 +330,6 @@ class ActionsEditView(View):
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-
 class ActionTypeView(View):
     """動作類型選擇界面"""
     
@@ -347,7 +338,6 @@ class ActionTypeView(View):
         self.user_id = user_id
         self.workflow_id = workflow_id
         self.add_item(ActionTypeSelect())
-
 
 class ActionTypeSelect(Select):
     """動作類型選擇器"""
@@ -421,7 +411,6 @@ class ActionTypeSelect(Select):
                 color=0x2ecc71
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 # ========== Modal 表單 ==========
 
@@ -497,7 +486,6 @@ class CreateWorkflowModal(Modal):
             logger.error(f"創建工作流程失敗: {e}")
             await interaction.response.send_message(f"❌ 創建失敗: {str(e)}", ephemeral=True)
 
-
 class AddConditionModal(Modal):
     """添加觸發條件表單"""
     
@@ -545,7 +533,6 @@ class AddConditionModal(Modal):
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-
 class SendMessageActionModal(Modal):
     """發送訊息動作配置表單"""
     
@@ -580,7 +567,6 @@ class SendMessageActionModal(Modal):
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-
 class AssignTicketActionModal(Modal):
     """指派票券動作配置表單"""
     
@@ -605,7 +591,6 @@ class AssignTicketActionModal(Modal):
         )
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 class AddTagActionModal(Modal):
     """添加標籤動作配置表單"""
@@ -633,7 +618,6 @@ class AddTagActionModal(Modal):
         )
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 class DelayActionModal(Modal):
     """延遲動作配置表單"""
@@ -665,7 +649,6 @@ class DelayActionModal(Modal):
             
         except ValueError:
             await interaction.response.send_message("❌ 請輸入有效的數字", ephemeral=True)
-
 
 # ========== 工作流程統計視圖 ==========
 

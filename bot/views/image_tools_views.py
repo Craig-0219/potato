@@ -16,7 +16,6 @@ import io
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 
-
 class ImageOperation(Enum):
     """圖片操作類型"""
     RESIZE = "resize"
@@ -25,7 +24,6 @@ class ImageOperation(Enum):
     EFFECTS = "effects"
     FILTERS = "filters"
     WATERMARK = "watermark"
-
 
 class ImageEffectType(Enum):
     """圖片特效類型"""
@@ -37,7 +35,6 @@ class ImageEffectType(Enum):
     BRIGHTNESS = "brightness"
     CONTRAST = "contrast"
     SATURATION = "saturation"
-
 
 class ImageFormatSelector(discord.ui.Select):
     """圖片格式選擇器"""
@@ -101,7 +98,6 @@ class ImageFormatSelector(discord.ui.Select):
             logger.error(f"圖片格式選擇錯誤: {e}")
             embed = EmbedBuilder.create_error_embed("❌ 選擇失敗", "格式選擇出現錯誤")
             await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 class ImageEffectSelector(discord.ui.Select):
     """圖片特效選擇器"""
@@ -197,7 +193,6 @@ class ImageEffectSelector(discord.ui.Select):
             logger.error(f"圖片特效選擇錯誤: {e}")
             embed = EmbedBuilder.create_error_embed("❌ 選擇失敗", "特效選擇出現錯誤")
             await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 class ImageToolsControlView(discord.ui.View):
     """圖片工具控制面板視圖"""
@@ -428,7 +423,6 @@ class ImageToolsControlView(discord.ui.View):
         )
         
         await interaction.response.edit_message(embed=embed, view=view)
-
 
 class ImageToolsMainView(discord.ui.View):
     """圖片工具主選單視圖"""

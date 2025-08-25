@@ -15,7 +15,6 @@ from bot.db.lottery_dao import LotteryDAO, LotteryData
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 
-
 class LotteryManager:
     """抽獎系統管理器"""
     
@@ -69,116 +68,7 @@ class LotteryManager:
             del self._cache[key]
         
         if expired_keys:
-            logger.debug(f"清理了 {len(expired_keys)} 個過期快取項目")
-    
-    def invalidate_cache(self, pattern: str = None):
-        """失效快取"""
-        if pattern:
-            # 失效匹配模式的快取
-            keys_to_remove = [key for key in self._cache.keys() if pattern in key]
-            for key in keys_to_remove:
-                del self._cache[key]
-        else:
-            # 清空所有快取
-            self._cache.clear()
-
-    async def create_lottery(self, guild: discord.Guild, creator: discord.Member, 
-                           lottery_config: Dict[str, Any]) -> Tuple[bool, str, Optional[int]]:
-        """創建抽獎"""
-        try:
-            # 檢查權限和限制
-            settings = await self.dao.get_lottery_settings(guild.id)
             
-            # 檢查同時抽獎數量限制
-            active_lotteries = await self.dao.get_active_lotteries(guild.id)
-            if len(active_lotteries) >= settings.get('max_concurrent_lotteries', 3):
-                return False, f"同時進行的抽獎數量已達上限 ({settings.get('max_concurrent_lotteries', 3)})，請等待現有抽獎結束", None
-            
-            # 檢查管理權限
-            if not await self._check_lottery_permission(creator, settings):
-                return False, "您沒有權限創建抽獎", None
-            
-            # 處理時間設定
-            start_time = datetime.now()
-            if lottery_config.get('start_delay_minutes', 0) > 0:
-                start_time += timedelta(minutes=lottery_config['start_delay_minutes'])
-            
-            # 計算結束時間
-            duration_hours = lottery_config.get('duration_hours', settings.get('default_duration_hours', 24))
-            end_time = start_time + timedelta(hours=duration_hours)
-            
-            # 創建抽獎資料
-            lottery_data = LotteryData(
-                guild_id=guild.id,
-                name=lottery_config['name'],
-                description=lottery_config.get('description'),
-                creator_id=creator.id,
-                channel_id=lottery_config['channel_id'],
-                prize_type=lottery_config.get('prize_type', 'custom'),
-                prize_data=lottery_config.get('prize_data'),
-                winner_count=lottery_config.get('winner_count', 1),
-                entry_method=lottery_config.get('entry_method', 'reaction'),
-                required_roles=lottery_config.get('required_roles'),
-                excluded_roles=lottery_config.get('excluded_roles'),
-                min_account_age_days=lottery_config.get('min_account_age_days', 0),
-                min_server_join_days=lottery_config.get('min_server_join_days', 0),
-                start_time=start_time,
-                end_time=end_time,
-                auto_end=lottery_config.get('auto_end', True)
-            )
-            
-            # 儲存到資料庫
-            lottery_id = await self.dao.create_lottery(lottery_data)
-            
-            if lottery_id:
-                logger.info(f"創建抽獎成功: {lottery_id} - {lottery_data.name}")
-                return True, f"抽獎 '{lottery_data.name}' 創建成功！ID: {lottery_id}", lottery_id
-            else:
-                return False, "創建抽獎失敗，請稍後再試", None
-                
-        except Exception as e:
-            logger.error(f"創建抽獎失敗: {e}")
-            return False, f"創建抽獎時發生錯誤: {str(e)}", None
-
-    async def start_lottery(self, lottery_id: int, channel: discord.TextChannel, 
-                           use_interactive_view: bool = True) -> Tuple[bool, str, Optional[discord.Message]]:
-        """開始抽獎"""
-        try:
-            lottery = await self.dao.get_lottery(lottery_id)
-            if not lottery:
-                return False, "抽獎不存在", None
-            
-            if lottery['status'] != 'pending':
-                return False, f"抽獎狀態不正確: {lottery['status']}", None
-            
-            # 創建抽獎公告嵌入
-            embed = await self._create_lottery_embed(lottery)
-            
-            # 決定是否使用互動式視圖
-            view = None
-            if use_interactive_view and lottery['entry_method'] in ['command', 'both']:
-                # 動態導入以避免循環導入
-                from bot.views.lottery_views import LotteryParticipationView
-                view = LotteryParticipationView(lottery_id)
-            
-            # 發送訊息
-            if view:
-                message = await channel.send(embed=embed, view=view)
-            else:
-                message = await channel.send(embed=embed)
-            
-            # 如果是反應參與，添加反應
-            if lottery['entry_method'] in ['reaction', 'both']:
-                await message.add_reaction('🎉')
-            
-            # 更新抽獎狀態和訊息ID
-            await self.dao.update_lottery_status(lottery_id, 'active', message.id)
-            
-            # 安排自動結束
-            if lottery['auto_end']:
-                await self._schedule_lottery_end(lottery_id, lottery['end_time'])
-            
-            logger.info(f"抽獎開始: {lottery_id} - {lottery['name']} (互動式視圖: {use_interactive_view and view is not None})")
             return True, "抽獎已開始！", message
             
         except Exception as e:

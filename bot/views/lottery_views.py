@@ -14,7 +14,6 @@ from bot.services.lottery_manager import LotteryManager
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 
-
 class LotteryCreationModal(ui.Modal):
     """抽獎創建模態框"""
     
@@ -125,7 +124,6 @@ class LotteryCreationModal(ui.Modal):
             else:
                 await interaction.followup.send("❌ 處理表單時發生錯誤", ephemeral=True)
 
-
 class LotteryCreationConfirmView(ui.View):
     """抽獎創建確認視圖"""
     
@@ -186,7 +184,6 @@ class LotteryCreationConfirmView(ui.View):
         """超時處理"""
         for item in self.children:
             item.disabled = True
-
 
 class LotteryParticipationView(ui.View):
     """抽獎參與視圖"""
@@ -340,7 +337,6 @@ class LotteryParticipationView(ui.View):
             parts.append(f"{minutes} 分鐘")
         
         return " ".join(parts) if parts else "不到 1 分鐘"
-
 
 class LotteryManagementView(ui.View):
     """抽獎管理面板視圖"""

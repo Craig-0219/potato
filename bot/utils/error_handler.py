@@ -181,10 +181,7 @@ class GlobalErrorHandler:
         except Exception as e:
             # 如果是互動相關的錯誤，不記錄為嚴重錯誤
             if any(keyword in str(e).lower() for keyword in ["unknown interaction", "already been acknowledged", "interaction has already"]):
-                logger.debug(f"互動處理警告：{e}")
-            else:
-                logger.error(f"處理互動錯誤時發生錯誤：{e}")
-    
+
     async def handle_generic_error(self, event: str, *args, **kwargs):
         """處理一般事件錯誤"""
         error_id = self._generate_error_id()
@@ -292,7 +289,6 @@ class GlobalErrorHandler:
         self.error_counts.clear()
         logger.info("錯誤統計已重置")
 
-
 # ===== 數據庫錯誤包裝器 =====
 
 class DatabaseErrorHandler:
@@ -331,7 +327,6 @@ class DatabaseErrorHandler:
                 logger.error(f"後備方案也失敗: {fallback_error}")
                 raise
 
-
 # ===== 服務錯誤處理器 =====
 
 class ServiceErrorHandler:
@@ -362,7 +357,6 @@ class ServiceErrorHandler:
             return wrapper
         return decorator
 
-
 # ===== 用戶友善錯誤回應 =====
 
 class UserFriendlyErrors:
@@ -388,7 +382,6 @@ class UserFriendlyErrors:
             return f"❌ {default_message}"
         
         return "❌ 發生未知錯誤，請稍後再試或聯繫管理員"
-
 
 # ===== 錯誤恢復機制 =====
 
@@ -435,7 +428,6 @@ class ErrorRecovery:
         
         # 關閉機器人
         await bot.close()
-
 
 # ===== 初始化函數 =====
 

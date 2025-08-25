@@ -26,7 +26,6 @@ except ImportError:
 from bot.db.pool import db_pool
 from shared.logger import logger
 
-
 @dataclass
 class ExportRequest:
     """匯出請求資料類別"""
@@ -49,7 +48,6 @@ class ExportRequest:
     @property  
     def requester_id(self) -> int:
         return self.requested_by
-
 
 @dataclass
 class ExportResult:
@@ -78,7 +76,6 @@ class ExportResult:
     @property
     def error(self) -> Optional[str]:
         return self.error_message
-
 
 class DataExportManager:
     """資料匯出管理器"""

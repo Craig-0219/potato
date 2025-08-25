@@ -13,7 +13,6 @@ from shared.logger import logger
 from bot.db.ticket_dao import TicketDAO
 from bot.db.tag_dao import TagDAO
 
-
 class AIManager:
     """AI 智能回覆管理器"""
     

@@ -10,7 +10,6 @@ from typing import Dict, List, Optional, Any, Tuple
 import json
 from shared.logger import logger
 
-
 class AIDAO:
     """AI 系統資料存取層"""
     
@@ -143,12 +142,7 @@ class AIDAO:
                     
                     suggestion_id = cursor.lastrowid
                     await conn.commit()
-                    
-                    logger.debug(f"AI 建議已儲存: {suggestion_id}")
-                    return suggestion_id
-                    
-        except Exception as e:
-            logger.error(f"儲存 AI 建議錯誤: {e}")
+
             return None
 
     async def update_suggestion_feedback(self,

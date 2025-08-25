@@ -15,7 +15,6 @@ import re
 
 from shared.logger import logger
 
-
 class TriggerType(Enum):
     """觸發器類型"""
     TICKET_CREATED = "ticket_created"
@@ -28,7 +27,6 @@ class TriggerType(Enum):
     SCHEDULED = "scheduled"
     WEBHOOK = "webhook"
     CUSTOM = "custom"
-
 
 class ActionType(Enum):
     """動作類型"""
@@ -45,7 +43,6 @@ class ActionType(Enum):
     UPDATE_DATABASE = "update_database"
     SEND_EMAIL = "send_email"
 
-
 class ConditionOperator(Enum):
     """條件操作符"""
     EQUALS = "equals"
@@ -60,7 +57,6 @@ class ConditionOperator(Enum):
     IN_LIST = "in_list"
     NOT_IN_LIST = "not_in_list"
 
-
 class RuleStatus(Enum):
     """規則狀態"""
     DRAFT = "draft"
@@ -69,7 +65,6 @@ class RuleStatus(Enum):
     DISABLED = "disabled"
     ERROR = "error"
 
-
 @dataclass
 class Condition:
     """條件定義"""
@@ -77,7 +72,6 @@ class Condition:
     operator: ConditionOperator
     value: Any
     description: Optional[str] = None
-
 
 @dataclass
 class Action:
@@ -88,7 +82,6 @@ class Action:
     retry_count: int = 3
     description: Optional[str] = None
 
-
 @dataclass
 class Trigger:
     """觸發器定義"""
@@ -96,7 +89,6 @@ class Trigger:
     conditions: List[Condition]
     parameters: Optional[Dict[str, Any]] = None
     cooldown_seconds: int = 0
-
 
 @dataclass
 class AutomationRule:
@@ -126,7 +118,6 @@ class AutomationRule:
         if self.tags is None:
             self.tags = []
 
-
 @dataclass
 class ExecutionContext:
     """執行上下文"""
@@ -148,7 +139,6 @@ class ExecutionContext:
         if self.variables is None:
             self.variables = {}
 
-
 @dataclass
 class ExecutionResult:
     """執行結果"""
@@ -167,7 +157,6 @@ class ExecutionResult:
             self.completed_at = datetime.now(timezone.utc)
         if self.details is None:
             self.details = {}
-
 
 class AutomationEngine:
     """進階自動化規則引擎"""
@@ -691,7 +680,6 @@ class AutomationEngine:
                 
         except Exception as e:
             logger.error(f"清理執行記錄失敗: {e}")
-
 
 # 全局引擎實例
 automation_engine = AutomationEngine()

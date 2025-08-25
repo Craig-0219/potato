@@ -15,6 +15,7 @@ import jwt
 from enum import Enum
 
 from shared.logger import logger
+import os
 
 # 權限等級枚舉
 class PermissionLevel(str, Enum):
@@ -52,7 +53,8 @@ class APIKeyManager:
     
     def __init__(self):
         self.api_keys: Dict[str, APIKey] = {}
-        self.jwt_secret = secrets.token_urlsafe(32)  # 生產環境應該從配置讀取
+        # 使用與 OAuth 系統相同的 JWT 密鑰
+        self.jwt_secret = os.getenv('JWT_SECRET', secrets.token_urlsafe(32))
         
     async def initialize(self):
         """初始化 API 金鑰管理器"""
@@ -211,10 +213,25 @@ async def get_current_user(
         # 嘗試驗證 JWT 令牌
         jwt_payload = manager.verify_jwt_token(token)
         if jwt_payload:
+            # 獲取權限等級，優先使用明確的 permission_level
+            permission_level = jwt_payload.get("permission_level")
+            
+            # 如果沒有明確的 permission_level，則根據 permissions 推導
+            if not permission_level:
+                permissions = jwt_payload.get("permissions", {})
+                if permissions.get('is_owner'):
+                    permission_level = "super_admin"  # 伺服器擁有者獲得最高權限
+                elif permissions.get('is_admin'):
+                    permission_level = "admin"
+                elif permissions.get('is_staff'):
+                    permission_level = "write"
+                else:
+                    permission_level = "read_only"
+            
             return APIUser(
                 user_id=jwt_payload.get("user_id", "unknown"),
                 username=jwt_payload.get("username", "JWT User"),
-                permission_level=PermissionLevel(jwt_payload.get("permission_level", "read_only")),
+                permission_level=PermissionLevel(permission_level),
                 guild_id=jwt_payload.get("guild_id"),
                 api_key_id="jwt",
                 scopes=jwt_payload.get("scopes", [])

@@ -18,7 +18,6 @@ from bot.services.data_cleanup_manager import DataCleanupManager
 from bot.services.data_export_manager import DataExportManager
 from bot.utils.interaction_helper import BaseView, SafeInteractionHandler
 
-
 class SystemAdminPanel(BaseView):
     """系統管理主面板"""
     
@@ -323,7 +322,6 @@ class SystemAdminPanel(BaseView):
         
         return embed
 
-
 class TicketSettingsView(View):
     """票券系統設定界面"""
     
@@ -404,7 +402,6 @@ class TicketSettingsView(View):
         )
         
         return embed
-
 
 class WelcomeSettingsView(View):
     """歡迎系統設定界面"""
@@ -489,7 +486,6 @@ class WelcomeSettingsView(View):
         )
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
-
 class ChannelSelectView(View):
     """頻道選擇界面"""
     
@@ -501,7 +497,6 @@ class ChannelSelectView(View):
     
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         return interaction.user.id == self.user_id
-
 
 class ChannelSelect(discord.ui.ChannelSelect):
     """頻道選擇下拉選單"""
@@ -609,7 +604,6 @@ class ChannelSelect(discord.ui.ChannelSelect):
             logger.error(f"頻道設定錯誤: {e}")
             await interaction.response.send_message("❌ 設定過程中發生錯誤", ephemeral=True)
 
-
 class RoleSelectView(View):
     """角色選擇界面"""
     
@@ -621,7 +615,6 @@ class RoleSelectView(View):
     
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         return interaction.user.id == self.user_id
-
 
 class RoleSelect(discord.ui.RoleSelect):
     """角色選擇下拉選單"""
@@ -688,7 +681,6 @@ class RoleSelect(discord.ui.RoleSelect):
             logger.error(f"角色設定錯誤: {e}")
             await interaction.response.send_message("❌ 設定過程中發生錯誤", ephemeral=True)
 
-
 class WelcomeChannelSelectView(View):
     """歡迎頻道選擇界面"""
     
@@ -705,7 +697,6 @@ class WelcomeChannelSelectView(View):
     async def leave_channel_button(self, interaction: discord.Interaction, button: Button):
         view = ChannelSelectView(self.user_id, "leave_channel")
         await interaction.response.send_message("請選擇離開頻道：", view=view, ephemeral=True)
-
 
 class WelcomeFeatureToggleView(View):
     """歡迎功能開關界面"""
@@ -768,7 +759,6 @@ class WelcomeFeatureToggleView(View):
             await interaction.response.send_message(f"✅ 自動身分組功能已{status}", ephemeral=True)
         else:
             await interaction.response.send_message(f"❌ 設定失敗：{message}", ephemeral=True)
-
 
 class StatsView(View):
     """統計監控界面"""
@@ -898,7 +888,6 @@ class StatsView(View):
             )
             await interaction.followup.send(embed=embed, ephemeral=True)
 
-
 class SystemToolsView(View):
     """系統工具界面"""
     
@@ -991,7 +980,6 @@ class SystemToolsView(View):
             except:
                 pass
 
-
 # ========== Modal 表單 ==========
 
 class TicketSettingsModal(Modal):
@@ -1081,7 +1069,6 @@ class TicketSettingsModal(Modal):
             logger.error(f"票券設定更新錯誤: {e}")
             await interaction.response.send_message("❌ 設定過程中發生錯誤", ephemeral=True)
 
-
 class TicketMessageModal(Modal):
     """票券訊息設定表單"""
     
@@ -1145,7 +1132,6 @@ class TicketMessageModal(Modal):
             logger.error(f"票券訊息設定錯誤: {e}")
             await interaction.response.send_message("❌ 設定過程中發生錯誤", ephemeral=True)
 
-
 class WelcomeMessageModal(Modal):
     """歡迎訊息設定表單"""
     
@@ -1208,7 +1194,6 @@ class WelcomeMessageModal(Modal):
         except Exception as e:
             logger.error(f"歡迎訊息設定錯誤: {e}")
             await interaction.response.send_message("❌ 設定過程中發生錯誤", ephemeral=True)
-
 
 class VoteSettingsView(View):
     """投票系統設定視圖"""
@@ -1388,7 +1373,6 @@ class VoteSettingsView(View):
         
         return embed
 
-
 class VoteChannelSelect(discord.ui.ChannelSelect):
     """投票頻道選擇器"""
     
@@ -1424,7 +1408,6 @@ class VoteChannelSelect(discord.ui.ChannelSelect):
             )
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 class AnnounceChannelSelect(discord.ui.ChannelSelect):
     """投票結果公告頻道選擇器"""
@@ -1462,7 +1445,6 @@ class AnnounceChannelSelect(discord.ui.ChannelSelect):
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-
 class BackToVoteSettingsButton(Button):
     """返回投票設定按鈕"""
     
@@ -1476,7 +1458,6 @@ class BackToVoteSettingsButton(Button):
         embed = await admin_panel._create_vote_settings_embed(interaction.guild)
         view = VoteSettingsView(self.user_id)
         await interaction.response.edit_message(embed=embed, view=view)
-
 
 class ChannelClearView(View):
     """頻道清空界面"""
@@ -1500,7 +1481,6 @@ class ChannelClearView(View):
         except Exception as e:
             logger.error(f"ChannelClearView interaction_check 錯誤: {e}")
             return False
-
 
 class ChannelClearSelect(Select):
     """頻道清空選擇器"""
@@ -1589,7 +1569,6 @@ class ChannelClearSelect(Select):
             except:
                 pass
 
-
 class ClearAllButton(Button):
     """清空全部訊息按鈕"""
     
@@ -1617,7 +1596,6 @@ class ClearAllButton(Button):
         view = FinalConfirmView(self.user_id, self.channel, "all")
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
-
 class ClearRecentButton(Button):
     """清空最近訊息按鈕"""
     
@@ -1630,7 +1608,6 @@ class ClearRecentButton(Button):
         modal = ClearRecentModal(self.channel)
         await interaction.response.send_modal(modal)
 
-
 class ClearByUserButton(Button):
     """按用戶清空訊息按鈕"""
     
@@ -1642,7 +1619,6 @@ class ClearByUserButton(Button):
     async def callback(self, interaction: discord.Interaction):
         modal = ClearByUserModal(self.channel)
         await interaction.response.send_modal(modal)
-
 
 class BackToClearSelectButton(Button):
     """返回頻道選擇按鈕"""
@@ -1667,7 +1643,6 @@ class BackToClearSelectButton(Button):
         view = ChannelClearView(self.user_id)
         view.add_item(ChannelClearSelect(self.user_id, interaction.guild))
         await interaction.response.edit_message(embed=embed, view=view)
-
 
 class FinalConfirmView(View):
     """最終確認視圖"""
@@ -1888,7 +1863,6 @@ class FinalConfirmView(View):
         
         return deleted_count
 
-
 class ClearRecentModal(Modal):
     """清空近期訊息表單"""
     
@@ -1932,7 +1906,6 @@ class ClearRecentModal(Modal):
             
         except ValueError:
             await interaction.response.send_message("❌ 請輸入有效的數字", ephemeral=True)
-
 
 class ClearByUserModal(Modal):
     """按用戶清空訊息表單"""
@@ -1999,7 +1972,6 @@ class ClearByUserModal(Modal):
         except Exception as e:
             logger.error(f"ClearByUserModal 錯誤: {e}")
             await interaction.response.send_message("❌ 處理用戶輸入時發生錯誤", ephemeral=True)
-
 
 class DataCleanupView(View):
     """資料清理界面"""
@@ -2096,7 +2068,6 @@ class DataCleanupView(View):
         view = ConfirmCleanupView(self.user_id)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
-
 class ConfirmCleanupView(View):
     """確認清理視圖"""
     
@@ -2183,7 +2154,6 @@ class ConfirmCleanupView(View):
         )
         await interaction.response.edit_message(embed=embed, view=None)
 
-
 class DataExportView(View):
     """資料匯出界面"""
     
@@ -2238,7 +2208,6 @@ class DataExportView(View):
             color=0x3498db
         )
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
 
 class ExportFormatView(View):
     """匯出格式選擇界面"""
@@ -2351,7 +2320,6 @@ class ExportFormatView(View):
             "system_logs": "系統日誌"
         }
         return names.get(self.data_type, self.data_type)
-
 
 class VoteAdminView(View):
     """投票管理主面板"""
@@ -2487,7 +2455,6 @@ class VoteAdminView(View):
         except Exception as e:
             logger.error(f"投票設定錯誤: {e}")
             await interaction.response.send_message("❌ 無法載入投票設定", ephemeral=True)
-
 
 class ActiveVoteManageView(View):
     """活躍投票管理介面"""
@@ -2647,7 +2614,6 @@ class ActiveVoteManageView(View):
         )
         await interaction.response.edit_message(embed=embed, view=None)
 
-
 class VoteManageSelect(Select):
     """投票管理選擇下拉選單"""
     
@@ -2704,7 +2670,6 @@ class VoteManageSelect(Select):
         except Exception as e:
             logger.error(f"獲取投票詳情錯誤: {e}")
             await interaction.response.send_message("❌ 無法獲取投票詳情", ephemeral=True)
-
 
 class SingleVoteManageView(View):
     """單一投票管理介面"""
@@ -2803,7 +2768,6 @@ class SingleVoteManageView(View):
             logger.error(f"獲取詳細統計錯誤: {e}")
             await interaction.followup.send("❌ 無法獲取統計資料", ephemeral=True)
 
-
 class VoteConfirmActionView(View):
     """投票確認操作介面"""
     
@@ -2856,7 +2820,6 @@ class VoteConfirmActionView(View):
             color=0x95a5a6
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 class BackToActiveVoteManageButton(Button):
     """返回活躍投票管理按鈕"""

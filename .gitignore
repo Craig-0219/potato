@@ -268,9 +268,17 @@ config.backup.json
 
 # 系統匯出
 exports/
-backups/
 dumps/
-archive/
+
+# 保留項目備份目錄結構但忽略內容
+backups/*.json.gz
+backups/*.sql
+backups/*.dump
+
+# 允許保留清理後的 archive 目錄結構
+!archive/
+archive/*/
+!archive/*/.gitkeep
 
 # 暫存文件
 *.bak

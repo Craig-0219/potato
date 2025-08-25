@@ -13,7 +13,6 @@ from dataclasses import dataclass, field
 from enum import Enum
 from shared.logger import logger
 
-
 class WorkflowStatus(Enum):
     """工作流程狀態"""
     DRAFT = "draft"           # 草稿
@@ -21,7 +20,6 @@ class WorkflowStatus(Enum):
     PAUSED = "paused"         # 暫停
     DISABLED = "disabled"     # 停用
     ARCHIVED = "archived"     # 封存
-
 
 class TriggerType(Enum):
     """觸發類型"""
@@ -36,7 +34,6 @@ class TriggerType(Enum):
     SLA_BREACH = "sla_breach"           # SLA違規
     CUSTOM_EVENT = "custom_event"        # 自定義事件
 
-
 class ActionType(Enum):
     """動作類型"""
     ASSIGN_TICKET = "assign_ticket"              # 指派票券
@@ -50,7 +47,6 @@ class ActionType(Enum):
     BRANCH_CONDITION = "branch_condition"        # 條件分支
     CLOSE_TICKET = "close_ticket"               # 關閉票券
 
-
 @dataclass
 class WorkflowCondition:
     """工作流程條件"""
@@ -58,7 +54,6 @@ class WorkflowCondition:
     operator: str                 # 操作符 (==, !=, >, <, contains, etc.)
     value: Any                    # 比較值
     logic: str = "AND"           # 邏輯關係 (AND, OR)
-
 
 @dataclass
 class WorkflowAction:
@@ -71,14 +66,12 @@ class WorkflowAction:
     retry_count: int = 0          # 重試次數
     on_error: str = "continue"    # 錯誤處理 (continue, stop, retry)
 
-
 @dataclass
 class WorkflowTrigger:
     """工作流程觸發器"""
     type: TriggerType             # 觸發類型
     conditions: List[WorkflowCondition] = field(default_factory=list)
     parameters: Dict[str, Any] = field(default_factory=dict)
-
 
 @dataclass
 class WorkflowExecution:
@@ -92,7 +85,6 @@ class WorkflowExecution:
     current_action: Optional[str] = None
     results: Dict[str, Any] = field(default_factory=dict)
     errors: List[str] = field(default_factory=list)
-
 
 @dataclass
 class Workflow:
@@ -111,7 +103,6 @@ class Workflow:
     last_executed: Optional[datetime] = None
     tags: List[str] = field(default_factory=list)
     version: int = 1
-
 
 class WorkflowEngine:
     """智能工作流程引擎"""
@@ -294,129 +285,7 @@ class WorkflowEngine:
         
         if workflow.id not in self.trigger_handlers[trigger_type]:
             self.trigger_handlers[trigger_type].append(workflow.id)
-            logger.debug(f"註冊觸發器: {trigger_type.value} -> {workflow.name}")
-    
-    def _unregister_trigger(self, workflow_id: str):
-        """取消註冊觸發器"""
-        for trigger_type, workflow_ids in self.trigger_handlers.items():
-            if workflow_id in workflow_ids:
-                workflow_ids.remove(workflow_id)
-                logger.debug(f"取消註冊觸發器: {trigger_type.value} -> {workflow_id}")
-    
-    async def trigger_workflows(self, trigger_type: TriggerType, trigger_data: Dict[str, Any]) -> List[str]:
-        """觸發工作流程"""
-        execution_ids = []
-        
-        try:
-            # 找到匹配的工作流程
-            workflow_ids = self.trigger_handlers.get(trigger_type, [])
             
-            for workflow_id in workflow_ids:
-                if workflow_id not in self.workflows:
-                    continue
-                
-                workflow = self.workflows[workflow_id]
-                
-                # 檢查工作流程狀態
-                if workflow.status != WorkflowStatus.ACTIVE:
-                    continue
-                
-                # 檢查觸發條件
-                if not self._check_conditions(workflow.trigger.conditions, trigger_data):
-                    continue
-                
-                # 執行工作流程
-                execution_id = await self.execute_workflow(workflow_id, trigger_data)
-                if execution_id:
-                    execution_ids.append(execution_id)
-            
-            logger.info(f"✅ 觸發了 {len(execution_ids)} 個工作流程 (觸發類型: {trigger_type.value})")
-            return execution_ids
-            
-        except Exception as e:
-            logger.error(f"❌ 觸發工作流程失敗: {e}")
-            return execution_ids
-    
-    # ========== 工作流程執行 ==========
-    
-    async def execute_workflow(self, workflow_id: str, trigger_data: Dict[str, Any]) -> Optional[str]:
-        """執行工作流程"""
-        try:
-            if workflow_id not in self.workflows:
-                raise ValueError(f"工作流程不存在: {workflow_id}")
-            
-            workflow = self.workflows[workflow_id]
-            execution_id = str(uuid.uuid4())
-            
-            # 創建執行記錄
-            execution = WorkflowExecution(
-                id=execution_id,
-                workflow_id=workflow_id,
-                trigger_data=trigger_data,
-                start_time=datetime.now(timezone.utc)
-            )
-            
-            self.executions[execution_id] = execution
-            
-            # 異步執行工作流程
-            task = asyncio.create_task(
-                self._execute_workflow_actions(execution_id)
-            )
-            self.running_executions[execution_id] = task
-            
-            # 更新工作流程統計
-            workflow.execution_count += 1
-            workflow.last_executed = datetime.now(timezone.utc)
-            
-            logger.info(f"🚀 開始執行工作流程: {workflow.name} (執行ID: {execution_id})")
-            return execution_id
-            
-        except Exception as e:
-            logger.error(f"❌ 執行工作流程失敗: {e}")
-            return None
-    
-    async def _execute_workflow_actions(self, execution_id: str):
-        """執行工作流程動作"""
-        try:
-            execution = self.executions[execution_id]
-            workflow = self.workflows[execution.workflow_id]
-            
-            logger.info(f"📋 執行工作流程動作: {workflow.name}")
-            
-            for i, action in enumerate(workflow.actions):
-                try:
-                    execution.current_action = action.id
-                    
-                    # 檢查動作條件
-                    if not self._check_conditions(action.conditions, execution.trigger_data):
-                        logger.debug(f"⏭️ 跳過動作 (條件不符): {action.type.value}")
-                        continue
-                    
-                    # 延遲執行
-                    if action.delay_seconds > 0:
-                        logger.debug(f"⏱️ 延遲執行: {action.delay_seconds}秒")
-                        await asyncio.sleep(action.delay_seconds)
-                    
-                    # 執行動作
-                    await self._execute_action(action, execution)
-                    
-                    logger.debug(f"✅ 完成動作: {action.type.value}")
-                    
-                except Exception as action_error:
-                    error_msg = f"動作執行失敗 ({action.type.value}): {action_error}"
-                    execution.errors.append(error_msg)
-                    logger.error(f"❌ {error_msg}")
-                    
-                    # 錯誤處理
-                    if action.on_error == "stop":
-                        break
-                    elif action.on_error == "retry" and action.retry_count > 0:
-                        # 實現重試邏輯
-                        for retry in range(action.retry_count):
-                            try:
-                                await asyncio.sleep(2 ** retry)  # 指數退避
-                                await self._execute_action(action, execution)
-                                logger.info(f"✅ 重試成功: {action.type.value}")
                                 break
                             except Exception:
                                 if retry == action.retry_count - 1:
@@ -734,7 +603,6 @@ class WorkflowEngine:
         )
         
         return total_time / len(completed_executions)
-
 
 # 全域工作流程引擎實例
 workflow_engine = WorkflowEngine()

@@ -78,7 +78,7 @@ class VoteCore(commands.Cog):
             
             # 檢查是否有例外
             if isinstance(vote, Exception) or isinstance(options, Exception) or isinstance(stats, Exception):
-                logger.debug(f"[Vote] 批次查詢發生錯誤：vote={vote}, options={options}, stats={stats}")
+                
                 return None
                 
             if not vote:
@@ -91,7 +91,7 @@ class VoteCore(commands.Cog):
                 'total': sum(stats.values())
             }
         except Exception as e:
-            logger.debug(f"[Vote] _get_vote_full_data 錯誤：{e}")
+            
             return None
 
     @app_commands.command(name="vote", description="開始建立一個投票 | Create a new vote")
@@ -120,10 +120,7 @@ class VoteCore(commands.Cog):
             from bot.views.vote_views import ComprehensiveVoteModal
             modal = ComprehensiveVoteModal()
             await interaction.response.send_modal(modal)
-            logger.debug(f"[Vote] 使用者 {interaction.user.id} 開始使用 GUI 建立投票")
             
-        except Exception as e:
-            logger.error(f"[Vote] vote 指令錯誤：{e}")
             await interaction.response.send_message("❌ 啟動投票創建時發生錯誤。", ephemeral=True)
 
     @app_commands.command(name="votes", description="查看目前進行中的投票 | View current active votes")
@@ -148,7 +145,7 @@ class VoteCore(commands.Cog):
             
             await interaction.response.send_message(embed=embed)
         except Exception as e:
-            logger.debug(f"[Vote] votes 指令錯誤：{e}")
+            
             await interaction.response.send_message("❌ 查詢投票時發生錯誤。", ephemeral=True)
 
     @app_commands.command(name="vote_result", description="查詢投票結果 | Query vote results")
@@ -163,7 +160,7 @@ class VoteCore(commands.Cog):
             embed = build_result_embed(data['vote']['title'], data['stats'], data['total'], vote_id=vote_id)
             await interaction.response.send_message(embed=embed)
         except Exception as e:
-            logger.debug(f"[Vote] vote_result 錯誤：{e}")
+            
             await interaction.response.send_message("❌ 查詢結果時發生錯誤。", ephemeral=True)
 
     @app_commands.command(name="vote_open", description="補發互動式投票 UI (限管理員)")
@@ -190,7 +187,7 @@ class VoteCore(commands.Cog):
             )
             await interaction.response.send_message(embed=embed, view=view)
         except Exception as e:
-            logger.debug(f"[Vote] vote_open 錯誤：{e}")
+            
             await interaction.response.send_message("❌ 補發 UI 時發生錯誤。", ephemeral=True)
 
     # ===== 新增：歷史查詢功能 =====
@@ -265,7 +262,7 @@ class VoteCore(commands.Cog):
             await interaction.followup.send(embed=embed, view=view)
             
         except Exception as e:
-            logger.debug(f"[Vote] vote_history 錯誤：{e}")
+            
             await interaction.followup.send("❌ 查詢歷史記錄時發生錯誤。")
 
     @app_commands.command(name="vote_detail", description="查看特定投票的詳細資訊")
@@ -356,7 +353,7 @@ class VoteCore(commands.Cog):
             await interaction.followup.send(embed=embed)
             
         except Exception as e:
-            logger.debug(f"[Vote] vote_detail 錯誤：{e}")
+            
             await interaction.followup.send("❌ 查詢投票詳情時發生錯誤。")
 
     @app_commands.command(name="my_votes", description="查看我參與過的投票 | View my participated votes")
@@ -392,7 +389,7 @@ class VoteCore(commands.Cog):
             await interaction.followup.send(embed=embed)
             
         except Exception as e:
-            logger.debug(f"[Vote] my_votes 錯誤：{e}")
+            
             await interaction.followup.send("❌ 查詢個人投票記錄時發生錯誤。")
 
     @app_commands.command(name="vote_search", description="搜尋投票")
@@ -440,7 +437,7 @@ class VoteCore(commands.Cog):
             await interaction.followup.send(embed=embed)
             
         except Exception as e:
-            logger.debug(f"[Vote] vote_search 錯誤：{e}")
+            
             await interaction.followup.send("❌ 搜尋時發生錯誤。")
 
     # ===== 診斷功能 =====
@@ -539,90 +536,8 @@ class VoteCore(commands.Cog):
         async with self._session_lock:
             session = VoteCore.vote_sessions.get(user_id)
             if not session:
-                logger.debug("[Vote] finalize_vote：找不到使用者的 session")
-                return
-            
-            # 移除 session，避免重複處理
-            VoteCore.vote_sessions.pop(user_id, None)
-        
-        try:
-            # ✅ 資料驗證
-            required_keys = ['title', 'options', 'allowed_roles', 'is_multi', 'anonymous', 'end_time']
-            missing_keys = [key for key in required_keys if key not in session]
-            if missing_keys:
-                logger.debug(f"[Vote] finalize_vote：session 缺少必要資料：{missing_keys}")
-                logger.debug(f"[Vote] 當前 session 內容：{session}")
-                return
-            
-            if 'duration' not in session and 'end_time' in session:
-                delta = session['end_time'] - datetime.now(timezone.utc)
-                session['duration'] = int(delta.total_seconds() // 60)
-
-            logger.debug(f"[Vote] 準備建立投票，session：{session}")
-            
-            # ✅ 建立投票記錄
-            vote_id = await vote_dao.create_vote(session, user_id)
-            logger.debug(f"[Vote] 投票建立成功，ID：{vote_id}")
-            
-            # 批次插入選項
-            if session.get('options'):
-                for opt in session['options']:
-                    await vote_dao.add_vote_option(vote_id, opt)
-                logger.debug(f"[Vote] 已插入 {len(session['options'])} 個選項")
-
-            # ✅ 建立 UI - 修復參數傳遞
-            embed = build_vote_embed(
-                title=session['title'],
-                start_time=session['start_time'],
-                end_time=session['end_time'],
-                is_multi=session['is_multi'],
-                anonymous=session['anonymous'],
-                total=0,
-                vote_id=vote_id
-            )
-            
-            view = VoteButtonView(
-                vote_id,
-                session['options'],
-                session['allowed_roles'],
-                session['is_multi'],
-                session['anonymous'],
-                {},  # 初始統計為空
-                0    # 初始總票數為 0
-            )
-            
-            # ✅ 發送到頻道 - 檢查預設投票頻道設定
-            channel = None
-            
-            # 1. 優先使用預設投票頻道
-            vote_settings = await vote_dao.get_vote_settings(guild.id)
-            if vote_settings and vote_settings.get('default_vote_channel_id'):
-                channel = guild.get_channel(vote_settings['default_vote_channel_id'])
-                logger.debug(f"[Vote] 使用預設投票頻道: {vote_settings['default_vote_channel_id']}")
-            
-            # 2. 回退到原始頻道
-            if not channel:
-                channel = guild.get_channel(session.get('channel_id')) or session.get('origin_channel')
-                logger.debug(f"[Vote] 使用原始頻道: {channel.id if channel else None}")
-            
-            if not channel:
-                logger.debug("[Vote] finalize_vote：找不到有效頻道")
-                return
-            
-            await channel.send(embed=embed, view=view)
-            logger.debug(f"[Vote] 投票 #{vote_id} UI 發送成功")
-            
-            # 驗證投票是否真的被插入
-            verification = await vote_dao.get_vote_by_id(vote_id)
-            if verification:
-                logger.debug(f"[Vote] 驗證成功：投票 #{vote_id} 已存在於資料庫")
-            else:
-                logger.debug(f"[Vote] 驗證失敗：投票 #{vote_id} 未找到於資料庫")
-            
-        except Exception as e:
-            logger.debug(f"[Vote] finalize_vote 發生錯誤：{e}")
+                
             import traceback
-            logger.debug(f"[Vote] 完整錯誤追蹤：{traceback.format_exc()}")
 
     async def handle_vote_submit(self, interaction: discord.Interaction, vote_id: int, selected_options: List[str]):
         """✅ 優化版本：更好的錯誤處理和效能"""
@@ -665,7 +580,7 @@ class VoteCore(commands.Cog):
             asyncio.create_task(self._update_vote_ui(interaction, vote_id))
             
         except Exception as e:
-            logger.debug(f"[Vote] handle_vote_submit 錯誤：{e}")
+            
             if not interaction.response.is_done():
                 await interaction.response.send_message("❌ 投票時發生錯誤，請稍後再試。", ephemeral=True)
 
@@ -689,29 +604,6 @@ class VoteCore(commands.Cog):
             
             await interaction.message.edit(embed=embed, view=view)
         except Exception as e:
-            logger.debug(f"[Vote] _update_vote_ui 失敗：{e}")
-
-    @tasks.loop(seconds=60)
-    async def announce_expired_votes(self):
-        """✅ 優化版本：批次處理過期投票"""
-        try:
-            expired_votes = await vote_dao.get_expired_votes_to_announce()
-            if not expired_votes:
-                return
-            
-            # ✅ 批次處理
-            tasks = []
-            for vote in expired_votes:
-                tasks.append(self._process_expired_vote(vote))
-            
-            await asyncio.gather(*tasks, return_exceptions=True)
-            
-            # ✅ 清理過期 session（每小時執行一次）
-            if datetime.now().minute == 0:
-                await self._cleanup_expired_sessions()
-                
-        except Exception as e:
-            logger.debug(f"[Vote] announce_expired_votes 錯誤：{e}")
 
     async def _process_expired_vote(self, vote: Dict[str, Any]):
         """處理單個過期投票"""
@@ -726,7 +618,6 @@ class VoteCore(commands.Cog):
             
             await vote_dao.mark_vote_announced(vote['id'])
         except Exception as e:
-            logger.debug(f"[Vote] 處理過期投票 {vote['id']} 錯誤：{e}")
 
     async def _cleanup_expired_sessions(self):
         """✅ 清理過期的建立投票 session"""
@@ -744,9 +635,6 @@ class VoteCore(commands.Cog):
                     VoteCore.vote_sessions.pop(user_id, None)
             
             if expired_users:
-                logger.debug(f"[Vote] 清理了 {len(expired_users)} 個過期 session")
-        except Exception as e:
-            logger.debug(f"[Vote] 清理 session 錯誤：{e}")
 
     # ✅ 輔助方法優化
     def _check_user_permission(self, user: discord.Member, allowed_roles: List[int]) -> bool:
@@ -800,7 +688,6 @@ class VoteCore(commands.Cog):
     def time_left(self, end_time):
         """向後相容性方法"""
         return self._calculate_time_left(end_time, datetime.now(timezone.utc))
-
 
 # ✅ 分頁控制 View
 class HistoryPaginationView(discord.ui.View):
@@ -1104,11 +991,7 @@ class NextPageButton(discord.ui.Button):
                 view=template_view,
                 ephemeral=True
             )
-            
-            logger.debug(f"[Vote] 用戶 {interaction.user.id} 使用投票模板系統")
-            
-        except Exception as e:
-            logger.error(f"[Vote] vote_template 指令錯誤：{e}")
+
             await interaction.response.send_message("❌ 啟動投票模板系統時發生錯誤。", ephemeral=True)
 
     @app_commands.command(name="vote_panel", description="📊 投票管理面板 (現代GUI)")

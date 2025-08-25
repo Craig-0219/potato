@@ -21,7 +21,6 @@ from bot.views.image_tools_views import ImageToolsMainView
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 
-
 class ImageToolsCog(commands.Cog):
     """圖片處理工具功能"""
     
@@ -441,7 +440,6 @@ class ImageToolsCog(commands.Cog):
         except Exception as e:
             logger.error(f"❌ 尺寸調整錯誤: {e}")
             await interaction.followup.send("❌ 調整圖片時發生錯誤，請稍後再試。", ephemeral=True)
-
 
 async def setup(bot):
     """設置 Cog"""

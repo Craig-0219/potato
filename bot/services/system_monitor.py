@@ -16,7 +16,6 @@ from bot.db.pool import db_pool
 from bot.services.realtime_sync_manager import realtime_sync, SyncEvent, SyncEventType
 import aiomysql
 
-
 class SystemMonitor:
     """系統監控管理器"""
     
@@ -236,8 +235,7 @@ class SystemMonitor:
                     await conn.commit()
                     
         except Exception as e:
-            logger.debug(f"記錄指標失敗 {metric_name}: {e}")
-    
+
     async def get_current_metrics(self, guild_id: Optional[str] = None) -> Dict[str, Any]:
         """獲取當前系統指標"""
         try:
@@ -409,7 +407,6 @@ class SystemMonitor:
         """關閉監控器"""
         self.monitoring_active = False
         logger.info("系統監控器已關閉")
-
 
 # 全局監控器實例
 system_monitor = SystemMonitor()

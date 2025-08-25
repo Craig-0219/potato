@@ -13,7 +13,6 @@ from shared.logger import logger
 from bot.db.assignment_dao import AssignmentDAO
 from bot.db.ticket_dao import TicketDAO
 
-
 class AssignmentManager:
     """票券指派管理器"""
     

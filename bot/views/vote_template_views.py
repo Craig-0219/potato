@@ -17,7 +17,6 @@ from bot.utils.vote_utils import build_vote_embed
 from bot.views.vote_views import VoteButtonView
 from shared.logger import logger
 
-
 class TemplateSelectionView(ui.View):
     """模板選擇主視圖"""
     
@@ -71,7 +70,6 @@ class TemplateSelectionView(ui.View):
         
         embed.set_footer(text="💡 提示：收藏常用模板，下次使用更方便！")
         return embed
-
 
 class TemplateCategorySelect(ui.Select):
     """模板類別選擇下拉選單"""
@@ -157,7 +155,6 @@ class TemplateCategorySelect(ui.Select):
                 ephemeral=True
             )
 
-
 class FavoriteTemplatesButton(ui.Button):
     """收藏模板按鈕"""
     
@@ -203,7 +200,6 @@ class FavoriteTemplatesButton(ui.Button):
                 ephemeral=True
             )
 
-
 class CreateCustomTemplateButton(ui.Button):
     """創建自定義模板按鈕"""
     
@@ -226,7 +222,6 @@ class CreateCustomTemplateButton(ui.Button):
                 "❌ 創建模板功能暫時無法使用",
                 ephemeral=True
             )
-
 
 class TemplateListView(ui.View):
     """模板列表視圖"""
@@ -282,7 +277,6 @@ class TemplateListView(ui.View):
             embed.set_footer(text=f"第 {self.current_page + 1}/{total_pages} 頁")
         
         return embed
-
 
 class TemplateSelectMenu(ui.Select):
     """模板選擇下拉選單"""
@@ -349,7 +343,6 @@ class TemplateSelectMenu(ui.Select):
                 ephemeral=True
             )
 
-
 class PreviousPageButton(ui.Button):
     """上一頁按鈕"""
     
@@ -372,7 +365,6 @@ class PreviousPageButton(ui.Button):
         embed = view.create_embed("模板")
         await interaction.response.edit_message(embed=embed, view=view)
 
-
 class NextPageButton(ui.Button):
     """下一頁按鈕"""
     
@@ -394,7 +386,6 @@ class NextPageButton(ui.Button):
         
         embed = view.create_embed("模板")
         await interaction.response.edit_message(embed=embed, view=view)
-
 
 class TemplateDetailView(ui.View):
     """模板詳情視圖"""
@@ -480,7 +471,6 @@ class TemplateDetailView(ui.View):
         }
         return emoji_map.get(category, '📋')
 
-
 class UseTemplateButton(ui.Button):
     """使用模板按鈕"""
     
@@ -505,7 +495,6 @@ class UseTemplateButton(ui.Button):
                 "❌ 使用模板時發生錯誤",
                 ephemeral=True
             )
-
 
 class FavoriteToggleButton(ui.Button):
     """收藏切換按鈕"""
@@ -553,7 +542,6 @@ class FavoriteToggleButton(ui.Button):
                 "❌ 收藏操作時發生錯誤",
                 ephemeral=True
             )
-
 
 class TemplateCustomizationModal(ui.Modal):
     """模板自定義模態框"""
@@ -680,7 +668,6 @@ class TemplateCustomizationModal(ui.Modal):
                     "❌ 應用模板時發生錯誤",
                     ephemeral=True
                 )
-
 
 class CreateCustomTemplateModal(ui.Modal):
     """創建自定義模板模態框"""

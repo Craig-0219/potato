@@ -21,7 +21,6 @@ from bot.services.ticket_manager import TicketManager
 from bot.db.ticket_dao import TicketDAO
 from bot.db.vote_dao import VoteDAO
 
-
 @dataclass
 class APIKey:
     """API 金鑰結構"""
@@ -33,7 +32,6 @@ class APIKey:
     created_at: datetime
     expires_at: Optional[datetime] = None
     is_active: bool = True
-
 
 @dataclass
 class APIRequest:
@@ -47,7 +45,6 @@ class APIRequest:
     timestamp: datetime
     api_key_id: Optional[str] = None
 
-
 @dataclass
 class APIResponse:
     """API 回應結構"""
@@ -57,7 +54,6 @@ class APIResponse:
     timestamp: datetime
     request_id: Optional[str] = None
     rate_limit_remaining: int = 0
-
 
 class APIManager:
     """API 基礎架構管理器"""

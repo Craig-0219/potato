@@ -12,7 +12,6 @@ from shared.logger import logger
 
 from bot.db.tag_dao import TagDAO
 
-
 class TagManager:
     """標籤系統管理器"""
     

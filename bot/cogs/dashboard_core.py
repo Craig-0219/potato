@@ -19,7 +19,6 @@ from bot.views.dashboard_views import DashboardView, ChartDisplayView
 from shared.logger import logger
 from bot.utils.interaction_helper import SafeInteractionHandler, InteractionContext
 
-
 class DashboardCore(commands.Cog):
     """高級分析儀表板核心功能"""
     
@@ -120,12 +119,7 @@ class DashboardCore(commands.Cog):
             logger.error(f"生成系統概覽儀表板失敗: {e}")
             try:
                 if "Unknown interaction" in str(e) or "10062" in str(e):
-                    logger.debug("系統概覽儀表板互動已過期，靜默處理")
-                    return
-                await interaction.followup.send(f"❌ 生成儀表板失敗: {str(e)}", ephemeral=True)
-            except Exception as followup_error:
-                logger.debug(f"回應系統概覽儀表板錯誤時失敗: {followup_error}")
-    
+
     @app_commands.command(name="dashboard_performance", description="查看系統性能分析儀表板")
     @app_commands.describe(
         days="分析天數 (默認30天)"
@@ -185,12 +179,7 @@ class DashboardCore(commands.Cog):
             logger.error(f"生成性能儀表板失敗: {e}")
             try:
                 if "Unknown interaction" in str(e) or "10062" in str(e):
-                    logger.debug("性能儀表板互動已過期，靜默處理")
-                    return
-                await interaction.followup.send(f"❌ 生成性能儀表板失敗: {str(e)}", ephemeral=True)
-            except Exception as followup_error:
-                logger.debug(f"回應性能儀表板錯誤時失敗: {followup_error}")
-    
+
     @app_commands.command(name="dashboard_prediction", description="查看智能預測分析儀表板")
     async def dashboard_prediction(self, interaction: discord.Interaction):
         """查看智能預測分析儀表板"""
@@ -253,12 +242,7 @@ class DashboardCore(commands.Cog):
             logger.error(f"生成預測儀表板失敗: {e}")
             try:
                 if "Unknown interaction" in str(e) or "10062" in str(e):
-                    logger.debug("預測儀表板互動已過期，靜默處理")
-                    return
-                await interaction.followup.send(f"❌ 生成預測儀表板失敗: {str(e)}", ephemeral=True)
-            except Exception as followup_error:
-                logger.debug(f"回應預測儀表板錯誤時失敗: {followup_error}")
-    
+
     @app_commands.command(name="dashboard_cache", description="管理儀表板快取")
     @app_commands.describe(
         action="操作類型",
@@ -352,95 +336,7 @@ class DashboardCore(commands.Cog):
                 return
             
             if not await SafeInteractionHandler.safe_defer(interaction, ephemeral=True):
-                logger.debug("實時儀表板互動無法延遲，可能已過期")
-                return
-            
-            # 獲取實時數據
-            realtime_data = await self._get_realtime_data(interaction.guild.id)
-            
-            embed = EmbedBuilder.build(
-                title="⚡ 實時系統狀態",
-                description=f"即時數據監控 - {interaction.guild.name}",
-                color=0xe74c3c
-            )
-            
-            # 系統狀態
-            embed.add_field(
-                name="🖥️ 系統狀態",
-                value=f"在線狀態: {'🟢 正常' if realtime_data['system_online'] else '🔴 異常'}\n"
-                      f"活躍用戶: {realtime_data['active_users']}\n"
-                      f"當前負載: {realtime_data['current_load']:.1f}%",
-                inline=True
-            )
-            
-            # 票券狀態
-            priority_dist = realtime_data.get('priority_distribution', {})
-            high_priority = priority_dist.get('high', 0)
-            medium_priority = priority_dist.get('medium', 0)
-            low_priority = priority_dist.get('low', 0)
-            
-            embed.add_field(
-                name="🎫 票券狀態",
-                value=f"開啟票券: {realtime_data['open_tickets']}\n"
-                      f"🔴 高優先級: {high_priority}\n"
-                      f"🟡 中優先級: {medium_priority}\n"
-                      f"🟢 低優先級: {low_priority}\n"
-                      f"今日新建: {realtime_data['today_new_tickets']}",
-                inline=True
-            )
-            
-            # 工作流程狀態
-            embed.add_field(
-                name="⚙️ 工作流程",
-                value=f"活躍流程: {realtime_data['active_workflows']}\n"
-                      f"執行中: {realtime_data['running_executions']}\n"
-                      f"今日執行: {realtime_data['today_executions']}",
-                inline=True
-            )
-            
-            # 添加系統健康指標
-            system_health = "🟢 正常"
-            if realtime_data.get('error'):
-                system_health = "🔴 異常"
-            elif realtime_data['current_load'] > 80:
-                system_health = "🟡 負載高"
-            elif realtime_data['open_tickets'] == 0:
-                system_health = "💤 閒置"
-            
-            embed.add_field(
-                name="📊 系統健康",
-                value=f"整體狀態: {system_health}\n"
-                      f"數據來源: {'📊 實時統計' if realtime_data.get('last_updated') else '🔧 系統估算'}\n"
-                      f"負載等級: {'🔴 高' if realtime_data['current_load'] > 70 else '🟡 中' if realtime_data['current_load'] > 30 else '🟢 低'}",
-                inline=False
-            )
-            
-            # 設置頁腳，包含數據更新時間
-            last_updated = realtime_data.get('last_updated')
-            if last_updated:
-                try:
-                    from dateutil import parser
-                    update_time = parser.isoparse(last_updated)
-                    footer_text = f"數據更新: {update_time.strftime('%H:%M:%S UTC')} | 刷新間隔: 30秒"
-                except:
-                    footer_text = f"數據更新: {datetime.now(timezone.utc).strftime('%H:%M:%S UTC')} | 實時監控"
-            else:
-                footer_text = f"數據更新: {datetime.now(timezone.utc).strftime('%H:%M:%S UTC')} | 系統估算"
-            
-            embed.set_footer(text=footer_text)
-            
-            # 如果有錯誤，添加錯誤信息
-            if realtime_data.get('error'):
-                embed.add_field(
-                    name="⚠️ 系統警告",
-                    value=f"檢測到問題: {str(realtime_data['error'])[:100]}...",
-                    inline=False
-                )
-            
-            await SafeInteractionHandler.safe_respond(interaction, embed=embed, ephemeral=True)
-            
-        except Exception as e:
-            logger.error(f"獲取實時數據失敗: {e}")
+                
             await SafeInteractionHandler.handle_interaction_error(interaction, e, "獲取實時數據")
     
     async def _get_realtime_data(self, guild_id: int) -> Dict[str, Any]:
@@ -560,7 +456,6 @@ class DashboardCore(commands.Cog):
             await interaction.response.send_message("❌ 指令執行時發生錯誤，請稍後再試", ephemeral=True)
         else:
             await interaction.followup.send("❌ 操作失敗，請檢查系統狀態", ephemeral=True)
-
 
 async def setup(bot):
     await bot.add_cog(DashboardCore(bot))

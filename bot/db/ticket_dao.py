@@ -11,7 +11,6 @@ import json
 import aiomysql
 from shared.logger import logger
 
-
 class TicketDAO:
     """票券資料存取層 - 完整修復版"""
     
@@ -664,6 +663,40 @@ class TicketDAO:
         except Exception as e:
             logger.error(f"查詢用戶票券數量錯誤：{e}")
             return 0
+    
+    async def get_user_tickets(self, user_id: int, guild_id: int, status: str = "all", 
+                              limit: int = 10) -> List[Dict[str, Any]]:
+        """取得用戶票券列表 - 新增缺失方法"""
+        await self._ensure_initialized()
+        try:
+            where_conditions = ["discord_id = %s", "guild_id = %s"]
+            params = [str(user_id), guild_id]
+            
+            if status in ("open", "closed"):
+                where_conditions.append("status = %s")
+                params.append(status)
+            
+            where_clause = " AND ".join(where_conditions)
+            
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    await cursor.execute(f"""
+                        SELECT id, discord_id, username, type, status, priority, 
+                               channel_id, created_at, closed_at, assigned_to
+                        FROM tickets 
+                        WHERE {where_clause}
+                        ORDER BY created_at DESC 
+                        LIMIT %s
+                    """, params + [limit])
+                    
+                    results = await cursor.fetchall()
+                    columns = [desc[0] for desc in cursor.description]
+                    
+                    return [dict(zip(columns, row)) for row in results]
+                    
+        except Exception as e:
+            logger.error(f"查詢用戶票券列表錯誤：{e}")
+            return []
     
     async def get_overdue_tickets(self) -> List[Dict[str, Any]]:
         """取得超時票券 - 修復異步"""

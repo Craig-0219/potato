@@ -12,7 +12,6 @@ from datetime import datetime, timezone
 
 from shared.logger import logger
 
-
 class SecurityView(discord.ui.View):
     """安全監控主視圖"""
     
@@ -94,7 +93,6 @@ class SecurityView(discord.ui.View):
             "請重新使用 `/security_dashboard` 指令獲取最新數據",
             ephemeral=True
         )
-
 
 class AlertView(discord.ui.View):
     """安全警報管理視圖"""
@@ -182,7 +180,6 @@ class AlertView(discord.ui.View):
             ephemeral=True
         )
 
-
 class AlertSelectDropdown(discord.ui.Select):
     """警報選擇下拉選單"""
     
@@ -231,7 +228,6 @@ class AlertSelectDropdown(discord.ui.Select):
         except Exception as e:
             logger.error(f"處理警報選擇失敗: {e}")
             await interaction.response.send_message("❌ 操作失敗", ephemeral=True)
-
 
 class AlertDetailView(discord.ui.View):
     """警報詳情操作視圖"""
@@ -288,7 +284,6 @@ class AlertDetailView(discord.ui.View):
             f"系統將學習此類模式以減少類似誤報",
             ephemeral=True
         )
-
 
 class AlertFilterModal(discord.ui.Modal):
     """警報篩選模態框"""
@@ -366,7 +361,6 @@ class AlertFilterModal(discord.ui.Modal):
             logger.error(f"警報篩選失敗: {e}")
             await interaction.response.send_message("❌ 篩選設定失敗", ephemeral=True)
 
-
 class AlertResolutionModal(discord.ui.Modal):
     """警報解決模態框"""
     
@@ -422,7 +416,6 @@ class AlertResolutionModal(discord.ui.Modal):
         except Exception as e:
             logger.error(f"標記警報解決失敗: {e}")
             await interaction.response.send_message("❌ 操作失敗", ephemeral=True)
-
 
 class ComplianceReportView(discord.ui.View):
     """合規報告操作視圖"""

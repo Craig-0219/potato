@@ -12,7 +12,6 @@ import asyncio
 from datetime import datetime, timedelta
 from shared.logger import logger
 
-
 class SystemAdmin(commands.Cog):
     """系統管理功能 - 簡化版"""
     
@@ -65,49 +64,7 @@ class SystemAdmin(commands.Cog):
         
         try:
             if not await SafeInteractionHandler.safe_defer(interaction, ephemeral=True):
-                logger.debug("基礎儀表板互動無法延遲，可能已過期")
-                return
-            
-            # 獲取基本系統資訊
-            embed = discord.Embed(
-                title="📊 基礎系統儀表板",
-                color=0x2ecc71
-            )
-            
-            # Bot 基本資訊
-            embed.add_field(
-                name="🤖 Bot 資訊",
-                value=f"延遲: {round(self.bot.latency * 1000)}ms\n"
-                      f"伺服器: {len(self.bot.guilds)}\n"
-                      f"用戶: {len(self.bot.users)}",
-                inline=True
-            )
-            
-            # 系統資訊
-            embed.add_field(
-                name="⚙️ 系統狀態",
-                value=f"擴展: {len(self.bot.extensions)}\n"
-                      f"指令: {len(self.bot.tree.get_commands())}\n"
-                      f"狀態: 正常運行",
-                inline=True
-            )
-            
-            # 伺服器資訊
-            if interaction.guild:
-                embed.add_field(
-                    name="📋 目前伺服器",
-                    value=f"名稱: {interaction.guild.name}\n"
-                          f"成員: {interaction.guild.member_count}\n"
-                          f"頻道: {len(interaction.guild.channels)}",
-                    inline=True
-                )
-            
-            embed.set_footer(text=f"運行時間: {self.bot.get_uptime() if hasattr(self.bot, 'get_uptime') else '未知'}")
-            
-            await SafeInteractionHandler.safe_respond(interaction, embed=embed, ephemeral=True)
-            
-        except Exception as e:
-            logger.error(f"基礎儀表板錯誤: {e}")
+                
             await SafeInteractionHandler.handle_interaction_error(interaction, e, "基礎儀表板")
 
     @app_commands.command(name="system_status", description="查看系統整體狀態")
@@ -118,176 +75,7 @@ class SystemAdmin(commands.Cog):
             from bot.utils.interaction_helper import SafeInteractionHandler
             
             if not await SafeInteractionHandler.safe_defer(interaction, ephemeral=True):
-                logger.debug("系統狀態互動無法延遲，可能已過期")
-                return
-            
-            from bot.db.pool import get_db_health
-            
-            # 獲取資料庫健康狀態
-            db_health = await get_db_health()
-            
-            embed = discord.Embed(
-                title="🤖 系統整體狀態",
-                color=0x00ff00 if db_health.get('status') == 'healthy' else 0xffaa00
-            )
-            
-            # Bot 基本資訊
-            embed.add_field(
-                name="📊 基本資訊",
-                value=f"延遲: {round(self.bot.latency * 1000)}ms\n"
-                      f"伺服器數: {len(self.bot.guilds)}\n"
-                      f"擴展數: {len(self.bot.extensions)}",
-                inline=True
-            )
-            
-            # 資料庫狀態
-            embed.add_field(
-                name="💾 資料庫",
-                value=f"狀態: {db_health.get('status', 'unknown')}\n"
-                      f"連接: {'✅' if db_health.get('status') == 'healthy' else '❌'}",
-                inline=True
-            )
-            
-            # 系統狀態
-            embed.add_field(
-                name="⚙️ 系統",
-                value=f"指令樹: {len(self.bot.tree.get_commands())}\n"
-                      f"整體狀態: {'🟢 正常' if db_health.get('status') == 'healthy' else '🟡 警告'}",
-                inline=True
-            )
-            
-            await SafeInteractionHandler.safe_respond(interaction, embed=embed, ephemeral=True)
-            
-        except Exception as e:
-            logger.error(f"系統狀態查詢失敗: {e}")
-            await SafeInteractionHandler.handle_interaction_error(interaction, e, "系統狀態查詢")
-
-    @commands.command(name='botstatus', aliases=['狀態'])
-    @commands.is_owner()
-    async def system_status_cmd(self, ctx):
-        """Bot 整體狀態 (Bot 擁有者限定)"""
-        try:
-            from bot.db.pool import get_db_health
-            
-            # 獲取資料庫健康狀態
-            db_health = await get_db_health()
-            
-            embed = discord.Embed(
-                title="🤖 Bot 整體狀態",
-                color=0x00ff00 if db_health.get('status') == 'healthy' else 0xffaa00
-            )
-            
-            # Bot 基本資訊
-            embed.add_field(
-                name="📊 基本資訊",
-                value=f"延遲: {round(self.bot.latency * 1000)}ms\n"
-                      f"伺服器數: {len(self.bot.guilds)}\n"
-                      f"擴展數: {len(self.bot.extensions)}",
-                inline=True
-            )
-            
-            # 資料庫狀態
-            embed.add_field(
-                name="💾 資料庫",
-                value=f"狀態: {db_health.get('status', 'unknown')}\n"
-                      f"連接: {'✅' if db_health.get('status') == 'healthy' else '❌'}",
-                inline=True
-            )
-            
-            # 系統狀態
-            embed.add_field(
-                name="⚙️ 系統",
-                value=f"指令樹: {len(self.bot.tree.get_commands())}\n"
-                      f"整體狀態: {'🟢 正常' if db_health.get('status') == 'healthy' else '🟡 警告'}",
-                inline=True
-            )
-            
-            await ctx.send(embed=embed)
-            
-        except Exception as e:
-            await ctx.send(f"❌ 獲取狀態失敗：{e}")
-            logger.error(f"獲取Bot狀態失敗: {e}")
-
-    @commands.command(name='healthcheck', aliases=['健康檢查'])
-    @commands.is_owner()
-    async def system_health_check(self, ctx):
-        """完整健康檢查 (Bot 擁有者限定)"""
-        try:
-            embed = discord.Embed(
-                title="🏥 系統健康檢查",
-                description="正在檢查所有系統組件...",
-                color=0xf39c12
-            )
-            message = await ctx.send(embed=embed)
-            
-            # 執行檢查
-            checks = {
-                "🤖 Bot 連接": self.bot.is_ready(),
-                "💾 資料庫": False,
-                "📊 指令系統": len(self.bot.tree.get_commands()) > 0,
-                "🔧 擴展載入": len(self.bot.extensions) > 5,
-            }
-            
-            # 檢查資料庫
-            try:
-                from bot.db.pool import get_db_health
-                db_health = await get_db_health()
-                checks["💾 資料庫"] = db_health.get('status') == 'healthy'
-            except:
-                pass
-            
-            # 生成結果
-            results = []
-            all_healthy = True
-            
-            for check_name, is_healthy in checks.items():
-                status = "✅" if is_healthy else "❌"
-                results.append(f"{status} {check_name}")
-                if not is_healthy:
-                    all_healthy = False
-            
-            embed = discord.Embed(
-                title="🏥 系統健康檢查結果",
-                description="\n".join(results),
-                color=0x00ff00 if all_healthy else 0xff9900
-            )
-            
-            embed.add_field(
-                name="📈 整體評估",
-                value="🎉 系統運行良好" if all_healthy else "⚠️ 發現部分問題",
-                inline=False
-            )
-            
-            await message.edit(embed=embed)
-            
-        except Exception as e:
-            await ctx.send(f"❌ 健康檢查失敗：{e}")
-            logger.error(f"健康檢查失敗: {e}")
-
-    @app_commands.command(name="vote_admin", description="投票系統管理面板")
-    @app_commands.default_permissions(manage_messages=True)
-    async def vote_admin(self, interaction: discord.Interaction):
-        """投票系統管理面板"""
-        try:
-            from bot.views.system_admin_views import VoteAdminView
-            
-            embed = discord.Embed(
-                title="🗳️ 投票系統管理",
-                description="選擇要執行的投票管理操作",
-                color=0x3498db
-            )
-            
-            embed.add_field(
-                name="📊 功能說明",
-                value="• 查看活躍投票\n• 強制結束投票\n• 查看投票統計\n• 管理投票權限",
-                inline=False
-            )
-            
-            view = VoteAdminView()
-            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-            
-        except Exception as e:
-            logger.error(f"投票管理面板錯誤: {e}")
+                
             try:
                 if not interaction.response.is_done():
                     await interaction.response.send_message("❌ 投票管理面板載入失敗", ephemeral=True)
@@ -674,7 +462,6 @@ class SystemAdmin(commands.Cog):
                 await interaction.edit_original_response(embed=error_embed)
             except:
                 await interaction.followup.send(embed=error_embed, ephemeral=True)
-
 
 async def setup(bot):
     await bot.add_cog(SystemAdmin(bot))

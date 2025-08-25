@@ -10,7 +10,6 @@ from typing import Dict, List, Optional, Any, Tuple
 import json
 from shared.logger import logger
 
-
 class AssignmentDAO:
     """票券指派系統資料存取層"""
     

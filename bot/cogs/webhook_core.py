@@ -17,7 +17,6 @@ from bot.views.webhook_views import WebhookManagerView, WebhookConfigModal
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 
-
 class WebhookCore(commands.Cog):
     """Webhook整合核心功能"""
     
@@ -503,7 +502,6 @@ class WebhookCore(commands.Cog):
             await interaction.response.send_message("❌ 指令執行時發生錯誤，請稍後再試", ephemeral=True)
         else:
             await interaction.followup.send("❌ 操作失敗，請檢查系統狀態", ephemeral=True)
-
 
 async def setup(bot):
     await bot.add_cog(WebhookCore(bot))

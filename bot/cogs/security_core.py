@@ -20,7 +20,6 @@ from bot.utils.embed_builder import EmbedBuilder
 from bot.views.security_views import SecurityView, AlertView, ComplianceReportView
 from shared.logger import logger
 
-
 class SecurityCore(commands.Cog):
     """企業級安全管理核心功能"""
     
@@ -720,7 +719,6 @@ class SecurityCore(commands.Cog):
             await interaction.response.send_message("❌ 安全指令執行時發生錯誤，請稍後再試", ephemeral=True)
         else:
             await interaction.followup.send("❌ 操作失敗，請檢查系統狀態", ephemeral=True)
-
 
 async def setup(bot):
     await bot.add_cog(SecurityCore(bot))

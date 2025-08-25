@@ -18,7 +18,6 @@ from bot.utils.embed_builder import EmbedBuilder
 from bot.views.automation_views import AutomationView, RuleBuilderModal, RuleExecutionView
 from shared.logger import logger
 
-
 class AutomationCore(commands.Cog):
     """進階自動化規則引擎核心功能"""
     
@@ -645,7 +644,6 @@ class AutomationCore(commands.Cog):
             await interaction.response.send_message("❌ 指令執行時發生錯誤，請稍後再試", ephemeral=True)
         else:
             await interaction.followup.send("❌ 操作失敗，請檢查系統狀態", ephemeral=True)
-
 
 async def setup(bot):
     await bot.add_cog(AutomationCore(bot))

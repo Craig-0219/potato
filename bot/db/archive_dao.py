@@ -14,7 +14,6 @@ import aiomysql
 from .base_dao import BaseDAO
 from shared.logger import logger
 
-
 @dataclass
 class ArchiveConfig:
     """歸檔配置"""
@@ -23,7 +22,6 @@ class ArchiveConfig:
     batch_size: int = 1000
     include_attachments: bool = True
     compress_data: bool = True
-
 
 class ArchiveDAO(BaseDAO):
     """歷史資料歸檔資料存取物件"""

@@ -12,7 +12,6 @@ from discord.ext import tasks
 from bot.db.archive_dao import ArchiveDAO
 from shared.logger import logger
 
-
 class DatabaseCleanupManager:
     """資料庫清理與格式化管理器"""
     

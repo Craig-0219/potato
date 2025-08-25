@@ -14,7 +14,6 @@ from bot.services.webhook_manager import webhook_manager, WebhookEvent, WebhookT
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 
-
 class WebhookManagerView(ui.View):
     """Webhook管理主界面"""
     
@@ -127,7 +126,6 @@ class WebhookManagerView(ui.View):
         except Exception as e:
             logger.error(f"獲取統計失敗: {e}")
             await interaction.followup.send("❌ 獲取統計失敗", ephemeral=True)
-
 
 class WebhookCreateModal(ui.Modal):
     """創建Webhook模態框"""
@@ -242,7 +240,6 @@ class WebhookCreateModal(ui.Modal):
         except Exception as e:
             logger.error(f"創建Webhook失敗: {e}")
             await interaction.followup.send(f"❌ 創建失敗: {str(e)}", ephemeral=True)
-
 
 class WebhookConfigModal(ui.Modal):
     """Webhook配置模態框"""
@@ -369,7 +366,6 @@ class WebhookConfigModal(ui.Modal):
         except Exception as e:
             logger.error(f"更新Webhook配置失敗: {e}")
             await interaction.followup.send(f"❌ 配置更新失敗: {str(e)}", ephemeral=True)
-
 
 class WebhookDetailView(ui.View):
     """Webhook詳情查看界面"""
@@ -514,7 +510,6 @@ class WebhookDetailView(ui.View):
         
         view = WebhookDeleteConfirmView(self.webhook_id, self.webhook_data['name'], self.user_id)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
 
 class WebhookDeleteConfirmView(ui.View):
     """刪除Webhook確認界面"""

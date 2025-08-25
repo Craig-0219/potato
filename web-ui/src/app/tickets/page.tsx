@@ -57,7 +57,25 @@ export default function TicketsPage() {
 
       try {
         const response = await ApiClient.tickets.list(params)
-        setData(response.data.data)
+        console.log('🎫 票券API響應:', response.data)
+        
+        // 處理API響應數據結構
+        if (response.data && response.data.success) {
+          setData({
+            tickets: response.data.data || [],
+            pagination: response.data.pagination || {
+              page: 1,
+              page_size: 20,
+              total: 0,
+              total_pages: 0,
+              has_next: false,
+              has_prev: false
+            }
+          })
+        } else {
+          console.warn('🎫 API響應數據格式不正確:', response.data)
+          throw new Error('數據格式不正確')
+        }
       } catch (apiError: any) {
         // 檢查是否為認證錯誤
         if (apiError.response?.status === 403 || apiError.response?.status === 401) {

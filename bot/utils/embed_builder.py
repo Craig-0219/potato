@@ -510,7 +510,6 @@ def embed_from_dict(data: Dict[str, Any]) -> discord.Embed:
         logger.error(f"從字典建立 Embed 失敗：{e}")
         return EmbedBuilder.error("格式錯誤", "無法解析嵌入格式")
 
-
 # ===== 新增方法以支持抽獎系統 =====
 # 為了向後兼容添加的靜態方法
 

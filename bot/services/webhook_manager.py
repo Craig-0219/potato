@@ -18,13 +18,11 @@ import aiohttp
 from bot.db.webhook_dao import WebhookDAO
 from shared.logger import logger
 
-
 class WebhookType(Enum):
     """Webhook類型"""
     INCOMING = "incoming"      # 接收Webhook
     OUTGOING = "outgoing"      # 發送Webhook
     BIDIRECTIONAL = "both"     # 雙向Webhook
-
 
 class WebhookEvent(Enum):
     """Webhook事件類型"""
@@ -40,14 +38,12 @@ class WebhookEvent(Enum):
     SYSTEM_ALERT = "system_alert"
     CUSTOM_EVENT = "custom_event"
 
-
 class WebhookStatus(Enum):
     """Webhook狀態"""
     ACTIVE = "active"
     INACTIVE = "inactive"
     PAUSED = "paused"
     ERROR = "error"
-
 
 @dataclass
 class WebhookConfig:
@@ -70,7 +66,6 @@ class WebhookConfig:
     success_count: int = 0
     failure_count: int = 0
 
-
 @dataclass
 class WebhookPayload:
     """Webhook負載"""
@@ -80,7 +75,6 @@ class WebhookPayload:
     data: Dict[str, Any]
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-
 @dataclass
 class WebhookResponse:
     """Webhook回應"""
@@ -89,7 +83,6 @@ class WebhookResponse:
     response_data: Optional[Dict[str, Any]] = None
     error_message: Optional[str] = None
     execution_time: float = 0.0
-
 
 class WebhookManager:
     """Webhook整合管理器"""
@@ -253,129 +246,7 @@ class WebhookManager:
                     matching_webhooks.append(config)
             
             if not matching_webhooks:
-                logger.debug(f"沒有找到匹配的Webhook事件: {event.value}")
-                return
-            
-            # 創建負載
-            payload = WebhookPayload(
-                event=event,
-                timestamp=datetime.now(timezone.utc),
-                guild_id=guild_id,
-                data=data
-            )
-            
-            # 並行發送Webhook
-            tasks = []
-            for config in matching_webhooks:
-                task = asyncio.create_task(self._send_webhook(config, payload))
-                tasks.append(task)
-            
-            # 等待所有Webhook發送完成
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-            
-            successful = sum(1 for result in results if isinstance(result, WebhookResponse) and result.success)
-            failed = len(results) - successful
-            
-            logger.info(f"✅ Webhook事件觸發完成: {event.value} - 成功:{successful}, 失敗:{failed}")
-            
-            # 更新統計
-            self.execution_stats['total_sent'] += len(matching_webhooks)
-            self.execution_stats['success_count'] += successful
-            self.execution_stats['failure_count'] += failed
-            
-        except Exception as e:
-            logger.error(f"❌ 觸發Webhook事件失敗: {e}")
-    
-    async def _send_webhook(self, config: WebhookConfig, payload: WebhookPayload) -> WebhookResponse:
-        """發送Webhook請求"""
-        start_time = datetime.now(timezone.utc)
-        
-        try:
-            # 準備請求數據
-            request_data = {
-                'event': payload.event.value,
-                'timestamp': payload.timestamp.isoformat(),
-                'guild_id': payload.guild_id,
-                'data': payload.data,
-                'metadata': payload.metadata
-            }
-            
-            # 準備請求頭
-            headers = {
-                'Content-Type': 'application/json',
-                'User-Agent': 'Potato-Bot-Webhook/1.7.0',
-                **config.headers
-            }
-            
-            # 添加簽名 (如果有密鑰)
-            if config.secret:
-                signature = self._generate_signature(json.dumps(request_data), config.secret)
-                headers['X-Webhook-Signature'] = f"sha256={signature}"
-            
-            # 發送請求 (帶重試)
-            for attempt in range(config.retry_count + 1):
-                try:
-                    async with self.session.post(
-                        config.url,
-                        json=request_data,
-                        headers=headers,
-                        timeout=aiohttp.ClientTimeout(total=config.timeout)
-                    ) as response:
-                        
-                        execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
-                        
-                        # 檢查回應
-                        if response.status >= 200 and response.status < 300:
-                            # 成功
-                            try:
-                                response_data = await response.json()
-                            except:
-                                response_data = {'text': await response.text()}
-                            
-                            # 更新統計
-                            config.last_triggered = datetime.now(timezone.utc)
-                            config.success_count += 1
-                            
-                            return WebhookResponse(
-                                success=True,
-                                status_code=response.status,
-                                response_data=response_data,
-                                execution_time=execution_time
-                            )
-                        else:
-                            # HTTP錯誤
-                            error_msg = f"HTTP {response.status}: {await response.text()}"
-                            
-                            if attempt < config.retry_count:
-                                await asyncio.sleep(config.retry_interval * (attempt + 1))
-                                continue
-                            else:
-                                raise aiohttp.ClientError(error_msg)
-                
-                except asyncio.TimeoutError:
-                    if attempt < config.retry_count:
-                        await asyncio.sleep(config.retry_interval * (attempt + 1))
-                        continue
-                    else:
-                        raise
-                
-                except Exception as e:
-                    if attempt < config.retry_count:
-                        await asyncio.sleep(config.retry_interval * (attempt + 1))
-                        continue
-                    else:
-                        raise
-            
-        except Exception as e:
-            # 失敗
-            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
-            config.failure_count += 1
-            
-            # 如果失敗次數過多，暫停Webhook
-            if config.failure_count > 10 and config.failure_count > config.success_count * 2:
-                config.status = WebhookStatus.ERROR
-                logger.warning(f"⚠️ Webhook因錯誤過多已暫停: {config.name}")
-            
+
             error_msg = str(e)
             logger.error(f"❌ Webhook發送失敗 ({config.name}): {error_msg}")
             
@@ -557,7 +428,6 @@ class WebhookManager:
                 event_count[event.value] = event_count.get(event.value, 0) + 1
         
         return event_count
-
 
 # 全域Webhook管理器實例
 webhook_manager = WebhookManager()

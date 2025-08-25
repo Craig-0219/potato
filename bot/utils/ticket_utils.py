@@ -16,7 +16,6 @@ from bot.utils.ticket_constants import (
 )
 from shared.logger import logger
 
-
 # ===== 權限檢查器 =====
 
 class TicketPermissionChecker:
@@ -117,7 +116,6 @@ class TicketPermissionChecker:
         else:
             return 'user'
 
-
 # ===== 頻道工具 =====
 
 def is_ticket_channel(channel: discord.TextChannel) -> bool:
@@ -125,7 +123,6 @@ def is_ticket_channel(channel: discord.TextChannel) -> bool:
     if not channel or not hasattr(channel, 'name'):
         return False
     return channel.name.startswith('ticket-')
-
 
 def parse_ticket_id_from_channel(channel: discord.TextChannel) -> Optional[int]:
     """從頻道名稱解析票券ID"""
@@ -139,7 +136,6 @@ def parse_ticket_id_from_channel(channel: discord.TextChannel) -> Optional[int]:
     except (ValueError, AttributeError):
         return None
 
-
 def generate_ticket_channel_name(ticket_id: int, username: str = None) -> str:
     """生成票券頻道名稱"""
     base_name = f"ticket-{ticket_id:04d}"
@@ -151,7 +147,6 @@ def generate_ticket_channel_name(ticket_id: int, username: str = None) -> str:
             base_name += f"-{clean_username[:10]}"  # 限制長度
     
     return base_name.lower()
-
 
 async def create_ticket_channel_overwrites(guild: discord.Guild, user: discord.Member, 
                                          support_roles: List[int]) -> Dict[Union[discord.Role, discord.Member], discord.PermissionOverwrite]:
@@ -190,7 +185,6 @@ async def create_ticket_channel_overwrites(guild: discord.Guild, user: discord.M
     
     return overwrites
 
-
 def parse_channel_mention(channel_input: str, guild: discord.Guild) -> Optional[discord.abc.GuildChannel]:
     """解析頻道提及"""
     if not channel_input or not guild:
@@ -215,7 +209,6 @@ def parse_channel_mention(channel_input: str, guild: discord.Guild) -> Optional[
     
     return None
 
-
 def parse_role_mention(role_input: str, guild: discord.Guild) -> Optional[discord.Role]:
     """解析身分組提及"""
     if not role_input or not guild:
@@ -239,7 +232,6 @@ def parse_role_mention(role_input: str, guild: discord.Guild) -> Optional[discor
             return role
     
     return None
-
 
 # ===== Embed 建構器 =====
 
@@ -324,7 +316,6 @@ def build_ticket_embed(ticket_info: Dict[str, Any], include_stats: bool = False)
     
     return embed
 
-
 def build_stats_embed(stats: Dict[str, Any], title: str = "📊 統計資訊", 
                      color: discord.Color = discord.Color.blue()) -> discord.Embed:
     """建立統計資訊嵌入"""
@@ -370,7 +361,6 @@ def build_stats_embed(stats: Dict[str, Any], title: str = "📊 統計資訊",
         )
     
     return embed
-
 
 def build_sla_embed(sla_stats: Dict[str, Any], guild: discord.Guild) -> discord.Embed:
     """建立SLA統計嵌入"""
@@ -428,7 +418,6 @@ def build_sla_embed(sla_stats: Dict[str, Any], guild: discord.Guild) -> discord.
     
     return embed
 
-
 def build_staff_performance_embed(staff_stats: Dict[str, Any], guild: discord.Guild, 
                                 period: str = "week") -> discord.Embed:
     """建立客服表現嵌入"""
@@ -484,7 +473,6 @@ def build_staff_performance_embed(staff_stats: Dict[str, Any], guild: discord.Gu
     
     return embed
 
-
 def build_user_tickets_embed(tickets: List[Dict[str, Any]], user: discord.Member, 
                            page: int = 1, total_pages: int = 1) -> discord.Embed:
     """建立用戶票券列表嵌入"""
@@ -537,7 +525,6 @@ def build_user_tickets_embed(tickets: List[Dict[str, Any]], user: discord.Member
     
     return embed
 
-
 # ===== 自動回覆系統 =====
 
 def check_auto_reply_keywords(message_content: str, keywords: List[str]) -> bool:
@@ -553,7 +540,6 @@ def check_auto_reply_keywords(message_content: str, keywords: List[str]) -> bool
             return True
     
     return False
-
 
 def process_auto_reply_message(message_content: str, reply_template: str, 
                               user: discord.Member = None) -> str:
@@ -574,7 +560,6 @@ def process_auto_reply_message(message_content: str, reply_template: str,
     processed_message = processed_message.replace('{date}', now.strftime('%Y-%m-%d'))
     
     return processed_message
-
 
 async def get_best_auto_reply(message_content: str, rules: List[Dict[str, Any]], 
                             user: discord.Member = None) -> Optional[str]:
@@ -603,7 +588,6 @@ async def get_best_auto_reply(message_content: str, rules: List[Dict[str, Any]],
     # 處理回覆模板
     reply = process_auto_reply_message(best_rule.get('reply', ''), user)
     return reply
-
 
 # ===== 格式化工具 =====
 
@@ -649,7 +633,6 @@ def format_settings_value(field_name: str, value: Any, guild: discord.Guild = No
     else:
         return str(value)
 
-
 def format_ticket_status_summary(tickets: List[Dict[str, Any]]) -> Dict[str, Any]:
     """格式化票券狀態摘要"""
     summary = {
@@ -691,9 +674,7 @@ def format_ticket_status_summary(tickets: List[Dict[str, Any]]) -> Dict[str, Any
     
     return summary
 
-
 # format_duration 函數已移至 bot.utils.helper 模組以避免重複
-
 
 def format_timestamp(timestamp: datetime, format_type: str = "relative") -> str:
     """格式化時間戳"""
@@ -706,21 +687,17 @@ def format_timestamp(timestamp: datetime, format_type: str = "relative") -> str:
     else:
         return str(timestamp)
 
-
 def format_user_mention(user_id: Union[str, int]) -> str:
     """格式化用戶提及"""
     return f"<@{user_id}>"
-
 
 def format_channel_mention(channel_id: Union[str, int]) -> str:
     """格式化頻道提及"""
     return f"<#{channel_id}>"
 
-
 def format_role_mention(role_id: Union[str, int]) -> str:
     """格式化身分組提及"""
     return f"<@&{role_id}>"
-
 
 # ===== 快取管理 =====
 
@@ -797,7 +774,6 @@ class TicketCache:
             self.delete(key)
         return len(expired_keys)
 
-
 # ===== 通知工具 =====
 
 async def send_ticket_notification(user: discord.Member, title: str, description: str, 
@@ -814,12 +790,8 @@ async def send_ticket_notification(user: discord.Member, title: str, description
         await user.send(embed=embed)
         return True
     except discord.Forbidden:
-        logger.debug(f"[TicketUtils] 無法向用戶 {user.id} 發送私訊")
+        
         return False
-    except Exception as e:
-        logger.debug(f"[TicketUtils] 發送通知錯誤：{e}")
-        return False
-
 
 async def send_sla_alert(channel: discord.TextChannel, ticket_info: Dict[str, Any], 
                         overdue_minutes: float) -> bool:
@@ -851,9 +823,8 @@ async def send_sla_alert(channel: discord.TextChannel, ticket_info: Dict[str, An
         await channel.send(embed=embed)
         return True
     except Exception as e:
-        logger.debug(f"[TicketUtils] 發送SLA警告錯誤：{e}")
+        
         return False
-
 
 # ===== 資料驗證工具 =====
 
@@ -880,7 +851,6 @@ def validate_ticket_data(ticket_data: Dict[str, Any]) -> Tuple[bool, str]:
     
     return True, ""
 
-
 def sanitize_ticket_input(input_text: str) -> str:
     """清理票券輸入文字"""
     if not input_text:
@@ -896,7 +866,6 @@ def sanitize_ticket_input(input_text: str) -> str:
     sanitized = re.sub(r'\s+', ' ', sanitized).strip()
     
     return sanitized
-
 
 # ===== 統計工具 =====
 
@@ -946,7 +915,6 @@ def calculate_ticket_metrics(tickets: List[Dict[str, Any]]) -> Dict[str, Any]:
         'avg_rating': sum(ratings) / len(ratings) if ratings else 0
     }
 
-
 def generate_ticket_report(tickets: List[Dict[str, Any]], period: str = "week") -> str:
     """生成票券報告"""
     metrics = calculate_ticket_metrics(tickets)
@@ -971,7 +939,6 @@ def generate_ticket_report(tickets: List[Dict[str, Any]], period: str = "week") 
         report += f"- {emoji} {priority.upper()}：{count} 張\n"
     
     return report
-
 
 # ===== 工具函數導出 =====
 

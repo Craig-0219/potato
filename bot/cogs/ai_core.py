@@ -16,7 +16,6 @@ from bot.services.ai_manager import AIManager
 from bot.db.ticket_dao import TicketDAO
 from bot.views.ai_views import AIReplyView, AITagSuggestionView
 
-
 class AICore(commands.Cog):
     """AI 智能回覆核心指令"""
     
@@ -610,7 +609,6 @@ class AICore(commands.Cog):
         except Exception as e:
             logger.error(f"獲取頻道上下文錯誤: {e}")
             return "獲取上下文時發生錯誤"
-
 
 async def setup(bot):
     """載入擴展"""

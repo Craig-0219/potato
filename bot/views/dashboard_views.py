@@ -15,7 +15,6 @@ from bot.services.dashboard_manager import DashboardData, ChartData, ChartType
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 
-
 class DashboardView(View):
     """主要的儀表板視圖"""
     
@@ -41,7 +40,6 @@ class DashboardView(View):
             await interaction.response.send_message("❌ 只有指令使用者可以操作此面板", ephemeral=True)
             return False
         return True
-
 
 class ChartNavigationSelect(Select):
     """圖表導航選擇器"""
@@ -147,7 +145,6 @@ class ChartNavigationSelect(Select):
         embed.set_footer(text="💡 使用下方按鈕進行更多操作")
         
         return embed
-
 
 class ChartDisplayView(View):
     """圖表顯示視圖"""
@@ -284,7 +281,6 @@ class ChartDisplayView(View):
             return False
         return True
 
-
 class RefreshDashboardButton(Button):
     """刷新儀表板按鈕"""
     
@@ -307,7 +303,6 @@ class RefreshDashboardButton(Button):
             content="✅ 儀表板數據已刷新，請重新執行指令查看最新數據"
         )
 
-
 class ExportDataButton(Button):
     """導出數據按鈕"""
     
@@ -321,7 +316,6 @@ class ExportDataButton(Button):
     async def callback(self, interaction: discord.Interaction):
         modal = ExportOptionsModal()
         await interaction.response.send_modal(modal)
-
 
 class ViewAllChartsButton(Button):
     """查看所有圖表按鈕"""
@@ -380,7 +374,6 @@ class ViewAllChartsButton(Button):
         embed.set_footer(text="💡 使用上方的選擇器來查看具體圖表")
         
         await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 # ========== Modal 表單 ==========
 
@@ -456,7 +449,6 @@ class ChartDataModal(Modal):
     
     async def on_submit(self, interaction: discord.Interaction):
         await interaction.response.send_message("💡 這是數據預覽，您可以複製相關資訊", ephemeral=True)
-
 
 class ExportOptionsModal(Modal):
     """導出選項表單"""

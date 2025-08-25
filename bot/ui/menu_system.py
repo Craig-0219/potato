@@ -372,7 +372,7 @@ class TicketMenuView(discord.ui.View):
             ticket_dao = TicketDAO()
             
             # 獲取用戶的開放票券數量
-            user_tickets = await ticket_dao.get_user_tickets(self.bot.guilds[0].id if self.bot.guilds else 0, self.user_id)
+            user_tickets = await ticket_dao.get_user_tickets(self.user_id, self.bot.guilds[0].id if self.bot.guilds else 0)
             open_count = len([t for t in user_tickets if t.get('status') in ['open', 'in_progress', 'pending']])
             
             # 獲取系統設定
@@ -441,7 +441,7 @@ class TicketMenuView(discord.ui.View):
             
             # 查詢用戶的票券
             tickets = await ticket_dao.get_user_tickets(
-                interaction.guild.id, interaction.user.id
+                interaction.user.id, interaction.guild.id
             )
             
             if not tickets:
@@ -499,7 +499,7 @@ class TicketMenuView(discord.ui.View):
                 
                 # 查詢用戶的票券
                 tickets = await ticket_dao.get_user_tickets(
-                    interaction.guild.id, interaction.user.id
+                    interaction.user.id, interaction.guild.id
                 )
                 
                 if not tickets:
@@ -997,79 +997,7 @@ class WelcomeMenuView(discord.ui.View):
                         auto_role_id = settings['auto_role_id']
                         current_auto_role = interaction.guild.get_role(int(auto_role_id))
                 except Exception as e:
-                    logger.debug(f"無法獲取當前自動身分設定: {e}")
-            
-            # 獲取伺服器的所有身分組（排除@everyone和bot身分組）
-            roles = [role for role in interaction.guild.roles 
-                    if not role.is_default() and not role.managed 
-                    and role.position < interaction.guild.me.top_role.position]
-            
-            embed = discord.Embed(
-                title="🎭 自動身分設定",
-                description="**設定新成員加入時自動分配的身分組**\n\n選擇以下方式來設定自動身分：",
-                color=0x9b59b6
-            )
-            
-            # 顯示當前設定
-            if current_auto_role:
-                embed.add_field(
-                    name="🎯 目前設定",
-                    value=f"自動身分：{current_auto_role.mention}\n成員數：{current_auto_role.member_count}",
-                    inline=False
-                )
-            else:
-                embed.add_field(
-                    name="🎯 目前設定",
-                    value="尚未設定自動身分",
-                    inline=False
-                )
-            
-            embed.add_field(
-                name="⚙️ 設定方式",
-                value="• `/welcome setup` - 完整歡迎系統設定（包含自動身分）\n"
-                      "• `/welcome status` - 查看目前設定",
-                inline=False
-            )
-            
-            if roles:
-                # 顯示前5個可用的身分組
-                role_list = []
-                for i, role in enumerate(roles[:5]):
-                    status = "✅ 目前設定" if role == current_auto_role else ""
-                    role_list.append(f"• {role.mention} ({role.member_count} 成員) {status}")
-                
-                embed.add_field(
-                    name="📋 可用身分組（前5個）",
-                    value="\n".join(role_list),
-                    inline=False
-                )
-                
-                if len(roles) > 5:
-                    embed.add_field(
-                        name="📝 注意",
-                        value=f"顯示前 5 個身分組，共有 {len(roles)} 個可用身分組",
-                        inline=False
-                    )
-            else:
-                embed.add_field(
-                    name="⚠️ 注意",
-                    value="沒有找到可設定的身分組\n請確保Bot有足夠的權限並且身分組位置正確",
-                    inline=False
-                )
-            
-            embed.add_field(
-                name="💡 提示",
-                value="• 自動身分會在新成員加入時自動分配\n"
-                      "• Bot需要有管理身分組的權限\n"
-                      "• Bot的身分組必須高於要分配的身分組\n"
-                      "• 使用 `/welcome setup` 進行完整設定",
-                inline=False
-            )
-            
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-            
-        except Exception as e:
-            logger.error(f"自動身分設定錯誤: {e}")
+                    
             import traceback
             logger.error(traceback.format_exc())
             embed = discord.Embed(

@@ -14,7 +14,6 @@ import aiomysql
 from bot.db.pool import db_pool
 from shared.logger import logger
 
-
 @dataclass
 class CleanupResult:
     """清理結果資料類別"""
@@ -33,7 +32,6 @@ class CleanupResult:
             return 0.0
         return (self.deleted_count / self.records_before) * 100
 
-
 @dataclass 
 class CleanupSummary:
     """清理摘要結果 - 用於視圖顯示"""
@@ -47,7 +45,6 @@ class CleanupSummary:
     def __post_init__(self):
         if self.details is None:
             self.details = []
-
 
 @dataclass
 class CleanupConfig:
@@ -71,7 +68,6 @@ class CleanupConfig:
     # 安全事件清理設定
     security_event_retention_days: int = 180
     audit_log_retention_days: int = 365
-
 
 class DataCleanupManager:
     """資料清理管理器"""
@@ -537,67 +533,7 @@ class DataCleanupManager:
                             result = await cursor.fetchone()
                             
                             if not result or result['count'] == 0:
-                                logger.debug(f"表 {table} 不存在，跳過清理")
-                                continue
-                            
-                            # 檢查可用的日期欄位
-                            date_column = await self._find_date_column(cursor, table)
-                            if not date_column:
-                                # 如果沒有日期欄位，嘗試清理所有資料（臨時表通常可以全部清理）
-                                logger.info(f"表 {table} 沒有日期欄位，執行全表清理")
                                 
-                                # 獲取總記錄數
-                                await cursor.execute(f"SELECT COUNT(*) as count FROM {table}")
-                                result = await cursor.fetchone()
-                                table_total = result['count'] if result else 0
-                                
-                                if table_total > 0:
-                                    # 清理全表
-                                    await cursor.execute(f"DELETE FROM {table}")
-                                    total_deleted += table_total
-                                    total_before += table_total
-                                    logger.info(f"🗑️ 全表清理 {table}: 刪除 {table_total} 條記錄")
-                                continue
-                            
-                            # 獲取總記錄數
-                            await cursor.execute(f"SELECT COUNT(*) as count FROM {table}")
-                            result = await cursor.fetchone()
-                            table_total = result['count'] if result else 0
-                            
-                            # 計算要刪除的記錄數
-                            count_query = f"SELECT COUNT(*) as count FROM {table} WHERE {date_column} < %s"
-                            await cursor.execute(count_query, (cutoff_date,))
-                            result = await cursor.fetchone()
-                            records_to_delete = result['count'] if result else 0
-                            
-                            # 執行清理
-                            if records_to_delete > 0:
-                                delete_query = f"DELETE FROM {table} WHERE {date_column} < %s"
-                                await cursor.execute(delete_query, (cutoff_date,))
-                                logger.info(f"🗑️ 按日期清理 {table}: 刪除 {records_to_delete} 條記錄")
-                                
-                            total_deleted += records_to_delete
-                            total_before += table_total
-                            
-                        except Exception as table_error:
-                            logger.warning(f"清理臨時表 {table} 時出現問題: {table_error}")
-                            continue
-                    
-                    await conn.commit()
-                    
-                    logger.info(f"🗂️ 臨時資料清理: 刪除 {total_deleted} 條記錄")
-                    
-                    return CleanupResult(
-                        table_name="temporary_data",
-                        records_before=total_before,
-                        records_after=total_before - total_deleted,
-                        deleted_count=total_deleted,
-                        cleanup_time=datetime.now(),
-                        success=True
-                    )
-                    
-        except Exception as e:
-            logger.error(f"❌ 清理臨時資料失敗: {e}")
             return CleanupResult(
                 table_name="temporary_data",
                 records_before=0,

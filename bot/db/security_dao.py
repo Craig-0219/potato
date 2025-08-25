@@ -10,7 +10,6 @@ from datetime import datetime, timezone, timedelta
 from bot.db.base_dao import BaseDAO
 from shared.logger import logger
 
-
 class SecurityDAO(BaseDAO):
     """安全審計數據存取物件"""
     

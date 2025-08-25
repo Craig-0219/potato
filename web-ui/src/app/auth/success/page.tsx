@@ -8,23 +8,56 @@ import { Spinner } from '@/components/ui/spinner'
 export default function AuthSuccessPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { loginWithToken } = useAuth()
+  const { loginWithToken, refreshAuthState } = useAuth()
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing')
   const [message, setMessage] = useState('處理認證結果...')
 
   useEffect(() => {
     const token = searchParams.get('token')
+    const isTemp = searchParams.get('temp') === 'true'
     
-    if (!token) {
+    // 如果是測試模式，從 localStorage 獲取 token
+    const finalToken = token || localStorage.getItem('auth_token')
+    
+    if (!finalToken) {
       setStatus('error')
       setMessage('未收到認證 token')
       return
+    }
+    
+    // 如果是測試模式，顯示相應訊息
+    if (isTemp) {
+      setMessage('正在驗證管理員權限...')
     }
 
     // 使用 token 登入
     const handleLogin = async () => {
       try {
-        const success = await loginWithToken(token)
+        // 如果是測試模式，需要手動觸發認證上下文更新
+        if (isTemp) {
+          setStatus('success')
+          setMessage('登入成功！正在跳轉到儀表板...')
+          
+          // 直接刷新認證狀態，不發送 HTTP 請求
+          console.log('🎯 測試模式：手動刷新認證狀態')
+          refreshAuthState()
+          
+          // 延遲跳轉給用戶看到成功訊息
+          setTimeout(() => {
+            console.log('🚀 測試模式：開始跳轉到儀表板')
+            window.location.href = '/dashboard' // 使用 window.location.href 避免 Next.js 路由問題
+          }, 2000)
+          return
+        }
+
+        if (!finalToken) {
+          setStatus('error')
+          setMessage('未收到認證 token')
+          return
+        }
+
+        // 只有真實的 OAuth token 才需要驗證
+        const success = await loginWithToken(finalToken)
         
         if (success) {
           setStatus('success')
@@ -32,7 +65,8 @@ export default function AuthSuccessPage() {
           
           // 延遲跳轉給用戶看到成功訊息
           setTimeout(() => {
-            router.push('/dashboard')
+            console.log('🚀 正常模式：開始跳轉到儀表板')
+            window.location.href = '/dashboard' // 使用 window.location.href 避免 Next.js 路由問題
           }, 2000)
         } else {
           setStatus('error')

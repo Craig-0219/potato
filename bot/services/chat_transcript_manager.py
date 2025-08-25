@@ -17,7 +17,6 @@ from bot.db.pool import db_pool
 from shared.logger import logger
 import aiomysql
 
-
 @dataclass
 class ChatMessage:
     """聊天訊息資料類別"""
@@ -31,7 +30,6 @@ class ChatMessage:
     edited_timestamp: Optional[datetime] = None
     reply_to: Optional[int] = None
 
-
 @dataclass
 class TranscriptConfig:
     """聊天記錄配置"""
@@ -40,7 +38,6 @@ class TranscriptConfig:
     format_preference: str = 'html'  # 'html', 'text', 'json'
     max_messages_per_ticket: int = 10000
     retention_days: int = 365
-
 
 class ChatTranscriptManager:
     """聊天記錄管理器"""

@@ -12,7 +12,6 @@ from shared.logger import logger
 from bot.services.chat_transcript_manager import ChatTranscriptManager
 from bot.services.realtime_sync_manager import realtime_sync, SyncEvent, SyncEventType
 
-
 class TicketManager:
     """票券管理服務"""
     

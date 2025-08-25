@@ -1,0 +1,94 @@
+# .pre-commit-config.yaml
+# 代碼品質預提交檢查配置
+
+repos:
+  # Python 代碼格式化
+  - repo: https://github.com/psf/black
+    rev: 24.8.0
+    hooks:
+      - id: black
+        language_version: python3
+        args: [--line-length=100]
+        files: \.py$
+
+  # Python import 排序
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: [--profile, black, --line-length, "100"]
+        files: \.py$
+
+  # Python 風格檢查
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.1.1
+    hooks:
+      - id: flake8
+        args: [--max-line-length=100, --extend-ignore=E203,W503,E501]
+        files: \.py$
+
+  # Python 靜態類型檢查
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        additional_dependencies: [types-requests]
+        args: [--ignore-missing-imports, --no-strict-optional]
+        files: \.py$
+
+  # 安全性檢查
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.9
+    hooks:
+      - id: bandit
+        args: [-r, ., -f, json, -o, bandit-report.json]
+        files: \.py$
+
+  # 通用檔案檢查
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: check-merge-conflict
+
+  # Python 文檔字符串檢查
+  - repo: https://github.com/pycqa/pydocstyle
+    rev: 6.3.0
+    hooks:
+      - id: pydocstyle
+        args: [--convention=google]
+        files: \.py$
+
+  # 檢查敏感資訊
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: [--baseline, .secrets.baseline]
+        exclude: \.lock$|package-lock\.json$
+
+# CI 設置：設定最小 Python 版本
+default_language_version:
+  python: python3.10
+
+# 排除檔案和目錄
+exclude: |
+  (?x)^(
+      \.git/.*|
+      \.vscode/.*|
+      \.pytest_cache/.*|
+      __pycache__/.*|
+      node_modules/.*|
+      \.env.*|
+      archive/.*|
+      backups/.*|
+      transcripts/.*|
+      .*\.log$|
+      .*\.md$|
+      migrations/.*\.sql$
+  )$

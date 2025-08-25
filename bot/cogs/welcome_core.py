@@ -13,7 +13,6 @@ from shared.logger import logger
 from bot.db.welcome_dao import WelcomeDAO
 from bot.services.welcome_manager import WelcomeManager
 
-
 class WelcomeCore(commands.Cog):
     """歡迎系統核心指令"""
     
@@ -818,7 +817,6 @@ class WelcomeCore(commands.Cog):
         except Exception as e:
             logger.error(f"查看歡迎統計錯誤: {e}")
             await ctx.send("❌ 查看統計時發生錯誤")
-
 
 async def setup(bot):
     """載入擴展"""

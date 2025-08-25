@@ -265,14 +265,14 @@ export function BotConnectionIndicator() {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <div className={`w-2 h-2 rounded-full ${getIndicatorColor()}`} />
-      <span className="text-sm text-gray-600 dark:text-gray-400">
-        Bot {isConnected ? '已連線' : '未連線'}
+    <div className="flex items-center gap-1 min-w-0 max-w-32">
+      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${getIndicatorColor()}`} />
+      <span className="text-xs text-gray-600 dark:text-gray-400 truncate">
+        Bot {isConnected ? '線上' : '離線'}
       </span>
       {isConnected && status.latency > 0 && (
-        <span className="text-xs text-gray-500">
-          ({status.latency}ms)
+        <span className="text-xs text-gray-500 flex-shrink-0">
+          {status.latency}ms
         </span>
       )}
     </div>

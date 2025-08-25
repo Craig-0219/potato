@@ -18,7 +18,6 @@ from bot.services.data_export_manager import DataExportManager, ExportRequest
 from bot.db.database_manager import get_database_manager
 from shared.logger import logger
 
-
 class TaskFrequency(Enum):
     """任務頻率"""
     DAILY = "daily"
@@ -27,7 +26,6 @@ class TaskFrequency(Enum):
     HOURLY = "hourly"
     CUSTOM = "custom"
 
-
 class TaskStatus(Enum):
     """任務狀態"""
     PENDING = "pending"
@@ -35,7 +33,6 @@ class TaskStatus(Enum):
     COMPLETED = "completed"
     FAILED = "failed"
     SKIPPED = "skipped"
-
 
 @dataclass
 class MaintenanceTask:
@@ -54,7 +51,6 @@ class MaintenanceTask:
     timeout_seconds: int = 3600
     config: Optional[Dict[str, Any]] = None
 
-
 @dataclass
 class TaskExecution:
     """任務執行記錄"""
@@ -66,7 +62,6 @@ class TaskExecution:
     result: Optional[Dict[str, Any]]
     error_message: Optional[str]
     duration_seconds: float = 0.0
-
 
 class MaintenanceScheduler:
     """系統維護排程器"""

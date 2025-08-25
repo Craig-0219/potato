@@ -16,7 +16,6 @@ from bot.utils.embed_builder import EmbedBuilder
 from bot.services.ai_assistant import ai_assistant, AIProvider, AITaskType, AIRequest
 from shared.logger import logger
 
-
 class AIModelSelector(discord.ui.Select):
     """AI 模型選擇器"""
     
@@ -92,7 +91,6 @@ class AIModelSelector(discord.ui.Select):
             logger.error(f"AI 模型選擇錯誤: {e}")
             embed = EmbedBuilder.create_error_embed("❌ 選擇失敗", "模型選擇出現錯誤")
             await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 class AITaskSelector(discord.ui.Select):
     """AI 任務類型選擇器"""
@@ -181,7 +179,6 @@ class AITaskSelector(discord.ui.Select):
             logger.error(f"AI 任務選擇錯誤: {e}")
             embed = EmbedBuilder.create_error_embed("❌ 選擇失敗", "任務類型選擇出現錯誤")
             await interaction.response.send_message(embed=embed, ephemeral=True)
-
 
 class AIAssistantControlView(discord.ui.View):
     """AI 助手控制面板視圖"""
@@ -287,7 +284,6 @@ class AIAssistantControlView(discord.ui.View):
             embed = EmbedBuilder.create_error_embed("❌ 對話錯誤", "無法開始 AI 對話")
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
-
 class AIModelSettingsView(discord.ui.View):
     """AI 模型設定視圖"""
     
@@ -330,7 +326,6 @@ class AIModelSettingsView(discord.ui.View):
         )
         
         await interaction.response.edit_message(embed=embed, view=self)
-
 
 class AIChatModal(discord.ui.Modal, title='🤖 AI 助手對話'):
     """AI 對話輸入模態框"""
@@ -421,7 +416,6 @@ class AIChatModal(discord.ui.Modal, title='🤖 AI 助手對話'):
                 await interaction.followup.send(embed=embed, ephemeral=True)
             except:
                 pass
-
 
 class AIMainMenuView(discord.ui.View):
     """AI 主選單視圖"""

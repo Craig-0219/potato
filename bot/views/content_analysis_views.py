@@ -19,7 +19,6 @@ from bot.services.content_analyzer import (
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 
-
 class ContentAnalysisMainView(discord.ui.View):
     """內容分析主選單視圖"""
     
@@ -196,7 +195,6 @@ class ContentAnalysisMainView(discord.ui.View):
             logger.error(f"❌ 使用說明錯誤: {e}")
             await interaction.response.send_message("❌ 顯示使用說明時發生錯誤。", ephemeral=True)
 
-
 class SentimentAnalysisModal(discord.ui.Modal):
     """情感分析輸入模態框"""
     
@@ -310,7 +308,6 @@ class SentimentAnalysisModal(discord.ui.Modal):
         except Exception as e:
             logger.error(f"❌ 情感分析錯誤: {e}")
             await interaction.followup.send("❌ 執行情感分析時發生錯誤。", ephemeral=True)
-
 
 class SafetyCheckModal(discord.ui.Modal):
     """安全檢測輸入模態框"""
@@ -445,7 +442,6 @@ class SafetyCheckModal(discord.ui.Modal):
         except Exception as e:
             logger.error(f"❌ 安全檢測錯誤: {e}")
             await interaction.followup.send("❌ 執行安全檢測時發生錯誤。", ephemeral=True)
-
 
 class LinkCheckModal(discord.ui.Modal):
     """連結檢測輸入模態框"""

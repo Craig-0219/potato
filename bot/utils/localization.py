@@ -14,7 +14,6 @@ from shared.logger import logger
 from bot.services.language_manager import LanguageManager
 from bot.db.language_dao import LanguageDAO
 
-
 class LocalizedCommand:
     """本地化指令裝飾器"""
     
@@ -93,7 +92,6 @@ class LocalizedCommand:
             return group_decorator(wrapper)
         return decorator
 
-
 class LocalizedResponse:
     """本地化回應工具"""
     
@@ -150,7 +148,6 @@ class LocalizedResponse:
             else:
                 await interaction.response.send_message(message, ephemeral=ephemeral)
 
-
 class CommandReloader:
     """指令重新載入器，用於語言更新後重新註冊指令"""
     
@@ -185,17 +182,14 @@ class CommandReloader:
         except Exception as e:
             logger.error(f"更新用戶指令錯誤: {e}")
 
-
 # 全域實例
 localized_command = LocalizedCommand()
 localized_response = LocalizedResponse()
-
 
 def get_user_text(interaction: discord.Interaction, key: str, **kwargs) -> str:
     """快速獲取用戶語言的文字"""
     user_lang = getattr(interaction, 'user_language', 'zh-TW')
     return localized_response.get_text(key, user_lang, **kwargs)
-
 
 def create_localized_embed(interaction: discord.Interaction, title_key: str, 
                           description_key: str = None, color: int = 0x3498db, **kwargs) -> discord.Embed:

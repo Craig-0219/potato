@@ -10,7 +10,6 @@ from bot.db.pool import db_pool
 from shared.logger import logger
 import json
 
-
 class DatabaseManager:
     """資料庫管理器 - 負責資料表初始化和遷移"""
     
@@ -414,235 +413,7 @@ class DatabaseManager:
                 for table_name, sql in tables.items():
                     try:
                         await cursor.execute(sql)
-                        logger.debug(f"✅ 創建表格：{table_name}")
-                    except Exception as e:
-                        logger.error(f"❌ 創建表格 {table_name} 失敗：{e}")
-                        raise
-                
-                await conn.commit()
-                logger.info(f"✅ {system_name}表格創建完成")
-    
-    async def check_table_exists(self, table_name: str) -> bool:
-        """檢查表格是否存在"""
-        async with self.db.connection() as conn:
-            async with conn.cursor() as cursor:
-                await cursor.execute("""
-                    SELECT COUNT(*) FROM information_schema.tables 
-                    WHERE table_schema = DATABASE() AND table_name = %s
-                """, (table_name,))
-                result = await cursor.fetchone()
-                return result[0] > 0
-    
-    async def get_table_info(self, table_name: str) -> Dict:
-        """取得表格資訊"""
-        async with self.db.connection() as conn:
-            async with conn.cursor() as cursor:
-                # 檢查表格是否存在
-                exists = await self.check_table_exists(table_name)
-                if not exists:
-                    return {"exists": False}
-                
-                # 取得行數
-                await cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
-                row_count = (await cursor.fetchone())[0]
-                
-                # 取得欄位資訊
-                await cursor.execute(f"DESCRIBE {table_name}")
-                columns = await cursor.fetchall()
-                
-                return {
-                    "exists": True,
-                    "row_count": row_count,
-                    "columns": len(columns),
-                    "column_details": columns
-                }
-    
-    async def _get_database_version(self) -> str:
-        """取得資料庫版本"""
-        try:
-            async with self.db.connection() as conn:
-                async with conn.cursor() as cursor:
-                    await cursor.execute("SELECT version FROM database_version WHERE id = 1")
-                    result = await cursor.fetchone()
-                    return result[0] if result else None
-        except:
-            return None
-    
-    async def _update_database_version(self, version: str):
-        """更新資料庫版本"""
-        async with self.db.connection() as conn:
-            async with conn.cursor() as cursor:
-                await cursor.execute("""
-                    INSERT INTO database_version (id, version) VALUES (1, %s)
-                    ON DUPLICATE KEY UPDATE version = %s, updated_at = NOW()
-                """, (version, version))
-                await conn.commit()
-    
-    async def _drop_all_tables(self):
-        """刪除所有表格（謹慎使用）"""
-        tables_to_drop = [
-            'vote_responses', 'vote_options', 'votes',
-            'ticket_views', 'ticket_statistics_cache', 'ticket_logs', 
-            'tickets', 'ticket_settings', 'database_version'
-        ]
-        
-        async with self.db.connection() as conn:
-            async with conn.cursor() as cursor:
-                # 暫時禁用外鍵檢查
-                await cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
-                
-                for table in tables_to_drop:
-                    try:
-                        await cursor.execute(f"DROP TABLE IF EXISTS {table}")
-                        logger.warning(f"🗑️ 已刪除表格：{table}")
-                    except Exception as e:
-                        logger.error(f"刪除表格 {table} 失敗：{e}")
-                
-                # 重新啟用外鍵檢查
-                await cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
-                await conn.commit()
-    
-    async def get_system_status(self) -> Dict:
-        """取得系統狀態"""
-        status = {
-            "database_version": await self._get_database_version(),
-            "tables": {}
-        }
-        
-        # 檢查主要表格
-        important_tables = ['tickets', 'ticket_settings', 'votes', 'vote_options', 'vote_responses']
-        
-        for table in important_tables:
-            status["tables"][table] = await self.get_table_info(table)
-        
-        return status
-    
-    async def get_database_status(self) -> Dict[str, Any]:
-        """取得資料庫狀態（為了兼容性）"""
-        try:
-            status = await self.get_system_status()
-            return {
-                "healthy": True,
-                "version": status.get("database_version"),
-                "tables": {k: v.get("row_count", 0) for k, v in status.get("tables", {}).items()}
-            }
-        except Exception as e:
-            logger.error(f"取得資料庫狀態失敗：{e}")
-            return {"healthy": False, "error": str(e)}
-    
-    async def cleanup_old_data(self, days: int = 90) -> Dict[str, int]:
-        """清理舊資料"""
-        cleanup_results = {}
-        
-        try:
-            async with self.db.connection() as conn:
-                async with conn.cursor() as cursor:
-                    # 清理舊的票券日誌
-                    await cursor.execute("""
-                        DELETE FROM ticket_logs 
-                        WHERE created_at < DATE_SUB(NOW(), INTERVAL %s DAY)
-                    """, (days,))
-                    cleanup_results["ticket_logs"] = cursor.rowcount
-                    
-                    # 清理舊的票券檢視記錄
-                    await cursor.execute("""
-                        DELETE FROM ticket_views 
-                        WHERE viewed_at < DATE_SUB(NOW(), INTERVAL %s DAY)
-                    """, (days,))
-                    cleanup_results["ticket_views"] = cursor.rowcount
-                    
-                    # 清理過期的統計快取
-                    await cursor.execute("""
-                        DELETE FROM ticket_statistics_cache 
-                        WHERE expires_at < NOW()
-                    """, ())
-                    cleanup_results["expired_cache"] = cursor.rowcount
-                    
-                    # 清理已結束的投票回應（超過指定天數）
-                    await cursor.execute("""
-                        DELETE vr FROM vote_responses vr
-                        JOIN votes v ON vr.vote_id = v.id
-                        WHERE v.end_time < DATE_SUB(NOW(), INTERVAL %s DAY)
-                    """, (days,))
-                    cleanup_results["old_vote_responses"] = cursor.rowcount
-                    
-                    await conn.commit()
-                    logger.info(f"資料清理完成：{cleanup_results}")
-                    
-        except Exception as e:
-            logger.error(f"資料清理失敗：{e}")
-            
-        return cleanup_results
-    
-    async def migrate_database(self, target_version: str = None) -> bool:
-        """資料庫遷移"""
-        try:
-            current_version = await self._get_database_version()
-            target = target_version or self.current_version
-            
-            logger.info(f"資料庫遷移：{current_version} -> {target}")
-            
-            # 目前只有一個版本，直接更新版本號
-            await self._update_database_version(target)
-            
-            logger.info("✅ 資料庫遷移完成")
-            return True
-            
-        except Exception as e:
-            logger.error(f"資料庫遷移失敗：{e}")
-            return False
-    
-    async def validate_database_integrity(self) -> Dict[str, Any]:
-        """驗證資料庫完整性"""
-        result = {
-            "valid": True,
-            "issues": [],
-            "checks": {}
-        }
-        
-        try:
-            async with self.db.connection() as conn:
-                async with conn.cursor() as cursor:
-                    # 檢查必要表格是否存在
-                    required_tables = ['tickets', 'ticket_settings', 'votes', 'vote_options', 'vote_responses']
-                    missing_tables = []
-                    
-                    for table in required_tables:
-                        exists = await self.check_table_exists(table)
-                        if not exists:
-                            missing_tables.append(table)
-                    
-                    if missing_tables:
-                        result["valid"] = False
-                        result["issues"].append(f"缺少表格：{', '.join(missing_tables)}")
-                    
-                    result["checks"]["required_tables"] = len(required_tables) - len(missing_tables)
-                    
-                    # 檢查外鍵約束
-                    await cursor.execute("""
-                        SELECT COUNT(*) FROM information_schema.TABLE_CONSTRAINTS 
-                        WHERE CONSTRAINT_TYPE = 'FOREIGN KEY' AND TABLE_SCHEMA = DATABASE()
-                    """)
-                    fk_count = (await cursor.fetchone())[0]
-                    result["checks"]["foreign_keys"] = fk_count
-                    
-                    # 檢查資料一致性（投票選項是否有對應的投票）
-                    await cursor.execute("""
-                        SELECT COUNT(*) FROM vote_options vo 
-                        LEFT JOIN votes v ON vo.vote_id = v.id 
-                        WHERE v.id IS NULL
-                    """)
-                    orphaned_options = (await cursor.fetchone())[0]
-                    
-                    if orphaned_options > 0:
-                        result["valid"] = False
-                        result["issues"].append(f"發現 {orphaned_options} 個孤立的投票選項")
-                    
-                    result["checks"]["orphaned_vote_options"] = orphaned_options
-                    
-        except Exception as e:
-            result["valid"] = False
-            result["issues"].append(f"驗證過程錯誤：{e}")
+                        
             logger.error(f"資料庫完整性驗證失敗：{e}")
         
         return result
@@ -743,88 +514,7 @@ class DatabaseManager:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     for table_name, create_sql in tables.items():
-                        logger.debug(f"創建表格：{table_name}")
-                        await cursor.execute(create_sql)
-                    
-                    await conn.commit()
-                    logger.info(f"✅ 標籤系統表格創建完成：{', '.join(tables.keys())}")
-                    
-        except Exception as e:
-            logger.error(f"❌ 標籤系統表格創建失敗：{e}")
-            raise
-
-    async def _create_welcome_tables(self):
-        """創建歡迎系統相關表格"""
-        logger.info("🎉 創建歡迎系統表格...")
-        
-        tables = {
-            'welcome_settings': """
-                CREATE TABLE IF NOT EXISTS welcome_settings (
-                    guild_id BIGINT PRIMARY KEY COMMENT '伺服器 ID',
-                    welcome_channel_id BIGINT NULL COMMENT '歡迎頻道 ID',
-                    leave_channel_id BIGINT NULL COMMENT '離開頻道 ID',
-                    welcome_message TEXT NULL COMMENT '歡迎訊息模板',
-                    leave_message TEXT NULL COMMENT '離開訊息模板',
-                    welcome_embed_enabled TINYINT(1) DEFAULT 1 COMMENT '是否使用嵌入式訊息',
-                    welcome_dm_enabled TINYINT(1) DEFAULT 0 COMMENT '是否發送私訊歡迎',
-                    welcome_dm_message TEXT NULL COMMENT '私訊歡迎訊息',
-                    auto_role_enabled TINYINT(1) DEFAULT 0 COMMENT '是否啟用自動身分組',
-                    auto_roles JSON NULL COMMENT '自動分配的身分組列表',
-                    welcome_image_url TEXT NULL COMMENT '歡迎圖片 URL',
-                    welcome_thumbnail_url TEXT NULL COMMENT '歡迎縮圖 URL',
-                    welcome_color INT DEFAULT 0x00ff00 COMMENT '嵌入訊息顏色',
-                    is_enabled TINYINT(1) DEFAULT 1 COMMENT '系統是否啟用',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '建立時間',
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
-                    
-                    INDEX idx_welcome_channel (welcome_channel_id),
-                    INDEX idx_leave_channel (leave_channel_id),
-                    INDEX idx_enabled (is_enabled)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            """,
-            
-            'welcome_logs': """
-                CREATE TABLE IF NOT EXISTS welcome_logs (
-                    id INT AUTO_INCREMENT PRIMARY KEY,
-                    guild_id BIGINT NOT NULL COMMENT '伺服器 ID',
-                    user_id BIGINT NOT NULL COMMENT '用戶 ID',
-                    username VARCHAR(100) NOT NULL COMMENT '用戶名稱',
-                    action_type ENUM('join', 'leave') NOT NULL COMMENT '動作類型',
-                    welcome_sent TINYINT(1) DEFAULT 0 COMMENT '是否已發送歡迎訊息',
-                    roles_assigned JSON NULL COMMENT '分配的身分組',
-                    dm_sent TINYINT(1) DEFAULT 0 COMMENT '是否已發送私訊',
-                    error_message TEXT NULL COMMENT '錯誤訊息',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '建立時間',
-                    
-                    INDEX idx_guild (guild_id),
-                    INDEX idx_user (user_id),
-                    INDEX idx_action (action_type),
-                    INDEX idx_created (created_at)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            """,
-            
-            'system_settings': """
-                CREATE TABLE IF NOT EXISTS system_settings (
-                    guild_id BIGINT PRIMARY KEY COMMENT '伺服器 ID',
-                    general_settings JSON NULL COMMENT '一般設定',
-                    channel_settings JSON NULL COMMENT '頻道設定',
-                    role_settings JSON NULL COMMENT '角色設定',
-                    notification_settings JSON NULL COMMENT '通知設定',
-                    feature_toggles JSON NULL COMMENT '功能開關',
-                    custom_settings JSON NULL COMMENT '自定義設定',
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '建立時間',
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
-                    
-                    INDEX idx_updated (updated_at)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            """
-        }
-        
-        try:
-            async with self.db.connection() as conn:
-                async with conn.cursor() as cursor:
-                    for table_name, create_sql in tables.items():
-                        logger.debug(f"創建表格：{table_name}")
+                        
                         await cursor.execute(create_sql)
                     
                     await conn.commit()
@@ -1500,7 +1190,6 @@ class DatabaseManager:
                 await conn.commit()
                 logger.info("✅ 跨平台經濟系統表格創建完成")
 
-
 # ===== 單例模式實現 =====
 
 _database_manager_instance = None
@@ -1515,7 +1204,6 @@ def get_database_manager() -> DatabaseManager:
         _database_manager_instance = DatabaseManager()
     return _database_manager_instance
 
-
 # ===== 便利函數 =====
 
 async def initialize_database_system():
@@ -1529,7 +1217,6 @@ async def initialize_database_system():
     except Exception as e:
         logger.error(f"❌ 資料庫系統初始化失敗：{e}")
         return False
-
 
 async def get_database_health() -> Dict[str, Any]:
     """取得資料庫健康狀態"""

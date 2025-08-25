@@ -19,7 +19,6 @@ from bot.db.workflow_dao import WorkflowDAO
 from bot.services.statistics_manager import StatisticsManager
 from shared.logger import logger
 
-
 class ChartType(Enum):
     """圖表類型"""
     LINE = "line"           # 折線圖
@@ -28,7 +27,6 @@ class ChartType(Enum):
     AREA = "area"          # 面積圖
     SCATTER = "scatter"    # 散點圖
     HEATMAP = "heatmap"    # 熱力圖
-
 
 class MetricType(Enum):
     """指標類型"""
@@ -41,7 +39,6 @@ class MetricType(Enum):
     USER_ENGAGEMENT = "user_engagement"      # 用戶參與度
     SLA_COMPLIANCE = "sla_compliance"        # SLA合規性
 
-
 @dataclass
 class ChartData:
     """圖表數據結構"""
@@ -50,7 +47,6 @@ class ChartData:
     labels: List[str]
     datasets: List[Dict[str, Any]]
     options: Dict[str, Any] = field(default_factory=dict)
-
 
 @dataclass
 class MetricSummary:
@@ -61,7 +57,6 @@ class MetricSummary:
     trend: str  # "up", "down", "stable"
     status: str  # "good", "warning", "critical"
 
-
 @dataclass
 class DashboardData:
     """儀表板數據"""
@@ -71,7 +66,6 @@ class DashboardData:
     insights: List[str]
     generated_at: datetime
     refresh_interval: int = 300  # 秒
-
 
 class DashboardManager:
     """高級分析儀表板管理器"""
@@ -1507,7 +1501,6 @@ class DashboardManager:
         except Exception as e:
             logger.error(f"生成性能洞察失敗: {e}")
             return ["❌ 無法生成性能建議，請檢查系統狀態"]
-
 
 # 全域儀表板管理器實例
 dashboard_manager = DashboardManager()

@@ -14,7 +14,6 @@ import aiomysql
 from bot.db.pool import db_pool
 from shared.logger import logger
 
-
 class BaseDAO(ABC):
     """DAO 基底抽象類別"""
     
@@ -453,7 +452,6 @@ class BaseDAO(ABC):
                 'initialized': self._initialized
             }
 
-
 # ===== DAO 工廠類別 =====
 
 class DAOFactory:
@@ -492,7 +490,6 @@ class DAOFactory:
         for dao_instance in cls._instances.values():
             dao_instance._clear_cache()
 
-
 # ===== 資料庫遷移基底類別 =====
 
 class BaseMigration(ABC):
@@ -525,7 +522,6 @@ class BaseMigration(ABC):
             logger.error(f"遷移 SQL 執行失敗：{e}")
             return False
 
-
 # ===== 錯誤處理裝飾器 =====
 
 def dao_error_handler(default_return=None):
@@ -539,7 +535,6 @@ def dao_error_handler(default_return=None):
                 return default_return
         return wrapper
     return decorator
-
 
 # ===== 效能監控裝飾器 =====
 

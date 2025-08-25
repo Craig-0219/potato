@@ -14,7 +14,6 @@ from bot.services.lottery_manager import LotteryManager
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 
-
 class LotteryStatsDashboardView(ui.View):
     """抽獎統計儀表板視圖"""
     
@@ -333,7 +332,6 @@ class LotteryStatsDashboardView(ui.View):
         except Exception as e:
             logger.error(f"生成詳細報告失敗: {e}")
             return {}
-
 
 class UserLotteryHistoryView(ui.View):
     """用戶抽獎歷史視圖"""

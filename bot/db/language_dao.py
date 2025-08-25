@@ -9,7 +9,6 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
 from shared.logger import logger
 
-
 class LanguageDAO:
     """語言偏好資料存取層"""
     
@@ -128,11 +127,7 @@ class LanguageDAO:
                     """, (user_id, language_code, auto_detected, confidence))
                     
                     await conn.commit()
-                    logger.debug(f"用戶 {user_id} 語言設定為: {language_code}")
-                    return True
                     
-        except Exception as e:
-            logger.error(f"設定用戶語言錯誤: {e}")
             return False
 
     async def get_user_language(self, user_id: int, guild_id: int = None) -> Optional[Dict[str, Any]]:
@@ -179,11 +174,7 @@ class LanguageDAO:
                     """, (guild_id, language_code))
                     
                     await conn.commit()
-                    logger.debug(f"伺服器 {guild_id} 語言設定為: {language_code}")
-                    return True
                     
-        except Exception as e:
-            logger.error(f"設定伺服器語言錯誤: {e}")
             return False
 
     async def get_guild_language(self, guild_id: int) -> Optional[Dict[str, Any]]:

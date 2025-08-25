@@ -13,7 +13,6 @@ from datetime import datetime, timezone
 
 from shared.logger import logger
 
-
 class AutomationView(discord.ui.View):
     """自動化規則主視圖"""
     
@@ -53,7 +52,6 @@ class AutomationView(discord.ui.View):
     async def refresh(self, interaction: discord.Interaction, button: discord.ui.Button):
         """刷新列表"""
         await interaction.response.send_message("請重新使用 `/automation_list` 指令獲取最新資料", ephemeral=True)
-
 
 class RuleSelectDropdown(discord.ui.Select):
     """規則選擇下拉選單"""
@@ -119,7 +117,6 @@ class RuleSelectDropdown(discord.ui.Select):
             logger.error(f"處理規則選擇失敗: {e}")
             await interaction.response.send_message("❌ 操作失敗", ephemeral=True)
 
-
 class RuleOperationsView(discord.ui.View):
     """規則操作視圖"""
     
@@ -166,7 +163,6 @@ class RuleOperationsView(discord.ui.View):
             f"請使用 `/automation_toggle {self.rule_id} disabled` 停用規則", 
             ephemeral=True
         )
-
 
 class RuleBuilderModal(discord.ui.Modal):
     """規則建構器模態框"""
@@ -297,7 +293,6 @@ class RuleBuilderModal(discord.ui.Modal):
             logger.error(f"創建規則失敗: {e}")
             await interaction.followup.send(f"❌ 創建規則失敗: {str(e)}", ephemeral=True)
 
-
 class RuleExecutionView(discord.ui.View):
     """規則執行監控視圖"""
     
@@ -380,7 +375,6 @@ class RuleExecutionView(discord.ui.View):
         """重新執行規則"""
         await interaction.response.send_message("❌ 重新執行功能尚未實現", ephemeral=True)
 
-
 class TriggerBuilderModal(discord.ui.Modal):
     """觸發器建構器模態框"""
     
@@ -462,7 +456,6 @@ class TriggerBuilderModal(discord.ui.Modal):
         except Exception as e:
             logger.error(f"設定觸發器失敗: {e}")
             await interaction.response.send_message(f"❌ 設定失敗: {str(e)}", ephemeral=True)
-
 
 class ActionBuilderModal(discord.ui.Modal):
     """動作建構器模態框"""

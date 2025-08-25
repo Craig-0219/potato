@@ -11,13 +11,11 @@ import aiomysql
 from bot.db.pool import db_pool
 from shared.logger import logger
 
-
 class StatisticsConfig:
     """統計配置"""
     DEFAULT_DAYS = 30
     MAX_DAYS = 365
     CACHE_DURATION = 300  # 5分鐘快取
-
 
 class StatisticsManager:
     """統計分析管理器 - 簡化版"""

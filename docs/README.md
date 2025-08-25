@@ -1,7 +1,7 @@
 # 📚 Potato Bot 文檔中心
 
 **版本**: v3.0.0  
-**最後更新**: 2025-08-15
+**最後更新**: 2025-08-24
 
 歡迎來到 Potato Bot 的完整文檔中心。這裡包含了所有您需要的開發、部署和使用指南。
 
@@ -10,25 +10,21 @@
 ### 🎯 用戶指南 (`user-guides/`)
 > 針對終端用戶和管理員的使用說明
 
-- **快速入門** - 快速開始使用 Potato Bot
-- **用戶手冊** - 完整的功能使用說明
-- **指令參考** - 所有可用指令的詳細說明
+- **[快速入門](user-guides/QUICKSTART_v2.2.0.md)** - 快速開始使用 Potato Bot
+- **[用戶手冊](user-guides/USER_MANUAL.md)** - 完整的功能使用說明
+- **[指令參考](user-guides/COMMANDS.md)** - 所有可用指令的詳細說明
 
 ### 🛠️ 開發文檔 (`development/`)
 > 針對開發人員的技術文檔
 
-- **[Phase 3 進度報告](development/PHASE3_PROGRESS_REPORT.md)** - 最新開發進度
-- **[開發路線圖](development/DEVELOPMENT_ROADMAP_PHASE3.md)** - Phase 3 開發規劃
-- **[重組計劃](development/REORGANIZATION_PLAN_PHASE2.md)** - Phase 2 重組計劃
 - **[變更日誌](development/CHANGELOG.md)** - 版本更新記錄
-- **[重組變更日誌](development/REORGANIZATION_CHANGELOG.md)** - 重組過程記錄
 
 ### ⚙️ 系統文檔 (`system/`)
 > 系統架構和技術實現文檔
 
-- **[投票模板系統](system/VOTE_TEMPLATE_SYSTEM.md)** - 投票模板功能文檔
+- **[管理員權限設置](system/ADMIN_PERMISSION_SETUP.md)** - 權限配置指南
 - **[實時投票統計系統](system/REALTIME_VOTING_SYSTEM.md)** - WebSocket 實時統計文檔
-- **[清理報告](system/CLEANUP_REPORT.md)** - 系統清理和優化報告
+- **[投票模板系統](system/VOTE_TEMPLATE_SYSTEM.md)** - 投票模板功能文檔
 
 ### 📦 依賴管理 (`requirements/`)
 > 項目依賴和環境配置
@@ -36,6 +32,19 @@
 - **[統一依賴清單](requirements/requirements-combined.txt)** - 完整依賴說明
 - **[生產環境依賴](requirements/requirements-production.txt)** - 生產環境精確版本
 - **[開發環境依賴](requirements/requirements-development.txt)** - 開發工具和測試框架
+
+### 🌐 整合計畫
+> 跨平台整合和擴展計畫
+
+- **[跨平台經濟系統](CROSS_PLATFORM_ECONOMY_PLAN.md)** - 經濟系統整合規劃
+- **[Zientis 整合計畫](ZIENTIS_INTEGRATION_PLAN.md)** - Minecraft 伺服器整合
+- **[Minecraft 插件架構](MINECRAFT_PLUGIN_ARCHITECTURE.md)** - 插件開發架構
+
+### 🗂️ 歷史文檔
+> 已完成或封存的文檔
+
+- **[階段計畫封存](phase-archive/)** - 各階段開發計畫歷史
+- **[項目完成文檔](archived/)** - 完成項目的詳細文檔
 
 ## 🚀 快速導航
 

@@ -139,25 +139,7 @@ class CachedTicketDAO:
         # 嘗試從快取獲取
         cached_result = await self.cache.get(cache_key)
         if cached_result is not None:
-            logger.debug(f"🎯 用戶票券快取命中: {user_id}")
-            return cached_result
-        
-        try:
-            # 從資料庫查詢
-            tickets = await self.ticket_dao.get_user_tickets(user_id, guild_id, status, limit)
             
-            # 快取結果
-            await self.cache.set(cache_key, tickets, self.LIST_TTL)
-            
-            # 同時快取個別票券
-            for ticket in tickets:
-                ticket_cache_key = f"ticket:{ticket['id']}"
-                await self.cache.set(ticket_cache_key, ticket, self.DETAIL_TTL)
-            
-            return tickets
-            
-        except Exception as e:
-            logger.error(f"❌ 獲取用戶票券失敗 {user_id}: {e}")
             return []
 
     @cached("guild_tickets", ttl=180)
@@ -244,11 +226,6 @@ class CachedTicketDAO:
             
             for pattern in patterns:
                 await self.cache.clear_all(pattern)
-                
-            logger.debug(f"🧹 清理相關快取完成: {guild_id}")
-            
-        except Exception as e:
-            logger.error(f"❌ 快取失效操作失敗: {e}")
 
     async def _preload_hot_data(self):
         """預載熱點數據"""
@@ -278,7 +255,6 @@ class CachedTicketDAO:
                 )
             
         except Exception as e:
-            logger.debug(f"預載相關數據失敗: {e}")
 
     async def _record_access(self, cache_key: str):
         """記錄存取，用於熱點分析"""
@@ -288,7 +264,6 @@ class CachedTicketDAO:
             await self.cache.set(access_key, current_count + 1, 3600)  # 1小時統計
             
         except Exception as e:
-            logger.debug(f"記錄存取失敗: {e}")
 
     # ========== 批量操作優化 ==========
 
@@ -326,47 +301,7 @@ class CachedTicketDAO:
                 for ticket_id in cache_misses:
                     if ticket_id not in results:
                         results[ticket_id] = None
-        
-        logger.debug(f"📦 批量查詢完成: 快取命中 {len(ticket_ids) - len(cache_misses)}/{len(ticket_ids)}")
-        return results
 
-    async def update_tickets_batch(self, updates: Dict[int, Dict]) -> Dict[int, bool]:
-        """批量更新票券（快取同步）"""
-        results = {}
-        
-        for ticket_id, update_data in updates.items():
-            success = await self.update_ticket(ticket_id, update_data)
-            results[ticket_id] = success
-        
-        return results
-
-    # ========== 快取統計和監控 ==========
-
-    async def get_cache_health(self) -> Dict[str, Any]:
-        """獲取快取健康狀態"""
-        try:
-            cache_stats = await self.cache.get_statistics()
-            
-            # 評估健康狀態
-            hit_rate = float(cache_stats['requests']['hit_rate'].rstrip('%')) / 100
-            
-            health_status = "healthy"
-            if hit_rate < 0.5:
-                health_status = "warning"
-            elif hit_rate < 0.3:
-                health_status = "critical"
-            
-            return {
-                "status": health_status,
-                "hit_rate": cache_stats['requests']['hit_rate'],
-                "redis_connected": cache_stats['l2_redis']['connected'],
-                "l1_usage": cache_stats['l1_memory']['usage'],
-                "total_requests": cache_stats['requests']['total'],
-                "recommendations": self._get_cache_recommendations(cache_stats)
-            }
-            
-        except Exception as e:
-            logger.error(f"❌ 獲取快取健康狀態失敗: {e}")
             return {"status": "error", "error": str(e)}
 
     def _get_cache_recommendations(self, stats: Dict) -> List[str]:
