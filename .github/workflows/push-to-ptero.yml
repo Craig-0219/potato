@@ -51,13 +51,18 @@ jobs:
           git init
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
+          
+          # 設定遠端
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          
           git add .
 
           # 檢查是否有變更需要提交
           if ! git diff --cached --quiet; then
             git commit -m "deploy(from ${GITHUB_REF_NAME} - ${GITHUB_SHA:0:7})"
-            # 用 GITHUB_TOKEN 驗證推送到同一個 repo 的 ptero 分支
-            git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:ptero
+            
+            # 強制推送到 ptero 分支（部署分支應該完全替換）
+            git push origin HEAD:ptero --force
           else
             echo "No changes to deploy"
           fi
