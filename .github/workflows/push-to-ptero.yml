@@ -1,8 +1,11 @@
 name: push-to-ptero
 on:
   push:
+    branches:
+      - main   # 只在推送到 main 分支時觸發部署
     branches-ignore:
       - ptero   # 避免 workflow 自己觸發自己
+      - dev     # 開發分支不觸發部署
 
 permissions:
   contents: write   # 允許修改 repo 分支
@@ -16,9 +19,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Copy only bot/ into deploy dir
+      - name: Copy only bot/ and dependencies into deploy dir
         run: |
           rm -rf /tmp/ptero && mkdir -p /tmp/ptero
+          # 複製主要代碼目錄
           rsync -a --prune-empty-dirs \
             --include='bot/***' \
             --include='shared/***' \
@@ -26,18 +30,38 @@ jobs:
             --exclude='*' \
             ./ /tmp/ptero/
 
-      - name: Commit & push to ptero
+          # 複製依賴文件
+          mkdir -p /tmp/ptero/docs/requirements
+          cp requirements.txt /tmp/ptero/
+          cp docs/requirements/requirements-production.txt /tmp/ptero/docs/requirements/
+
+          # 複製快速啟動工具
+          cp start.py /tmp/ptero/ 2>/dev/null || echo "start.py not found, skipping"
+          cp start.bat /tmp/ptero/ 2>/dev/null || echo "start.bat not found, skipping"
+          cp start.sh /tmp/ptero/ 2>/dev/null || echo "start.sh not found, skipping"
+          cp QUICK_START.md /tmp/ptero/ 2>/dev/null || echo "QUICK_START.md not found, skipping"
+
+          # 設置執行權限
+          chmod +x /tmp/ptero/start.py 2>/dev/null || echo "start.py not found for chmod"
+          chmod +x /tmp/ptero/start.sh 2>/dev/null || echo "start.sh not found for chmod"
+
+          # 複製其他必要文件
+          cp .env.example /tmp/ptero/ 2>/dev/null || echo ".env.example not found, skipping"
+
+      - name: Setup git and commit
         run: |
           cd /tmp/ptero
           git init
           git config user.name "${{ github.actor }}"
           git config user.email "${{ github.actor }}@users.noreply.github.com"
           git add .
-          if [ "$MODE" = "subset" ]; then
-            git commit -m "deploy(subset from ${GITHUB_REF_NAME})"
+
+          # 檢查是否有變更需要提交
+          if ! git diff --cached --quiet; then
+            git commit -m "deploy(from ${GITHUB_REF_NAME} - ${GITHUB_SHA:0:7})"
+            # 用 GITHUB_TOKEN 驗證推送到同一個 repo 的 ptero 分支
+            git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:ptero
           else
-            git commit -m "deploy(full from main)"
+            echo "No changes to deploy"
           fi
-          # 用 GITHUB_TOKEN 驗證推送到同一個 repo 的 ptero 分支
-          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:ptero
 
