@@ -23,6 +23,9 @@ jobs:
             --include='bot/***' \
             --include='shared/***' \
             --include='transcripts/***' \
+            --include='potato/' \
+            --include='potato/docs/' \
+            --include='potato/docs/requirements/' \
             --include='potato/docs/requirements/requirements-production.txt' \
             --exclude='*' \
             ./ /tmp/ptero/
