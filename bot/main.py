@@ -140,8 +140,11 @@ class PotatoBot(commands.Bot):
             # 6. 同步命令樹
             await self._sync_commands()
 
-            # 7. 啟動整合的 API Server
-            await self._start_integrated_api_server()
+            # 7. 啟動整合的 API Server（如果需要的話）
+            if os.getenv("ENABLE_API_SERVER", "true").lower() == "true":
+                await self._start_integrated_api_server()
+            else:
+                logger.info("⚠️ API 伺服器已停用（ENABLE_API_SERVER=false）")
 
             logger.info("✅ Bot 設定完成")
 
@@ -361,26 +364,33 @@ class PotatoBot(commands.Bot):
 
     async def close(self):
         """關閉 Bot 和整合服務"""
-        logger.info("🔄 正在關閉 Bot 和整合服務...")
-
-        # 關閉 API 伺服器
-        if self.api_server:
-            try:
-                self.api_server.should_exit = True
-                logger.info("✅ API 伺服器已關閉")
-            except Exception as e:
-                logger.error(f"❌ 關閉 API 伺服器時發生錯誤：{e}")
-
-        # 關閉資料庫連接
         try:
-            await close_database()
-            logger.info("✅ 資料庫連接已關閉")
-        except Exception as e:
-            logger.error(f"❌ 關閉資料庫時發生錯誤：{e}")
+            logger.info("🔄 正在關閉 Bot 和整合服務...")
 
-        # 關閉 Discord Bot
-        await super().close()
-        logger.info("✅ Discord Bot 已關閉")
+            # 關閉相關服務
+            if hasattr(self, "backup_service") and self.backup_service:
+                await self.backup_service.stop()
+
+            # 關閉 API 伺服器
+            if hasattr(self, "api_server") and self.api_server:
+                try:
+                    self.api_server.should_exit = True
+                    logger.info("✅ API 伺服器已關閉")
+                except Exception as e:
+                    logger.error(f"❌ 關閉 API 伺服器時發生錯誤：{e}")
+
+            # 關閉資料庫連接
+            try:
+                await close_database()
+                logger.info("✅ 資料庫連接已關閉")
+            except Exception as e:
+                logger.error(f"❌ 關閉資料庫時發生錯誤：{e}")
+
+            # 關閉 Discord Bot
+            await super().close()
+            logger.info("✅ Discord Bot 已關閉")
+        except Exception as e:
+            logger.error(f"❌ 關閉 Bot 時發生錯誤: {e}")
 
     async def on_ready(self):
         """Bot 準備完成"""
@@ -459,20 +469,6 @@ class PotatoBot(commands.Bot):
         except Exception as e:
             logger.error(f"初始化現有伺服器失敗: {e}")
 
-    async def close(self):
-        """關閉 Bot"""
-        try:
-            logger.info("🔄 開始關閉 Bot...")
-
-            # 關閉相關服務
-            if hasattr(self, "backup_service") and self.backup_service:
-                await self.backup_service.stop()
-
-            # 調用父類關閉方法
-            await super().close()
-            logger.info("✅ Bot已關閉")
-        except Exception as e:
-            logger.error(f"關閉 Bot 時發生錯誤: {e}")
 
     def get_uptime(self) -> str:
         """取得運行時間"""
