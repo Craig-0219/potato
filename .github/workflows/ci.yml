@@ -47,7 +47,7 @@ jobs:
         bandit -r bot/ shared/ -f json -o bandit-report.json
     
     - name: Upload security report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: bandit-security-report
@@ -189,7 +189,7 @@ jobs:
         radon mi bot/ -s >> tech-debt-report.md
     
     - name: Upload technical debt report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: technical-debt-report
         path: tech-debt-report.md

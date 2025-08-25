@@ -11,7 +11,7 @@ version = "3.1.0"
 description = "Discord 多功能管理機器人"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "Potato Bot Team", email = "support@potato-bot.com"}
 ]
@@ -19,7 +19,6 @@ keywords = ["discord", "bot", "ticket", "vote", "ai"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -74,6 +73,9 @@ Homepage = "https://github.com/Craig-0219/potato"
 Documentation = "https://potato-bot.readthedocs.io"
 Repository = "https://github.com/Craig-0219/potato"
 "Bug Tracker" = "https://github.com/Craig-0219/potato/issues"
+
+[tool.setuptools]
+packages = ["bot", "shared"]
 
 [tool.black]
 line-length = 100
