@@ -51,6 +51,6 @@ jobs:
           else
             git commit -m "deploy(full from main)"
           fi
-          git branch -M ptero
-          git remote add origin "https://github.com/${{ github.repository }}.git"
-          git push -f origin ptero
+          # 用 GITHUB_TOKEN 驗證推送到同一個 repo 的 ptero 分支
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:ptero
+
