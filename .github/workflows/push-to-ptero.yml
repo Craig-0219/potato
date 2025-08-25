@@ -3,9 +3,6 @@ on:
   push:
     branches:
       - main   # 只在推送到 main 分支時觸發部署
-    branches-ignore:
-      - ptero   # 避免 workflow 自己觸發自己
-      - dev     # 開發分支不觸發部署
 
 permissions:
   contents: write   # 允許修改 repo 分支
