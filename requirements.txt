@@ -7,7 +7,13 @@
 # 開發環境使用:
 # -r docs/requirements/requirements-development.txt
 
+# 託管環境常見缺失依賴 (直接列出以確保安裝)
+aiofiles==23.2.0
+python-jose[cryptography]==3.3.0
+websockets==12.0
+
 # 注意: 
 # - 生產環境建議使用 requirements-production.txt (精確版本)
 # - 開發環境建議使用 requirements-development.txt (包含開發工具)
 # - 完整依賴說明請參考 docs/requirements/requirements-combined.txt
+# - 託管環境如果依賴安裝失敗，請執行: bash install-deps.sh
