@@ -29,7 +29,7 @@ jobs:
       - name: Copy core application files
         run: |
           echo "📦 複製核心應用程式檔案..."
-          
+
           # 複製主要代碼目錄
           rsync -a --prune-empty-dirs \
             --include='bot/***' \
@@ -47,7 +47,7 @@ jobs:
       - name: Copy dependencies and configuration
         run: |
           echo "⚙️ 複製依賴和配置檔案..."
-          
+
           # 複製依賴文件
           mkdir -p /tmp/ptero/docs/requirements
           cp requirements.txt /tmp/ptero/
@@ -55,29 +55,29 @@ jobs:
 
           # 複製環境配置範例
           cp .env.example /tmp/ptero/ 2>/dev/null || echo ".env.example not found, creating basic one"
-          
+
           # 如果沒有 .env.example，創建一個基本的
           if [ ! -f /tmp/ptero/.env.example ]; then
             cat > /tmp/ptero/.env.example << 'EOF'
           # Discord Bot Token
           DISCORD_TOKEN=your_discord_bot_token_here
-          
+
           # Database Configuration
           DB_HOST=localhost
           DB_PORT=3306
           DB_USER=your_db_user
           DB_PASSWORD=your_db_password
           DB_NAME=potato_bot
-          
+
           # Redis Configuration (Optional)
           REDIS_URL=redis://localhost:6379
-          
+
           # API Server Configuration
           ENABLE_API_SERVER=true
           API_EXTERNAL_ACCESS=true
           LOCAL_API_HOST=0.0.0.0
           LOCAL_API_PORT=8080
-          
+
           # Basic Settings
           DEBUG=false
           LOG_LEVEL=INFO
@@ -89,10 +89,10 @@ jobs:
       - name: Copy startup tools
         run: |
           echo "🚀 複製啟動工具..."
-          
+
           # 複製快速啟動工具
           cp start.py /tmp/ptero/ 2>/dev/null || echo "start.py not found, skipping"
-          cp start.bat /tmp/ptero/ 2>/dev/null || echo "start.bat not found, skipping"  
+          cp start.bat /tmp/ptero/ 2>/dev/null || echo "start.bat not found, skipping"
           cp start.sh /tmp/ptero/ 2>/dev/null || echo "start.sh not found, skipping"
           cp QUICK_START.md /tmp/ptero/ 2>/dev/null || echo "QUICK_START.md not found, skipping"
 
@@ -106,18 +106,18 @@ jobs:
         run: |
           echo "📋 創建部署摘要..."
           cd /tmp/ptero
-          
+
           cat > DEPLOYMENT_INFO.md << 'EOF'
           # Ptero 部署分支
-          
+
           這是一個自動生成的乾淨部署分支，僅包含運行所需的檔案。
-          
+
           ## 部署資訊
           - **源分支**: main
           - **部署時間**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
           - **提交雜湊**: ${{ github.sha }}
           - **GitHub Actor**: ${{ github.actor }}
-          
+
           ## 包含的功能
           - ✅ Discord Bot 核心功能
           - ✅ 票券系統
@@ -126,12 +126,12 @@ jobs:
           - ✅ 離線模式支援
           - ✅ Redis 整合
           - ✅ 本地快取後備
-          
+
           ## 快速開始
           1. 複製 `.env.example` 到 `.env`
           2. 填寫必要的環境變數
           3. 運行 `python3 bot/main.py` 或使用提供的啟動工具
-          
+
           ## 注意事項
           - 這個分支會被自動覆寫，請勿直接修改
           - 所有變更應該推送到 main 分支
@@ -142,38 +142,37 @@ jobs:
         run: |
           echo "🚀 設置 Git 並部署..."
           cd /tmp/ptero
-          
+
           git init
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          
+
           # 設定遠端
           git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
-          
+
           # 添加所有檔案
           git add .
 
           # 檢查是否有變更需要提交
           if ! git diff --cached --quiet; then
             echo "📝 發現變更，準備部署..."
-            
+
             # 獲取提交訊息
             COMMIT_MSG="🚀 自動部署 (main → ptero)
-            
-            📅 部署時間: $(date -u +"%Y-%m-%d %H:%M:%S UTC")  
+
+            📅 部署時間: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
             🔗 源提交: ${{ github.sha }}
             👤 觸發者: ${{ github.actor }}
-            
+
             🎯 這是一個從 main 分支自動生成的乾淨部署版本"
-            
+
             git commit -m "$COMMIT_MSG"
-            
+
             echo "⬆️ 推送到 ptero 分支..."
             # 強制推送到 ptero 分支（部署分支應該完全替換）
             git push origin HEAD:ptero --force
-            
+
             echo "✅ 部署完成！"
           else
             echo "ℹ️ 沒有變更需要部署"
           fi
-
