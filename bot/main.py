@@ -14,8 +14,28 @@ import signal
 import sys
 import time
 
-# 添加專案根目錄到 Python 路徑
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# 添加專案根目錄到 Python 路徑 - 多種路徑支援
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+
+# 確保專案根目錄在 Python 路徑中
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+# 託管環境路徑修復 - 檢查常見的託管目錄結構
+possible_roots = [
+    project_root,
+    os.path.dirname(project_root),  # 如果在子目錄中
+    "/home/container",              # 常見託管環境路徑
+    os.getcwd(),                    # 當前工作目錄
+]
+
+for root_path in possible_roots:
+    shared_path = os.path.join(root_path, 'shared')
+    if os.path.exists(shared_path) and root_path not in sys.path:
+        sys.path.insert(0, root_path)
+        print(f"🔧 添加路徑: {root_path}")
+        break
 
 import discord
 from discord.ext import commands
@@ -42,9 +62,10 @@ except ImportError:
 
 # 離線模式支援
 try:
-    from shared.offline_mode import auto_configure_environment, is_offline_mode
-    from shared.local_cache_manager import get_redis_connection
     from bot.services.local_api_server import start_local_api_if_needed
+    from shared.local_cache_manager import get_redis_connection
+    from shared.offline_mode import auto_configure_environment, is_offline_mode
+
     OFFLINE_MODE_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"離線模式模組不可用: {e}")
@@ -172,16 +193,16 @@ class PotatoBot(commands.Bot):
     async def _configure_offline_mode(self):
         """配置離線模式"""
         logger.info("🔍 檢測網路環境...")
-        
+
         try:
             offline_manager = await auto_configure_environment()
             mode = "內網模式" if is_offline_mode() else "外網模式"
             logger.info(f"✅ 環境檢測完成 - {mode}")
-            
+
             # 記錄詳細狀態
             status = offline_manager.get_status()
             logger.debug(f"離線管理器狀態: {status}")
-            
+
         except Exception as e:
             logger.error(f"❌ 離線模式配置失敗: {e}")
             logger.info("⚠️ 繼續使用預設配置...")
@@ -189,11 +210,11 @@ class PotatoBot(commands.Bot):
     async def _start_api_server(self):
         """智能啟動 API Server"""
         enable_api = os.getenv("ENABLE_API_SERVER", "true").lower() == "true"
-        
+
         if not enable_api:
             logger.info("⚠️ API 伺服器已停用（ENABLE_API_SERVER=false）")
             return
-        
+
         try:
             if OFFLINE_MODE_AVAILABLE and is_offline_mode():
                 # 內網環境：啟動本地 API Server
@@ -206,7 +227,7 @@ class PotatoBot(commands.Bot):
             else:
                 # 外網環境：使用標準 API Server
                 await self._start_integrated_api_server()
-                
+
         except Exception as e:
             logger.error(f"❌ API 伺服器啟動失敗: {e}")
             logger.info("⚠️ Bot 將在沒有 API 服務的情況下繼續運行")
@@ -527,7 +548,6 @@ class PotatoBot(commands.Bot):
 
         except Exception as e:
             logger.error(f"初始化現有伺服器失敗: {e}")
-
 
     def get_uptime(self) -> str:
         """取得運行時間"""
