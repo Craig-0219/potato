@@ -14,6 +14,9 @@ import signal
 import sys
 import time
 
+# 添加專案根目錄到 Python 路徑
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
