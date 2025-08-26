@@ -1,4 +1,4 @@
-# bot/main.py - 專業重構版（修復版）
+# bot/main.py - 專業重構版（修復版 + 離線模式支援）
 """
 Discord Bot 主程式 - 修復版
 修復點：
@@ -6,11 +6,13 @@ Discord Bot 主程式 - 修復版
 2. 改善 Persistent View 註冊
 3. 添加健康檢查和監控
 4. 強化啟動流程
+5. 新增離線模式支援
 """
 import asyncio
 import os
 import signal
 import sys
+import time
 
 import discord
 from discord.ext import commands
@@ -34,6 +36,16 @@ try:
 except ImportError:
     logger.error("❌ shared/config.py 不存在或設定不齊全")
     sys.exit(1)
+
+# 離線模式支援
+try:
+    from shared.offline_mode import auto_configure_environment, is_offline_mode
+    from shared.local_cache_manager import get_redis_connection
+    from bot.services.local_api_server import start_local_api_if_needed
+    OFFLINE_MODE_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"離線模式模組不可用: {e}")
+    OFFLINE_MODE_AVAILABLE = False
 
 import threading
 
@@ -115,10 +127,15 @@ class PotatoBot(commands.Bot):
         self.multi_tenant_security = multi_tenant_security
 
     async def setup_hook(self):
-        """Bot 設定鉤子（修復版）"""
+        """Bot 設定鉤子（修復版 + 離線模式支援）"""
         logger.info("🚀 Bot 設定開始...")
+        self.start_time = time.time()  # 記錄啟動時間
 
         try:
+            # 0. 離線模式檢測與配置
+            if OFFLINE_MODE_AVAILABLE:
+                await self._configure_offline_mode()
+
             # 1. 設置全局錯誤處理
             from bot.utils.error_handler import setup_error_handling
 
@@ -140,17 +157,56 @@ class PotatoBot(commands.Bot):
             # 6. 同步命令樹
             await self._sync_commands()
 
-            # 7. 啟動整合的 API Server（如果需要的話）
-            if os.getenv("ENABLE_API_SERVER", "true").lower() == "true":
-                await self._start_integrated_api_server()
-            else:
-                logger.info("⚠️ API 伺服器已停用（ENABLE_API_SERVER=false）")
+            # 7. 啟動 API Server（智能選擇）
+            await self._start_api_server()
 
             logger.info("✅ Bot 設定完成")
 
         except Exception as e:
             logger.error(f"❌ Bot 設定失敗：{e}")
             raise
+
+    async def _configure_offline_mode(self):
+        """配置離線模式"""
+        logger.info("🔍 檢測網路環境...")
+        
+        try:
+            offline_manager = await auto_configure_environment()
+            mode = "內網模式" if is_offline_mode() else "外網模式"
+            logger.info(f"✅ 環境檢測完成 - {mode}")
+            
+            # 記錄詳細狀態
+            status = offline_manager.get_status()
+            logger.debug(f"離線管理器狀態: {status}")
+            
+        except Exception as e:
+            logger.error(f"❌ 離線模式配置失敗: {e}")
+            logger.info("⚠️ 繼續使用預設配置...")
+
+    async def _start_api_server(self):
+        """智能啟動 API Server"""
+        enable_api = os.getenv("ENABLE_API_SERVER", "true").lower() == "true"
+        
+        if not enable_api:
+            logger.info("⚠️ API 伺服器已停用（ENABLE_API_SERVER=false）")
+            return
+        
+        try:
+            if OFFLINE_MODE_AVAILABLE and is_offline_mode():
+                # 內網環境：啟動本地 API Server
+                local_server = start_local_api_if_needed(self)
+                if local_server:
+                    logger.info("✅ 本地 API 伺服器啟動成功")
+                    self.local_api_server = local_server
+                else:
+                    logger.warning("⚠️ 本地 API 伺服器啟動失敗")
+            else:
+                # 外網環境：使用標準 API Server
+                await self._start_integrated_api_server()
+                
+        except Exception as e:
+            logger.error(f"❌ API 伺服器啟動失敗: {e}")
+            logger.info("⚠️ Bot 將在沒有 API 服務的情況下繼續運行")
 
     async def _init_database_unified(self, max_retries=3):
         """統一資料庫初始化（修正版）"""
