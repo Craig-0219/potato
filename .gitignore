@@ -356,6 +356,8 @@ transcripts/*.txt
 .secrets.baseline
 bandit-report.json
 *bandit-report*
+*security-report*
+*.sarif
 
 # API 和系統生成的臨時文件
 bot_commands.json
@@ -374,6 +376,8 @@ settings.local.json
 test_*.py
 temp_*.py
 scratch_*.py
+check_*.py
+monitor_*.py
 
 # 實驗性功能
 experimental/
@@ -382,6 +386,9 @@ prototype/
 # 本地腳本
 local_*.py
 my_*.py
+git-fix-*.sh
+install-*.sh
+quick-*.sh
 
 # ====================================
 # 版本控制忽略
