@@ -99,11 +99,11 @@ class DatabaseManager:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
                         """
-                        INSERT INTO database_version (id, version) 
-                        VALUES (1, %s) 
+                        INSERT INTO database_version (id, version)
+                        VALUES (1, %s)
                         ON DUPLICATE KEY UPDATE version = %s, updated_at = CURRENT_TIMESTAMP
                         """,
-                        (version, version)
+                        (version, version),
                     )
                     await conn.commit()
                     logger.info(f"✅ 資料庫版本已更新至 {version}")
@@ -120,17 +120,17 @@ class DatabaseManager:
                     # 取得所有表格名稱
                     await cursor.execute(
                         """
-                        SELECT table_name 
-                        FROM information_schema.tables 
-                        WHERE table_schema = DATABASE() 
+                        SELECT table_name
+                        FROM information_schema.tables
+                        WHERE table_schema = DATABASE()
                         AND table_type = 'BASE TABLE'
                         """
                     )
                     tables = await cursor.fetchall()
-                    
+
                     # 停用外鍵檢查
                     await cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
-                    
+
                     # 刪除所有表格
                     for (table_name,) in tables:
                         try:
@@ -138,11 +138,11 @@ class DatabaseManager:
                             logger.debug(f"已刪除表格: {table_name}")
                         except Exception as e:
                             logger.error(f"刪除表格 {table_name} 失敗: {e}")
-                    
+
                     # 重新啟用外鍵檢查
                     await cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
                     await conn.commit()
-                    
+
                     logger.info(f"✅ 已刪除 {len(tables)} 個表格")
         except Exception as e:
             logger.error(f"❌ 刪除表格失敗: {e}")
@@ -155,26 +155,23 @@ class DatabaseManager:
                 async with conn.cursor() as cursor:
                     # 獲取資料庫版本
                     version = await self._get_database_version()
-                    
+
                     # 獲取表格數量
                     await cursor.execute(
                         """
                         SELECT COUNT(*) as table_count
-                        FROM information_schema.tables 
+                        FROM information_schema.tables
                         WHERE table_schema = DATABASE()
                         """
                     )
                     result = await cursor.fetchone()
                     table_count = result[0] if result else 0
-                    
+
                     return {
                         "database_version": version or "未知",
                         "current_version": self.current_version,
-                        "tables": {
-                            "count": table_count,
-                            "initialized": self._initialized
-                        },
-                        "status": "healthy" if self._initialized else "initializing"
+                        "tables": {"count": table_count, "initialized": self._initialized},
+                        "status": "healthy" if self._initialized else "initializing",
                     }
         except Exception as e:
             logger.error(f"獲取系統狀態失敗: {e}")
@@ -183,7 +180,7 @@ class DatabaseManager:
                 "current_version": self.current_version,
                 "tables": {"count": 0, "initialized": False},
                 "status": "error",
-                "error": str(e)
+                "error": str(e),
             }
 
     async def _create_auth_tables(self):
@@ -616,19 +613,58 @@ class DatabaseManager:
             """,
         }
 
-        try:
-            async with self.db.connection() as conn:
-                async with conn.cursor() as cursor:
-                    for table_name, create_sql in tables.items():
+        await self._create_tables_batch(tables, "標籤系統")
 
-                        await cursor.execute(create_sql)
+    async def _create_welcome_tables(self):
+        """創建歡迎系統相關表格"""
+        logger.info("🎉 創建歡迎系統表格...")
 
-                    await conn.commit()
-                    logger.info(f"✅ 歡迎系統表格創建完成：{', '.join(tables.keys())}")
+        tables = {
+            "welcome_settings": """
+                CREATE TABLE IF NOT EXISTS welcome_settings (
+                    guild_id BIGINT PRIMARY KEY COMMENT '伺服器 ID',
+                    welcome_channel_id BIGINT NULL COMMENT '歡迎頻道 ID',
+                    leave_channel_id BIGINT NULL COMMENT '離開頻道 ID',
+                    welcome_message TEXT NULL COMMENT '歡迎訊息',
+                    leave_message TEXT NULL COMMENT '離開訊息',
+                    welcome_embed_enabled BOOLEAN DEFAULT TRUE COMMENT '啟用嵌入式歡迎訊息',
+                    welcome_dm_enabled BOOLEAN DEFAULT FALSE COMMENT '啟用私訊歡迎',
+                    welcome_dm_message TEXT NULL COMMENT '私訊歡迎訊息',
+                    auto_role_enabled BOOLEAN DEFAULT FALSE COMMENT '啟用自動角色指派',
+                    auto_roles JSON NULL COMMENT '自動指派的角色列表',
+                    welcome_image_url VARCHAR(500) NULL COMMENT '歡迎圖片 URL',
+                    welcome_thumbnail_url VARCHAR(500) NULL COMMENT '歡迎縮圖 URL',
+                    welcome_color VARCHAR(7) DEFAULT '#2ecc71' COMMENT '歡迎訊息顏色',
+                    is_enabled BOOLEAN DEFAULT TRUE COMMENT '是否啟用歡迎系統',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間',
 
-        except Exception as e:
-            logger.error(f"❌ 歡迎系統表格創建失敗：{e}")
-            raise
+                    INDEX idx_welcome_channel (welcome_channel_id),
+                    INDEX idx_leave_channel (leave_channel_id),
+                    INDEX idx_enabled (is_enabled)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+            "welcome_logs": """
+                CREATE TABLE IF NOT EXISTS welcome_logs (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    guild_id BIGINT NOT NULL COMMENT '伺服器 ID',
+                    user_id BIGINT NOT NULL COMMENT '用戶 ID',
+                    username VARCHAR(100) NOT NULL COMMENT '用戶名稱',
+                    event_type ENUM('member_join', 'member_leave') NOT NULL COMMENT '事件類型',
+                    welcome_sent BOOLEAN DEFAULT FALSE COMMENT '是否已發送歡迎訊息',
+                    dm_sent BOOLEAN DEFAULT FALSE COMMENT '是否已發送私訊',
+                    roles_assigned JSON NULL COMMENT '已指派的角色',
+                    error_message TEXT NULL COMMENT '錯誤訊息',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '事件時間',
+
+                    INDEX idx_guild_user (guild_id, user_id),
+                    INDEX idx_event_type (event_type),
+                    INDEX idx_created_at (created_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+        }
+
+        await self._create_tables_batch(tables, "歡迎系統")
 
     async def _create_workflow_tables(self):
         """創建工作流程系統相關表格"""
