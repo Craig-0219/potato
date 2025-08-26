@@ -1,0 +1,8 @@
+# Git 配置文件 - 託管環境使用
+[pull]
+	rebase = false
+[user]
+	name = "Potato Bot Deploy"
+	email = "deploy@potato-bot.com"
+[core]
+	autocrlf = input
