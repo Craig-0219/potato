@@ -12,8 +12,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 import asyncio
 import ipaddress
-import jwt
 import logging
+from jose import jwt
 from collections import defaultdict, deque
 
 from bot.db.pool import db_pool

@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import aiomysql
 import discord
-import jwt
+from jose import jwt
 
 from bot.db.pool import db_pool
 from shared.logger import logger

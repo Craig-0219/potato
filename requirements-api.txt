@@ -1,9 +1,0 @@
-# API 服務專用依賴文件
-# 此文件引用統一依賴清單中的生產環境配置
-
-# 使用生產環境依賴 (API 服務推薦配置):
--r docs/requirements/requirements-production.txt
-
-# 注意:
-# - API 服務建議使用精確版本依賴以確保穩定性
-# - 詳細配置說明請參考 docs/requirements/ 目錄
