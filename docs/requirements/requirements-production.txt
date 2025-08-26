@@ -15,7 +15,7 @@ python-multipart==0.0.6
 pydantic==2.5.0
 
 # 實時通信
-websockets==11.0.3
+websockets==12.0
 aioredis==2.0.1
 
 # 認證與安全
