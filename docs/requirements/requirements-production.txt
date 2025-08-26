@@ -44,5 +44,8 @@ aiohttp==3.9.3
 beautifulsoup4==4.12.3
 lxml==5.1.0
 
+# 檔案 I/O
+aiofiles==23.2.0
+
 # 系統監控
 psutil==5.9.8
