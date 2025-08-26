@@ -80,6 +80,112 @@ class DatabaseManager:
                 )
                 await conn.commit()
 
+    async def _get_database_version(self) -> Optional[str]:
+        """獲取當前資料庫版本"""
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    await cursor.execute("SELECT version FROM database_version WHERE id = 1")
+                    result = await cursor.fetchone()
+                    return result[0] if result else None
+        except Exception as e:
+            logger.debug(f"獲取資料庫版本失敗（可能是第一次初始化）: {e}")
+            return None
+
+    async def _update_database_version(self, version: str):
+        """更新資料庫版本"""
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    await cursor.execute(
+                        """
+                        INSERT INTO database_version (id, version) 
+                        VALUES (1, %s) 
+                        ON DUPLICATE KEY UPDATE version = %s, updated_at = CURRENT_TIMESTAMP
+                        """,
+                        (version, version)
+                    )
+                    await conn.commit()
+                    logger.info(f"✅ 資料庫版本已更新至 {version}")
+        except Exception as e:
+            logger.error(f"❌ 更新資料庫版本失敗: {e}")
+            raise
+
+    async def _drop_all_tables(self):
+        """刪除所有表格（強制重建時使用）"""
+        logger.warning("⚠️ 開始刪除所有表格...")
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    # 取得所有表格名稱
+                    await cursor.execute(
+                        """
+                        SELECT table_name 
+                        FROM information_schema.tables 
+                        WHERE table_schema = DATABASE() 
+                        AND table_type = 'BASE TABLE'
+                        """
+                    )
+                    tables = await cursor.fetchall()
+                    
+                    # 停用外鍵檢查
+                    await cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
+                    
+                    # 刪除所有表格
+                    for (table_name,) in tables:
+                        try:
+                            await cursor.execute(f"DROP TABLE IF EXISTS {table_name}")
+                            logger.debug(f"已刪除表格: {table_name}")
+                        except Exception as e:
+                            logger.error(f"刪除表格 {table_name} 失敗: {e}")
+                    
+                    # 重新啟用外鍵檢查
+                    await cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
+                    await conn.commit()
+                    
+                    logger.info(f"✅ 已刪除 {len(tables)} 個表格")
+        except Exception as e:
+            logger.error(f"❌ 刪除表格失敗: {e}")
+            raise
+
+    async def get_system_status(self) -> Dict[str, Any]:
+        """獲取系統狀態"""
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    # 獲取資料庫版本
+                    version = await self._get_database_version()
+                    
+                    # 獲取表格數量
+                    await cursor.execute(
+                        """
+                        SELECT COUNT(*) as table_count
+                        FROM information_schema.tables 
+                        WHERE table_schema = DATABASE()
+                        """
+                    )
+                    result = await cursor.fetchone()
+                    table_count = result[0] if result else 0
+                    
+                    return {
+                        "database_version": version or "未知",
+                        "current_version": self.current_version,
+                        "tables": {
+                            "count": table_count,
+                            "initialized": self._initialized
+                        },
+                        "status": "healthy" if self._initialized else "initializing"
+                    }
+        except Exception as e:
+            logger.error(f"獲取系統狀態失敗: {e}")
+            return {
+                "database_version": "錯誤",
+                "current_version": self.current_version,
+                "tables": {"count": 0, "initialized": False},
+                "status": "error",
+                "error": str(e)
+            }
+
     async def _create_auth_tables(self):
         """創建認證系統相關表格"""
         logger.info("🔐 創建認證系統表格...")
