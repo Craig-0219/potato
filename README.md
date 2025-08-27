@@ -15,15 +15,6 @@
 
 ---
 
-## 🚨 緊急修復計劃 - Cogs 載入問題
-
-**⚠️ 當前狀態**: 16/23 個 Cogs 載入失敗，需要立即修復
-
-📋 **修復計劃**: 請查看 [`docs/COGS_REPAIR_PLAN.md`](docs/COGS_REPAIR_PLAN.md)
-⚡ **快速修復**: 請查看 [`docs/QUICK_FIX_GUIDE.md`](docs/QUICK_FIX_GUIDE.md)
-
----
-
 ## 🎉 v3.2.0 重大更新 - 遊戲社群管理專家
 
 ### 🎮 **專注遊戲社群**
