@@ -142,7 +142,9 @@ class AIDAO:
                     
                     suggestion_id = cursor.lastrowid
                     await conn.commit()
-
+                    return suggestion_id
+        except Exception as e:
+            logger.error(f"儲存 AI 建議記錄失敗: {e}")
             return None
 
     async def update_suggestion_feedback(self,

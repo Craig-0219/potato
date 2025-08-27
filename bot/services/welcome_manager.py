@@ -67,7 +67,47 @@ class WelcomeManager:
                 return result
             
             if not settings.get('is_enabled'):
+                result['success'] = False
+                result['reason'] = '歡迎系統未啟用'
+                return result
+            
+            # 發送歡迎訊息到頻道
+            if settings.get('welcome_channel_id') and settings.get('welcome_message'):
+                welcome_sent = await self._send_welcome_message(member, settings)
+                result['welcome_sent'] = welcome_sent
                 
+                if not welcome_sent:
+                    result['errors'].append("無法發送歡迎訊息")
+            
+            # 發送歡迎私訊
+            if settings.get('dm_message'):
+                dm_sent = await self._send_welcome_dm(member, settings)
+                result['dm_sent'] = dm_sent
+                
+                if not dm_sent:
+                    result['errors'].append("無法發送私訊")
+            
+            # 自動分配身分組
+            if settings.get('auto_roles'):
+                assigned_roles = await self._assign_auto_roles(member, settings['auto_roles'])
+                result['roles_assigned'] = assigned_roles
+            
+            # 記錄事件
+            await self.welcome_dao.log_welcome_event(
+                guild_id=guild_id,
+                user_id=user_id,
+                username=username,
+                action_type='join',
+                welcome_sent=result['welcome_sent'],
+                dm_sent=result['dm_sent'],
+                roles_assigned=len(result['roles_assigned']),
+                error_message='; '.join(result['errors']) if result['errors'] else None
+            )
+            
+            logger.info(f"處理成員加入完成: {username} -> {guild_id}")
+                
+        except Exception as e:
+            logger.error(f"處理成員加入錯誤: {e}")
             result['success'] = False
             result['errors'].append(str(e))
             
@@ -150,6 +190,8 @@ class WelcomeManager:
                     try:
                         await member.add_roles(role, reason="自動身分組分配")
                         assigned_roles.append(role_id)
+                    except Exception as role_e:
+                        logger.warning(f"無法分配身分組 {role_id}: {role_e}")
 
         except Exception as e:
             logger.error(f"自動身分組分配錯誤: {e}")
