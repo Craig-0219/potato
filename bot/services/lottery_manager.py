@@ -62,7 +62,8 @@ class LotteryManager:
         """清理過期快取"""
         now = datetime.now()
         expired_keys = [
-            key for key, (_, timestamp) in self._cache.items()
+            key
+            for key, (_, timestamp) in self._cache.items()
             if (now - timestamp).total_seconds() >= self._cache_timeout
         ]
 
@@ -70,25 +71,22 @@ class LotteryManager:
             del self._cache[key]
 
         if expired_keys:
+            logger.debug(f"已清理 {len(expired_keys)} 個過期快取項目")
 
-            return True, "抽獎已開始！", message
-
-        except Exception as e:
-            logger.error(f"開始抽獎失敗: {e}")
-            return False, f"開始抽獎時發生錯誤: {str(e)}", None
-
-    async def join_lottery(self, lottery_id: int, user: discord.Member, method: str = "reaction") -> Tuple[bool, str]:
+    async def join_lottery(
+        self, lottery_id: int, user: discord.Member, method: str = "reaction"
+    ) -> Tuple[bool, str]:
         """參與抽獎"""
         try:
             lottery = await self.dao.get_lottery(lottery_id)
             if not lottery:
                 return False, "抽獎不存在"
 
-            if lottery['status'] != 'active':
+            if lottery["status"] != "active":
                 return False, f"抽獎未在進行中 (狀態: {lottery['status']})"
 
             # 檢查是否已過期
-            if lottery['end_time'] < datetime.now():
+            if lottery["end_time"] < datetime.now():
                 return False, "抽獎已結束"
 
             # 檢查參與條件
@@ -115,7 +113,7 @@ class LotteryManager:
             if not lottery:
                 return False, "抽獎不存在"
 
-            if lottery['status'] != 'active':
+            if lottery["status"] != "active":
                 return False, f"抽獎未在進行中 (狀態: {lottery['status']})"
 
             # 移除參與者
@@ -130,14 +128,16 @@ class LotteryManager:
             logger.error(f"退出抽獎失敗: {e}")
             return False, f"退出抽獎時發生錯誤: {str(e)}"
 
-    async def end_lottery(self, lottery_id: int, channel: discord.TextChannel, forced: bool = False) -> Tuple[bool, str, List[Dict]]:
+    async def end_lottery(
+        self, lottery_id: int, channel: discord.TextChannel, forced: bool = False
+    ) -> Tuple[bool, str, List[Dict]]:
         """結束抽獎並選出中獎者"""
         try:
             lottery = await self.dao.get_lottery(lottery_id)
             if not lottery:
                 return False, "抽獎不存在", []
 
-            if lottery['status'] != 'active' and not forced:
+            if lottery["status"] != "active" and not forced:
                 return False, f"抽獎狀態不正確: {lottery['status']}", []
 
             # 獲取所有參與者
@@ -145,24 +145,24 @@ class LotteryManager:
 
             if not entries:
                 # 沒有參與者
-                await self.dao.update_lottery_status(lottery_id, 'cancelled')
+                await self.dao.update_lottery_status(lottery_id, "cancelled")
                 embed = EmbedBuilder.build(
                     title="🎲 抽獎結束",
                     description=f"**{lottery['name']}**\n\n❌ 沒有參與者，抽獎已取消",
-                    color='warning'
+                    color="warning",
                 )
                 await channel.send(embed=embed)
                 return True, "抽獎因沒有參與者而取消", []
 
             # 選出中獎者
-            winner_count = min(lottery['winner_count'], len(entries))
+            winner_count = min(lottery["winner_count"], len(entries))
             winners_data = []
 
             # 隨機選擇中獎者
             selected_entries = random.sample(entries, winner_count)
 
             for i, entry in enumerate(selected_entries, 1):
-                winners_data.append((entry['user_id'], entry['username'], i))
+                winners_data.append((entry["user_id"], entry["username"], i))
 
             # 儲存中獎者
             await self.dao.select_winners(lottery_id, winners_data)
@@ -193,12 +193,12 @@ class LotteryManager:
 
             # 獲取參與者數量
             entries = await self.dao.get_entries(lottery_id)
-            lottery['participant_count'] = len(entries)
+            lottery["participant_count"] = len(entries)
 
             # 獲取中獎者（如果已結束）
-            if lottery['status'] == 'ended':
+            if lottery["status"] == "ended":
                 winners = await self.dao.get_winners(lottery_id)
-                lottery['winners'] = winners
+                lottery["winners"] = winners
 
             return lottery
 
@@ -210,28 +210,28 @@ class LotteryManager:
         """驗證參與者條件"""
         try:
             # 檢查帳號年齡
-            if lottery['min_account_age_days'] > 0:
+            if lottery["min_account_age_days"] > 0:
                 account_age = (datetime.now(user.created_at.tzinfo) - user.created_at).days
-                if account_age < lottery['min_account_age_days']:
+                if account_age < lottery["min_account_age_days"]:
                     return False, f"帳號年齡需要至少 {lottery['min_account_age_days']} 天"
 
             # 檢查加入伺服器時間
-            if lottery['min_server_join_days'] > 0 and user.joined_at:
+            if lottery["min_server_join_days"] > 0 and user.joined_at:
                 join_age = (datetime.now(user.joined_at.tzinfo) - user.joined_at).days
-                if join_age < lottery['min_server_join_days']:
+                if join_age < lottery["min_server_join_days"]:
                     return False, f"加入伺服器需要至少 {lottery['min_server_join_days']} 天"
 
             # 檢查必需角色
-            if lottery['required_roles']:
+            if lottery["required_roles"]:
                 user_role_ids = [role.id for role in user.roles]
-                required_roles = lottery['required_roles']
+                required_roles = lottery["required_roles"]
                 if not any(role_id in user_role_ids for role_id in required_roles):
                     return False, "您沒有參與抽獎所需的角色"
 
             # 檢查排除角色
-            if lottery['excluded_roles']:
+            if lottery["excluded_roles"]:
                 user_role_ids = [role.id for role in user.roles]
-                excluded_roles = lottery['excluded_roles']
+                excluded_roles = lottery["excluded_roles"]
                 if any(role_id in user_role_ids for role_id in excluded_roles):
                     return False, "您的角色被排除在抽獎之外"
 
@@ -249,7 +249,7 @@ class LotteryManager:
                 return True
 
             # 檢查抽獎管理角色
-            admin_roles = settings.get('admin_roles', [])
+            admin_roles = settings.get("admin_roles", [])
             user_role_ids = [role.id for role in user.roles]
 
             return any(role_id in user_role_ids for role_id in admin_roles)
@@ -262,72 +262,81 @@ class LotteryManager:
         """創建抽獎公告嵌入"""
         embed = EmbedBuilder.build(
             title=f"🎉 {lottery['name']}",
-            description=lottery['description'] or "參與抽獎贏得獎品！",
-            color='success'
+            description=lottery["description"] or "參與抽獎贏得獎品！",
+            color="success",
         )
 
         # 獎品資訊
-        if lottery['prize_data']:
-            prize_info = lottery['prize_data']
+        if lottery["prize_data"]:
+            prize_info = lottery["prize_data"]
             if isinstance(prize_info, dict):
                 embed.add_field(
-                    name="🎁 獎品",
-                    value=prize_info.get('description', '未知獎品'),
-                    inline=False
+                    name="🎁 獎品", value=prize_info.get("description", "未知獎品"), inline=False
                 )
             else:
                 embed.add_field(name="🎁 獎品", value=str(prize_info), inline=False)
 
         embed.add_field(name="👥 中獎人數", value=f"{lottery['winner_count']} 人", inline=True)
-        embed.add_field(name="⏰ 結束時間", value=f"<t:{int(lottery['end_time'].timestamp())}:R>", inline=True)
+        embed.add_field(
+            name="⏰ 結束時間", value=f"<t:{int(lottery['end_time'].timestamp())}:R>", inline=True
+        )
 
         # 參與方式
         entry_methods = {
-            'reaction': '點擊 🎉 反應',
-            'command': '使用指令參與',
-            'both': '點擊反應或使用指令'
+            "reaction": "點擊 🎉 反應",
+            "command": "使用指令參與",
+            "both": "點擊反應或使用指令",
         }
         embed.add_field(
             name="📝 參與方式",
-            value=entry_methods.get(lottery['entry_method'], '未知'),
-            inline=True
+            value=entry_methods.get(lottery["entry_method"], "未知"),
+            inline=True,
         )
 
         # 參與條件
         conditions = []
-        if lottery['min_account_age_days'] > 0:
+        if lottery["min_account_age_days"] > 0:
             conditions.append(f"帳號年齡: {lottery['min_account_age_days']} 天以上")
-        if lottery['min_server_join_days'] > 0:
+        if lottery["min_server_join_days"] > 0:
             conditions.append(f"加入伺服器: {lottery['min_server_join_days']} 天以上")
 
         if conditions:
             embed.add_field(name="📋 參與條件", value="\n".join(conditions), inline=False)
 
-        embed.set_footer(text=f"抽獎 ID: {lottery['id']} | 創建者: {lottery.get('creator_name', 'Unknown')}")
+        embed.set_footer(
+            text=f"抽獎 ID: {lottery['id']} | 創建者: {lottery.get('creator_name', 'Unknown')}"
+        )
 
         return embed
 
-    async def _create_results_embed(self, lottery: Dict, winners: List[Dict], total_participants: int) -> discord.Embed:
+    async def _create_results_embed(
+        self, lottery: Dict, winners: List[Dict], total_participants: int
+    ) -> discord.Embed:
         """創建抽獎結果嵌入"""
-        embed = EmbedBuilder.build(
-            title=f"🏆 {lottery['name']} - 抽獎結果",
-            color='success'
-        )
+        embed = EmbedBuilder.build(title=f"🏆 {lottery['name']} - 抽獎結果", color="success")
 
         if winners:
             winner_list = []
             for winner in winners:
-                position_emoji = ["🥇", "🥈", "🥉"][winner['win_position'] - 1] if winner['win_position'] <= 3 else "🏅"
-                winner_list.append(f"{position_emoji} <@{winner['user_id']}> ({winner['username']})")
+                position_emoji = (
+                    ["🥇", "🥈", "🥉"][winner["win_position"] - 1]
+                    if winner["win_position"] <= 3
+                    else "🏅"
+                )
+                winner_list.append(
+                    f"{position_emoji} <@{winner['user_id']}> ({winner['username']})"
+                )
 
             embed.add_field(
-                name=f"🎊 中獎者 ({len(winners)} 人)",
-                value="\n".join(winner_list),
-                inline=False
+                name=f"🎊 中獎者 ({len(winners)} 人)", value="\n".join(winner_list), inline=False
             )
 
         embed.add_field(name="👥 總參與人數", value=f"{total_participants} 人", inline=True)
-        embed.add_field(name="🎲 中獎機率", value=f"{len(winners)/max(total_participants, 1)*100:.1f}%", inline=True)
+        embed.add_field(
+            name="🎲 中獎機率",
+            value=f"{len(winners)/max(total_participants, 1)*100:.1f}%",
+            inline=True,
+        )
 
         embed.set_footer(text=f"抽獎 ID: {lottery['id']} | 結束時間")
         embed.timestamp = datetime.now()
@@ -348,7 +357,7 @@ class LotteryManager:
                     # 獲取頻道
                     lottery = await self.dao.get_lottery(lottery_id)
                     if lottery and self.bot:
-                        channel = self.bot.get_channel(lottery['channel_id'])
+                        channel = self.bot.get_channel(lottery["channel_id"])
                         if channel:
                             await self.end_lottery(lottery_id, channel, forced=True)
 

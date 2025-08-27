@@ -16,8 +16,10 @@ from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
+
 class IntentType(Enum):
     """用戶意圖類型"""
+
     # 票券相關
     TICKET_CREATE = "ticket_create"
     TICKET_CLOSE = "ticket_close"
@@ -54,22 +56,27 @@ class IntentType(Enum):
     # 未知意圖
     UNKNOWN = "unknown"
 
+
 @dataclass
 class Entity:
     """識別出的實體"""
+
     type: str
     value: str
     confidence: float
     start_pos: int
     end_pos: int
 
+
 @dataclass
 class IntentResult:
     """意圖識別結果"""
+
     intent: IntentType
     confidence: float
     entities: List[Entity] = field(default_factory=list)
     metadata: Dict[str, Any] = field(default_factory=dict)
+
 
 class IntentRecognizer:
     """
@@ -188,12 +195,14 @@ class IntentRecognizer:
             ],
             "role_mention": [
                 (r"<@&(\d+)>", "role_id"),
-            ]
+            ],
         }
 
         logger.info(f"✅ 意圖識別模式初始化完成，支援 {len(self.intent_patterns)} 種意圖")
 
-    async def recognize_intent(self, text: str, user_id: str, context: Dict[str, Any] = None) -> IntentResult:
+    async def recognize_intent(
+        self, text: str, user_id: str, context: Dict[str, Any] = None
+    ) -> IntentResult:
         """
         識別用戶意圖
 
@@ -235,14 +244,16 @@ class IntentRecognizer:
                 metadata={
                     "processed_text": processed_text,
                     "all_scores": intent_scores,
-                    "context": context
-                }
+                    "context": context,
+                },
             )
 
+            return result
+
+        except Exception as e:
+            logger.error(f"意圖識別失敗: {e}")
             return IntentResult(
-                intent=IntentType.UNKNOWN,
-                confidence=0.0,
-                metadata={"error": str(e)}
+                intent=IntentType.UNKNOWN, confidence=0.0, metadata={"error": str(e)}
             )
 
     def _preprocess_text(self, text: str) -> str:
@@ -251,10 +262,10 @@ class IntentRecognizer:
         text = text.lower().strip()
 
         # 移除多餘的空白
-        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r"\s+", " ", text)
 
         # 移除特殊字符（保留中文、英文、數字、基本符號）
-        text = re.sub(r'[^\w\s\u4e00-\u9fff<>@#!?.,]', '', text)
+        text = re.sub(r"[^\w\s\u4e00-\u9fff<>@#!?.,]", "", text)
 
         return text
 
@@ -280,26 +291,32 @@ class IntentRecognizer:
 
         return scores
 
-    async def _context_adjustment(self, scores: Dict[IntentType, float], context: Dict[str, Any]) -> Dict[IntentType, float]:
+    async def _context_adjustment(
+        self, scores: Dict[IntentType, float], context: Dict[str, Any]
+    ) -> Dict[IntentType, float]:
         """基於上下文調整意圖分數"""
         adjusted_scores = scores.copy()
 
         # 如果在票券頻道，提高票券相關意圖分數
-        if context.get('channel_type') == 'ticket':
+        if context.get("channel_type") == "ticket":
             ticket_intents = [IntentType.TICKET_CLOSE, IntentType.TICKET_STATUS]
             for intent in ticket_intents:
                 if intent in adjusted_scores:
                     adjusted_scores[intent] *= 1.5
 
         # 如果是管理員，提高管理相關意圖分數
-        if context.get('is_admin', False):
-            admin_intents = [IntentType.GUILD_STATS, IntentType.GUILD_ANALYTICS, IntentType.GUILD_PERMISSIONS]
+        if context.get("is_admin", False):
+            admin_intents = [
+                IntentType.GUILD_STATS,
+                IntentType.GUILD_ANALYTICS,
+                IntentType.GUILD_PERMISSIONS,
+            ]
             for intent in admin_intents:
                 if intent in adjusted_scores:
                     adjusted_scores[intent] *= 1.3
 
         # 如果最近有投票活動，提高投票相關意圖分數
-        if context.get('recent_vote_activity', False):
+        if context.get("recent_vote_activity", False):
             vote_intents = [IntentType.VOTE_PARTICIPATE, IntentType.VOTE_RESULTS]
             for intent in vote_intents:
                 if intent in adjusted_scores:
@@ -307,7 +324,9 @@ class IntentRecognizer:
 
         return adjusted_scores
 
-    async def _history_adjustment(self, scores: Dict[IntentType, float], user_id: str) -> Dict[IntentType, float]:
+    async def _history_adjustment(
+        self, scores: Dict[IntentType, float], user_id: str
+    ) -> Dict[IntentType, float]:
         """基於歷史記錄調整意圖分數"""
         adjusted_scores = scores.copy()
 
@@ -318,7 +337,7 @@ class IntentRecognizer:
             recent_intents = user_history[-3:]  # 最近3次意圖
 
             for intent_record in recent_intents:
-                intent = intent_record['intent']
+                intent = intent_record["intent"]
 
                 # 如果用戶經常使用某種功能，稍微提高相關意圖分數
                 if intent in adjusted_scores:
@@ -354,7 +373,7 @@ class IntentRecognizer:
                         value=match.group(1) if match.groups() else match.group(0),
                         confidence=0.9,  # 規則匹配的信心度固定為 0.9
                         start_pos=match.start(),
-                        end_pos=match.end()
+                        end_pos=match.end(),
                     )
                     entities.append(entity)
 
@@ -364,19 +383,21 @@ class IntentRecognizer:
             option_patterns = [
                 r"選項\s*([A-Za-z]|[0-9]+)",
                 r"([A-Za-z])\s*[:：]\s*(.+)",
-                r"([0-9]+)\s*[.。]\s*(.+)"
+                r"([0-9]+)\s*[.。]\s*(.+)",
             ]
 
             for pattern in option_patterns:
                 matches = re.finditer(pattern, text)
                 for match in matches:
-                    entities.append(Entity(
-                        type="vote_option",
-                        value=match.group(0),
-                        confidence=0.8,
-                        start_pos=match.start(),
-                        end_pos=match.end()
-                    ))
+                    entities.append(
+                        Entity(
+                            type="vote_option",
+                            value=match.group(0),
+                            confidence=0.8,
+                            start_pos=match.start(),
+                            end_pos=match.end(),
+                        )
+                    )
 
         return entities
 
@@ -386,11 +407,13 @@ class IntentRecognizer:
             self.intent_history[user_id] = []
 
         # 記錄意圖
-        self.intent_history[user_id].append({
-            'intent': intent,
-            'confidence': confidence,
-            'timestamp': asyncio.get_event_loop().time()
-        })
+        self.intent_history[user_id].append(
+            {
+                "intent": intent,
+                "confidence": confidence,
+                "timestamp": asyncio.get_event_loop().time(),
+            }
+        )
 
         # 只保留最近20條記錄
         if len(self.intent_history[user_id]) > 20:
@@ -406,18 +429,20 @@ class IntentRecognizer:
         # 統計各種意圖的頻率
         intent_counts = {}
         for record in user_history:
-            intent = record['intent'].value
+            intent = record["intent"].value
             intent_counts[intent] = intent_counts.get(intent, 0) + 1
 
         # 計算平均信心度
-        total_confidence = sum(record['confidence'] for record in user_history)
+        total_confidence = sum(record["confidence"] for record in user_history)
         avg_confidence = total_confidence / len(user_history) if user_history else 0
 
         return {
             "total_interactions": len(user_history),
             "intent_distribution": intent_counts,
             "average_confidence": avg_confidence,
-            "most_common_intent": max(intent_counts.items(), key=lambda x: x[1])[0] if intent_counts else None
+            "most_common_intent": (
+                max(intent_counts.items(), key=lambda x: x[1])[0] if intent_counts else None
+            ),
         }
 
     async def improve_recognition(self, user_feedback: Dict[str, Any]):
@@ -425,12 +450,14 @@ class IntentRecognizer:
         # 這裡可以實現機器學習模型的在線學習
         # 暫時記錄反饋用於後續分析
 
-        actual_intent = user_feedback.get('actual_intent')
-        predicted_intent = user_feedback.get('predicted_intent')
-        text = user_feedback.get('text', '')
+        actual_intent = user_feedback.get("actual_intent")
+        predicted_intent = user_feedback.get("predicted_intent")
+        text = user_feedback.get("text", "")
 
         if actual_intent and predicted_intent and actual_intent != predicted_intent:
-            logger.info(f"📚 意圖識別改進機會: '{text}' -> 預測: {predicted_intent}, 實際: {actual_intent}")
+            logger.info(
+                f"📚 意圖識別改進機會: '{text}' -> 預測: {predicted_intent}, 實際: {actual_intent}"
+            )
 
             # 可以在這裡實現:
             # 1. 動態調整規則權重
@@ -440,19 +467,18 @@ class IntentRecognizer:
     async def export_training_data(self) -> Dict[str, Any]:
         """導出訓練數據用於模型改進"""
         training_data = {
-            "intent_patterns": {intent.value: patterns for intent, patterns in self.intent_patterns.items()},
+            "intent_patterns": {
+                intent.value: patterns for intent, patterns in self.intent_patterns.items()
+            },
             "entity_patterns": self.entity_patterns,
-            "user_interactions": {}
+            "user_interactions": {},
         }
 
         # 匿名化用戶歷史數據
         for user_id, history in self.intent_history.items():
             anonymized_id = f"user_{hash(user_id) % 10000}"
             training_data["user_interactions"][anonymized_id] = [
-                {
-                    "intent": record['intent'].value,
-                    "confidence": record['confidence']
-                }
+                {"intent": record["intent"].value, "confidence": record["confidence"]}
                 for record in history
             ]
 

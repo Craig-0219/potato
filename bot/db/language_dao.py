@@ -25,10 +25,12 @@ class LanguageDAO:
                 # 檢查語言相關表格是否存在
                 async with self.db.connection() as conn:
                     async with conn.cursor() as cursor:
-                        await cursor.execute("""
+                        await cursor.execute(
+                            """
                             SELECT COUNT(*) FROM information_schema.tables
                             WHERE table_schema = DATABASE() AND table_name = 'language_preferences'
-                        """)
+                        """
+                        )
                         exists = (await cursor.fetchone())[0] > 0
 
                 if not exists:
@@ -48,7 +50,8 @@ class LanguageDAO:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     # 語言偏好表
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         CREATE TABLE IF NOT EXISTS language_preferences (
                             id INT PRIMARY KEY AUTO_INCREMENT,
                             entity_type ENUM('user', 'guild') NOT NULL,
@@ -63,10 +66,12 @@ class LanguageDAO:
                             INDEX idx_language_code (language_code),
                             INDEX idx_entity_active (entity_type, entity_id, is_active)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                    """)
+                    """
+                    )
 
                     # 語言使用統計表
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         CREATE TABLE IF NOT EXISTS language_usage_stats (
                             id INT PRIMARY KEY AUTO_INCREMENT,
                             guild_id BIGINT NOT NULL,
@@ -81,10 +86,12 @@ class LanguageDAO:
                             INDEX idx_usage_date (usage_date),
                             INDEX idx_guild_date (guild_id, usage_date)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                    """)
+                    """
+                    )
 
                     # 語言偵測記錄表
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         CREATE TABLE IF NOT EXISTS language_detection_logs (
                             id INT PRIMARY KEY AUTO_INCREMENT,
                             guild_id BIGINT NOT NULL,
@@ -100,7 +107,8 @@ class LanguageDAO:
                             INDEX idx_detected_lang (detected_language),
                             INDEX idx_confidence (confidence_score)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                    """)
+                    """
+                    )
 
                     await conn.commit()
                     logger.info("✅ 語言資料表創建完成")
@@ -111,13 +119,21 @@ class LanguageDAO:
 
     # ========== 語言偏好管理 ==========
 
-    async def set_user_language(self, user_id: int, guild_id: int, language_code: str, auto_detected: bool = False, confidence: float = None) -> bool:
+    async def set_user_language(
+        self,
+        user_id: int,
+        guild_id: int,
+        language_code: str,
+        auto_detected: bool = False,
+        confidence: float = None,
+    ) -> bool:
         """設定用戶語言偏好"""
         await self._ensure_initialized()
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         INSERT INTO language_preferences (
                             entity_type, entity_id, language_code, auto_detected, detection_confidence
                         ) VALUES ('user', %s, %s, %s, %s)
@@ -126,33 +142,40 @@ class LanguageDAO:
                             auto_detected = VALUES(auto_detected),
                             detection_confidence = VALUES(detection_confidence),
                             updated_at = CURRENT_TIMESTAMP
-                    """, (user_id, language_code, auto_detected, confidence))
+                    """,
+                        (user_id, language_code, auto_detected, confidence),
+                    )
 
                     await conn.commit()
                     return True
         except Exception:
             return False
 
-    async def get_user_language(self, user_id: int, guild_id: int = None) -> Optional[Dict[str, Any]]:
+    async def get_user_language(
+        self, user_id: int, guild_id: int = None
+    ) -> Optional[Dict[str, Any]]:
         """取得用戶語言偏好"""
         await self._ensure_initialized()
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         SELECT language_code, auto_detected, detection_confidence, created_at, updated_at
                         FROM language_preferences
                         WHERE entity_type = 'user' AND entity_id = %s AND is_active = TRUE
-                    """, (user_id,))
+                    """,
+                        (user_id,),
+                    )
 
                     row = await cursor.fetchone()
                     if row:
                         return {
-                            'language_code': row[0],
-                            'auto_detected': bool(row[1]),
-                            'confidence': float(row[2]) if row[2] else None,
-                            'created_at': row[3],
-                            'updated_at': row[4]
+                            "language_code": row[0],
+                            "auto_detected": bool(row[1]),
+                            "confidence": float(row[2]) if row[2] else None,
+                            "created_at": row[3],
+                            "updated_at": row[4],
                         }
 
                     return None
@@ -167,17 +190,23 @@ class LanguageDAO:
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         INSERT INTO language_preferences (
                             entity_type, entity_id, language_code, auto_detected
                         ) VALUES ('guild', %s, %s, FALSE)
                         ON DUPLICATE KEY UPDATE
                             language_code = VALUES(language_code),
                             updated_at = CURRENT_TIMESTAMP
-                    """, (guild_id, language_code))
+                    """,
+                        (guild_id, language_code),
+                    )
 
                     await conn.commit()
+                    return True
 
+        except Exception as e:
+            logger.error(f"設定伺服器語言錯誤: {e}")
             return False
 
     async def get_guild_language(self, guild_id: int) -> Optional[Dict[str, Any]]:
@@ -186,19 +215,18 @@ class LanguageDAO:
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         SELECT language_code, created_at, updated_at
                         FROM language_preferences
                         WHERE entity_type = 'guild' AND entity_id = %s AND is_active = TRUE
-                    """, (guild_id,))
+                    """,
+                        (guild_id,),
+                    )
 
                     row = await cursor.fetchone()
                     if row:
-                        return {
-                            'language_code': row[0],
-                            'created_at': row[1],
-                            'updated_at': row[2]
-                        }
+                        return {"language_code": row[0], "created_at": row[1], "updated_at": row[2]}
 
                     return None
 
@@ -212,11 +240,14 @@ class LanguageDAO:
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         UPDATE language_preferences
                         SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP
                         WHERE entity_type = 'user' AND entity_id = %s
-                    """, (user_id,))
+                    """,
+                        (user_id,),
+                    )
 
                     await conn.commit()
                     return cursor.rowcount > 0
@@ -227,7 +258,9 @@ class LanguageDAO:
 
     # ========== 語言使用統計 ==========
 
-    async def update_language_usage(self, guild_id: int, language_code: str, user_count: int = 1, message_count: int = 1) -> bool:
+    async def update_language_usage(
+        self, guild_id: int, language_code: str, user_count: int = 1, message_count: int = 1
+    ) -> bool:
         """更新語言使用統計"""
         await self._ensure_initialized()
         try:
@@ -235,7 +268,8 @@ class LanguageDAO:
 
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         INSERT INTO language_usage_stats (
                             guild_id, language_code, usage_date, message_count, unique_users
                         ) VALUES (%s, %s, %s, %s, %s)
@@ -243,7 +277,9 @@ class LanguageDAO:
                             message_count = message_count + VALUES(message_count),
                             unique_users = GREATEST(unique_users, VALUES(unique_users)),
                             updated_at = CURRENT_TIMESTAMP
-                    """, (guild_id, language_code, today, message_count, user_count))
+                    """,
+                        (guild_id, language_code, today, message_count, user_count),
+                    )
 
                     await conn.commit()
                     return True
@@ -257,12 +293,14 @@ class LanguageDAO:
         await self._ensure_initialized()
         try:
             from datetime import timedelta
+
             end_date = datetime.now(timezone.utc).date()
             start_date = end_date - timedelta(days=days)
 
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         SELECT
                             language_code,
                             SUM(message_count) as total_messages,
@@ -273,19 +311,23 @@ class LanguageDAO:
                         WHERE guild_id = %s AND usage_date BETWEEN %s AND %s
                         GROUP BY language_code
                         ORDER BY total_messages DESC
-                    """, (guild_id, start_date, end_date))
+                    """,
+                        (guild_id, start_date, end_date),
+                    )
 
                     rows = await cursor.fetchall()
 
                     stats = []
                     for row in rows:
-                        stats.append({
-                            'language_code': row[0],
-                            'total_messages': row[1],
-                            'total_users': row[2],
-                            'avg_accuracy': float(row[3]) if row[3] else None,
-                            'days_active': row[4]
-                        })
+                        stats.append(
+                            {
+                                "language_code": row[0],
+                                "total_messages": row[1],
+                                "total_users": row[2],
+                                "avg_accuracy": float(row[3]) if row[3] else None,
+                                "days_active": row[4],
+                            }
+                        )
 
                     return stats
 
@@ -295,19 +337,29 @@ class LanguageDAO:
 
     # ========== 語言偵測記錄 ==========
 
-    async def log_language_detection(self, guild_id: int, user_id: int, text: str, detected_language: str,
-                                   confidence: float, method: str = 'pattern_based') -> Optional[int]:
+    async def log_language_detection(
+        self,
+        guild_id: int,
+        user_id: int,
+        text: str,
+        detected_language: str,
+        confidence: float,
+        method: str = "pattern_based",
+    ) -> Optional[int]:
         """記錄語言偵測結果"""
         await self._ensure_initialized()
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         INSERT INTO language_detection_logs (
                             guild_id, user_id, original_text, detected_language,
                             confidence_score, detection_method
                         ) VALUES (%s, %s, %s, %s, %s, %s)
-                    """, (guild_id, user_id, text[:500], detected_language, confidence, method))
+                    """,
+                        (guild_id, user_id, text[:500], detected_language, confidence, method),
+                    )
 
                     log_id = cursor.lastrowid
                     await conn.commit()
@@ -323,11 +375,14 @@ class LanguageDAO:
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         UPDATE language_detection_logs
                         SET is_correct = %s, feedback_provided_at = CURRENT_TIMESTAMP
                         WHERE id = %s
-                    """, (is_correct, log_id))
+                    """,
+                        (is_correct, log_id),
+                    )
 
                     await conn.commit()
                     return cursor.rowcount > 0
@@ -336,11 +391,14 @@ class LanguageDAO:
             logger.error(f"更新偵測回饋錯誤: {e}")
             return False
 
-    async def get_detection_accuracy(self, guild_id: int = None, language_code: str = None, days: int = 30) -> Dict[str, Any]:
+    async def get_detection_accuracy(
+        self, guild_id: int = None, language_code: str = None, days: int = 30
+    ) -> Dict[str, Any]:
         """取得偵測準確率統計"""
         await self._ensure_initialized()
         try:
             from datetime import timedelta
+
             cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
 
             async with self.db.connection() as conn:
@@ -358,7 +416,8 @@ class LanguageDAO:
 
                     where_clause = " AND ".join(conditions)
 
-                    await cursor.execute(f"""
+                    await cursor.execute(
+                        f"""
                         SELECT
                             detected_language,
                             COUNT(*) as total_detections,
@@ -368,7 +427,9 @@ class LanguageDAO:
                         WHERE {where_clause}
                         GROUP BY detected_language
                         ORDER BY total_detections DESC
-                    """, params)
+                    """,
+                        params,
+                    )
 
                     rows = await cursor.fetchall()
 
@@ -383,33 +444,35 @@ class LanguageDAO:
                         avg_conf = float(row[3])
 
                         accuracy_stats[lang] = {
-                            'total_detections': total,
-                            'correct_detections': correct,
-                            'accuracy_rate': correct / total if total > 0 else 0.0,
-                            'avg_confidence': avg_conf
+                            "total_detections": total,
+                            "correct_detections": correct,
+                            "accuracy_rate": correct / total if total > 0 else 0.0,
+                            "avg_confidence": avg_conf,
                         }
 
                         total_detections += total
                         total_correct += correct
 
-                    overall_accuracy = total_correct / total_detections if total_detections > 0 else 0.0
+                    overall_accuracy = (
+                        total_correct / total_detections if total_detections > 0 else 0.0
+                    )
 
                     return {
-                        'overall_accuracy': overall_accuracy,
-                        'total_detections': total_detections,
-                        'total_correct': total_correct,
-                        'by_language': accuracy_stats,
-                        'period_days': days
+                        "overall_accuracy": overall_accuracy,
+                        "total_detections": total_detections,
+                        "total_correct": total_correct,
+                        "by_language": accuracy_stats,
+                        "period_days": days,
                     }
 
         except Exception as e:
             logger.error(f"取得偵測準確率統計錯誤: {e}")
             return {
-                'overall_accuracy': 0.0,
-                'total_detections': 0,
-                'total_correct': 0,
-                'by_language': {},
-                'period_days': days
+                "overall_accuracy": 0.0,
+                "total_detections": 0,
+                "total_correct": 0,
+                "by_language": {},
+                "period_days": days,
             }
 
     # ========== 批次操作 ==========
@@ -420,7 +483,8 @@ class LanguageDAO:
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         SELECT
                             lus.language_code,
                             SUM(lus.message_count) as total_messages,
@@ -436,18 +500,22 @@ class LanguageDAO:
                         GROUP BY lus.language_code
                         ORDER BY total_messages DESC
                         LIMIT %s
-                    """, (guild_id, limit))
+                    """,
+                        (guild_id, limit),
+                    )
 
                     rows = await cursor.fetchall()
 
                     popular_languages = []
                     for row in rows:
-                        popular_languages.append({
-                            'language_code': row[0],
-                            'total_messages': row[1],
-                            'active_days': row[2],
-                            'user_preferences': row[3]
-                        })
+                        popular_languages.append(
+                            {
+                                "language_code": row[0],
+                                "total_messages": row[1],
+                                "active_days": row[2],
+                                "user_preferences": row[3],
+                            }
+                        )
 
                     return popular_languages
 
@@ -460,14 +528,18 @@ class LanguageDAO:
         await self._ensure_initialized()
         try:
             from datetime import timedelta
+
             cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
 
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         DELETE FROM language_detection_logs
                         WHERE created_at < %s
-                    """, (cutoff_date,))
+                    """,
+                        (cutoff_date,),
+                    )
 
                     deleted_count = cursor.rowcount
                     await conn.commit()
