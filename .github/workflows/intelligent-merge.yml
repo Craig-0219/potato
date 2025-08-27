@@ -592,7 +592,7 @@ jobs:
                 sys.path.append('bot')
 
                 # 模擬 discord.py
-                with patch('discord.Bot', return_value=MockBot()):
+                with patch('discord.ext.commands.Bot', return_value=MockBot()):
                     with patch('discord.Intents'):
                         # 導入並測試主程序
                         from bot.main import main

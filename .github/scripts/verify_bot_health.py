@@ -141,7 +141,7 @@ class BotHealthChecker:
                 module = importlib.util.module_from_spec(spec)
 
                 # 模擬必要的依賴
-                with patch("discord.Bot"), patch("discord.Intents"):
+                with patch("discord.ext.commands.Bot"), patch("discord.Intents"):
                     spec.loader.exec_module(module)
 
                 self.results["cogs_status"][cog_name] = "loaded"
@@ -271,7 +271,7 @@ class BotHealthChecker:
             }
 
             with patch.dict(os.environ, mock_env):
-                with patch("discord.Bot") as mock_bot_class:
+                with patch("discord.ext.commands.Bot") as mock_bot_class:
                     with patch("discord.Intents"):
                         mock_bot = MagicMock()
                         mock_bot.user.id = 123456789
