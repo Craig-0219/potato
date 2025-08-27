@@ -141,7 +141,7 @@ jobs:
 
     - name: Test imports
       env:
-        DISCORD_TOKEN: "test_token_for_ci"
+        DISCORD_TOKEN: "test_token_for_ci_with_sufficient_length_for_validation_requirements_minimum_50_characters"
         DB_HOST: "localhost"
         DB_USER: "test_user"
         DB_PASSWORD: "test_password"

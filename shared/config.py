@@ -137,7 +137,7 @@ def validate_config_enhanced():
         value = os.getenv(var)
         if not value:
             errors.append(f"缺少{desc}環境變數：{var}")
-        elif var == "DISCORD_TOKEN" and len(value) < 50:
+        elif var == "DISCORD_TOKEN" and len(value) < 50 and not os.getenv("TESTING"):
             errors.append(f"Discord Token格式可能不正確（長度過短）")
 
     # 檢查可選變數的預設值

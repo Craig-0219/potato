@@ -171,11 +171,11 @@ jobs:
     needs: intelligent-analysis
     if: needs.intelligent-analysis.outputs.should_proceed == 'true'
     runs-on: ubuntu-latest
-    
+
     # 🎯 核心修復：設置完整的測試環境變數，解決 .env 問題
     env:
       TESTING: "true"
-      DISCORD_TOKEN: "test_token_github_actions_comprehensive"
+      DISCORD_TOKEN: "test_token_github_actions_comprehensive_with_sufficient_length_for_validation_requirements_minimum_50_chars"
       DB_HOST: "localhost"
       DB_PORT: "3306"
       DB_USER: "test_user"
@@ -289,7 +289,7 @@ jobs:
         random_suffix = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8))
 
         os.environ['TESTING'] = 'true'
-        os.environ['DISCORD_TOKEN'] = f'test_token_{random_suffix}'
+        os.environ['DISCORD_TOKEN'] = f'test_token_comprehensive_validation_length_requirement_met_{random_suffix}'
         os.environ['DB_HOST'] = 'mock_host'
         os.environ['DB_USER'] = 'mock_user'
         os.environ['DB_PASSWORD'] = f'mock_pass_{random_suffix}'
@@ -409,49 +409,49 @@ jobs:
     - name: 🧪 Environment and Config Tests
       run: |
         echo "🧪 環境變數和配置測試..."
-        
+
         # 測試 1: 驗證環境變數設置
         echo "📋 測試 1: 環境變數驗證"
         echo "TESTING: $TESTING"
         echo "DISCORD_TOKEN: ${DISCORD_TOKEN:0:10}..." # 只顯示前10字符
         echo "DATABASE_URL: $DATABASE_URL"
         echo "DB_HOST: $DB_HOST"
-        
+
         # 測試 2: Python 配置載入測試
         echo "📋 測試 2: 配置載入測試"
         python -c "
         import sys
         import os
         sys.path.append('.')
-        
+
         print('🔍 檢查環境變數載入:')
         print(f'TESTING = {os.environ.get(\"TESTING\", \"未設置\")}')
         print(f'DISCORD_TOKEN = {os.environ.get(\"DISCORD_TOKEN\", \"未設置\")[:10]}...')
         print(f'DATABASE_URL = {os.environ.get(\"DATABASE_URL\", \"未設置\")}')
-        
+
         try:
             print('🔍 嘗試載入配置模組...')
             from shared.config import Config
-            
+
             print('✅ Config 模組導入成功')
-            
+
             # 實例化配置
             config = Config()
             print('✅ Config 實例化成功')
-            
+
             # 檢查關鍵配置
             if hasattr(config, 'DISCORD_TOKEN') and config.DISCORD_TOKEN:
                 print(f'✅ DISCORD_TOKEN 配置: {config.DISCORD_TOKEN[:10]}...')
             else:
                 print('⚠️ DISCORD_TOKEN 配置問題')
-                
+
         except Exception as e:
             print(f'❌ 配置測試錯誤: {e}')
             import traceback
             traceback.print_exc()
             sys.exit(1)
         "
-        
+
         # 測試 3: 核心模組導入測試 (有環境變數支援)
         echo "📋 測試 3: 核心模組導入測試"
         python -c "
@@ -459,26 +459,26 @@ jobs:
         import os
         sys.path.append('.')
         sys.path.append('bot')
-        
+
         try:
             print('🔍 測試 main.py 導入...')
             import main
             print('✅ main.py 導入成功')
-            
+
             print('🔍 測試 DatabaseManager 導入...')
             from db.database_manager import DatabaseManager
             print('✅ DatabaseManager 導入成功')
-            
+
         except ImportError as e:
             print(f'⚠️ 導入警告: {e}')
             # 不退出，允許某些導入失敗
         except Exception as e:
             print(f'⚠️ 其他警告: {e}')
             # 不退出，允許某些錯誤
-            
+
         print('🎉 核心測試完成！')
         "
-        
+
         echo "🎉 環境變數和配置測試完成！"
 
   # ================================
@@ -535,7 +535,7 @@ jobs:
         # 創建測試用的 .env 文件
         cat > .env << 'EOF'
         # 測試環境配置
-        DISCORD_TOKEN=test_token_for_ci_cd
+        DISCORD_TOKEN=test_token_for_ci_cd_with_sufficient_length_for_validation_requirements_minimum_50_characters
         DATABASE_URL=postgresql://postgres:test_password@localhost:5432/potato_test  # pragma: allowlist secret
         REDIS_URL=redis://localhost:6379/0
         ENVIRONMENT=test
