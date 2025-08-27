@@ -15,15 +15,6 @@
 
 ---
 
-## 🚨 緊急修復計劃 - Cogs 載入問題
-
-**⚠️ 當前狀態**: 16/23 個 Cogs 載入失敗，需要立即修復
-
-📋 **修復計劃**: 請查看 [`docs/COGS_REPAIR_PLAN.md`](docs/COGS_REPAIR_PLAN.md)
-⚡ **快速修復**: 請查看 [`docs/QUICK_FIX_GUIDE.md`](docs/QUICK_FIX_GUIDE.md)
-
----
-
 ## 🎉 v3.2.0 重大更新 - 遊戲社群管理專家
 
 ### 🎮 **專注遊戲社群**
@@ -106,14 +97,13 @@
 git clone https://github.com/Craig-0219/potato.git
 cd potato
 
-# 安裝依賴
-pip install -r requirements.txt
+# 使用啟動器 (推薦)
+python start.py
 
-# 配置環境變數
+# 或者手動安裝
+pip install -r requirements.txt
 cp .env.example .env
 # 編輯 .env 填入你的配置
-
-# 啟動機器人
 python bot/main.py
 ```
 
@@ -133,12 +123,15 @@ docker-compose logs -f potato-bot
 | 功能類別 | 功能名稱 | 描述 | 狀態 |
 |---------|---------|------|------|
 | 🎮 **核心** | Discord 管理 | 成員、角色、頻道管理 | ✅ 完成 |
+| 🎫 **票券** | 智能客服 | 自動分類和分派系統 | ✅ 完成 |
+| 🗳️ **投票** | 社群決策 | 多輪投票和即時統計 | ✅ 完成 |
+| 🤖 **AI助手** | 智能問答 | GPT/Claude/Gemini 整合 | ✅ 完成 |
+| 🎉 **歡迎** | 成員入門 | 自動歡迎和角色分配 | ✅ 完成 |
+| 🛡️ **安全** | 權限管理 | 多層安全和審計 | ✅ 完成 |
 | ⛏️ **MC整合** | 聊天橋接 | Discord ↔ MC 即時聊天 | 🚧 開發中 |
-| ⛏️ **MC整合** | 白名單同步 | 自動化白名單管理 | 📋 規劃中 |
 | 🎯 **社群** | LFG 系統 | 智能隊友配對 | 📋 規劃中 |
 | 🏆 **競賽** | 排行榜 | 多維度玩家排名 | 📋 規劃中 |
 | 📺 **直播** | Twitch 整合 | 直播通知和互動 | 📋 規劃中 |
-| 🤖 **AI** | 智能助手 | 遊戲知識問答 | 📋 規劃中 |
 
 ---
 
@@ -169,9 +162,9 @@ docker-compose logs -f potato-bot
 - [問題回報](https://github.com/Craig-0219/potato/issues) - Bug 回報和功能請求
 
 ### 📚 **文檔資源**
-- [安裝指南](docs/INSTALLATION.md) - 詳細部署說明
-- [Minecraft 整合](docs/MINECRAFT.md) - MC 插件配置
-- [API 文檔](docs/API.md) - 開發者接口
+- [快速開始指南](QUICK_START.md) - 快速部署和設定
+- [使用手冊](docs/user-guides/USER_MANUAL.md) - 完整功能說明
+- [指令列表](docs/user-guides/COMMANDS.md) - 所有指令參考
 - [常見問題](docs/FAQ.md) - 疑難排解
 
 ### 🎁 **開源貢獻**
@@ -219,7 +212,7 @@ docker-compose logs -f potato-bot
 
 ## 🎮 加入 Potato Bot 社群，打造最棒的遊戲體驗！
 
-### [⬇️ 立即開始使用](docs/QUICKSTART.md) | [💬 加入 Discord](https://discord.gg/potato-bot) | [⭐ 給個 Star](https://github.com/Craig-0219/potato)
+### [⬇️ 立即開始使用](QUICK_START.md) | [💬 加入 Discord](https://discord.gg/potato-bot) | [⭐ 給個 Star](https://github.com/Craig-0219/potato)
 
 **讓每個遊戲社群都擁有最好的管理體驗** 🚀
 
