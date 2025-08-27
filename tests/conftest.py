@@ -3,33 +3,37 @@
 pytest 配置和共用測試夾具
 """
 
-import pytest
 import asyncio
 import os
-import tempfile
 import shutil
+import tempfile
 from typing import AsyncGenerator, Generator
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+
 # 設置測試環境變數
-os.environ.update({
-    'TESTING': 'true',
-    'DB_HOST': 'localhost',
-    'DB_PORT': '3306',
-    'DB_USER': 'test_user',
-    'DB_PASSWORD': 'test_password',
-    'DB_NAME': 'test_potato_bot',
-    'DISCORD_TOKEN': 'test_token_' + 'x' * 50,
-    'JWT_SECRET': 'test_jwt_secret_key_for_testing_only',
-    'LOG_LEVEL': 'DEBUG',
-    'DEBUG': 'true'
-})
+os.environ.update(
+    {
+        "TESTING": "true",
+        "DB_HOST": "localhost",
+        "DB_PORT": "3306",
+        "DB_USER": "test_user",
+        "DB_PASSWORD": "test_password",
+        "DB_NAME": "test_potato_bot",
+        "DISCORD_TOKEN": "test_token_" + "x" * 50,
+        "JWT_SECRET": "test_jwt_secret_key_for_testing_only",
+        "LOG_LEVEL": "DEBUG",
+        "DEBUG": "true",
+    }
+)
 
 import sys
-sys.path.insert(0, '/root/projects/potato')
+
+sys.path.insert(0, "/root/projects/potato")
 
 # Pytest asyncio 配置
-pytest_plugins = ['pytest_asyncio']
+pytest_plugins = ["pytest_asyncio"]
 
 
 @pytest.fixture(scope="session")
@@ -99,7 +103,7 @@ def mock_logger():
     """模擬日誌記錄器"""
     logger = MagicMock()
     logger.info = MagicMock()
-    logger.error = MagicMock() 
+    logger.error = MagicMock()
     logger.warning = MagicMock()
     logger.debug = MagicMock()
     return logger
@@ -109,53 +113,51 @@ def mock_logger():
 def sample_ticket_data():
     """樣本票券資料"""
     return {
-        'id': 1,
-        'guild_id': 1392536804355014676,
-        'user_id': 98765,
-        'channel_id': 1234567890,
-        'category': 'general',
-        'subject': 'Test Ticket',
-        'status': 'open',
-        'priority': 'medium',
-        'created_at': '2025-08-25 10:00:00',
-        'updated_at': '2025-08-25 10:00:00'
+        "id": 1,
+        "guild_id": 1392536804355014676,
+        "user_id": 98765,
+        "channel_id": 1234567890,
+        "category": "general",
+        "subject": "Test Ticket",
+        "status": "open",
+        "priority": "medium",
+        "created_at": "2025-08-25 10:00:00",
+        "updated_at": "2025-08-25 10:00:00",
     }
 
 
-@pytest.fixture  
+@pytest.fixture
 def sample_vote_data():
     """樣本投票資料"""
     return {
-        'id': 1,
-        'guild_id': 1392536804355014676,
-        'user_id': 98765,
-        'title': 'Test Vote',
-        'description': 'This is a test vote',
-        'options': ['Option A', 'Option B', 'Option C'],
-        'vote_type': 'single_choice',
-        'status': 'active',
-        'created_at': '2025-08-25 10:00:00',
-        'ends_at': '2025-08-26 10:00:00'
+        "id": 1,
+        "guild_id": 1392536804355014676,
+        "user_id": 98765,
+        "title": "Test Vote",
+        "description": "This is a test vote",
+        "options": ["Option A", "Option B", "Option C"],
+        "vote_type": "single_choice",
+        "status": "active",
+        "created_at": "2025-08-25 10:00:00",
+        "ends_at": "2025-08-26 10:00:00",
     }
 
 
 @pytest.fixture
 def api_headers():
     """API 請求標頭"""
-    return {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer test_jwt_token'
-    }
+    return {"Content-Type": "application/json", "Authorization": "Bearer test_jwt_token"}
 
 
 @pytest.fixture
 def mock_fastapi_request():
     """模擬 FastAPI 請求"""
     from fastapi import Request
+
     request = MagicMock(spec=Request)
-    request.headers = {'Authorization': 'Bearer test_token'}
+    request.headers = {"Authorization": "Bearer test_token"}
     request.client = MagicMock()
-    request.client.host = '127.0.0.1'
+    request.client.host = "127.0.0.1"
     return request
 
 
@@ -181,22 +183,10 @@ def isolate_tests():
 # Pytest 標記
 def pytest_configure(config):
     """pytest 配置"""
-    config.addinivalue_line(
-        "markers", 
-        "unit: 標記為單元測試"
-    )
-    config.addinivalue_line(
-        "markers", 
-        "integration: 標記為整合測試"
-    )
-    config.addinivalue_line(
-        "markers", 
-        "e2e: 標記為端到端測試"
-    )
-    config.addinivalue_line(
-        "markers",
-        "slow: 標記為慢速測試"
-    )
+    config.addinivalue_line("markers", "unit: 標記為單元測試")
+    config.addinivalue_line("markers", "integration: 標記為整合測試")
+    config.addinivalue_line("markers", "e2e: 標記為端到端測試")
+    config.addinivalue_line("markers", "slow: 標記為慢速測試")
 
 
 # 跳過條件

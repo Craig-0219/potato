@@ -50,7 +50,7 @@ export function Navbar() {
       </nav>
     )
   }
-  
+
   // 未認證時顯示簡單的導航欄（避免佈局跳躍）
   if (!isAuthenticated) {
     return (
@@ -216,7 +216,7 @@ export function Navbar() {
                   <span>{item.name}</span>
                 </Link>
               ))}
-              
+
               {/* 折疊菜單中顯示 Bot 連線狀態 */}
               <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50">
                 <div className="text-sm text-gray-600 dark:text-gray-400 mb-2 font-medium">Bot 連線狀態</div>

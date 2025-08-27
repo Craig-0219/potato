@@ -26,12 +26,12 @@ if project_root not in sys.path:
 possible_roots = [
     project_root,
     os.path.dirname(project_root),  # 如果在子目錄中
-    "/home/container",              # 常見託管環境路徑
-    os.getcwd(),                    # 當前工作目錄
+    "/home/container",  # 常見託管環境路徑
+    os.getcwd(),  # 當前工作目錄
 ]
 
 for root_path in possible_roots:
-    shared_path = os.path.join(root_path, 'shared')
+    shared_path = os.path.join(root_path, "shared")
     if os.path.exists(shared_path) and root_path not in sys.path:
         sys.path.insert(0, root_path)
         print(f"🔧 添加路徑: {root_path}")
@@ -73,14 +73,12 @@ except ImportError as e:
 
 import threading
 
-import aiomysql
 import uvicorn
 
 # API Server 整合
 from bot.api.app import app as api_app
 from bot.db.pool import close_database, db_pool, get_db_health, init_database
 from bot.services.guild_manager import GuildManager
-from bot.utils.error_handler import setup_error_handling
 from bot.utils.multi_tenant_security import multi_tenant_security
 
 # Views現在由各個Cog自行註冊，不需要集中註冊
@@ -115,6 +113,7 @@ ALL_EXTENSIONS = [
     "guild_management_core",  # 伺服器管理與GDPR合規 - Phase 6 Stage 3
     "menu_core",  # GUI 選單系統 - Phase 7 Stage 2
     "fallback_commands",  # 備用前綴命令系統
+    "auto_updater",  # 內部自動更新器 - 繞過託管商限制
     # "game_core" - 遊戲娛樂功能
 ]
 
@@ -391,7 +390,7 @@ class PotatoBot(commands.Bot):
                 if discord_commands and len(discord_commands) > 0:
                     logger.info(f"✅ Discord 已有 {len(discord_commands)} 個註冊命令，跳過同步")
                     return
-            except:
+            except Exception:
                 pass  # 如果檢查失敗，繼續嘗試同步
 
             # 嘗試同步，但如果遇到速率限制就跳過
@@ -400,7 +399,7 @@ class PotatoBot(commands.Bot):
 
         except discord.HTTPException as e:
             if "429" in str(e) or "Too Many Requests" in str(e):
-                logger.warning(f"⚠️ 遇到速率限制，停用自動同步")
+                logger.warning("⚠️ 遇到速率限制，停用自動同步")
                 logger.info("💡 請等待 24 小時後重試，或設定 SYNC_COMMANDS=false 停用同步")
                 # 設定環境變數停用後續同步嘗試
                 import os
@@ -682,7 +681,11 @@ async def bot_status(ctx):
                 "overall_status": "healthy" if db_health.get("status") == "healthy" else "degraded",
                 "基本資訊": {
                     "伺服器數量": len(ctx.bot.guilds),
-                    "延遲": f"{round(ctx.bot.latency * 1000) if ctx.bot.latency is not None and not (ctx.bot.latency != ctx.bot.latency) else 'N/A'}ms",
+                    "延遲": (
+                        f"{round(ctx.bot.latency * 1000)}ms"
+                        if ctx.bot.latency is not None and not (ctx.bot.latency != ctx.bot.latency)
+                        else "N/A"
+                    ),
                     "運行時間": ctx.bot.get_uptime(),
                 },
                 "資料庫": {
@@ -702,7 +705,10 @@ async def bot_status(ctx):
             if error_stats["total_errors"] > 0:
                 embed.add_field(
                     name="錯誤統計",
-                    value=f"總錯誤數：{error_stats['total_errors']}\n前三錯誤：{', '.join(list(error_stats['top_errors'].keys())[:3])}",
+                    value=(
+                        f"總錯誤數：{error_stats['total_errors']}\n"
+                        f"前三錯誤：{', '.join(list(error_stats['top_errors'].keys())[:3])}"
+                    ),
                     inline=False,
                 )
 
@@ -730,7 +736,7 @@ async def health_check(ctx):
         try:
             db_health = await get_db_health()
             checks["資料庫連接"] = db_health.get("status") == "healthy"
-        except:
+        except Exception:
             pass
 
         # 檢查命令

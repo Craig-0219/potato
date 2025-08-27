@@ -97,13 +97,14 @@
 git clone https://github.com/Craig-0219/potato.git
 cd potato
 
-# 使用啟動器 (推薦)
-python start.py
-
-# 或者手動安裝
+# 安裝依賴
 pip install -r requirements.txt
+
+# 配置環境變數
 cp .env.example .env
 # 編輯 .env 填入你的配置
+
+# 啟動機器人
 python bot/main.py
 ```
 
@@ -128,29 +129,32 @@ docker-compose logs -f potato-bot
 | 🤖 **AI助手** | 智能問答 | GPT/Claude/Gemini 整合 | ✅ 完成 |
 | 🎉 **歡迎** | 成員入門 | 自動歡迎和角色分配 | ✅ 完成 |
 | 🛡️ **安全** | 權限管理 | 多層安全和審計 | ✅ 完成 |
-| ⛏️ **MC整合** | 聊天橋接 | Discord ↔ MC 即時聊天 | 🚧 開發中 |
-| 🎯 **社群** | LFG 系統 | 智能隊友配對 | 📋 規劃中 |
-| 🏆 **競賽** | 排行榜 | 多維度玩家排名 | 📋 規劃中 |
-| 📺 **直播** | Twitch 整合 | 直播通知和互動 | 📋 規劃中 |
+| 🎮 **娛樂** | 遊戲功能 | 互動遊戲和娛樂 | ✅ 完成 |
+| 🎵 **音樂** | 音樂播放 | 語音頻道音樂系統 | ✅ 完成 |
+| 💰 **經濟** | 虛擬貨幣 | 跨平台經濟系統 | ✅ 完成 |
+| 📊 **分析** | 數據統計 | 內容分析和統計 | ✅ 完成 |
 
 ---
 
 ## 🌟 使用案例
 
-### 🎮 **Minecraft 伺服器管理員**
-- 一鍵同步 Discord 和 MC 的聊天訊息
-- 自動化白名單和封禁管理
-- 即時監控伺服器狀態和玩家活動
+### 🎮 **Discord 社群管理員**
+- 智能票券系統處理成員問題
+- 自動化投票和決策管理
+- AI 輔助內容審核和問答
+- 完整的權限和安全管理
 
-### 👑 **Discord 社群管理員**
-- 智能票券系統處理玩家問題
-- 自動化活動管理和提醒
-- AI 輔助內容審核和社群分析
+### 👑 **伺服器擁有者**
+- 自動歡迎新成員設定
+- 多層次安全和角色管理
+- 完整的數據分析和統計
+- 跨平台經濟系統管理
 
-### 🎯 **遊戲玩家**
-- 使用 LFG 系統尋找隊友
-- 查看個人遊戲統計和成就
-- 參與社群競賽和排行榜
+### 🎯 **社群成員**
+- 使用票券系統獲得協助
+- 參與社群投票和決策
+- 享受娛樂遊戲和音樂功能
+- 獲得 AI 智能助手服務
 
 ---
 
@@ -162,9 +166,9 @@ docker-compose logs -f potato-bot
 - [問題回報](https://github.com/Craig-0219/potato/issues) - Bug 回報和功能請求
 
 ### 📚 **文檔資源**
-- [快速開始指南](QUICK_START.md) - 快速部署和設定
-- [使用手冊](docs/user-guides/USER_MANUAL.md) - 完整功能說明
-- [指令列表](docs/user-guides/COMMANDS.md) - 所有指令參考
+- [安裝指南](docs/INSTALLATION.md) - 詳細部署說明
+- [Minecraft 整合](docs/MINECRAFT.md) - MC 插件配置
+- [API 文檔](docs/API.md) - 開發者接口
 - [常見問題](docs/FAQ.md) - 疑難排解
 
 ### 🎁 **開源貢獻**
@@ -176,23 +180,23 @@ docker-compose logs -f potato-bot
 
 ## 📈 發展路線
 
-### 🎯 **近期目標 (Q4 2025)**
-- [ ] 完成 Minecraft 插件開發
-- [ ] 實現 LFG 智能配對系統
-- [ ] 添加基礎競賽管理功能
-- [ ] 支援 5+ 熱門 Minecraft 插件
+### 🎯 **系統優化**
+- [ ] 強化 CI/CD 流程
+- [ ] 提升測試覆蓋率
+- [ ] 優化性能和穩定性
+- [ ] 完善監控和日誌系統
 
-### 🚀 **中期計劃 (2026 H1)**
-- [ ] 擴展到其他遊戲 (Valheim, Rust, ARK)
-- [ ] 開發行動版管理面板
-- [ ] AI 功能深度整合
-- [ ] 建立插件生態系統
+### 🚀 **功能擴展**
+- [ ] Minecraft 插件深度整合
+- [ ] 更多遊戲平台支援
+- [ ] 進階 AI 功能增強
+- [ ] 移動端管理介面
 
-### 🌟 **長期願景 (2026+)**
-- [ ] 成為遊戲社群管理標準工具
-- [ ] 建立開發者生態系統
-- [ ] 支援 100+ 熱門遊戲
-- [ ] 全球 10,000+ 活躍社群
+### 🌟 **社群生態**
+- [ ] 開發者 API 平台
+- [ ] 第三方插件系統
+- [ ] 社群貢獻獎勵機制
+- [ ] 全球本地化支援
 
 ---
 
@@ -212,7 +216,7 @@ docker-compose logs -f potato-bot
 
 ## 🎮 加入 Potato Bot 社群，打造最棒的遊戲體驗！
 
-### [⬇️ 立即開始使用](QUICK_START.md) | [💬 加入 Discord](https://discord.gg/potato-bot) | [⭐ 給個 Star](https://github.com/Craig-0219/potato)
+### [⬇️ 立即開始使用](docs/QUICKSTART.md) | [💬 加入 Discord](https://discord.gg/potato-bot) | [⭐ 給個 Star](https://github.com/Craig-0219/potato)
 
 **讓每個遊戲社群都擁有最好的管理體驗** 🚀
 

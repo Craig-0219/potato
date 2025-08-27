@@ -18,29 +18,23 @@ from bot.utils.multi_tenant_security import secure_query_builder
 
 logger = logging.getLogger(__name__)
 
-
 class MetricType(Enum):
     """指標類型"""
-
-    COUNTER = "counter"  # 計數器
-    GAUGE = "gauge"  # 測量值
+    COUNTER = "counter"      # 計數器
+    GAUGE = "gauge"         # 測量值
     HISTOGRAM = "histogram"  # 直方圖
-    RATE = "rate"  # 比率
-
+    RATE = "rate"           # 比率
 
 class AlertSeverity(Enum):
     """警告嚴重程度"""
-
     INFO = "info"
     WARNING = "warning"
     CRITICAL = "critical"
     EMERGENCY = "emergency"
 
-
 @dataclass
 class MetricData:
     """指標數據"""
-
     name: str
     value: float
     type: MetricType
@@ -51,11 +45,9 @@ class MetricData:
         if self.labels is None:
             self.labels = {}
 
-
 @dataclass
 class AlertRule:
     """警告規則"""
-
     name: str
     metric: str
     condition: str  # ">" | "<" | "==" | "!="
@@ -63,7 +55,6 @@ class AlertRule:
     severity: AlertSeverity
     duration_minutes: int = 5
     enabled: bool = True
-
 
 class GuildAnalyticsService:
     """伺服器分析服務"""
@@ -87,7 +78,7 @@ class GuildAnalyticsService:
                 condition=">",
                 threshold=0.05,  # 5%
                 severity=AlertSeverity.WARNING,
-                duration_minutes=5,
+                duration_minutes=5
             ),
             AlertRule(
                 name="票券積壓警告",
@@ -95,7 +86,7 @@ class GuildAnalyticsService:
                 condition=">",
                 threshold=50,
                 severity=AlertSeverity.WARNING,
-                duration_minutes=10,
+                duration_minutes=10
             ),
             AlertRule(
                 name="API 速率限制警告",
@@ -103,7 +94,7 @@ class GuildAnalyticsService:
                 condition=">",
                 threshold=10,
                 severity=AlertSeverity.CRITICAL,
-                duration_minutes=1,
+                duration_minutes=1
             ),
             AlertRule(
                 name="資料庫連接警告",
@@ -111,8 +102,8 @@ class GuildAnalyticsService:
                 condition=">",
                 threshold=5,
                 severity=AlertSeverity.EMERGENCY,
-                duration_minutes=2,
-            ),
+                duration_minutes=2
+            )
         ]
 
     async def collect_guild_metrics(self, guild_id: int) -> Dict[str, Any]:
@@ -142,12 +133,10 @@ class GuildAnalyticsService:
             # 檢查警告
             await self._check_alerts(guild_id, metrics)
 
-            return metrics
+                    await asyncio.sleep(60)  # 錯誤時等待1分鐘
 
-        except Exception as e:
-            logger.error(f"❌ 收集伺服器指標失敗 {guild_id}: {e}")
-            return {}
-
+        # 在背景執行監控
+        asyncio.create_task(monitoring_loop())
 
 # 全域實例
 guild_analytics_service = GuildAnalyticsService()

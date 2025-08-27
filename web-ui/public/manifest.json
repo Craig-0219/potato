@@ -17,14 +17,14 @@
       "purpose": "maskable any"
     },
     {
-      "src": "/icon-96x96.png", 
+      "src": "/icon-96x96.png",
       "sizes": "96x96",
       "type": "image/png",
       "purpose": "maskable any"
     },
     {
       "src": "/icon-128x128.png",
-      "sizes": "128x128", 
+      "sizes": "128x128",
       "type": "image/png",
       "purpose": "maskable any"
     },
@@ -67,7 +67,7 @@
       "form_factor": "wide"
     },
     {
-      "src": "/screenshot-narrow.png", 
+      "src": "/screenshot-narrow.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow"

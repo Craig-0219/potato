@@ -8,7 +8,7 @@ import { AuthProvider } from '@/lib/auth/auth-context'
 import { BotConnectionProvider } from '@/components/providers/bot-connection-provider'
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => 
+  const [queryClient] = useState(() =>
     new QueryClient({
       defaultOptions: {
         queries: {

@@ -4,10 +4,10 @@ const nextConfig = {
   poweredByHeader: false,
   reactStrictMode: false, // 暫時禁用以解決認證狀態問題
   swcMinify: true,
-  
+
   // 允許跨域開發請求
   allowedDevOrigins: ['36.50.249.118'],
-  
+
   // API 代理配置
   async rewrites() {
     const botApiUrl = process.env.NEXT_PUBLIC_BOT_API_URL || 'http://localhost:8000'

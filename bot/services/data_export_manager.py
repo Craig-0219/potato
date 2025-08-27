@@ -642,7 +642,7 @@ class DataExportManager:
             params.extend([start_date, end_date])
 
         # 只匯出非敏感的安全事件
-        if not request.filters or request.filters.get("include_sensitive") != True:
+        if not request.filters or not request.filters.get("include_sensitive"):
             query += " AND event_type NOT IN ('password_reset', 'token_refresh', 'private_message')"
 
         query += " ORDER BY created_at DESC"
@@ -660,7 +660,7 @@ class DataExportManager:
             "export_type": "security_events",
             "total_records": len(events),
             "filtered_sensitive": not (
-                request.filters and request.filters.get("include_sensitive") == True
+                request.filters and request.filters.get("include_sensitive")
             ),
             "export_timestamp": datetime.now().isoformat(),
         }

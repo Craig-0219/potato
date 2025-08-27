@@ -17,41 +17,41 @@ jobs:
   quality:
     runs-on: ubuntu-latest
     name: Code Quality
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python ${{ env.PYTHON_VERSION }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON_VERSION }}
         cache: 'pip'
-    
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -e ".[dev]"
-    
+
     - name: Code formatting check
       continue-on-error: true
       run: |
         echo "Checking code formatting..."
         black --check bot/ shared/ tests/ || echo "⚠️ Black formatting issues detected"
         isort --check-only bot/ shared/ tests/ || echo "⚠️ isort formatting issues detected"
-    
+
     - name: Lint check
       continue-on-error: true
       run: |
         flake8 bot/ shared/ tests/ || echo "⚠️ Flake8 issues detected"
         mypy bot/ shared/ || echo "⚠️ MyPy issues detected"
-    
+
     - name: Security check
       continue-on-error: true
       run: |
         echo "Running bandit security scan..."
         bandit -r bot/ shared/ -f json -o bandit-report.json --severity-level medium || echo "⚠️ Security issues detected - see report"
         echo "Bandit scan completed - check artifacts for detailed report"
-    
+
     - name: Upload security report
       uses: actions/upload-artifact@v4
       if: always()
@@ -63,7 +63,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     name: Tests
-    
+
     services:
       mysql:
         image: mysql:8.0
@@ -75,27 +75,27 @@ jobs:
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-      
+
       redis:
         image: redis:7
         ports:
           - 6379:6379
         options: --health-cmd="redis-cli ping" --health-interval=10s --health-timeout=5s --health-retries=3
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python ${{ env.PYTHON_VERSION }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON_VERSION }}
         cache: 'pip'
-    
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -e ".[test]"
-    
+
     - name: Set up test environment
       run: |
         echo "TESTING=true" >> $GITHUB_ENV
@@ -107,11 +107,11 @@ jobs:
         echo "DISCORD_TOKEN=test_token_$(openssl rand -hex 25)" >> $GITHUB_ENV
         echo "JWT_SECRET=test_jwt_secret_key_for_ci_only" >> $GITHUB_ENV
         echo "REDIS_URL=redis://127.0.0.1:6379/0" >> $GITHUB_ENV
-    
+
     - name: Run tests
       run: |
         python -m pytest tests/ -v --cov=bot --cov-report=xml --cov-report=term-missing --cov-fail-under=10 || echo "⚠️ Tests failed or coverage below threshold"
-    
+
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
       if: success()
@@ -124,21 +124,21 @@ jobs:
   build:
     runs-on: ubuntu-latest
     name: Build Check
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python ${{ env.PYTHON_VERSION }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON_VERSION }}
         cache: 'pip'
-    
+
     - name: Test installation
       run: |
         python -m pip install --upgrade pip
         pip install -e ".[dev]"
-    
+
     - name: Test imports
       env:
         DISCORD_TOKEN: "test_token_for_ci"
@@ -158,17 +158,17 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     name: Docker Build
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
-    
+
     - name: Build Docker image
       run: |
         docker build -t potato-bot:test .
-    
+
     - name: Test Docker image
       run: |
         docker run --rm potato-bot:test python -c "print('Docker build successful')"
@@ -177,24 +177,24 @@ jobs:
   technical-debt:
     runs-on: ubuntu-latest
     name: Technical Debt Analysis
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Python ${{ env.PYTHON_VERSION }}
       uses: actions/setup-python@v4
       with:
         python-version: ${{ env.PYTHON_VERSION }}
-    
+
     - name: Install analysis tools
       run: |
         pip install radon
-    
+
     - name: Check code complexity
       run: |
         radon cc bot/ -a -s
         radon mi bot/ -s
-    
+
     - name: Generate technical debt report
       run: |
         echo "## Technical Debt Report" > tech-debt-report.md
@@ -202,7 +202,7 @@ jobs:
         radon cc bot/ -a -s >> tech-debt-report.md
         echo "### Maintainability Index" >> tech-debt-report.md
         radon mi bot/ -s >> tech-debt-report.md
-    
+
     - name: Upload technical debt report
       uses: actions/upload-artifact@v4
       with:
@@ -214,7 +214,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Integration Check
     needs: [quality, test, build, docker, technical-debt]
-    
+
     steps:
     - name: All checks passed
       run: |
@@ -231,10 +231,10 @@ jobs:
     name: Deploy
     needs: integration
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Deployment placeholder
       run: |
         echo "🚀 Ready for deployment!"
@@ -249,10 +249,10 @@ jobs:
     runs-on: ubuntu-latest
     name: Create Release
     if: startsWith(github.ref, 'refs/tags/v')
-    
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Create Release
       uses: actions/create-release@v1
       env:

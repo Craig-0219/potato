@@ -25,7 +25,7 @@ export function LandingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     if (!apiKey.trim()) {
       toast.error('請輸入 API 金鑰')
       return
@@ -36,7 +36,7 @@ export function LandingPage() {
     try {
       const success = await loginWithApiKey(apiKey.trim())
       console.log('🔍 登入結果:', success)
-      
+
       if (success) {
         toast.success('登入成功！正在跳轉...')
         console.log('✅ 登入成功，準備跳轉到儀表板')
@@ -62,7 +62,7 @@ export function LandingPage() {
     <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-discord-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
       {/* 背景裝飾 */}
       <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:bg-grid-slate-700/25 dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.5))]" />
-      
+
       <div className="relative flex min-h-screen flex-col justify-center">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
@@ -71,7 +71,7 @@ export function LandingPage() {
               <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-500 to-discord-600 text-white shadow-xl">
                 <span className="text-3xl font-bold">🥔</span>
               </div>
-              
+
               <h1 className="mt-6 text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
                 <span className="text-gradient">Potato Bot</span>
                 <br />
@@ -79,7 +79,7 @@ export function LandingPage() {
                   企業級管理面板
                 </span>
               </h1>
-              
+
               <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-400">
                 現代化的 Discord 機器人管理界面，提供票券系統、分析統計、自動化工作流程等企業級功能。
                 使用您的 API 金鑰登入以開始管理您的 Discord 伺服器。
@@ -115,7 +115,7 @@ export function LandingPage() {
                 <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
                   登入管理面板
                 </h2>
-                
+
                 {/* 如果已認證，顯示前往儀表板按鈕 */}
                 {isAuthenticated && !authLoading ? (
                   <div className="text-center space-y-4">
@@ -187,7 +187,7 @@ export function LandingPage() {
                           備用登入方式 - 請輸入您的 API 金鑰
                         </p>
                       </div>
-                    
+
                     <button
                       type="submit"
                       disabled={isLoading || !apiKey.trim()}
@@ -227,7 +227,7 @@ export function LandingPage() {
                         </p>
                       </div>
                     </div>
-                    
+
                     <div className="rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
                       <p className="text-xs font-medium text-blue-800 dark:text-blue-200 mb-1">
                         💻 開發測試用金鑰：
@@ -247,7 +247,7 @@ export function LandingPage() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="rounded-lg bg-amber-50 p-3 dark:bg-amber-900/20">
                       <p className="text-xs text-amber-800 dark:text-amber-200">
                         ⚠️ <strong>注意：</strong>真實的 API 金鑰格式為 <code>key_id.key_secret</code>，

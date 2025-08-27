@@ -21,9 +21,9 @@ export default function DiscordAuthPage() {
             role: 'owner'  // 使用 owner 角色來模擬伺服器擁有者
           })
         })
-        
+
         const data = await response.json()
-        
+
         if (data.success && data.token) {
           // 轉換用戶數據格式以匹配 User 接口
           const userData = {
@@ -36,11 +36,11 @@ export default function DiscordAuthPage() {
             isOwner: true, // 標記為擁有者
             ownerPrivileges: true // 擁有者特權
           }
-          
+
           // 儲存 token 和轉換後的用戶數據到 localStorage
           localStorage.setItem('auth_token', data.token)
           localStorage.setItem('user_data', JSON.stringify(userData))
-          
+
           // 重定向到成功頁面
           router.push('/auth/success?temp=true')
         } else {
@@ -51,7 +51,7 @@ export default function DiscordAuthPage() {
         router.push('/auth/error?error=test_login_failed')
       }
     }
-    
+
     // 延遲 1 秒執行，讓用戶看到載入畫面
     const timer = setTimeout(testLogin, 1000)
     return () => clearTimeout(timer)
@@ -71,9 +71,9 @@ export default function DiscordAuthPage() {
             正在進行伺服器擁有者身份驗證...
           </p>
         </div>
-        
+
         <Spinner size="lg" className="mb-4" />
-        
+
         <div className="max-w-md mx-auto">
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
             <p className="text-sm text-yellow-800 dark:text-yellow-200">

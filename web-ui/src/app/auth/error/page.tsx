@@ -21,7 +21,7 @@ function AuthErrorContent() {
       'token_exchange_failed': '權杖交換失敗',
       'unknown_error': '未知錯誤'
     }
-    
+
     return errorMessages[errorCode] || errorMessages['unknown_error']
   }
 
@@ -36,7 +36,7 @@ function AuthErrorContent() {
       'token_exchange_failed': '請重新嘗試登入',
       'unknown_error': '請重新嘗試，如果問題持續請聯繫技術支援'
     }
-    
+
     return advice[errorCode] || advice['unknown_error']
   }
 
@@ -47,16 +47,16 @@ function AuthErrorContent() {
           <div className="w-16 h-16 mx-auto mb-4 bg-red-500 rounded-full flex items-center justify-center text-2xl">
             ❌
           </div>
-          
+
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
             認證失敗
           </h1>
-          
+
           <p className="text-red-600 dark:text-red-400 mb-4">
             {getErrorMessage(error)}
           </p>
         </div>
-        
+
         <div className="space-y-4">
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
             <p className="text-sm text-red-800 dark:text-red-200 mb-2">
@@ -66,7 +66,7 @@ function AuthErrorContent() {
               {getErrorAdvice(error)}
             </p>
           </div>
-          
+
           <div className="space-x-2">
             <button
               onClick={() => router.push('/auth/discord')}
@@ -81,7 +81,7 @@ function AuthErrorContent() {
               返回首頁
             </button>
           </div>
-          
+
           <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
             <details className="text-left">
               <summary className="text-sm text-gray-500 dark:text-gray-400 cursor-pointer">
