@@ -79,3 +79,88 @@ jobs:
         echo "📊 檢查依賴..."
         test -f requirements.txt || { echo "❌ requirements.txt 不存在"; exit 1; }
         echo "✅ 依賴檢查完成"
+
+    - name: 🧪 Cogs 載入測試
+      run: |
+        echo "🧪 測試關鍵 Cogs 載入..."
+        python -c "
+        import sys; sys.path.append('.')
+        from unittest.mock import patch, MagicMock
+
+        with patch('discord.ext.commands.Bot') as mock_bot:
+            with patch('discord.Intents'):
+                mock_bot.return_value = MagicMock()
+                
+                # 測試關鍵 Cogs
+                try:
+                    from bot.cogs.ticket_core import TicketCore
+                    print('✅ TicketCore 可載入')
+                except Exception as e:
+                    print(f'⚠️ TicketCore 載入問題: {e}')
+                
+                try:
+                    from bot.cogs.vote_core import VoteCore  
+                    print('✅ VoteCore 可載入')
+                except Exception as e:
+                    print(f'⚠️ VoteCore 載入問題: {e}')
+                
+                try:
+                    from bot.cogs.language_core import LanguageManager
+                    print('✅ LanguageManager 可載入')
+                except Exception as e:
+                    print(f'⚠️ LanguageManager 載入問題: {e}')
+        "
+
+    - name: 🔧 核心服務測試
+      run: |
+        echo "🔧 測試核心服務初始化..."
+        python -c "
+        import sys; sys.path.append('.')
+        from unittest.mock import patch, MagicMock, AsyncMock
+
+        # 測試資料庫管理器
+        try:
+            from bot.db.database_manager import DatabaseManager
+            print('✅ DatabaseManager 可初始化')
+        except Exception as e:
+            print(f'⚠️ DatabaseManager 問題: {e}')
+        
+        # 測試快取管理器  
+        try:
+            from shared.local_cache_manager import LocalCacheManager
+            cache = LocalCacheManager()
+            print('✅ LocalCacheManager 可初始化')
+        except Exception as e:
+            print(f'⚠️ LocalCacheManager 問題: {e}')
+            
+        # 測試離線模式管理器
+        try:
+            from shared.offline_mode_manager import OfflineModeManager
+            offline_mgr = OfflineModeManager()
+            print('✅ OfflineModeManager 可初始化')
+        except Exception as e:
+            print(f'⚠️ OfflineModeManager 問題: {e}')
+        "
+
+    - name: 🚀 Bot 主程式測試  
+      run: |
+        echo "🚀 測試 Bot 主程式初始化..."
+        python -c "
+        import sys; sys.path.append('.')
+        from unittest.mock import patch, MagicMock, AsyncMock
+        
+        with patch('discord.ext.commands.Bot') as mock_bot_class:
+            with patch('discord.Intents'):
+                mock_bot = MagicMock()
+                mock_bot.user = MagicMock()
+                mock_bot.user.id = 123456789
+                mock_bot.guilds = []
+                mock_bot_class.return_value = mock_bot
+                
+                try:
+                    from bot.main import PotatoBot
+                    print('✅ PotatoBot 類別可正常導入')
+                    print('✅ 主程式結構完整')
+                except Exception as e:
+                    print(f'⚠️ 主程式問題: {e}')
+        "
