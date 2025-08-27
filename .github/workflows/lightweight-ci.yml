@@ -25,6 +25,17 @@ jobs:
       DB_NAME: test_database
       DB_PORT: 3306
       JWT_SECRET: test_jwt_secret_for_automated_testing_purposes_only  # pragma: allowlist secret
+      REDIS_URL: redis://localhost:6379/0
+      # OAuth 測試變數 (避免警告)
+      DISCORD_CLIENT_ID: test_client_id_12345678
+      DISCORD_CLIENT_SECRET: test_client_secret_testing_purposes_only  # pragma: allowlist secret
+      DISCORD_REDIRECT_URI: http://localhost:8080/auth/discord/callback
+      DISCORD_GUILD_ID: test_guild_id_987654321
+      # API 配置
+      ENABLE_API_SERVER: true
+      API_EXTERNAL_ACCESS: false
+      LOCAL_API_HOST: 127.0.0.1
+      LOCAL_API_PORT: 8080
 
     steps:
     - name: 📥 檢出代碼
