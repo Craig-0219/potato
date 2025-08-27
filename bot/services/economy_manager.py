@@ -761,7 +761,7 @@ class EconomyManager:
                             "avg_coins": float(avg_coins) if avg_coins else 0,
                             "max_coins": max_coins or 0,
                             "daily_checkins": daily_checkins or 0,
-                            "win_rate": (total_wins / total_games * 100) if total_games > 0 else 0
+                            "win_rate": ((total_wins or 0) / (total_games or 1) * 100) if (total_games or 0) > 0 else 0
                         }
                     
                     return {}
