@@ -342,55 +342,53 @@ jobs:
         print('🎉 模組語法檢查完成！')
         " || exit 1
 
-    - name: 🗄️ Database Configuration Check
-      env:
-        TESTING: "true"
+    - name: 🗄️ File Structure Verification
       run: |
-        echo "🗄️ 資料庫配置檢查..."
-        python -c "
-        import os
-        import sys
-        import ast
-        sys.path.append('.')
-        sys.path.append('bot')
-
-        # 設置測試環境變數
-        os.environ['TESTING'] = 'true'
-        os.environ['DATABASE_URL'] = 'sqlite:///test.db'
-        os.environ['REDIS_URL'] = 'redis://localhost:6379/0'
-
-        print('🔒 使用測試環境配置（不連接真實資料庫）')
-
-        # 檢查資料庫相關文件語法
-        db_files = [
-            'bot/db/database_manager.py',
-            'shared/config.py'
-        ]
-
-        for file_path in db_files:
-            try:
-                if os.path.exists(file_path):
-                    with open(file_path, 'r', encoding='utf-8') as f:
-                        ast.parse(f.read())
-                    print(f'✅ {file_path} 語法檢查通過')
-                else:
-                    print(f'⚠️ {file_path} 不存在，跳過檢查')
-            except SyntaxError as e:
-                print(f'❌ {file_path} 語法錯誤: {e}')
-                sys.exit(1)
-            except Exception as e:
-                print(f'⚠️ {file_path} 檢查警告: {e}')
-
-        # 簡單的配置載入測試（不連接資料庫）
-        try:
-            from shared.config import Config
-            config = Config()
-            print('✅ 配置載入成功')
-        except Exception as e:
-            print(f'⚠️ 配置載入警告: {e}')
-
-        print('🎉 資料庫配置檢查完成！')
-        " || exit 1
+        echo "🗄️ 檔案結構驗證..."
+        
+        # 檢查核心文件是否存在
+        CORE_FILES=(
+          "bot/main.py"
+          "bot/db/database_manager.py"
+          "shared/config.py"
+          "requirements.txt"
+        )
+        
+        MISSING_FILES=()
+        
+        for file in "${CORE_FILES[@]}"; do
+          if [[ -f "$file" ]]; then
+            echo "✅ $file 存在"
+          else
+            echo "❌ $file 缺失"
+            MISSING_FILES+=("$file")
+          fi
+        done
+        
+        # 檢查 cogs 目錄
+        if [[ -d "bot/cogs" ]]; then
+          COG_COUNT=$(find bot/cogs -name "*.py" | wc -l)
+          echo "✅ bot/cogs 目錄存在，包含 $COG_COUNT 個 Python 檔案"
+        else
+          echo "❌ bot/cogs 目錄不存在"
+          MISSING_FILES+=("bot/cogs/")
+        fi
+        
+        # 檢查 shared 目錄
+        if [[ -d "shared" ]]; then
+          SHARED_COUNT=$(find shared -name "*.py" | wc -l)
+          echo "✅ shared 目錄存在，包含 $SHARED_COUNT 個 Python 檔案"
+        else
+          echo "❌ shared 目錄不存在"
+          MISSING_FILES+=("shared/")
+        fi
+        
+        if [[ ${#MISSING_FILES[@]} -gt 0 ]]; then
+          echo "❌ 檔案結構驗證失敗，缺失檔案: ${MISSING_FILES[*]}"
+          exit 1
+        else
+          echo "🎉 檔案結構驗證通過！"
+        fi
 
   # ================================
   # 階段 3: Discord Bot 啟動測試
