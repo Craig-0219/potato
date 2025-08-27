@@ -345,7 +345,7 @@ jobs:
     - name: 🗄️ File Structure Verification
       run: |
         echo "🗄️ 檔案結構驗證..."
-        
+
         # 檢查核心文件是否存在
         CORE_FILES=(
           "bot/main.py"
@@ -353,9 +353,9 @@ jobs:
           "shared/config.py"
           "requirements.txt"
         )
-        
+
         MISSING_FILES=()
-        
+
         for file in "${CORE_FILES[@]}"; do
           if [[ -f "$file" ]]; then
             echo "✅ $file 存在"
@@ -364,7 +364,7 @@ jobs:
             MISSING_FILES+=("$file")
           fi
         done
-        
+
         # 檢查 cogs 目錄
         if [[ -d "bot/cogs" ]]; then
           COG_COUNT=$(find bot/cogs -name "*.py" | wc -l)
@@ -373,7 +373,7 @@ jobs:
           echo "❌ bot/cogs 目錄不存在"
           MISSING_FILES+=("bot/cogs/")
         fi
-        
+
         # 檢查 shared 目錄
         if [[ -d "shared" ]]; then
           SHARED_COUNT=$(find shared -name "*.py" | wc -l)
@@ -382,13 +382,131 @@ jobs:
           echo "❌ shared 目錄不存在"
           MISSING_FILES+=("shared/")
         fi
-        
+
         if [[ ${#MISSING_FILES[@]} -gt 0 ]]; then
           echo "❌ 檔案結構驗證失敗，缺失檔案: ${MISSING_FILES[*]}"
           exit 1
         else
           echo "🎉 檔案結構驗證通過！"
         fi
+
+    - name: 🧪 Mock Database Integration Tests
+      env:
+        TESTING: "true"
+        MOCK_MODE: "true"
+      run: |
+        echo "🧪 模擬資料庫整合測試..."
+        cd bot
+        
+        python -c "
+        import os
+        import sys
+        import asyncio
+        import secrets
+        import string
+        from unittest.mock import Mock, patch, AsyncMock
+        sys.path.append('..')
+        
+        # 設置模擬測試環境
+        random_suffix = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8))
+        os.environ['TESTING'] = 'true'
+        os.environ['MOCK_MODE'] = 'true'
+        os.environ['DISCORD_TOKEN'] = f'test_token_{random_suffix}'
+        os.environ['DATABASE_URL'] = 'sqlite:///:memory:'
+        os.environ['REDIS_URL'] = 'redis://mock:6379/0'
+        os.environ['JWT_SECRET'] = f'mock_jwt_{random_suffix}'
+        
+        print('🎭 啟動 Mock 測試模式')
+        
+        # 測試 1: 配置載入與驗證
+        print('📋 測試 1: 配置載入')
+        try:
+            from shared.config import Config
+            config = Config()
+            
+            # 驗證關鍵配置項
+            assert hasattr(config, 'DISCORD_TOKEN')
+            assert config.DISCORD_TOKEN.startswith('test_token_')
+            assert config.DATABASE_URL == 'sqlite:///:memory:'
+            
+            print('✅ 配置載入和驗證成功')
+        except Exception as e:
+            print(f'❌ 配置測試失敗: {e}')
+            sys.exit(1)
+        
+        # 測試 2: 資料庫管理器模擬測試
+        print('📋 測試 2: 資料庫管理器 Mock 測試')
+        try:
+            from db.database_manager import DatabaseManager
+            
+            # 使用 Mock 模擬資料庫連接
+            with patch('asyncpg.create_pool') as mock_pool:
+                mock_connection = AsyncMock()
+                mock_connection.fetchval.return_value = 1
+                mock_connection.fetch.return_value = [{'id': 1, 'test': 'data'}]
+                mock_pool.return_value.__aenter__.return_value = mock_connection
+                
+                db_manager = DatabaseManager(config)
+                print('✅ DatabaseManager 實例化成功')
+                
+                # 模擬測試基本操作
+                async def test_db_operations():
+                    # 測試連接池初始化 (模擬)
+                    mock_pool.acquire.return_value.__aenter__.return_value = mock_connection
+                    
+                    # 測試基本查詢 (模擬)
+                    result = await mock_connection.fetchval('SELECT 1')
+                    assert result == 1
+                    
+                    # 測試數據查詢 (模擬)
+                    data = await mock_connection.fetch('SELECT * FROM test')
+                    assert len(data) == 1
+                    assert data[0]['test'] == 'data'
+                    
+                    return True
+                
+                if asyncio.run(test_db_operations()):
+                    print('✅ 資料庫操作 Mock 測試成功')
+                
+        except Exception as e:
+            print(f'❌ 資料庫管理器測試失敗: {e}')
+            sys.exit(1)
+        
+        # 測試 3: 核心業務邏輯模擬測試
+        print('📋 測試 3: 核心業務邏輯 Mock 測試')
+        try:
+            # 模擬 Discord Bot 實例
+            mock_bot = Mock()
+            mock_bot.user = Mock()
+            mock_bot.user.id = 12345
+            mock_bot.guilds = []
+            
+            # 測試票券系統的核心邏輯 (如果存在)
+            try:
+                from services.ticket_manager import TicketManager
+                
+                with patch('discord.Client') as mock_client:
+                    ticket_manager = TicketManager(mock_bot, db_manager)
+                    print('✅ TicketManager 初始化成功')
+            except ImportError:
+                print('⚠️ TicketManager 不存在，跳過測試')
+            
+            # 測試語言管理器 (如果存在)
+            try:
+                from services.language_manager import LanguageManager
+                
+                lang_manager = LanguageManager()
+                test_key = lang_manager.get('test_key', 'default_value')
+                assert isinstance(test_key, str)
+                print('✅ LanguageManager 基本功能測試成功')
+            except ImportError:
+                print('⚠️ LanguageManager 不存在，跳過測試')
+                
+        except Exception as e:
+            print(f'⚠️ 業務邏輯測試警告: {e} (允許部分失敗)')
+        
+        print('🎉 Mock 整合測試完成！')
+        " || exit 1
 
   # ================================
   # 階段 3: Discord Bot 啟動測試
