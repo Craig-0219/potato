@@ -1,5 +1,11 @@
 name: 🚀 Deploy to Hosting & Auto Update
 
+# 設定工作流程權限
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
 # 當 main 分支有推送時觸發部署
 on:
   push:
@@ -348,7 +354,7 @@ jobs:
 
     steps:
     - name: 📢 Discord Webhook 通知
-      if: secrets.DISCORD_WEBHOOK_URL
+      if: ${{ secrets.DISCORD_WEBHOOK_URL }}
       run: |
         VERSION="${{ needs.pre-deployment-check.outputs.version_tag }}"
         COMMIT="${{ needs.pre-deployment-check.outputs.commit_hash }}"
@@ -395,7 +401,7 @@ jobs:
           }'
 
     - name: 📱 Slack 通知 (可選)
-      if: secrets.SLACK_WEBHOOK_URL
+      if: ${{ secrets.SLACK_WEBHOOK_URL }}
       run: |
         curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
           -H "Content-Type: application/json" \
@@ -475,22 +481,22 @@ jobs:
           await github.rest.issues.create({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            title: `${severityEmoji[severity]} 自動部署失敗 - ${severity.toUpperCase()} 優先級`,
-            body: `## 🚨 自動部署失敗報告
+            title: severityEmoji[severity] + " 自動部署失敗 - " + severity.toUpperCase() + " 優先級",
+            body: "## 🚨 自動部署失敗報告
 
           ### 📋 基本信息
-          - **失敗時間:** ${new Date().toISOString()}
-          - **嚴重程度:** \`${severity.toUpperCase()}\`
-          - **觸發提交:** [${context.sha.substring(0, 7)}](${context.payload.repository.html_url}/commit/${context.sha})
-          - **工作流程:** [查看詳情](${context.payload.repository.html_url}/actions/runs/${context.runId})
+          - **失敗時間:** " + new Date().toISOString() + "
+          - **嚴重程度:** `" + severity.toUpperCase() + "`
+          - **觸發提交:** [" + context.sha.substring(0, 7) + "](" + context.payload.repository.html_url + "/commit/" + context.sha + ")
+          - **工作流程:** [查看詳情](" + context.payload.repository.html_url + "/actions/runs/" + context.runId + ")
 
           ### ❌ 失敗原因
-          ${failureReasons.length > 0 ? failureReasons.map(reason => \`- \${reason}\`).join('\\n') : '- 未知原因，請檢查工作流程日誌'}
+          " + (failureReasons.length > 0 ? failureReasons.map(reason => "- " + reason).join('\n') : "- 未知原因，請檢查工作流程日誌") + "
 
           ### 🔍 階段結果
-          - **部署準備:** \`${readinessCheck || 'skipped'}\`
-          - **Ptero 部署:** \`${pteroDeployment || 'skipped'}\`
-          - **託管商通知:** \`${hostingNotification || 'skipped'}\`
+          - **部署準備:** `" + (readinessCheck || 'skipped') + "`
+          - **Ptero 部署:** `" + (pteroDeployment || 'skipped') + "`
+          - **託管商通知:** `" + (hostingNotification || 'skipped') + "`
 
           ### 🛠️ 手動修復步驟
 
@@ -527,12 +533,12 @@ jobs:
           2. 如有必要，回滾到上一個穩定版本
           3. 通知相關團隊成員
 
-          /label ${severity}-priority,deployment-failed,needs-review`,
-            labels: [`${severity}-priority`, 'deployment-failed', 'needs-review']
+          /label " + severity + "-priority,deployment-failed,needs-review",
+            labels: [severity + "-priority", "deployment-failed", "needs-review"]
           });
 
     - name: 🚨 緊急通知
-      if: secrets.DISCORD_WEBHOOK_URL
+      if: ${{ secrets.DISCORD_WEBHOOK_URL }}
       run: |
         curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
           -H "Content-Type: application/json" \

@@ -709,28 +709,7 @@ jobs:
             owner: context.repo.owner,
             repo: context.repo.repo,
             commit_sha: merge_commit.data.sha,
-            body: `## 🧠 智能合併完成報告
-
-            ### 📊 分析結果
-            - **風險等級:** \`${{ needs.intelligent-analysis.outputs.risk_level }}\`
-            - **合併信心:** \`${{ needs.intelligent-analysis.outputs.merge_confidence }}%\`
-            - **變更組件:** \`${{ needs.intelligent-analysis.outputs.changed_components }}\`
-
-            ### ✅ 驗證通過項目
-            ${report.tests_passed.map(test => \`- \${test}\`).join('\\n')}
-
-            ### 🔒 分支保護
-            - 開發文檔未被合併到 main
-            - 生產代碼完全更新
-            - 配置文件正確同步
-
-            ### 📈 品質保證
-            - 所有自動化測試通過
-            - Discord Bot 啟動驗證成功
-            - 23/23 Cogs 載入正常
-
-            **🤖 此合併由智能 CI/CD 系統自動執行並驗證**
-            `
+            body: "## 🧠 智能合併完成報告\n\n### 📊 分析結果\n- **風險等級:** `${{ needs.intelligent-analysis.outputs.risk_level }}`\n- **合併信心:** `${{ needs.intelligent-analysis.outputs.merge_confidence }}%`\n- **變更組件:** `${{ needs.intelligent-analysis.outputs.changed_components }}`\n\n### ✅ 驗證通過項目\n" + report.tests_passed.map(test => "- " + test).join('\n') + "\n\n### 🔒 分支保護\n- 開發文檔未被合併到 main\n- 生產代碼完全更新\n- 配置文件正確同步\n\n### 📈 品質保證\n- 所有自動化測試通過\n- Discord Bot 啟動驗證成功\n- 23/23 Cogs 載入正常\n\n**🤖 此合併由智能 CI/CD 系統自動執行並驗證**"
           });
 
   # ================================
@@ -801,74 +780,12 @@ jobs:
           const issue = await github.rest.issues.create({
             owner: context.repo.owner,
             repo: context.repo.repo,
-            title: `${severityEmoji[severity]} 智能合併失敗 - ${severity.toUpperCase()} 優先級`,
-            body: \`## ${severityEmoji[severity]} 智能合併失敗報告
-
-          ### 📋 基本信息
-          - **失敗時間:** \${new Date().toISOString()}
-          - **嚴重程度:** \`${severity.toUpperCase()}\`
-          - **觸發提交:** [\${context.sha.substring(0, 7)}](\${context.payload.repository.html_url}/commit/\${context.sha})
-          - **工作流程:** [查看詳情](\${context.payload.repository.html_url}/actions/runs/\${context.runId})
-
-          ### ❌ 失敗原因
-          ${reasons || '- 未知原因，請檢查工作流程日誌'}
-
-          ### 🔍 階段結果
-          - **智能分析:** \`${{ needs.intelligent-analysis.result }}\`
-          - **代碼測試:** \`${{ needs.comprehensive-testing.result }}\`
-          - **Bot 驗證:** \`${{ needs.bot-verification.result }}\`
-          - **自動合併:** \`${{ needs.intelligent-merge.result }}\`
-
-          ### 🛠️ 建議處理步驟
-
-          #### 1. 檢查詳細日誌
-          \`\`\`bash
-          # 查看 GitHub Actions 日誌了解具體錯誤
-          \`\`\`
-
-          #### 2. 本地驗證
-          \`\`\`bash
-          git checkout dev
-          git pull origin dev
-
-          # 執行本地測試
-          python -m pytest tests/
-          python -c "import bot.main"
-
-          # 檢查 Cogs 載入
-          python test_cogs_loading.py
-          \`\`\`
-
-          #### 3. 手動合併 (如有必要)
-          \`\`\`bash
-          git checkout main
-          git pull origin main
-          git merge origin/dev
-          # 解決任何衝突
-          git push origin main
-          \`\`\`
-
-          ### 📋 修復檢查清單
-          - [ ] 檢查並修復代碼品質問題
-          - [ ] 確保所有測試通過
-          - [ ] 驗證 Discord Bot 可正常啟動
-          - [ ] 確認 23/23 Cogs 載入成功
-          - [ ] 檢查資料庫連接和遷移
-          - [ ] 驗證 API 服務正常運行
-          - [ ] 執行完整回歸測試
-          - [ ] 合併完成後關閉此 Issue
-
-          ### 🚨 緊急情況處理
-          如果這是生產環境的緊急修復:
-          1. 立即通知開發團隊
-          2. 考慮回滾到上一個穩定版本
-          3. 手動執行關鍵功能測試
-
-          /label ${severity}-priority,auto-merge-failed,needs-review\`,
-            labels: [\`\${severity}-priority\`, 'auto-merge-failed', 'needs-review']
+            title: severityEmoji[severity] + " 智能合併失敗 - " + severity.toUpperCase() + " 優先級",
+            body: "## " + severityEmoji[severity] + " 智能合併失敗報告\n\n### 📋 基本信息\n- **失敗時間:** " + new Date().toISOString() + "\n- **嚴重程度:** `" + severity.toUpperCase() + "`\n- **觸發提交:** [" + context.sha.substring(0, 7) + "](" + context.payload.repository.html_url + "/commit/" + context.sha + ")\n- **工作流程:** [查看詳情](" + context.payload.repository.html_url + "/actions/runs/" + context.runId + ")\n\n### ❌ 失敗原因\n" + (reasons || "- 未知原因，請檢查工作流程日誌") + "\n\n### 🔍 階段結果\n- **智能分析:** `${{ needs.intelligent-analysis.result }}`\n- **代碼測試:** `${{ needs.comprehensive-testing.result }}`\n- **Bot 驗證:** `${{ needs.bot-verification.result }}`\n- **自動合併:** `${{ needs.intelligent-merge.result }}`\n\n### 🛠️ 建議處理步驟\n\n#### 1. 檢查詳細日誌\n```bash\n# 查看 GitHub Actions 日誌了解具體錯誤\n```\n\n#### 2. 本地驗證\n```bash\ngit checkout dev\ngit pull origin dev\n\n# 執行本地測試\npython -m pytest tests/\npython -c \"import bot.main\"\n\n# 檢查 Cogs 載入\npython test_cogs_loading.py\n```\n\n#### 3. 手動合併 (如有必要)\n```bash\ngit checkout main\ngit pull origin main\ngit merge origin/dev\n# 解決任何衝突\ngit push origin main\n```\n\n### 📋 修復檢查清單\n- [ ] 檢查並修復代碼品質問題\n- [ ] 確保所有測試通過\n- [ ] 驗證 Discord Bot 可正常啟動\n- [ ] 確認 23/23 Cogs 載入成功\n- [ ] 檢查資料庫連接和遷移\n- [ ] 驗證 API 服務正常運行\n- [ ] 執行完整回歸測試\n- [ ] 合併完成後關閉此 Issue\n\n### 🚨 緊急情況處理\n如果這是生產環境的緊急修復:\n1. 立即通知開發團隊\n2. 考慮回滾到上一個穩定版本\n3. 手動執行關鍵功能測試\n\n/label " + severity + "-priority,auto-merge-failed,needs-review",
+            labels: [severity + "-priority", "auto-merge-failed", "needs-review"]
           });
 
-          console.log(\`Created issue #\${issue.data.number}\`);
+          console.log("Created issue #" + issue.data.number);
 
   # ================================
   # 階段 6: 成功通知與統計
