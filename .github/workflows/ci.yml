@@ -1,13 +1,24 @@
 # .github/workflows/ci.yml
-# GitHub Actions CI/CD 工作流程
+# Production CI/CD Pipeline - 生產環境部署檢查
 
-name: CI/CD Pipeline
+name: 🚀 Production CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]  # 只在 main 分支執行生產檢查
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      test_level:
+        description: '測試級別'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - minimal
+        - production
+        - full
 
 env:
   PYTHON_VERSION: '3.10'
