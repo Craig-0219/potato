@@ -354,23 +354,24 @@ jobs:
 
     steps:
     - name: 📢 Discord Webhook 通知
-      if: ${{ secrets.DISCORD_WEBHOOK_URL }}
       run: |
-        VERSION="${{ needs.pre-deployment-check.outputs.version_tag }}"
-        COMMIT="${{ needs.pre-deployment-check.outputs.commit_hash }}"
+        # 檢查是否設置了 Discord Webhook URL
+        if [[ -n "${{ secrets.DISCORD_WEBHOOK_URL }}" ]]; then
+          VERSION="${{ needs.pre-deployment-check.outputs.version_tag }}"
+          COMMIT="${{ needs.pre-deployment-check.outputs.commit_hash }}"
 
-        # 獲取部署狀態
-        PTERO_STATUS="✅ 成功"
-        if [[ "${{ needs.deploy-to-ptero.result }}" != "success" ]]; then
-          PTERO_STATUS="❌ 失敗"
-        fi
+          # 獲取部署狀態
+          PTERO_STATUS="✅ 成功"
+          if [[ "${{ needs.deploy-to-ptero.result }}" != "success" ]]; then
+            PTERO_STATUS="❌ 失敗"
+          fi
 
-        NOTIFY_STATUS="✅ 已通知"
-        if [[ "${{ needs.notify-hosting-providers.result }}" != "success" ]]; then
-          NOTIFY_STATUS="⚠️ 部分失敗"
-        fi
+          NOTIFY_STATUS="✅ 已通知"
+          if [[ "${{ needs.notify-hosting-providers.result }}" != "success" ]]; then
+            NOTIFY_STATUS="⚠️ 部分失敗"
+          fi
 
-        curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+          curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
           -H "Content-Type: application/json" \
           -d '{
             "embeds": [{
@@ -399,11 +400,15 @@ jobs:
               "timestamp": "'$(date -u '+%Y-%m-%dT%H:%M:%S.000Z')'"
             }]
           }'
+        else
+          echo "⚠️ Discord Webhook URL 未設置，跳過通知"
+        fi
 
     - name: 📱 Slack 通知 (可選)
-      if: ${{ secrets.SLACK_WEBHOOK_URL }}
       run: |
-        curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
+        # 檢查是否設置了 Slack Webhook URL
+        if [[ -n "${{ secrets.SLACK_WEBHOOK_URL }}" ]]; then
+          curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
           -H "Content-Type: application/json" \
           -d '{
             "text": "🚀 Potato Bot 部署完成",
@@ -435,6 +440,9 @@ jobs:
               }
             ]
           }'
+        else
+          echo "⚠️ Slack Webhook URL 未設置，跳過通知"
+        fi
 
   # ================================
   # 階段 5: 失敗處理
@@ -538,9 +546,10 @@ jobs:
           });
 
     - name: 🚨 緊急通知
-      if: ${{ secrets.DISCORD_WEBHOOK_URL }}
       run: |
-        curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
+        # 檢查是否設置了 Discord Webhook URL
+        if [[ -n "${{ secrets.DISCORD_WEBHOOK_URL }}" ]]; then
+          curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
           -H "Content-Type: application/json" \
           -d '{
             "embeds": [{
@@ -564,3 +573,6 @@ jobs:
               "timestamp": "'$(date -u '+%Y-%m-%dT%H:%M:%S.000Z')'"
             }]
           }'
+        else
+          echo "⚠️ Discord Webhook URL 未設置，跳過緊急通知"
+        fi
