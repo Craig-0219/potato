@@ -117,7 +117,7 @@ exclude = [
     ".git",
     "__pycache__",
     ".pytest_cache",
-    ".mypy_cache", 
+    ".mypy_cache",
     "build",
     "dist",
     "archive",
@@ -167,7 +167,7 @@ addopts = [
 ]
 markers = [
     "unit: 單元測試",
-    "integration: 整合測試", 
+    "integration: 整合測試",
     "e2e: 端到端測試",
     "slow: 慢速測試",
     "api: API 相關測試",
