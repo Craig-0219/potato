@@ -858,16 +858,23 @@ class EconomyManager:
                             daily_checkins,
                         ) = result
 
+                        safe_total_games = total_games or 0
+                        safe_total_wins = total_wins or 0
+
                         return {
                             "total_users": total_users or 0,
                             "total_coins": total_coins or 0,
                             "total_gems": total_gems or 0,
-                            "total_games": total_games or 0,
-                            "total_wins": total_wins or 0,
+                            "total_games": safe_total_games,
+                            "total_wins": safe_total_wins,
                             "avg_coins": float(avg_coins) if avg_coins else 0,
                             "max_coins": max_coins or 0,
                             "daily_checkins": daily_checkins or 0,
-                            "win_rate": (total_wins / total_games * 100) if total_games > 0 else 0,
+                            "win_rate": (
+                                (safe_total_wins / safe_total_games * 100)
+                                if safe_total_games > 0
+                                else 0
+                            ),
                         }
 
                     return {}

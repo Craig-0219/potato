@@ -64,7 +64,7 @@ except ImportError:
 try:
     from bot.services.local_api_server import start_local_api_if_needed
     from shared.local_cache_manager import get_redis_connection
-    from shared.offline_mode import auto_configure_environment, is_offline_mode
+    from shared.offline_mode_manager import auto_configure_environment, is_offline_mode
 
     OFFLINE_MODE_AVAILABLE = True
 except ImportError as e:
