@@ -431,19 +431,20 @@ jobs:
 
         try:
             print('🔍 嘗試載入配置模組...')
-            from shared.config import Config
+            import shared.config
 
             print('✅ Config 模組導入成功')
 
-            # 實例化配置
-            config = Config()
-            print('✅ Config 實例化成功')
-
-            # 檢查關鍵配置
-            if hasattr(config, 'DISCORD_TOKEN') and config.DISCORD_TOKEN:
-                print(f'✅ DISCORD_TOKEN 配置: {config.DISCORD_TOKEN[:10]}...')
+            # 檢查關鍵配置變數
+            if hasattr(shared.config, 'DISCORD_TOKEN') and shared.config.DISCORD_TOKEN:
+                print(f'✅ DISCORD_TOKEN 配置: {shared.config.DISCORD_TOKEN[:10]}...')
             else:
                 print('⚠️ DISCORD_TOKEN 配置問題')
+
+            if hasattr(shared.config, 'DB_HOST') and shared.config.DB_HOST:
+                print(f'✅ DB_HOST 配置: {shared.config.DB_HOST}')
+            else:
+                print('⚠️ DB_HOST 配置問題')
 
         except Exception as e:
             print(f'❌ 配置測試錯誤: {e}')
