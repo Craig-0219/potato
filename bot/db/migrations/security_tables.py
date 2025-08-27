@@ -3,20 +3,23 @@
 # Security System Database Tables
 
 import logging
+
 from bot.db.pool import db_pool
 
 logger = logging.getLogger(__name__)
+
 
 async def create_security_tables():
     """創建安全系統相關的資料庫表格"""
     try:
         async with db_pool.connection() as conn:
             async with conn.cursor() as cursor:
-                
+
                 # 1. MFA 多因素認證表
                 logger.info("🔐 創建 MFA 相關表格...")
-                
-                await cursor.execute("""
+
+                await cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS user_mfa (
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         user_id BIGINT NOT NULL,
@@ -28,12 +31,14 @@ async def create_security_tables():
                         INDEX idx_user_method (user_id, method_type),
                         INDEX idx_user_enabled (user_id, is_enabled)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """)
-                
+                """
+                )
+
                 # 2. RBAC 角色表
                 logger.info("🔒 創建 RBAC 相關表格...")
-                
-                await cursor.execute("""
+
+                await cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS rbac_roles (
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         name VARCHAR(100) NOT NULL UNIQUE,
@@ -47,9 +52,11 @@ async def create_security_tables():
                         INDEX idx_level (level),
                         INDEX idx_active (is_active)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """)
-                
-                await cursor.execute("""
+                """
+                )
+
+                await cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS rbac_role_permissions (
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         role_id INT NOT NULL,
@@ -60,9 +67,11 @@ async def create_security_tables():
                         INDEX idx_role_id (role_id),
                         INDEX idx_permission (permission)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """)
-                
-                await cursor.execute("""
+                """
+                )
+
+                await cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS rbac_user_roles (
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         user_id BIGINT NOT NULL,
@@ -80,19 +89,21 @@ async def create_security_tables():
                         INDEX idx_active (is_active),
                         INDEX idx_expires (expires_at)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """)
-                
+                """
+                )
+
                 # 3. 安全事件審計表
                 logger.info("🔍 創建安全審計表格...")
-                
-                await cursor.execute("""
+
+                await cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS security_events (
                         id BIGINT AUTO_INCREMENT PRIMARY KEY,
                         user_id BIGINT NULL,
                         guild_id BIGINT NULL,
                         event_type VARCHAR(100) NOT NULL,
-                        category ENUM('authentication', 'authorization', 'data_access', 
-                                    'system_config', 'user_action', 'api_access', 
+                        category ENUM('authentication', 'authorization', 'data_access',
+                                    'system_config', 'user_action', 'api_access',
                                     'security_violation', 'compliance') NOT NULL,
                         severity ENUM('critical', 'high', 'medium', 'low', 'info') NOT NULL,
                         message TEXT NOT NULL,
@@ -113,12 +124,14 @@ async def create_security_tables():
                         INDEX idx_processed (processed),
                         INDEX idx_hash (hash_signature)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """)
-                
+                """
+                )
+
                 # 4. API 密鑰管理表
                 logger.info("🛡️ 創建 API 安全表格...")
-                
-                await cursor.execute("""
+
+                await cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS api_keys (
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         key_value VARCHAR(100) NOT NULL UNIQUE,
@@ -140,9 +153,11 @@ async def create_security_tables():
                         INDEX idx_active (is_active),
                         INDEX idx_expires (expires_at)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """)
-                
-                await cursor.execute("""
+                """
+                )
+
+                await cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS api_rate_limits (
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         api_key_id INT NOT NULL,
@@ -153,10 +168,12 @@ async def create_security_tables():
                         FOREIGN KEY (api_key_id) REFERENCES api_keys(id) ON DELETE CASCADE,
                         INDEX idx_api_key_id (api_key_id)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """)
-                
+                """
+                )
+
                 # 5. 安全規則表
-                await cursor.execute("""
+                await cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS security_rules (
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         name VARCHAR(100) NOT NULL,
@@ -171,10 +188,12 @@ async def create_security_tables():
                         INDEX idx_rule_type (rule_type),
                         INDEX idx_active (is_active)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """)
-                
+                """
+                )
+
                 # 6. 安全警報表
-                await cursor.execute("""
+                await cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS security_alerts (
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         event_id BIGINT NOT NULL,
@@ -196,10 +215,12 @@ async def create_security_tables():
                         INDEX idx_status (status),
                         INDEX idx_created_at (created_at)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """)
-                
+                """
+                )
+
                 # 7. 合規報告表
-                await cursor.execute("""
+                await cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS compliance_reports (
                         id INT AUTO_INCREMENT PRIMARY KEY,
                         standard ENUM('soc2', 'gdpr', 'hipaa', 'iso27001', 'custom') NOT NULL,
@@ -221,10 +242,12 @@ async def create_security_tables():
                         INDEX idx_period (period_start, period_end),
                         INDEX idx_status (status)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """)
-                
+                """
+                )
+
                 # 8. 用戶會話表
-                await cursor.execute("""
+                await cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS user_sessions (
                         id VARCHAR(128) PRIMARY KEY,
                         user_id BIGINT NOT NULL,
@@ -244,10 +267,12 @@ async def create_security_tables():
                         INDEX idx_active (is_active),
                         INDEX idx_ip_address (ip_address)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """)
-                
+                """
+                )
+
                 # 9. 權限變更歷史表
-                await cursor.execute("""
+                await cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS permission_history (
                         id BIGINT AUTO_INCREMENT PRIMARY KEY,
                         user_id BIGINT NOT NULL,
@@ -264,10 +289,12 @@ async def create_security_tables():
                         INDEX idx_changed_by (changed_by),
                         INDEX idx_created_at (created_at)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """)
-                
+                """
+                )
+
                 # 10. 資料存取日誌表
-                await cursor.execute("""
+                await cursor.execute(
+                    """
                     CREATE TABLE IF NOT EXISTS data_access_logs (
                         id BIGINT AUTO_INCREMENT PRIMARY KEY,
                         user_id BIGINT NOT NULL,
@@ -292,21 +319,23 @@ async def create_security_tables():
                         INDEX idx_created_at (created_at),
                         INDEX idx_ip_address (ip_address)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """)
-                
+                """
+                )
+
                 await conn.commit()
-                
+
                 logger.info("✅ 安全系統資料庫表格創建完成")
-                
+
                 # 創建預設資料
                 await _insert_default_security_data(cursor)
                 await conn.commit()
-                
+
                 return True
-                
+
     except Exception as e:
         logger.error(f"❌ 安全系統表格創建失敗: {e}")
         return False
+
 
 async def _insert_default_security_data(cursor):
     """插入預設安全數據"""
@@ -319,15 +348,15 @@ async def _insert_default_security_data(cursor):
                 "rule_type": "rate_limit",
                 "pattern": "api_requests_per_minute > 1000",
                 "action": "throttle",
-                "severity": "medium"
+                "severity": "medium",
             },
             {
                 "name": "Failed Login Detection",
                 "description": "檢測多次登入失敗",
-                "rule_type": "behavior_analysis", 
+                "rule_type": "behavior_analysis",
                 "pattern": "failed_login_count >= 5",
                 "action": "block",
-                "severity": "high"
+                "severity": "high",
             },
             {
                 "name": "Suspicious IP Activity",
@@ -335,7 +364,7 @@ async def _insert_default_security_data(cursor):
                 "rule_type": "ip_filter",
                 "pattern": "requests_from_ip > 100",
                 "action": "alert",
-                "severity": "medium"
+                "severity": "medium",
             },
             {
                 "name": "SQL Injection Attempt",
@@ -343,41 +372,49 @@ async def _insert_default_security_data(cursor):
                 "rule_type": "content_filter",
                 "pattern": "(UNION.*SELECT|DROP.*TABLE|INSERT.*INTO)",
                 "action": "block",
-                "severity": "critical"
-            }
+                "severity": "critical",
+            },
         ]
-        
+
         for rule in default_rules:
-            await cursor.execute("""
-                INSERT IGNORE INTO security_rules 
+            await cursor.execute(
+                """
+                INSERT IGNORE INTO security_rules
                 (name, description, rule_type, pattern, action, severity_threshold)
                 VALUES (%s, %s, %s, %s, %s, %s)
-            """, (
-                rule["name"], rule["description"], rule["rule_type"],
-                rule["pattern"], rule["action"], rule["severity"]
-            ))
-        
+            """,
+                (
+                    rule["name"],
+                    rule["description"],
+                    rule["rule_type"],
+                    rule["pattern"],
+                    rule["action"],
+                    rule["severity"],
+                ),
+            )
+
         logger.info("✅ 預設安全規則已插入")
-        
+
     except Exception as e:
         logger.error(f"❌ 預設安全數據插入失敗: {e}")
+
 
 # 用於主程序初始化時調用
 async def initialize_security_system():
     """初始化安全系統"""
     try:
         logger.info("🔐 開始初始化企業級安全系統...")
-        
+
         # 創建安全表格
         success = await create_security_tables()
-        
+
         if success:
             logger.info("✅ 企業級安全系統初始化完成")
             return True
         else:
             logger.error("❌ 安全系統初始化失敗")
             return False
-            
+
     except Exception as e:
         logger.error(f"❌ 安全系統初始化異常: {e}")
         return False

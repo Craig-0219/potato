@@ -3,7 +3,7 @@
 
 # 開發文檔 - 使用 ours 策略 (保持 main 分支版本，不接受 dev 分支內容)
 docs/plans/** merge=ours
-docs/development-reports/** merge=ours  
+docs/development-reports/** merge=ours
 docs/archived/** merge=ours
 docs/phase-archive/** merge=ours
 IMPLEMENTATION_PLAN.md merge=ours

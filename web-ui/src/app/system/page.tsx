@@ -18,12 +18,12 @@ export default function SystemPage() {
 
   const runHealthCheck = async () => {
     if (loading) return
-    
+
     try {
       setLoading(true)
       const report = await systemHealth.runHealthCheck()
       setHealthReport(report)
-      
+
       if (report.overall === 'error') {
         toast.error('檢測到系統問題')
       } else if (report.overall === 'warning') {
@@ -91,7 +91,7 @@ export default function SystemPage() {
     link.click()
     document.body.removeChild(link)
     URL.revokeObjectURL(url)
-    
+
     toast.success('系統報告已匯出')
   }
 
@@ -180,7 +180,7 @@ export default function SystemPage() {
                 即時系統健康狀態和性能監控
               </p>
             </div>
-            
+
             <div className="flex space-x-4">
               <label className="flex items-center">
                 <input
@@ -191,14 +191,14 @@ export default function SystemPage() {
                 />
                 <span className="text-sm">自動刷新</span>
               </label>
-              
+
               <button
                 onClick={clearAllCaches}
                 className="btn-secondary"
               >
                 🗑️ 清除緩存
               </button>
-              
+
               <button
                 onClick={exportSystemReport}
                 disabled={!healthReport}
@@ -229,7 +229,7 @@ export default function SystemPage() {
                 </h2>
                 <div className={`px-4 py-2 rounded-full border ${getStatusColor(healthReport.overall)}`}>
                   <span className="font-semibold">
-                    {getStatusIcon(healthReport.overall)} 
+                    {getStatusIcon(healthReport.overall)}
                     {healthReport.overall === 'healthy' ? '健康' :
                      healthReport.overall === 'warning' ? '警告' :
                      healthReport.overall === 'error' ? '錯誤' : '未知'}
@@ -285,7 +285,7 @@ export default function SystemPage() {
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
                 詳細檢查結果
               </h2>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {healthReport.checks.map((check, index) => (
                   <div
@@ -302,9 +302,9 @@ export default function SystemPage() {
                         </span>
                       )}
                     </div>
-                    
+
                     <p className="text-sm mb-2">{check.message}</p>
-                    
+
                     {check.details && (
                       <div className="text-xs space-y-1">
                         {Object.entries(check.details).map(([key, value]) => (
@@ -315,7 +315,7 @@ export default function SystemPage() {
                         ))}
                       </div>
                     )}
-                    
+
                     <div className="text-xs opacity-50 mt-2">
                       {new Date(check.timestamp).toLocaleString('zh-TW')}
                     </div>
@@ -332,7 +332,7 @@ export default function SystemPage() {
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-6">
               即時連接狀態
             </h2>
-            
+
             <div className="flex items-center space-x-4">
               <div className={`w-4 h-4 rounded-full ${wsConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
               <span className="font-medium">

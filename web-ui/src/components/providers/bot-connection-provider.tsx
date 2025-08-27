@@ -15,11 +15,11 @@ interface BotConnectionProviderProps {
   autoConnect?: boolean
 }
 
-export function BotConnectionProvider({ 
-  children, 
+export function BotConnectionProvider({
+  children,
   autoConnect = false // 暫時禁用自動連接避免 ERR_BLOCKED_BY_CLIENT 錯誤
 }: BotConnectionProviderProps) {
-  
+
   useEffect(() => {
     // 設置全域事件監聽器
     const handleConnected = () => {

@@ -15,16 +15,16 @@ export default function AuthSuccessPage() {
   useEffect(() => {
     const token = searchParams.get('token')
     const isTemp = searchParams.get('temp') === 'true'
-    
+
     // 如果是測試模式，從 localStorage 獲取 token
     const finalToken = token || localStorage.getItem('auth_token')
-    
+
     if (!finalToken) {
       setStatus('error')
       setMessage('未收到認證 token')
       return
     }
-    
+
     // 如果是測試模式，顯示相應訊息
     if (isTemp) {
       setMessage('正在驗證管理員權限...')
@@ -37,11 +37,11 @@ export default function AuthSuccessPage() {
         if (isTemp) {
           setStatus('success')
           setMessage('登入成功！正在跳轉到儀表板...')
-          
+
           // 直接刷新認證狀態，不發送 HTTP 請求
           console.log('🎯 測試模式：手動刷新認證狀態')
           refreshAuthState()
-          
+
           // 延遲跳轉給用戶看到成功訊息
           setTimeout(() => {
             console.log('🚀 測試模式：開始跳轉到儀表板')
@@ -58,11 +58,11 @@ export default function AuthSuccessPage() {
 
         // 只有真實的 OAuth token 才需要驗證
         const success = await loginWithToken(finalToken)
-        
+
         if (success) {
           setStatus('success')
           setMessage('登入成功！正在跳轉到儀表板...')
-          
+
           // 延遲跳轉給用戶看到成功訊息
           setTimeout(() => {
             console.log('🚀 正常模式：開始跳轉到儀表板')
@@ -113,20 +113,20 @@ export default function AuthSuccessPage() {
           <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-discord-500 to-brand-600 rounded-full flex items-center justify-center text-2xl">
             {getStatusIcon()}
           </div>
-          
+
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
             Discord 認證
           </h1>
-          
+
           <p className={`text-lg ${getStatusColor()}`}>
             {message}
           </p>
         </div>
-        
+
         {status === 'processing' && (
           <Spinner size="lg" className="mb-4" />
         )}
-        
+
         {status === 'success' && (
           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-4">
             <p className="text-sm text-green-800 dark:text-green-200">
@@ -134,7 +134,7 @@ export default function AuthSuccessPage() {
             </p>
           </div>
         )}
-        
+
         {status === 'error' && (
           <div className="space-y-4">
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
@@ -145,7 +145,7 @@ export default function AuthSuccessPage() {
                 {message}
               </p>
             </div>
-            
+
             <div className="space-x-2">
               <button
                 onClick={() => router.push('/auth/discord')}
@@ -162,7 +162,7 @@ export default function AuthSuccessPage() {
             </div>
           </div>
         )}
-        
+
         {status === 'processing' && (
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <p className="text-sm text-blue-800 dark:text-blue-200">

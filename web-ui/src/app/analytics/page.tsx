@@ -58,12 +58,12 @@ export default function AnalyticsPage() {
       const responseData = dashboardResponse.data.data || {}
       const overview = responseData.overview || {
         total_tickets: 0,
-        resolved_tickets: 0, 
+        resolved_tickets: 0,
         resolution_rate: 0,
         avg_response_time: 0,
         satisfaction_score: 0
       }
-      
+
       setData({
         overview,
         daily_stats: responseData.daily_stats || [],
@@ -83,7 +83,7 @@ export default function AnalyticsPage() {
   const generateReport = async (format: string) => {
     try {
       setReportGenerating(true)
-      
+
       const response = await ApiClient.analytics.generateReport({
         report_type: 'comprehensive',
         format,
@@ -147,8 +147,8 @@ export default function AnalyticsPage() {
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 時間週期:
               </label>
-              <select 
-                value={period} 
+              <select
+                value={period}
                 onChange={(e) => setPeriod(e.target.value)}
                 className="form-input"
               >
@@ -158,7 +158,7 @@ export default function AnalyticsPage() {
                 <option value="1y">過去 1 年</option>
               </select>
             </div>
-            
+
             <div className="flex space-x-2">
               <button
                 onClick={() => generateReport('pdf')}
@@ -301,36 +301,36 @@ export default function AnalyticsPage() {
                     <span className="font-semibold">{data.priority_breakdown?.high || 0}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700">
-                    <div 
-                      className="bg-red-600 h-3 rounded-full" 
-                      style={{ 
-                        width: `${(data.priority_breakdown?.high || 0) / Math.max(data.overview?.total_tickets || 1, 1) * 100}%` 
+                    <div
+                      className="bg-red-600 h-3 rounded-full"
+                      style={{
+                        width: `${(data.priority_breakdown?.high || 0) / Math.max(data.overview?.total_tickets || 1, 1) * 100}%`
                       }}
                     ></div>
                   </div>
-                  
+
                   <div className="flex justify-between items-center">
                     <span className="text-yellow-600 font-medium">🟡 中優先級</span>
                     <span className="font-semibold">{data.priority_breakdown?.medium || 0}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700">
-                    <div 
-                      className="bg-yellow-600 h-3 rounded-full" 
-                      style={{ 
-                        width: `${(data.priority_breakdown?.medium || 0) / Math.max(data.overview?.total_tickets || 1, 1) * 100}%` 
+                    <div
+                      className="bg-yellow-600 h-3 rounded-full"
+                      style={{
+                        width: `${(data.priority_breakdown?.medium || 0) / Math.max(data.overview?.total_tickets || 1, 1) * 100}%`
                       }}
                     ></div>
                   </div>
-                  
+
                   <div className="flex justify-between items-center">
                     <span className="text-green-600 font-medium">🟢 低優先級</span>
                     <span className="font-semibold">{data.priority_breakdown?.low || 0}</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700">
-                    <div 
-                      className="bg-green-600 h-3 rounded-full" 
-                      style={{ 
-                        width: `${(data.priority_breakdown?.low || 0) / Math.max(data.overview?.total_tickets || 1, 1) * 100}%` 
+                    <div
+                      className="bg-green-600 h-3 rounded-full"
+                      style={{
+                        width: `${(data.priority_breakdown?.low || 0) / Math.max(data.overview?.total_tickets || 1, 1) * 100}%`
                       }}
                     ></div>
                   </div>

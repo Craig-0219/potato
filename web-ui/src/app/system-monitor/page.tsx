@@ -5,12 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { BotConnectionStatus } from '@/components/bot/bot-connection-status'
 import { useBotConnection } from '@/lib/connection/use-bot-connection'
-import { 
-  Monitor, 
-  Activity, 
-  Zap, 
-  Database, 
-  Server, 
+import {
+  Monitor,
+  Activity,
+  Zap,
+  Database,
+  Server,
   Clock,
   Wifi,
   AlertTriangle,
@@ -29,7 +29,7 @@ export default function SystemMonitorPage() {
       if (response.ok) {
         const rawData = await response.json()
         console.log('🔧 原始系統指標數據:', rawData) // 調試用
-        
+
         // 轉換數據格式以符合UI組件期望的結構
         const transformedData = {
           cpu: {
@@ -57,7 +57,7 @@ export default function SystemMonitorPage() {
             latency: rawData.bot_latency || 0
           }
         }
-        
+
         setSystemMetrics(transformedData)
         setLastUpdated(new Date())
       }
@@ -83,10 +83,10 @@ export default function SystemMonitorPage() {
 
   useEffect(() => {
     fetchSystemMetrics()
-    
+
     // 每30秒更新一次指标
     const interval = setInterval(fetchSystemMetrics, 30000)
-    
+
     return () => clearInterval(interval)
   }, [])
 
@@ -121,7 +121,7 @@ export default function SystemMonitorPage() {
               即時監控 Bot 連線狀態和系統效能指標
             </p>
           </div>
-          
+
           <div className="flex gap-2">
             <Button onClick={fetchSystemMetrics} variant="outline">
               <Activity className="w-4 h-4 mr-2" />
@@ -159,14 +159,14 @@ export default function SystemMonitorPage() {
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">延遲</div>
                   </div>
-                  
+
                   <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <div className="text-2xl font-bold text-green-600">
                       {status.connectionQuality}
                     </div>
                     <div className="text-sm text-gray-600 dark:text-gray-400">連線品質</div>
                   </div>
-                  
+
                   <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <div className={`text-2xl font-bold ${isConnected ? 'text-green-600' : 'text-red-600'}`}>
                       {isConnected ? (
@@ -179,7 +179,7 @@ export default function SystemMonitorPage() {
                       {isConnected ? '已連線' : '未連線'}
                     </div>
                   </div>
-                  
+
                   <div className="text-center p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                     <div className="text-2xl font-bold text-purple-600">
                       {status.botInfo?.guilds || '--'}
@@ -210,7 +210,7 @@ export default function SystemMonitorPage() {
                     <span className="font-semibold">{systemMetrics.cpu?.usage || '--'}%</span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                       style={{ width: `${systemMetrics.cpu?.usage || 0}%` }}
                     />
@@ -235,16 +235,16 @@ export default function SystemMonitorPage() {
                   <div className="flex justify-between text-sm">
                     <span>使用率</span>
                     <span className="font-semibold">
-                      {systemMetrics.memory ? 
-                        `${systemMetrics.memory.usage.toFixed(1)}%` 
+                      {systemMetrics.memory ?
+                        `${systemMetrics.memory.usage.toFixed(1)}%`
                         : '--'
                       }
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                      style={{ 
+                      style={{
                         width: `${systemMetrics.memory?.usage || 0}%`
                       }}
                     />
@@ -269,16 +269,16 @@ export default function SystemMonitorPage() {
                   <div className="flex justify-between text-sm">
                     <span>使用率</span>
                     <span className="font-semibold">
-                      {systemMetrics.disk ? 
-                        `${systemMetrics.disk.usage.toFixed(1)}%` 
+                      {systemMetrics.disk ?
+                        `${systemMetrics.disk.usage.toFixed(1)}%`
                         : '--'
                       }
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                    <div 
+                    <div
                       className="bg-yellow-500 h-2 rounded-full transition-all duration-300"
-                      style={{ 
+                      style={{
                         width: `${systemMetrics.disk?.usage || 0}%`
                       }}
                     />
@@ -304,7 +304,7 @@ export default function SystemMonitorPage() {
             <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               最後更新: {lastUpdated.toLocaleString()}
             </div>
-            
+
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <div className="flex items-center gap-3">
@@ -315,7 +315,7 @@ export default function SystemMonitorPage() {
                   {new Date().toLocaleTimeString()}
                 </span>
               </div>
-              
+
               <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <div className="flex items-center gap-3">
                   <Activity className="w-5 h-5 text-blue-500" />

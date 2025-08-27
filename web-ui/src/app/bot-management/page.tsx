@@ -46,7 +46,7 @@ export default function BotManagementPage() {
       //   const data = await response.json()
       //   setSettings(data)
       // }
-      
+
       // 使用模擬數據
       const mockData = {
         ticket_settings: {
@@ -66,7 +66,7 @@ export default function BotManagementPage() {
           auto_close: true
         }
       }
-      
+
       // 模擬 API 延遲
       await new Promise(resolve => setTimeout(resolve, 500))
       setSettings(mockData)
@@ -86,13 +86,13 @@ export default function BotManagementPage() {
       //   headers: { 'Content-Type': 'application/json' },
       //   body: JSON.stringify(newSettings)
       // })
-      
+
       // 模擬 API 延遲
       await new Promise(resolve => setTimeout(resolve, 300))
-      
+
       console.log(`保存 ${section} 設定:`, newSettings)
       toast.success('設定已保存 (模擬模式)')
-      
+
       // 不重新載入設定，避免狀態衝突
       // loadBotSettings()
     } catch (error) {
@@ -487,7 +487,7 @@ function WorkflowsTab() {
   )
 }
 
-// Webhooks 標籤  
+// Webhooks 標籤
 function WebhooksTab() {
   return (
     <div>

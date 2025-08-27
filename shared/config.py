@@ -9,8 +9,9 @@
 
 import os
 import sys
-from dotenv import load_dotenv
 from typing import Optional
+
+from dotenv import load_dotenv
 
 # 載入環境變數
 load_dotenv()
@@ -62,7 +63,10 @@ AI_RATE_LIMIT_GUILD = int(os.getenv("AI_RATE_LIMIT_GUILD", "100"))  # 每小時�
 # 圖片處理配置
 IMAGE_MAX_SIZE = int(os.getenv("IMAGE_MAX_SIZE", "50"))  # MB
 import tempfile
-IMAGE_STORAGE_PATH = os.getenv("IMAGE_STORAGE_PATH", os.path.join(tempfile.gettempdir(), "bot_images"))
+
+IMAGE_STORAGE_PATH = os.getenv(
+    "IMAGE_STORAGE_PATH", os.path.join(tempfile.gettempdir(), "bot_images")
+)
 CLOUD_STORAGE_BUCKET = os.getenv("CLOUD_STORAGE_BUCKET")  # 可選的雲端存儲
 
 # 內容分析配置
@@ -113,56 +117,58 @@ ECONOMY_STARTING_COINS = int(os.getenv("ECONOMY_STARTING_COINS", 1000))
 ECONOMY_DAILY_BONUS = int(os.getenv("ECONOMY_DAILY_BONUS", 100))
 ECONOMY_SERVICE_COSTS = os.getenv("ECONOMY_SERVICE_COSTS", "true").lower() == "true"
 
+
 def validate_config_enhanced():
     """增強的配置驗證（修復版）"""
     errors = []
     warnings = []
-    
+
     # 檢查必要的環境變數
     required_vars = {
-        'DISCORD_TOKEN': '機器人Token',
-        'DB_HOST': '資料庫主機',
-        'DB_USER': '資料庫用戶',
-        'DB_PASSWORD': '資料庫密碼',
-        'DB_NAME': '資料庫名稱'
+        "DISCORD_TOKEN": "機器人Token",
+        "DB_HOST": "資料庫主機",
+        "DB_USER": "資料庫用戶",
+        "DB_PASSWORD": "資料庫密碼",
+        "DB_NAME": "資料庫名稱",
     }
-    
+
     for var, desc in required_vars.items():
         value = os.getenv(var)
         if not value:
             errors.append(f"缺少{desc}環境變數：{var}")
-        elif var == 'DISCORD_TOKEN' and len(value) < 50:
+        elif var == "DISCORD_TOKEN" and len(value) < 50:
             errors.append(f"Discord Token格式可能不正確（長度過短）")
-    
+
     # 檢查可選變數的預設值
     optional_vars = {
-        'DB_PORT': ('3306', '資料庫端口'),
-        'LOG_LEVEL': ('INFO', '日誌等級'),
-        'DEBUG': ('false', '除錯模式')
+        "DB_PORT": ("3306", "資料庫端口"),
+        "LOG_LEVEL": ("INFO", "日誌等級"),
+        "DEBUG": ("false", "除錯模式"),
     }
-    
+
     for var, (default, desc) in optional_vars.items():
         value = os.getenv(var, default)
-        if var == 'DB_PORT':
+        if var == "DB_PORT":
             try:
                 int(value)
             except ValueError:
                 warnings.append(f"{desc}格式錯誤，將使用預設值：{default}")
-    
+
     # 回報結果
     if errors:
         print("❌ 配置錯誤：")
         for error in errors:
             print(f"  • {error}")
         return False
-    
+
     if warnings:
         print("⚠️ 配置警告：")
         for warning in warnings:
             print(f"  • {warning}")
-    
+
     print("✅ 配置驗證通過")
     return True
+
 
 def get_config_summary() -> dict:
     """取得配置摘要（隱藏敏感資訊）"""
@@ -172,35 +178,33 @@ def get_config_summary() -> dict:
             "port": DB_PORT,
             "user": DB_USER,
             "database": DB_NAME,
-            "password": "***" if DB_PASSWORD else None
+            "password": "***" if DB_PASSWORD else None,
         },
         "features": {
             "auto_assignment": TICKET_AUTO_ASSIGNMENT,
             "sla_monitoring": TICKET_SLA_MONITORING,
             "auto_replies": TICKET_AUTO_REPLIES,
             "rating_system": TICKET_RATING_SYSTEM,
-            "advanced_stats": TICKET_ADVANCED_STATS
+            "advanced_stats": TICKET_ADVANCED_STATS,
         },
         "parameters": {
             "default_sla_minutes": TICKET_DEFAULT_SLA_MINUTES,
             "auto_close_hours": TICKET_DEFAULT_AUTO_CLOSE_HOURS,
-            "max_tickets_per_user": TICKET_MAX_PER_USER
+            "max_tickets_per_user": TICKET_MAX_PER_USER,
         },
-        "system": {
-            "debug": DEBUG,
-            "log_level": LOG_LEVEL,
-            "redis_enabled": bool(REDIS_URL)
-        }
+        "system": {"debug": DEBUG, "log_level": LOG_LEVEL, "redis_enabled": bool(REDIS_URL)},
     }
+
 
 # 啟動時驗證配置
 if __name__ == "__main__":
     print("🔍 驗證配置...")
     if validate_config_enhanced():
         print("✅ 配置驗證通過")
-        
+
         # 顯示配置摘要
         import json
+
         summary = get_config_summary()
         print("\n📋 配置摘要：")
         print(json.dumps(summary, indent=2, ensure_ascii=False))

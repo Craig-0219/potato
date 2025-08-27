@@ -5,12 +5,12 @@ import { useBotConnection } from '@/lib/connection/use-bot-connection'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { 
-  Wifi, 
-  WifiOff, 
-  AlertCircle, 
-  CheckCircle, 
-  RefreshCw, 
+import {
+  Wifi,
+  WifiOff,
+  AlertCircle,
+  CheckCircle,
+  RefreshCw,
   Zap,
   Clock,
   Users,
@@ -18,14 +18,14 @@ import {
 } from 'lucide-react'
 
 export function BotConnectionStatus() {
-  const { 
-    status, 
-    connectionStatus, 
-    isConnected, 
-    isConnecting, 
-    connect, 
-    disconnect, 
-    reconnect 
+  const {
+    status,
+    connectionStatus,
+    isConnected,
+    isConnecting,
+    connect,
+    disconnect,
+    reconnect
   } = useBotConnection()
 
   const getStatusIcon = () => {
@@ -104,7 +104,7 @@ export function BotConnectionStatus() {
     const days = Math.floor(seconds / 86400)
     const hours = Math.floor((seconds % 86400) / 3600)
     const minutes = Math.floor((seconds % 3600) / 60)
-    
+
     if (days > 0) {
       return `${days}天 ${hours}小時`
     } else if (hours > 0) {
@@ -127,7 +127,7 @@ export function BotConnectionStatus() {
           </Badge>
         </div>
       </CardHeader>
-      
+
       <CardContent className="space-y-4">
         {/* 連線訊息 */}
         <div className="grid grid-cols-2 gap-4">
@@ -139,7 +139,7 @@ export function BotConnectionStatus() {
                 {isConnected ? '線上' : '離線'}
               </span>
             </div>
-            
+
             {status.latency > 0 && (
               <div className="flex items-center gap-2 text-sm">
                 <Zap className="w-4 h-4" />
@@ -171,18 +171,18 @@ export function BotConnectionStatus() {
               <Server className="w-4 h-4" />
               Bot 訊息
             </h4>
-            
+
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-600 dark:text-gray-400">名稱:</span>
                 <span className="ml-2 font-medium">{status.botInfo.name}</span>
               </div>
-              
+
               <div>
                 <span className="text-gray-600 dark:text-gray-400">版本:</span>
                 <span className="ml-2 font-medium">{status.botInfo.version}</span>
               </div>
-              
+
               <div>
                 <span className="text-gray-600 dark:text-gray-400">伺服器數:</span>
                 <span className="ml-2 flex items-center gap-1">
@@ -190,7 +190,7 @@ export function BotConnectionStatus() {
                   {status.botInfo.guilds}
                 </span>
               </div>
-              
+
               <div>
                 <span className="text-gray-600 dark:text-gray-400">運行時間:</span>
                 <span className="ml-2">{formatUptime(status.botInfo.uptime)}</span>
@@ -202,31 +202,31 @@ export function BotConnectionStatus() {
         {/* 操作按鈕 */}
         <div className="flex gap-2 pt-4 border-t">
           {!isConnected && !isConnecting && (
-            <Button 
-              onClick={connect} 
-              size="sm" 
+            <Button
+              onClick={connect}
+              size="sm"
               className="flex-1"
             >
               <Wifi className="w-4 h-4 mr-2" />
               連線
             </Button>
           )}
-          
+
           {isConnected && (
             <>
-              <Button 
-                onClick={disconnect} 
-                variant="outline" 
+              <Button
+                onClick={disconnect}
+                variant="outline"
                 size="sm"
                 className="flex-1"
               >
                 <WifiOff className="w-4 h-4 mr-2" />
                 斷開
               </Button>
-              
-              <Button 
-                onClick={reconnect} 
-                variant="outline" 
+
+              <Button
+                onClick={reconnect}
+                variant="outline"
                 size="sm"
                 className="flex-1"
               >
@@ -235,11 +235,11 @@ export function BotConnectionStatus() {
               </Button>
             </>
           )}
-          
+
           {connectionStatus === 'error' && (
-            <Button 
-              onClick={reconnect} 
-              variant="destructive" 
+            <Button
+              onClick={reconnect}
+              variant="destructive"
               size="sm"
               className="flex-1"
             >

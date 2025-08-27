@@ -8,21 +8,21 @@ Date: 2025-08-20
 """
 
 from .menu_system import (
-    MenuSystemManager,
-    MainMenuView,
     AdminMenuView,
     AIMenuView,
+    MainMenuView,
+    MenuStyle,
+    MenuSystemManager,
+    MenuType,
+    SettingsMenuView,
     TicketMenuView,
     VoteMenuView,
     WelcomeMenuView,
-    SettingsMenuView,
-    MenuType,
-    MenuStyle
 )
 
 __all__ = [
     "MenuSystemManager",
-    "MainMenuView", 
+    "MainMenuView",
     "AdminMenuView",
     "AIMenuView",
     "TicketMenuView",
@@ -30,7 +30,7 @@ __all__ = [
     "WelcomeMenuView",
     "SettingsMenuView",
     "MenuType",
-    "MenuStyle"
+    "MenuStyle",
 ]
 
 __version__ = "3.2.0"

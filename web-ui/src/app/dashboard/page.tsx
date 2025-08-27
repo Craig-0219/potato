@@ -95,7 +95,7 @@ export default function DashboardPage() {
     console.log('🚀 Dashboard useEffect 觸發')
     fetchData()
   }, [])
-  
+
   // 確保數據獲取 - 如果 3秒後還沒有數據，再次嘗試
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -104,7 +104,7 @@ export default function DashboardPage() {
         fetchData()
       }
     }, 3000)
-    
+
     return () => clearTimeout(timer)
   }, [data])
 
@@ -237,8 +237,8 @@ export default function DashboardPage() {
                   <span className="text-gray-600 dark:text-gray-400">記憶體使用率</span>
                   <div className="flex items-center space-x-2">
                     <div className="w-20 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full" 
+                      <div
+                        className="bg-blue-600 h-2 rounded-full"
                         style={{ width: `${data.system.memory_usage}%` }}
                       ></div>
                     </div>
@@ -251,8 +251,8 @@ export default function DashboardPage() {
                   <span className="text-gray-600 dark:text-gray-400">CPU 使用率</span>
                   <div className="flex items-center space-x-2">
                     <div className="w-20 bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                      <div 
-                        className="bg-green-600 h-2 rounded-full" 
+                      <div
+                        className="bg-green-600 h-2 rounded-full"
                         style={{ width: `${data.system.cpu_usage}%` }}
                       ></div>
                     </div>
@@ -294,7 +294,7 @@ export default function DashboardPage() {
                     管理系統配置
                   </div>
                 </button>
-                <button 
+                <button
                   onClick={fetchData}
                   className="btn-secondary text-left p-4"
                 >

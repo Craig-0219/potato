@@ -6,12 +6,12 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, ResponsiveContainer } from 'recharts'
-import { 
-  Calendar, 
-  Users, 
-  BarChart3, 
-  TrendingUp, 
-  Clock, 
+import {
+  Calendar,
+  Users,
+  BarChart3,
+  TrendingUp,
+  Clock,
   Vote,
   Search,
   Filter,
@@ -73,7 +73,7 @@ export default function VotesPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedTab, setSelectedTab] = useState('overview')
   const [autoRefresh, setAutoRefresh] = useState(true)
-  
+
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const reconnectAttempts = useRef(0)
@@ -86,20 +86,20 @@ export default function VotesPage() {
     // 直接使用模擬數據
     fallbackToHttpMode()
     return
-    
+
     // 暫時註解掉所有 WebSocket 連接邏輯
     // try {
     //   const guildId = 123456789 // 模擬公會ID，實際應從認證取得
     //   const clientId = `web_client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     //   const wsUrl = `ws://localhost:8000/api/realtime/ws/${guildId}/${clientId}`
-    //   
+    //
     //   wsRef.current = new WebSocket(wsUrl)
-    //   
+    //
     //   wsRef.current.onopen = () => {
     //     console.log('WebSocket 連接已建立')
     //     setConnectionStatus('connected')
     //     reconnectAttempts.current = 0
-    //     
+    //
     //     // 發送心跳
     //     const heartbeat = setInterval(() => {
     //       if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -109,11 +109,11 @@ export default function VotesPage() {
     //       }
     //     }, 25000)
     //   }
-    //   
+    //
     //   wsRef.current.onmessage = (event) => {
     //     try {
     //       const message = JSON.parse(event.data)
-    //       
+    //
     //       switch (message.type) {
     //         case 'initial_data':
     //         case 'data_update':
@@ -131,28 +131,28 @@ export default function VotesPage() {
     //       console.error('解析 WebSocket 訊息失敗:', error)
     //     }
     //   }
-    //   
+    //
     //   wsRef.current.onclose = () => {
     //     console.log('WebSocket 連接已關閉')
     //     setConnectionStatus('disconnected')
-    //     
+    //
     //     // 自動重連
     //     if (reconnectAttempts.current < maxReconnectAttempts && autoRefresh) {
     //       reconnectAttempts.current++
     //       const delay = Math.min(1000 * Math.pow(2, reconnectAttempts.current), 30000)
-    //       
+    //
     //       reconnectTimeoutRef.current = setTimeout(() => {
     //         console.log(`嘗試重連 (${reconnectAttempts.current}/${maxReconnectAttempts})`)
     //         connectWebSocket()
     //       }, delay)
     //     }
     //   }
-    //   
+    //
     //   wsRef.current.onerror = (error) => {
     //     console.error('WebSocket 錯誤:', error)
     //     setConnectionStatus('disconnected')
     //   }
-    //   
+    //
     // } catch (error) {
     //   console.error('建立 WebSocket 連接失敗:', error)
     //   setConnectionStatus('disconnected')
@@ -171,7 +171,7 @@ export default function VotesPage() {
         setRealTimeData(data)
         setLoading(false)
         setConnectionStatus('disconnected')
-        
+
         // HTTP 模式下的定期更新
         if (autoRefresh) {
           setTimeout(fallbackToHttpMode, 30000)
@@ -260,7 +260,7 @@ export default function VotesPage() {
   useEffect(() => {
     // connectWebSocket() // 暫時禁用以避免 ERR_BLOCKED_BY_CLIENT
     fallbackToHttpMode() // 直接使用 HTTP 模式
-    
+
     return () => {
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current)
@@ -276,7 +276,7 @@ export default function VotesPage() {
     totalVotes: realTimeData.today_statistics.total_participants,
     activeVotes: realTimeData.summary.active_count,
     completedVotes: realTimeData.recent_completed.length,
-    averageParticipation: realTimeData.summary.active_count > 0 
+    averageParticipation: realTimeData.summary.active_count > 0
       ? Math.round(realTimeData.summary.total_active_participants / realTimeData.summary.active_count)
       : 0
   } : { totalVotes: 0, activeVotes: 0, completedVotes: 0, averageParticipation: 0 }
@@ -292,7 +292,7 @@ export default function VotesPage() {
 
   // 篩選投票
   const allVotes = realTimeData ? [...realTimeData.active_votes, ...realTimeData.recent_completed] : []
-  const filteredVotes = allVotes.filter(vote => 
+  const filteredVotes = allVotes.filter(vote =>
     vote.title.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
@@ -341,7 +341,7 @@ export default function VotesPage() {
                   )}
                 </p>
               </div>
-              
+
               <div className="flex flex-col sm:flex-row gap-2">
                 <Button
                   size="sm"
@@ -499,7 +499,7 @@ export default function VotesPage() {
                             </span>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center gap-4 flex-shrink-0">
                           <div className="text-center">
                             <div className="text-xl sm:text-2xl font-bold text-success-600 dark:text-success-400">
@@ -513,7 +513,7 @@ export default function VotesPage() {
                           </Button>
                         </div>
                       </div>
-                      
+
                       {/* 實時結果條形圖 */}
                       <div className="mt-4 space-y-2">
                         {calculatePercentages(vote.options).slice(0, 5).map((option) => (
@@ -538,7 +538,7 @@ export default function VotesPage() {
                       </div>
                     </div>
                   ))}
-                  
+
                   {(!realTimeData?.active_votes || realTimeData.active_votes.length === 0) && (
                     <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                       <Clock className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -583,7 +583,7 @@ export default function VotesPage() {
                             </span>
                           </div>
                         </div>
-                        
+
                         <div className="text-center">
                           <div className="text-xl sm:text-2xl font-bold text-gray-600 dark:text-gray-400">
                             {vote.total_participants}
@@ -591,7 +591,7 @@ export default function VotesPage() {
                           <div className="text-xs text-gray-500">參與者</div>
                         </div>
                       </div>
-                      
+
                       {/* 最終結果 */}
                       <div className="mt-4 space-y-2">
                         {calculatePercentages(vote.options).map((option) => (
@@ -616,7 +616,7 @@ export default function VotesPage() {
                       </div>
                     </div>
                   ))}
-                  
+
                   {(!realTimeData?.recent_completed || realTimeData.recent_completed.length === 0) && (
                     <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                       <Vote className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -674,7 +674,7 @@ export default function VotesPage() {
                               )}
                             </div>
                           </div>
-                          
+
                           <div className="flex items-center gap-4 flex-shrink-0">
                             <div className="text-center">
                               <div className="text-xl sm:text-2xl font-bold text-brand-600 dark:text-brand-400">
@@ -691,7 +691,7 @@ export default function VotesPage() {
                       </div>
                     )
                   })}
-                  
+
                   {filteredVotes.length === 0 && (
                     <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                       <Vote className="w-12 h-12 mx-auto mb-4 opacity-50" />

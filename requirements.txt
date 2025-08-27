@@ -12,7 +12,7 @@ aiofiles==23.2.0
 python-jose[cryptography]==3.3.0
 websockets==12.0
 
-# 注意: 
+# 注意:
 # - 生產環境建議使用 requirements-production.txt (精確版本)
 # - 開發環境建議使用 requirements-development.txt (包含開發工具)
 # - 完整依賴說明請參考 docs/requirements/requirements-combined.txt

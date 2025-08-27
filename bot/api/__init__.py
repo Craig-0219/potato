@@ -18,5 +18,5 @@ SUPPORTED_FORMATS = ["json", "xml", "csv", "txt"]
 DEFAULT_RATE_LIMITS = {
     "requests_per_minute": 60,
     "requests_per_hour": 1000,
-    "requests_per_day": 10000
+    "requests_per_day": 10000,
 }

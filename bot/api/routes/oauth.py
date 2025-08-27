@@ -11,8 +11,8 @@ from typing import Optional
 
 import httpx
 from fastapi import APIRouter, HTTPException, Query, Request, Response
-from jose import jwt
 from fastapi.responses import RedirectResponse
+from jose import jwt
 
 from shared.config import DISCORD_TOKEN
 from shared.logger import logger

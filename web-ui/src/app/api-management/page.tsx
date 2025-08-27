@@ -58,7 +58,7 @@ export default function ApiManagementPage() {
 
       // 優先使用公開版本的系統 API，認證版本僅用於 API 金鑰管理
       let keysResponse, healthResponse, systemResponse
-      
+
       try {
         // 並行獲取數據：API 金鑰需要認證，系統指標使用公開版本
         [keysResponse, healthResponse, systemResponse] = await Promise.all([
@@ -75,11 +75,11 @@ export default function ApiManagementPage() {
       }
 
       setApiKeys(keysResponse.data.data || [])
-      
+
       // 安全地合併系統健康數據和指標數據
       const healthData = healthResponse.data.data || healthResponse.data || {}
       const metricsData = systemResponse.data.data || systemResponse.data || {}
-      
+
       setSystemHealth({
         status: healthData.status || 'unknown',
         timestamp: healthData.timestamp || new Date().toISOString(),
@@ -127,9 +127,9 @@ export default function ApiManagementPage() {
       }
 
       const response = await ApiClient.system.apiKeys.create(data)
-      
+
       toast.success('API 金鑰創建成功')
-      
+
       // 顯示新建的金鑰（只顯示一次）
       if (response.data.data.api_key) {
         toast(
@@ -290,8 +290,8 @@ export default function ApiManagementPage() {
                     <span className="font-medium">{systemHealth.metrics.cpu_usage.toFixed(1)}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                    <div 
-                      className="bg-blue-600 h-2 rounded-full transition-all" 
+                    <div
+                      className="bg-blue-600 h-2 rounded-full transition-all"
                       style={{ width: `${systemHealth.metrics.cpu_usage}%` }}
                     ></div>
                   </div>
@@ -302,8 +302,8 @@ export default function ApiManagementPage() {
                     <span className="font-medium">{systemHealth.metrics.memory_usage.toFixed(1)}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                    <div 
-                      className="bg-green-600 h-2 rounded-full transition-all" 
+                    <div
+                      className="bg-green-600 h-2 rounded-full transition-all"
                       style={{ width: `${systemHealth.metrics.memory_usage}%` }}
                     ></div>
                   </div>
@@ -314,8 +314,8 @@ export default function ApiManagementPage() {
                     <span className="font-medium">{systemHealth.metrics.disk_usage.toFixed(1)}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 dark:bg-gray-700">
-                    <div 
-                      className="bg-yellow-600 h-2 rounded-full transition-all" 
+                    <div
+                      className="bg-yellow-600 h-2 rounded-full transition-all"
                       style={{ width: `${systemHealth.metrics.disk_usage}%` }}
                     ></div>
                   </div>
@@ -352,7 +352,7 @@ export default function ApiManagementPage() {
                         required
                       />
                     </div>
-                    
+
                     <div>
                       <label className="form-label">權限等級</label>
                       <select
@@ -365,7 +365,7 @@ export default function ApiManagementPage() {
                         <option value="admin">管理員</option>
                       </select>
                     </div>
-                    
+
                     <div>
                       <label className="form-label">過期天數</label>
                       <input
@@ -377,7 +377,7 @@ export default function ApiManagementPage() {
                         max="365"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="form-label">限制伺服器 ID</label>
                       <input
@@ -389,7 +389,7 @@ export default function ApiManagementPage() {
                       />
                     </div>
                   </div>
-                  
+
                   <div className="flex justify-end space-x-2 mt-4">
                     <button
                       type="button"
@@ -432,7 +432,7 @@ export default function ApiManagementPage() {
                               </span>
                             )}
                           </div>
-                          
+
                           <div className="flex flex-wrap items-center text-sm text-gray-500 dark:text-gray-400 space-x-4">
                             <span>🆔 {apiKey.key_id}</span>
                             <span>📅 創建: {new Date(apiKey.created_at).toLocaleDateString('zh-TW')}</span>

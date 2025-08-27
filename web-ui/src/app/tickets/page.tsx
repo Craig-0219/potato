@@ -58,7 +58,7 @@ export default function TicketsPage() {
       try {
         const response = await ApiClient.tickets.list(params)
         console.log('🎫 票券API響應:', response.data)
-        
+
         // 處理API響應數據結構
         if (response.data && response.data.success) {
           setData({
@@ -85,7 +85,7 @@ export default function TicketsPage() {
         } else {
           console.warn('票券 API 不可用，使用模擬數據:', apiError)
         }
-        
+
         // 使用模擬票券數據
         const mockTickets: Ticket[] = [
           {
@@ -143,7 +143,7 @@ export default function TicketsPage() {
             has_prev: false
           }
         })
-        
+
         toast.success('使用示範票券數據')
       }
 
@@ -247,8 +247,8 @@ export default function TicketsPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div>
               <label className="form-label">狀態篩選</label>
-              <select 
-                value={statusFilter} 
+              <select
+                value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="form-input"
               >
@@ -259,11 +259,11 @@ export default function TicketsPage() {
                 <option value="closed">已關閉</option>
               </select>
             </div>
-            
+
             <div>
               <label className="form-label">優先級篩選</label>
-              <select 
-                value={priorityFilter} 
+              <select
+                value={priorityFilter}
                 onChange={(e) => setPriorityFilter(e.target.value)}
                 className="form-input"
               >
@@ -345,20 +345,20 @@ export default function TicketsPage() {
                           {getStatusBadge(ticket.status)}
                           {getPriorityBadge(ticket.priority)}
                         </div>
-                        
+
                         {ticket.title && (
                           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                             {ticket.title}
                           </h3>
                         )}
-                        
+
                         {ticket.description && (
                           <p className="text-gray-600 dark:text-gray-400 mb-3">
                             {ticket.description.substring(0, 150)}
                             {ticket.description.length > 150 && '...'}
                           </p>
                         )}
-                        
+
                         <div className="flex flex-wrap items-center text-sm text-gray-500 dark:text-gray-400 space-x-4">
                           <span>👤 {ticket.username}</span>
                           <span>📅 {new Date(ticket.created_at).toLocaleString('zh-TW')}</span>
