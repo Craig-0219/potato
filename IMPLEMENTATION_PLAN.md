@@ -72,7 +72,13 @@
 **Goal**: 修復輔助功能 Cogs
 **Success Criteria**: language_*, workflow_*, dashboard_*, webhook_* 模組正常載入  
 **Tests**: 完整功能驗證
-**Status**: **Pending**
+**Status**: **Ready to Start**
+
+### 🎯 P2 優先級 Cogs 目標清單
+1. **language_* 模組** - 語言管理系統
+2. **workflow_* 模組** - 工作流程系統  
+3. **dashboard_* 模組** - 控制台系統
+4. **webhook_* 模組** - Webhook 整合系統
 
 ---
 
@@ -95,14 +101,75 @@
 ## 📊 進度統計
 
 - **P0 Cogs**: ✅ 4/4 完成 (100%)
-- **P1 Cogs**: 📋 0/4 開始 (0%)  
+- **P1 Cogs**: ✅ 4/4 完成 (100%)  
 - **P2 Cogs**: 📋 0/4 開始 (0%)
 - **P3 Cogs**: 📋 0/4 開始 (0%)
-- **總進度**: ✅ 4/16 (25%)
+- **總進度**: ✅ 8/16 (50%)
 
 **預計完成時間**: 5 天
 **Day 1 狀態**: ✅ **完成** - P0 優先級修復完成
 **Day 2 狀態**: ✅ **完成** - P1 優先級修復完成
+
+---
+
+## 🔧 當前發現問題 (待修復)
+
+### 高優先級問題
+1. **❌ 資料庫表格缺失**
+   - `user_economy` 表格不存在 - 影響經濟系統統計
+   - `auto_reply_logs` 表格不存在 - 影響票券系統自動回覆日誌清理
+   
+2. **❌ 模組路徑問題**  
+   - `shared.offline_mode_manager` 模組不存在，但在 `bot/main.py` 中被引用
+   - 實際存在 `shared/offline_mode.py` 檔案
+   
+3. **❌ Cogs 載入失敗**
+   - `bot.cogs.vote_core` - 命令衝突問題
+   - `bot.cogs.fallback_commands` - 'ai' 命令已存在衝突
+
+### 中優先級問題
+4. **⚠️ 啟動器互動問題**
+   - `start.py` 在非互動環境中執行失敗 (EOF when reading line)
+   - 需要支援非互動模式或自動啟動選項
+
+---
+
+## Stage 6: 緊急問題修復 
+**Goal**: 修復所有當前發現的高優先級問題
+**Success Criteria**: 所有 Cogs 載入成功，資料庫完整，模組路徑正確
+**Tests**: 完整啟動測試和功能驗證
+**Status**: **In Progress**
+
+### 🎯 待修復問題清單
+
+#### Phase 6.1: 模組路徑修復
+- **❌ 修復 offline_mode_manager 模組路徑**
+  - 問題：`shared.offline_mode_manager` 不存在，實際為 `shared/offline_mode.py`
+  - 影響：bot/main.py 中導入失敗
+  - 修復方案：重新命名或修正導入路徑
+
+#### Phase 6.2: Cogs 載入問題修復  
+- **❌ 修復 vote_core 載入失敗**
+  - 問題：載入時出現未知錯誤
+  - 狀態：需要詳細診斷
+  
+- **❌ 修復 fallback_commands 命令衝突**
+  - 問題：'ai' 命令已存在，造成 CommandRegistrationError
+  - 修復方案：移除重複命令定義或重新命名
+
+#### Phase 6.3: 資料庫表格修復
+- **❌ 創建 user_economy 表格**
+  - 問題：經濟系統統計功能無法運作
+  - 影響：跨平台經濟系統功能受限
+  
+- **❌ 創建 auto_reply_logs 表格**  
+  - 問題：票券系統自動回覆日誌清理失敗
+  - 影響：日誌累積可能影響效能
+
+#### Phase 6.4: 啟動器改進
+- **⚠️ 添加非互動模式支援**
+  - 問題：start.py 在 CLI 環境中無法使用
+  - 修復方案：添加 --auto 或 --no-interactive 參數
 
 ---
 
