@@ -26,7 +26,6 @@ class FallbackCommands(commands.Cog):
             menu_cog = self.bot.get_cog("MenuCore")
             if menu_cog:
                 # 創建假的 interaction 來使用現有的 menu 系統
-                from bot.ui.menu_system import MenuSystemManager
 
                 embed = discord.Embed(
                     title="🏠 Potato Bot 主選單",
@@ -138,7 +137,9 @@ class FallbackCommands(commands.Cog):
         """AI 助手 (備用命令)"""
         if not question:
             embed = discord.Embed(
-                title="🤖 AI 智能助手", description="使用方式：`!ai_chat <你的問題>`", color=0x9B59B6
+                title="🤖 AI 智能助手",
+                description="使用方式：`!ai_chat <你的問題>`",
+                color=0x9B59B6,
             )
             embed.add_field(name="範例", value="`!ai_chat 你好` 或 `!ask 天氣如何`", inline=False)
             await ctx.send(embed=embed)
@@ -205,7 +206,9 @@ class FallbackCommands(commands.Cog):
 
         embed.add_field(
             name="ℹ️ 系統功能",
-            value=("`!bot_status` - 系統狀態\n" "`!guide` - 說明頁面\n" "`!sync` - 同步命令 (管理員)"),
+            value=(
+                "`!bot_status` - 系統狀態\n" "`!guide` - 說明頁面\n" "`!sync` - 同步命令 (管理員)"
+            ),
             inline=True,
         )
 
