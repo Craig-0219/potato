@@ -32,8 +32,18 @@ class WelcomeListener(commands.Cog):
         
         # 檢查是否在最近 30 秒內已處理過此成員
         if member_id in self.recent_joins:
+            return
+        
+        try:
+            # 添加到追蹤集合
+            self.recent_joins.add(member_id)
             
+            # 處理歡迎邏輯
+            await self.welcome_manager.handle_member_join(member)
+            
+        except Exception as e:
             import traceback
+            logger.error(f"處理歡迎事件時發生錯誤: {e}")
             logger.error(traceback.format_exc())
         finally:
             # 30 秒後移除追蹤
@@ -51,6 +61,12 @@ class WelcomeListener(commands.Cog):
     async def on_member_join(self, member: discord.Member):
         """成員加入事件 - 主要處理方法"""
         if member.bot:
+            return  # 忽略機器人
+        
+        try:
+            await self._handle_welcome_with_tracking(member, "join")
+        except Exception as e:
+            logger.error(f"處理成員加入事件時發生錯誤: {e}")
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):

@@ -20,7 +20,9 @@ class VoteDAO:
     def __init__(self):
         self.db = db_pool
 
-    async def get_votes_by_date_range(self, guild_id: int, start_date: datetime, end_date: datetime) -> List[Dict[str, Any]]:
+    async def get_votes_by_date_range(
+        self, guild_id: int, start_date: datetime, end_date: datetime
+    ) -> List[Dict[str, Any]]:
         """取得指定日期範圍內的投票"""
         try:
             # 確保日期時間格式一致 (移除timezone info以匹配資料庫)
@@ -31,35 +33,44 @@ class VoteDAO:
 
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute("""
+                    await cursor.execute(
+                        """
                         SELECT id, title, is_multi, anonymous, creator_id,
                                start_time, end_time, channel_id,
                                (SELECT COUNT(*) FROM vote_responses vr WHERE vr.vote_id = v.id) as total_votes
                         FROM votes v
                         WHERE guild_id = %s AND start_time BETWEEN %s AND %s
                         ORDER BY start_time DESC
-                    """, (guild_id, start_date, end_date))
+                    """,
+                        (guild_id, start_date, end_date),
+                    )
 
                     rows = await cursor.fetchall()
                     votes = []
 
                     for row in rows:
                         # 取得選項數量
-                        await cursor.execute("SELECT COUNT(*) FROM vote_options WHERE vote_id = %s", (row[0],))
+                        await cursor.execute(
+                            "SELECT COUNT(*) FROM vote_options WHERE vote_id = %s", (row[0],)
+                        )
                         options_count = (await cursor.fetchone())[0]
 
                         vote = {
-                            'id': row[0],
-                            'title': row[1],
-                            'is_multi': bool(row[2]),
-                            'anonymous': bool(row[3]),
-                            'creator_id': row[4],
-                            'start_time': row[5],
-                            'end_time': row[6],
-                            'ended_at': row[6] if row[6] and row[6] < datetime.now().replace(tzinfo=None) else None,
-                            'channel_id': row[7],
-                            'total_votes': row[8],
-                            'options': {'count': options_count}
+                            "id": row[0],
+                            "title": row[1],
+                            "is_multi": bool(row[2]),
+                            "anonymous": bool(row[3]),
+                            "creator_id": row[4],
+                            "start_time": row[5],
+                            "end_time": row[6],
+                            "ended_at": (
+                                row[6]
+                                if row[6] and row[6] < datetime.now().replace(tzinfo=None)
+                                else None
+                            ),
+                            "channel_id": row[7],
+                            "total_votes": row[8],
+                            "options": {"count": options_count},
                         }
                         votes.append(vote)
 
@@ -69,7 +80,9 @@ class VoteDAO:
             logger.error(f"取得投票列表錯誤: {e}")
             return []
 
+
 # ===== 核心投票操作 =====
+
 
 async def create_vote(session, creator_id):
     """建立新投票記錄"""
@@ -83,85 +96,120 @@ async def create_vote(session, creator_id):
     except Exception as e:
         logger.error(f"create_vote 錯誤: {e}")
         import traceback
+
         logger.error(f"完整追蹤: {traceback.format_exc()}")
         return None
+
 
 async def get_vote_by_id(vote_id):
     """查詢特定投票詳細資料"""
     try:
         async with db_pool.connection() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute("""
+                await cur.execute(
+                    """
                     SELECT id, title, is_multi, anonymous, allowed_roles, channel_id, end_time, start_time, announced, guild_id, creator_id
                     FROM votes
                     WHERE id = %s
-                """, (vote_id,))
+                """,
+                    (vote_id,),
+                )
                 vote = await cur.fetchone()
 
                 if not vote:
-
+                    return None
+                return vote
+    except Exception as e:
         import traceback
+
+        logger.error(f"查詢投票資料失敗: {e}")
         logger.error(f"完整追蹤: {traceback.format_exc()}")
         return None
+
 
 async def get_vote_options(vote_id):
     """取得某投票的所有選項清單"""
     try:
         async with db_pool.connection() as conn:
             async with conn.cursor() as cur:
-                await cur.execute("""
+                await cur.execute(
+                    """
                     SELECT option_text FROM vote_options
                     WHERE vote_id = %s
                     ORDER BY id
-                """, (vote_id,))
+                """,
+                    (vote_id,),
+                )
                 options = []
                 async for row in cur:
                     options.append(row[0])
-
+                return options
+    except Exception as e:
+        logger.error(f"取得投票選項失敗: {e}")
         return []
+
 
 async def has_voted(vote_id, user_id):
     """檢查某用戶是否已投票"""
     try:
         async with db_pool.connection() as conn:
             async with conn.cursor() as cur:
-                await cur.execute("""
+                await cur.execute(
+                    """
                     SELECT 1 FROM vote_responses
                     WHERE vote_id = %s AND user_id = %s
                     LIMIT 1
-                """, (vote_id, user_id))
+                """,
+                    (vote_id, user_id),
+                )
                 result = await cur.fetchone() is not None
-
+                return result
+    except Exception as e:
+        logger.error(f"檢查投票狀態失敗: {e}")
         return False
+
 
 async def insert_vote_response(vote_id, user_id, option):
     """寫入投票結果"""
     try:
         async with db_pool.connection() as conn:
             async with conn.cursor() as cur:
-                await cur.execute("""
+                await cur.execute(
+                    """
                     INSERT INTO vote_responses (vote_id, user_id, option_text)
                     VALUES (%s, %s, %s)
-                """, (vote_id, user_id, option))
+                """,
+                    (vote_id, user_id, option),
+                )
                 await conn.commit()
 
+    except Exception as e:
+        logger.error(f"寫入投票結果失敗: {e}")
         raise
+
 
 async def get_vote_statistics(vote_id):
     """統計票數：依選項計算總票數"""
     try:
         async with db_pool.connection() as conn:
             async with conn.cursor() as cur:
-                await cur.execute("""
+                await cur.execute(
+                    """
                     SELECT option_text, COUNT(*) FROM vote_responses
                     WHERE vote_id = %s
                     GROUP BY option_text
-                """, (vote_id,))
+                """,
+                    (vote_id,),
+                )
                 stats = {}
                 async for row in cur:
                     stats[row[0]] = row[1]
+                return stats
 
+    except Exception as e:
+        logger.error(f"獲取投票統計失敗: {e}")
         return {}
+
 
 async def get_expired_votes_to_announce():
     """查詢所有已過期但尚未公告的投票 - 使用獨立連接避免事件循環衝突"""
@@ -172,39 +220,41 @@ async def get_expired_votes_to_announce():
         import aiomysql
 
         conn = await aiomysql.connect(
-            host=os.getenv('DB_HOST', 'localhost'),
-            port=int(os.getenv('DB_PORT', 3306)),
-            user=os.getenv('DB_USER', 'root'),
-            password=os.getenv('DB_PASSWORD', ''),
-            db=os.getenv('DB_NAME', 'potato_db'),
-            charset='utf8mb4',
-            autocommit=True
+            host=os.getenv("DB_HOST", "localhost"),
+            port=int(os.getenv("DB_PORT", 3306)),
+            user=os.getenv("DB_USER", "root"),
+            password=os.getenv("DB_PASSWORD", ""),
+            db=os.getenv("DB_NAME", "potato_db"),
+            charset="utf8mb4",
+            autocommit=True,
         )
 
         try:
             async with conn.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute("""
+                await cur.execute(
+                    """
                     SELECT * FROM votes
                     WHERE end_time <= UTC_TIMESTAMP() AND announced = FALSE
-                """)
+                """
+                )
                 rows = await cur.fetchall()
 
                 processed_votes = []
                 for row in rows:
-                    row['is_multi'] = bool(row['is_multi'])
-                    row['anonymous'] = bool(row['anonymous'])
+                    row["is_multi"] = bool(row["is_multi"])
+                    row["anonymous"] = bool(row["anonymous"])
 
                     # 處理 JSON 欄位
                     try:
-                        row['allowed_roles'] = json.loads(row.get('allowed_roles', '[]'))
+                        row["allowed_roles"] = json.loads(row.get("allowed_roles", "[]"))
                     except:
-                        row['allowed_roles'] = []
+                        row["allowed_roles"] = []
 
                     # 確保時間有時區資訊
-                    if row['start_time'] and row['start_time'].tzinfo is None:
-                        row['start_time'] = row['start_time'].replace(tzinfo=timezone.utc)
-                    if row['end_time'] and row['end_time'].tzinfo is None:
-                        row['end_time'] = row['end_time'].replace(tzinfo=timezone.utc)
+                    if row["start_time"] and row["start_time"].tzinfo is None:
+                        row["start_time"] = row["start_time"].replace(tzinfo=timezone.utc)
+                    if row["end_time"] and row["end_time"].tzinfo is None:
+                        row["end_time"] = row["end_time"].replace(tzinfo=timezone.utc)
 
                     processed_votes.append(row)
 
@@ -216,6 +266,7 @@ async def get_expired_votes_to_announce():
         logger.error(f"get_expired_votes_to_announce 錯誤: {e}")
         return []
 
+
 async def mark_vote_announced(vote_id):
     """將已公告的投票標記為 announced = TRUE - 使用獨立連接避免事件循環衝突"""
     try:
@@ -225,22 +276,35 @@ async def mark_vote_announced(vote_id):
         import aiomysql
 
         conn = await aiomysql.connect(
-            host=os.getenv('DB_HOST', 'localhost'),
-            port=int(os.getenv('DB_PORT', 3306)),
-            user=os.getenv('DB_USER', 'root'),
-            password=os.getenv('DB_PASSWORD', ''),
-            db=os.getenv('DB_NAME', 'potato_db'),
-            charset='utf8mb4',
-            autocommit=True
+            host=os.getenv("DB_HOST", "localhost"),
+            port=int(os.getenv("DB_PORT", 3306)),
+            user=os.getenv("DB_USER", "root"),
+            password=os.getenv("DB_PASSWORD", ""),
+            db=os.getenv("DB_NAME", "potato_db"),
+            charset="utf8mb4",
+            autocommit=True,
         )
 
         try:
             async with conn.cursor() as cur:
-                await cur.execute("""
+                await cur.execute(
+                    """
                     UPDATE votes SET announced = TRUE WHERE id = %s
-                """, (vote_id,))
+                """,
+                    (vote_id,),
+                )
+
+        except Exception as e:
+            logger.error(f"標記投票為已公告時失敗: {e}")
+        finally:
+            await conn.ensure_closed()
+
+    except Exception as e:
+        logger.error(f"標記投票為已公告時發生外層錯誤: {e}")
+
 
 # ===== 歷史查詢功能 =====
+
 
 async def get_vote_history(page: int = 1, status: str = "all", per_page: int = 10):
     """分頁查詢投票歷史記錄"""
@@ -271,25 +335,30 @@ async def get_vote_history(page: int = 1, status: str = "all", per_page: int = 1
                 # 處理資料格式
                 processed_votes = []
                 for row in rows:
-                    row['is_multi'] = bool(row['is_multi'])
-                    row['anonymous'] = bool(row['anonymous'])
-                    row['announced'] = bool(row.get('announced', False))
+                    row["is_multi"] = bool(row["is_multi"])
+                    row["anonymous"] = bool(row["anonymous"])
+                    row["announced"] = bool(row.get("announced", False))
 
                     # 處理 JSON 欄位
                     try:
-                        row['allowed_roles'] = json.loads(row.get('allowed_roles', '[]'))
+                        row["allowed_roles"] = json.loads(row.get("allowed_roles", "[]"))
                     except:
-                        row['allowed_roles'] = []
+                        row["allowed_roles"] = []
 
                     # 時區處理
-                    if row['start_time'] and row['start_time'].tzinfo is None:
-                        row['start_time'] = row['start_time'].replace(tzinfo=timezone.utc)
-                    if row['end_time'] and row['end_time'].tzinfo is None:
-                        row['end_time'] = row['end_time'].replace(tzinfo=timezone.utc)
+                    if row["start_time"] and row["start_time"].tzinfo is None:
+                        row["start_time"] = row["start_time"].replace(tzinfo=timezone.utc)
+                    if row["end_time"] and row["end_time"].tzinfo is None:
+                        row["end_time"] = row["end_time"].replace(tzinfo=timezone.utc)
 
                     processed_votes.append(row)
 
+                return processed_votes
+
+    except Exception as e:
+        logger.error(f"查詢投票歷史失敗: {e}")
         return []
+
 
 async def get_vote_count(status: str = "all") -> int:
     """取得投票總數"""
@@ -312,6 +381,7 @@ async def get_vote_count(status: str = "all") -> int:
     except Exception as e:
         logger.error(f"get_vote_count 錯誤: {e}")
         return 0
+
 
 async def get_user_vote_history(user_id: int):
     """查詢特定用戶的投票記錄"""
@@ -339,25 +409,28 @@ async def get_user_vote_history(user_id: int):
                 result = []
                 for vote in votes:
                     # 取得該用戶在這個投票中的所有選擇
-                    await cur.execute("""
+                    await cur.execute(
+                        """
                         SELECT option_text FROM vote_responses
                         WHERE vote_id = %s AND user_id = %s
-                    """, (vote['vote_id'], user_id))
+                    """,
+                        (vote["vote_id"], user_id),
+                    )
 
                     choices = []
                     async for choice_row in cur:
                         choices.append(choice_row[0])
 
                     # 確保時間有時區資訊
-                    vote_time = vote['start_time']
+                    vote_time = vote["start_time"]
                     if vote_time and vote_time.tzinfo is None:
                         vote_time = vote_time.replace(tzinfo=timezone.utc)
 
                     vote_info = {
-                        'vote_id': vote['vote_id'],
-                        'vote_title': vote['vote_title'],
-                        'vote_time': vote_time,
-                        'my_choices': choices
+                        "vote_id": vote["vote_id"],
+                        "vote_title": vote["vote_title"],
+                        "vote_time": vote_time,
+                        "my_choices": choices,
                     }
                     result.append(vote_info)
 
@@ -367,27 +440,31 @@ async def get_user_vote_history(user_id: int):
         logger.error(f"get_user_vote_history({user_id}) 錯誤: {e}")
         return []
 
+
 async def search_votes(keyword: str, limit: int = 20):
     """根據關鍵字搜尋投票"""
     try:
         async with db_pool.connection() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute("""
+                await cur.execute(
+                    """
                     SELECT id, title, start_time, end_time,
                            CASE WHEN end_time > UTC_TIMESTAMP() THEN 1 ELSE 0 END as is_active
                     FROM votes
                     WHERE title LIKE %s
                     ORDER BY start_time DESC
                     LIMIT %s
-                """, (f"%{keyword}%", limit))
+                """,
+                    (f"%{keyword}%", limit),
+                )
 
                 results = []
                 async for row in cur:
                     # 時區處理
-                    if row['start_time'] and row['start_time'].tzinfo is None:
-                        row['start_time'] = row['start_time'].replace(tzinfo=timezone.utc)
-                    if row['end_time'] and row['end_time'].tzinfo is None:
-                        row['end_time'] = row['end_time'].replace(tzinfo=timezone.utc)
+                    if row["start_time"] and row["start_time"].tzinfo is None:
+                        row["start_time"] = row["start_time"].replace(tzinfo=timezone.utc)
+                    if row["end_time"] and row["end_time"].tzinfo is None:
+                        row["end_time"] = row["end_time"].replace(tzinfo=timezone.utc)
 
                     results.append(row)
 
@@ -397,24 +474,31 @@ async def search_votes(keyword: str, limit: int = 20):
         logger.error(f"search_votes 錯誤: {e}")
         return []
 
+
 # ===== 投票系統設定管理 =====
+
 
 async def get_vote_settings(guild_id: int):
     """取得投票系統設定"""
     try:
         async with db_pool.connection() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
-                await cur.execute("""
+                await cur.execute(
+                    """
                     SELECT * FROM vote_settings WHERE guild_id = %s
-                """, (guild_id,))
+                """,
+                    (guild_id,),
+                )
 
                 result = await cur.fetchone()
                 if result:
                     # 處理JSON欄位
-                    if result['allowed_creator_roles']:
-                        result['allowed_creator_roles'] = json.loads(result['allowed_creator_roles'])
+                    if result["allowed_creator_roles"]:
+                        result["allowed_creator_roles"] = json.loads(
+                            result["allowed_creator_roles"]
+                        )
                     else:
-                        result['allowed_creator_roles'] = []
+                        result["allowed_creator_roles"] = []
 
                 return result
 
@@ -422,15 +506,21 @@ async def get_vote_settings(guild_id: int):
         logger.error(f"get_vote_settings({guild_id}) 錯誤: {e}")
         return None
 
+
 async def update_vote_settings(guild_id: int, settings: dict):
     """更新投票系統設定"""
     try:
         async with db_pool.connection() as conn:
             async with conn.cursor() as cur:
                 # 處理JSON欄位
-                allowed_roles_json = json.dumps(settings.get('allowed_creator_roles', [])) if settings.get('allowed_creator_roles') else None
+                allowed_roles_json = (
+                    json.dumps(settings.get("allowed_creator_roles", []))
+                    if settings.get("allowed_creator_roles")
+                    else None
+                )
 
-                await cur.execute("""
+                await cur.execute(
+                    """
                     INSERT INTO vote_settings (
                         guild_id, default_vote_channel_id, announcement_channel_id,
                         max_vote_duration_hours, min_vote_duration_minutes,
@@ -451,19 +541,21 @@ async def update_vote_settings(guild_id: int, settings: dict):
                         allow_multi_choice = VALUES(allow_multi_choice),
                         is_enabled = VALUES(is_enabled),
                         updated_at = CURRENT_TIMESTAMP
-                """, (
-                    guild_id,
-                    settings.get('default_vote_channel_id'),
-                    settings.get('announcement_channel_id'),
-                    settings.get('max_vote_duration_hours', 72),
-                    settings.get('min_vote_duration_minutes', 60),
-                    settings.get('require_role_to_create', False),
-                    allowed_roles_json,
-                    settings.get('auto_announce_results', True),
-                    settings.get('allow_anonymous_votes', True),
-                    settings.get('allow_multi_choice', True),
-                    settings.get('is_enabled', True)
-                ))
+                """,
+                    (
+                        guild_id,
+                        settings.get("default_vote_channel_id"),
+                        settings.get("announcement_channel_id"),
+                        settings.get("max_vote_duration_hours", 72),
+                        settings.get("min_vote_duration_minutes", 60),
+                        settings.get("require_role_to_create", False),
+                        allowed_roles_json,
+                        settings.get("auto_announce_results", True),
+                        settings.get("allow_anonymous_votes", True),
+                        settings.get("allow_multi_choice", True),
+                        settings.get("is_enabled", True),
+                    ),
+                )
 
                 await conn.commit()
                 logger.info(f"投票系統設定已更新 (guild_id: {guild_id})")
@@ -473,18 +565,22 @@ async def update_vote_settings(guild_id: int, settings: dict):
         logger.error(f"update_vote_settings({guild_id}) 錯誤: {e}")
         return False
 
+
 async def set_default_vote_channel(guild_id: int, channel_id: int):
     """設定預設投票頻道"""
     try:
         async with db_pool.connection() as conn:
             async with conn.cursor() as cur:
-                await cur.execute("""
+                await cur.execute(
+                    """
                     INSERT INTO vote_settings (guild_id, default_vote_channel_id, is_enabled)
                     VALUES (%s, %s, TRUE)
                     ON DUPLICATE KEY UPDATE
                         default_vote_channel_id = VALUES(default_vote_channel_id),
                         updated_at = CURRENT_TIMESTAMP
-                """, (guild_id, channel_id))
+                """,
+                    (guild_id, channel_id),
+                )
 
                 await conn.commit()
                 logger.info(f"預設投票頻道已設定: {channel_id} (guild_id: {guild_id})")
@@ -494,18 +590,22 @@ async def set_default_vote_channel(guild_id: int, channel_id: int):
         logger.error(f"set_default_vote_channel({guild_id}, {channel_id}) 錯誤: {e}")
         return False
 
+
 async def set_announcement_channel(guild_id: int, channel_id: int):
     """設定投票結果公告頻道"""
     try:
         async with db_pool.connection() as conn:
             async with conn.cursor() as cur:
-                await cur.execute("""
+                await cur.execute(
+                    """
                     INSERT INTO vote_settings (guild_id, announcement_channel_id, is_enabled)
                     VALUES (%s, %s, TRUE)
                     ON DUPLICATE KEY UPDATE
                         announcement_channel_id = VALUES(announcement_channel_id),
                         updated_at = CURRENT_TIMESTAMP
-                """, (guild_id, channel_id))
+                """,
+                    (guild_id, channel_id),
+                )
 
                 await conn.commit()
                 logger.info(f"投票結果公告頻道已設定: {channel_id} (guild_id: {guild_id})")
@@ -515,6 +615,7 @@ async def set_announcement_channel(guild_id: int, channel_id: int):
         logger.error(f"set_announcement_channel({guild_id}, {channel_id}) 錯誤: {e}")
         return False
 
+
 async def is_vote_system_enabled(guild_id: int):
     """檢查投票系統是否啟用"""
     try:
@@ -523,12 +624,14 @@ async def is_vote_system_enabled(guild_id: int):
         if not settings:
             return True
         # 檢查 is_enabled 欄位，默認啟用
-        return settings.get('is_enabled', True)
+        return settings.get("is_enabled", True)
     except Exception as e:
         logger.error(f"is_vote_system_enabled({guild_id}) 錯誤: {e}")
         return True  # 預設啟用
 
+
 # ===== 統計功能優化 =====
+
 
 async def get_total_vote_count(guild_id: int = None):
     """獲取投票總數統計"""
@@ -546,6 +649,7 @@ async def get_total_vote_count(guild_id: int = None):
     except Exception as e:
         logger.error(f"get_total_vote_count({guild_id}) 錯誤: {e}")
         return 0
+
 
 async def get_recent_votes(limit: int = 5, guild_id: int = None):
     """獲取最近的投票"""
@@ -577,13 +681,13 @@ async def get_recent_votes(limit: int = 5, guild_id: int = None):
                 # 處理時區和資料類型
                 results = []
                 for row in rows:
-                    row['is_multi'] = bool(row['is_multi'])
-                    row['anonymous'] = bool(row['anonymous'])
+                    row["is_multi"] = bool(row["is_multi"])
+                    row["anonymous"] = bool(row["anonymous"])
 
-                    if row['start_time'] and row['start_time'].tzinfo is None:
-                        row['start_time'] = row['start_time'].replace(tzinfo=timezone.utc)
-                    if row['end_time'] and row['end_time'].tzinfo is None:
-                        row['end_time'] = row['end_time'].replace(tzinfo=timezone.utc)
+                    if row["start_time"] and row["start_time"].tzinfo is None:
+                        row["start_time"] = row["start_time"].replace(tzinfo=timezone.utc)
+                    if row["end_time"] and row["end_time"].tzinfo is None:
+                        row["end_time"] = row["end_time"].replace(tzinfo=timezone.utc)
 
                     results.append(row)
 
@@ -593,24 +697,29 @@ async def get_recent_votes(limit: int = 5, guild_id: int = None):
         logger.error(f"get_recent_votes({limit}, {guild_id}) 錯誤: {e}")
         return []
 
+
 async def get_vote_participation_stats(vote_id: int):
     """獲取投票參與統計詳情"""
     try:
         async with db_pool.connection() as conn:
             async with conn.cursor() as cur:
                 # 獲取總參與人數
-                await cur.execute("""
+                await cur.execute(
+                    """
                     SELECT COUNT(DISTINCT user_id) as unique_users,
                            COUNT(*) as total_responses
                     FROM vote_responses WHERE vote_id = %s
-                """, (vote_id,))
+                """,
+                    (vote_id,),
+                )
 
                 result = await cur.fetchone()
                 unique_users = result[0] if result else 0
                 total_responses = result[1] if result else 0
 
                 # 獲取各選項的詳細統計
-                await cur.execute("""
+                await cur.execute(
+                    """
                     SELECT option_text,
                            COUNT(*) as vote_count,
                            COUNT(DISTINCT user_id) as unique_voters
@@ -618,29 +727,26 @@ async def get_vote_participation_stats(vote_id: int):
                     WHERE vote_id = %s
                     GROUP BY option_text
                     ORDER BY vote_count DESC
-                """, (vote_id,))
+                """,
+                    (vote_id,),
+                )
 
                 options_stats = []
                 async for row in cur:
-                    options_stats.append({
-                        'option': row[0],
-                        'votes': row[1],
-                        'unique_voters': row[2]
-                    })
+                    options_stats.append(
+                        {"option": row[0], "votes": row[1], "unique_voters": row[2]}
+                    )
 
                 return {
-                    'unique_users': unique_users,
-                    'total_responses': total_responses,
-                    'options_stats': options_stats
+                    "unique_users": unique_users,
+                    "total_responses": total_responses,
+                    "options_stats": options_stats,
                 }
 
     except Exception as e:
         logger.error(f"get_vote_participation_stats({vote_id}) 錯誤: {e}")
-        return {
-            'unique_users': 0,
-            'total_responses': 0,
-            'options_stats': []
-        }
+        return {"unique_users": 0, "total_responses": 0, "options_stats": []}
+
 
 async def get_guild_vote_stats(guild_id: int, days: int = 30):
     """獲取指定伺服器的投票統計（指定天數內）"""
@@ -648,7 +754,8 @@ async def get_guild_vote_stats(guild_id: int, days: int = 30):
         async with db_pool.connection() as conn:
             async with conn.cursor() as cur:
                 # 獲取基本統計
-                await cur.execute("""
+                await cur.execute(
+                    """
                     SELECT
                         COUNT(*) as total_votes,
                         COUNT(CASE WHEN end_time > UTC_TIMESTAMP() THEN 1 END) as active_votes,
@@ -656,24 +763,30 @@ async def get_guild_vote_stats(guild_id: int, days: int = 30):
                     FROM votes
                     WHERE guild_id = %s
                     AND start_time >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL %s DAY)
-                """, (guild_id, days))
+                """,
+                    (guild_id, days),
+                )
 
                 basic_stats = await cur.fetchone()
 
                 # 獲取參與統計
-                await cur.execute("""
+                await cur.execute(
+                    """
                     SELECT COUNT(DISTINCT vr.user_id) as unique_participants,
                            COUNT(*) as total_responses
                     FROM vote_responses vr
                     JOIN votes v ON vr.vote_id = v.id
                     WHERE v.guild_id = %s
                     AND v.start_time >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL %s DAY)
-                """, (guild_id, days))
+                """,
+                    (guild_id, days),
+                )
 
                 participation_stats = await cur.fetchone()
 
                 # 獲取最活躍的投票創建者
-                await cur.execute("""
+                await cur.execute(
+                    """
                     SELECT creator_id, COUNT(*) as votes_created
                     FROM votes
                     WHERE guild_id = %s
@@ -681,31 +794,36 @@ async def get_guild_vote_stats(guild_id: int, days: int = 30):
                     GROUP BY creator_id
                     ORDER BY votes_created DESC
                     LIMIT 5
-                """, (guild_id, days))
+                """,
+                    (guild_id, days),
+                )
 
                 top_creators = await cur.fetchall()
 
                 return {
-                    'total_votes': basic_stats[0] if basic_stats else 0,
-                    'active_votes': basic_stats[1] if basic_stats else 0,
-                    'finished_votes': basic_stats[2] if basic_stats else 0,
-                    'unique_participants': participation_stats[0] if participation_stats else 0,
-                    'total_responses': participation_stats[1] if participation_stats else 0,
-                    'top_creators': [{'user_id': row[0], 'votes_created': row[1]} for row in top_creators],
-                    'days_range': days
+                    "total_votes": basic_stats[0] if basic_stats else 0,
+                    "active_votes": basic_stats[1] if basic_stats else 0,
+                    "finished_votes": basic_stats[2] if basic_stats else 0,
+                    "unique_participants": participation_stats[0] if participation_stats else 0,
+                    "total_responses": participation_stats[1] if participation_stats else 0,
+                    "top_creators": [
+                        {"user_id": row[0], "votes_created": row[1]} for row in top_creators
+                    ],
+                    "days_range": days,
                 }
 
     except Exception as e:
         logger.error(f"get_guild_vote_stats({guild_id}, {days}) 錯誤: {e}")
         return {
-            'total_votes': 0,
-            'active_votes': 0,
-            'finished_votes': 0,
-            'unique_participants': 0,
-            'total_responses': 0,
-            'top_creators': [],
-            'days_range': days
+            "total_votes": 0,
+            "active_votes": 0,
+            "finished_votes": 0,
+            "unique_participants": 0,
+            "total_responses": 0,
+            "top_creators": [],
+            "days_range": days,
         }
+
 
 async def get_user_vote_history(user_id: int, guild_id: int = None, limit: int = 10):
     """獲取使用者投票歷史"""
@@ -714,27 +832,34 @@ async def get_user_vote_history(user_id: int, guild_id: int = None, limit: int =
             async with conn.cursor(aiomysql.DictCursor) as cur:
                 if guild_id:
                     # 獲取該用戶創建的投票
-                    await cur.execute("""
+                    await cur.execute(
+                        """
                         SELECT id, title, start_time, end_time, is_multi, anonymous
                         FROM votes
                         WHERE creator_id = %s AND guild_id = %s
                         ORDER BY start_time DESC
                         LIMIT %s
-                    """, (user_id, guild_id, limit))
+                    """,
+                        (user_id, guild_id, limit),
+                    )
                 else:
-                    await cur.execute("""
+                    await cur.execute(
+                        """
                         SELECT id, title, start_time, end_time, is_multi, anonymous, guild_id
                         FROM votes
                         WHERE creator_id = %s
                         ORDER BY start_time DESC
                         LIMIT %s
-                    """, (user_id, limit))
+                    """,
+                        (user_id, limit),
+                    )
 
                 created_votes = await cur.fetchall()
 
                 # 獲取該用戶參與的投票
                 if guild_id:
-                    await cur.execute("""
+                    await cur.execute(
+                        """
                         SELECT DISTINCT v.id, v.title, v.start_time, v.end_time,
                                GROUP_CONCAT(vr.option_text) as voted_options
                         FROM votes v
@@ -743,9 +868,12 @@ async def get_user_vote_history(user_id: int, guild_id: int = None, limit: int =
                         GROUP BY v.id, v.title, v.start_time, v.end_time
                         ORDER BY v.start_time DESC
                         LIMIT %s
-                    """, (user_id, guild_id, limit))
+                    """,
+                        (user_id, guild_id, limit),
+                    )
                 else:
-                    await cur.execute("""
+                    await cur.execute(
+                        """
                         SELECT DISTINCT v.id, v.title, v.start_time, v.end_time, v.guild_id,
                                GROUP_CONCAT(vr.option_text) as voted_options
                         FROM votes v
@@ -754,26 +882,25 @@ async def get_user_vote_history(user_id: int, guild_id: int = None, limit: int =
                         GROUP BY v.id, v.title, v.start_time, v.end_time, v.guild_id
                         ORDER BY v.start_time DESC
                         LIMIT %s
-                    """, (user_id, limit))
+                    """,
+                        (user_id, limit),
+                    )
 
                 participated_votes = await cur.fetchall()
 
                 # 處理時區
                 for votes in [created_votes, participated_votes]:
                     for vote in votes:
-                        if vote['start_time'] and vote['start_time'].tzinfo is None:
-                            vote['start_time'] = vote['start_time'].replace(tzinfo=timezone.utc)
-                        if vote['end_time'] and vote['end_time'].tzinfo is None:
-                            vote['end_time'] = vote['end_time'].replace(tzinfo=timezone.utc)
+                        if vote["start_time"] and vote["start_time"].tzinfo is None:
+                            vote["start_time"] = vote["start_time"].replace(tzinfo=timezone.utc)
+                        if vote["end_time"] and vote["end_time"].tzinfo is None:
+                            vote["end_time"] = vote["end_time"].replace(tzinfo=timezone.utc)
 
                 return {
-                    'created_votes': list(created_votes),
-                    'participated_votes': list(participated_votes)
+                    "created_votes": list(created_votes),
+                    "participated_votes": list(participated_votes),
                 }
 
     except Exception as e:
         logger.error(f"get_user_vote_history({user_id}, {guild_id}) 錯誤: {e}")
-        return {
-            'created_votes': [],
-            'participated_votes': []
-        }
+        return {"created_votes": [], "participated_votes": []}
