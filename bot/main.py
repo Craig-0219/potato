@@ -115,6 +115,7 @@ ALL_EXTENSIONS = [
     "guild_management_core",  # 伺服器管理與GDPR合規 - Phase 6 Stage 3
     "menu_core",  # GUI 選單系統 - Phase 7 Stage 2
     "fallback_commands",  # 備用前綴命令系統
+    "auto_updater",  # 內部自動更新器 - 繞過託管商限制
     # "game_core" - 遊戲娛樂功能
 ]
 
