@@ -13,14 +13,15 @@ from typing import Optional
 
 from dotenv import load_dotenv
 
-# 載入環境變數
-load_dotenv()
+# 載入環境變數（跳過測試環境）
+if not os.getenv("TESTING"):
+    load_dotenv()
 
 # 檢查必填變數
 required_vars = ["DISCORD_TOKEN", "DB_HOST", "DB_USER", "DB_PASSWORD", "DB_NAME"]
 missing = [v for v in required_vars if os.getenv(v) is None]
 
-if missing:
+if missing and not os.getenv("TESTING"):
     print(f"⚠️ 缺少必要的環境變數：{', '.join(missing)}")
     print("請參考 .env.example 並建立 .env 檔案後再重新啟動。")
     print("\n範例 .env 內容：")
