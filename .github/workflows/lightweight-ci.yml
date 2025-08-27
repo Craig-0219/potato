@@ -68,7 +68,7 @@ jobs:
             with patch('discord.Intents'):
                 mock_bot.return_value = MagicMock()
 
-                from shared.config import Config
+                from shared.config import DISCORD_TOKEN, DB_HOST
                 from shared.logger import logger
                 from bot.db.database_manager import DatabaseManager
                 print('✅ 核心組件初始化正常')
