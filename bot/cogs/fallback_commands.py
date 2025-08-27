@@ -40,8 +40,8 @@ class FallbackCommands(commands.Cog):
                         "• `!ticket` - 開啟票券系統\n"
                         "• `!vote` - 開啟投票系統\n"
                         "• `!welcome` - 設定歡迎系統\n"
-                        "• `!ai` - AI 助手\n"
-                        "• `!status` - 系統狀態"
+                        "• `!ai_chat` - AI 助手\n"
+                        "• `!bot_status` - 系統狀態"
                     ),
                     inline=False,
                 )
@@ -133,14 +133,14 @@ class FallbackCommands(commands.Cog):
             logger.error(f"備用歡迎命令錯誤: {e}")
             await ctx.send("❌ 歡迎系統錯誤")
 
-    @commands.command(name="ai", aliases=["ask"])
+    @commands.command(name="ai_chat", aliases=["ask"])
     async def ai_fallback(self, ctx, *, question=None):
         """AI 助手 (備用命令)"""
         if not question:
             embed = discord.Embed(
-                title="🤖 AI 智能助手", description="使用方式：`!ai <你的問題>`", color=0x9B59B6
+                title="🤖 AI 智能助手", description="使用方式：`!ai_chat <你的問題>`", color=0x9B59B6
             )
-            embed.add_field(name="範例", value="`!ai 你好` 或 `!ask 天氣如何`", inline=False)
+            embed.add_field(name="範例", value="`!ai_chat 你好` 或 `!ask 天氣如何`", inline=False)
             await ctx.send(embed=embed)
             return
 
@@ -156,7 +156,7 @@ class FallbackCommands(commands.Cog):
             logger.error(f"備用 AI 命令錯誤: {e}")
             await ctx.send("❌ AI 助手錯誤")
 
-    @commands.command(name="status", aliases=["info"])
+    @commands.command(name="bot_status", aliases=["info"])
     async def status_fallback(self, ctx):
         """系統狀態 (備用命令)"""
         try:
@@ -198,14 +198,14 @@ class FallbackCommands(commands.Cog):
                 "`!ticket` - 票券系統\n"
                 "`!vote` - 投票系統\n"
                 "`!welcome_menu` - 歡迎系統\n"
-                "`!ai <問題>` - AI 助手"
+                "`!ai_chat <問題>` - AI 助手"
             ),
             inline=True,
         )
 
         embed.add_field(
             name="ℹ️ 系統功能",
-            value=("`!status` - 系統狀態\n" "`!guide` - 說明頁面\n" "`!sync` - 同步命令 (管理員)"),
+            value=("`!bot_status` - 系統狀態\n" "`!guide` - 說明頁面\n" "`!sync` - 同步命令 (管理員)"),
             inline=True,
         )
 

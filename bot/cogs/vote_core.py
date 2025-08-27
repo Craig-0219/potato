@@ -39,10 +39,18 @@ class VoteCore(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self._session_lock = asyncio.Lock()  # 防止併發問題
-        self.announce_expired_votes.start()
+
+    async def cog_load(self):
+        """Cog 載入時執行的異步初始化"""
+        try:
+            self.announce_expired_votes.start()
+            logger.info("VoteCore 背景任務已啟動")
+        except Exception as e:
+            logger.warning(f"VoteCore 背景任務啟動失敗: {e}")
 
     def cog_unload(self):
-        self.announce_expired_votes.cancel()
+        if hasattr(self, "announce_expired_votes"):
+            self.announce_expired_votes.cancel()
         # 清理資源
         VoteCore.vote_sessions.clear()
         VoteCore._vote_cache.clear()
@@ -734,6 +742,30 @@ class VoteCore(commands.Cog):
     def time_left(self, end_time):
         """向後相容性方法"""
         return self._calculate_time_left(end_time, datetime.now(timezone.utc))
+
+    # ===== 背景任務 =====
+
+    @tasks.loop(minutes=5)
+    async def announce_expired_votes(self):
+        """定期檢查並公告過期投票結果"""
+        try:
+            expired_votes = await vote_dao.get_expired_votes_to_announce()
+            if not expired_votes:
+                return
+
+            logger.info(f"發現 {len(expired_votes)} 個需要公告的過期投票")
+
+            # 並行處理過期投票
+            tasks = [self._process_expired_vote(vote) for vote in expired_votes]
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+        except Exception as e:
+            logger.error(f"檢查過期投票時發生錯誤: {e}")
+
+    @announce_expired_votes.before_loop
+    async def before_announce_expired_votes(self):
+        """等待 bot 準備完成"""
+        await self.bot.wait_until_ready()
 
 
 # ✅ 分頁控制 View

@@ -336,6 +336,23 @@ class DatabaseManager:
                     INDEX idx_viewed (viewed_at)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
+            "auto_reply_logs": """
+                CREATE TABLE IF NOT EXISTS auto_reply_logs (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    ticket_id INT NOT NULL COMMENT '票券 ID',
+                    message_content TEXT NULL COMMENT '觸發消息內容',
+                    auto_reply TEXT NULL COMMENT '自動回覆內容',
+                    triggered_keywords JSON NULL COMMENT '觸發關鍵字',
+                    user_id VARCHAR(20) NOT NULL COMMENT '用戶 ID',
+                    guild_id BIGINT NOT NULL COMMENT '伺服器 ID',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+                    INDEX idx_ticket (ticket_id),
+                    INDEX idx_user (user_id),
+                    INDEX idx_guild (guild_id),
+                    INDEX idx_created (created_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
         }
 
         await self._create_tables_batch(tables, "票券系統")

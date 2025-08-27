@@ -199,3 +199,75 @@
 - **影響檔案**: 
   - `docs/requirements/requirements-production.txt`
   - `docs/requirements/requirements-combined.txt`
+
+---
+
+## ✅ Stage 6: 緊急問題修復 - COMPLETED
+**完成時間**: 2025-08-27
+**目標**: 修復 Bot 啟動時發現的關鍵問題
+**優先級**: 🔴 Critical
+**成果**: **Bot Cogs 載入成功率從 21/23 (91.3%) 提升到 23/23 (100%)**
+
+### 🚨 修復的問題
+
+#### ✅ 1. 模組路徑問題
+- **問題**: `shared.offline_mode_manager` 模組導入失敗
+- **原因**: 檔案名稱與導入路徑不匹配
+- **修復**: 重命名 `shared/offline_mode.py` → `shared/offline_mode_manager.py`
+- **狀態**: ✅ 完成
+
+#### ✅ 2. vote_core 載入失敗
+- **問題**: `vote_dao.py` 缺少必需的函數
+- **原因**: `get_active_votes`, `add_vote_option` 函數未實現
+- **修復**: 補充缺失函數的完整實現
+- **狀態**: ✅ 完成
+
+#### ✅ 3. fallback_commands 命令衝突
+- **問題**: `ai` 和 `status` 命令與其他 Cogs 衝突
+- **修復**: 
+  - `ai` → `ai_chat`
+  - `status` → `bot_status`
+- **狀態**: ✅ 完成
+
+#### ✅ 4. 資料庫表格缺失
+- **問題**: `user_economy` 和 `auto_reply_logs` 表格不存在
+- **修復**: 
+  - 在 `database_manager.py` 中添加 `auto_reply_logs` 建表語句
+  - 執行腳本創建兩個缺失的表格
+- **狀態**: ✅ 完成
+
+### 📊 Stage 6 最終結果
+```
+🚀 Cogs 載入成功率: 23/23 (100%)
+✅ 所有擴展成功載入
+✅ 資料庫錯誤已清除
+✅ Bot 完全正常運行
+
+Bot 狀態: 🟢 完全正常
+伺服器連接: ✅ 正常
+API 服務器: ✅ 正常 (http://0.0.0.0:8000)
+```
+
+### 🎯 修復技術細節
+- **語法錯誤**: 全部修復
+- **模組導入**: 100% 成功
+- **命令衝突**: 已解決
+- **資料庫完整性**: 已恢復
+- **系統穩定性**: 大幅提升
+
+---
+
+## 🏆 總體完成狀態
+
+**✅ COMPLETED STAGES:**
+- Stage 1: P0 優先級語法修復
+- Stage 2: P1 優先級修復  
+- Stage 3: 快取升級和優化
+- Stage 4: Redis 升級到 5.0.1
+- **Stage 6: 緊急問題修復**
+
+**📈 項目健康度: 🟢 優秀**
+- Cogs 載入率: 100%
+- 語法錯誤: 0
+- 關鍵功能: 全部正常
+- 系統穩定性: 高
