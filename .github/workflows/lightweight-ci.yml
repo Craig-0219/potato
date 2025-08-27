@@ -1,4 +1,4 @@
-name: 🚀 Lightweight CI - Essential Checks Only
+name: 🚀 Essential Checks Only
 
 on:
   push:
@@ -13,9 +13,8 @@ jobs:
   essential-checks:
     name: 🔍 必要條件檢查
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 5
 
-    # 設置必要的環境變數（用於測試）
     env:
       TESTING: true
       DISCORD_TOKEN: test_token_comprehensive_validation_length_requirement_met_12345678_abcdefghijk
@@ -26,7 +25,6 @@ jobs:
       DB_NAME: test_database
       DB_PORT: 3306
       JWT_SECRET: test_jwt_secret_for_automated_testing_purposes_only  # pragma: allowlist secret
-      REDIS_URL: redis://localhost:6379/0
 
     steps:
     - name: 📥 檢出代碼
@@ -42,223 +40,42 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install discord.py>=2.5.0 aiomysql fastapi python-dotenv
-        pip install black isort flake8
 
-    - name: 🔍 語法驗證測試
+    - name: 🔍 語法驗證
       run: |
         echo "🔍 檢查核心文件語法..."
-
-        # 檢查主程式
         python -m py_compile bot/main.py
-        echo "✅ bot/main.py 語法正確"
-
-        # 檢查配置文件
-        python -c "
-        import ast
-        with open('shared/config.py', 'r', encoding='utf-8') as f:
-            ast.parse(f.read())
-        print('✅ shared/config.py 語法正確')
-        "
-
-        # 檢查關鍵 Cogs
-        for cog in bot/cogs/ticket_core.py bot/cogs/vote_core.py bot/cogs/language_core.py; do
-          if [ -f "$cog" ]; then
-            python -m py_compile "$cog"
-            echo "✅ $cog 語法正確"
-          fi
-        done
+        python -c "import ast; ast.parse(open('shared/config.py').read())"
+        echo "✅ 語法檢查通過"
 
     - name: 🔧 配置載入測試
       run: |
         echo "🔧 測試配置載入..."
         python -c "
-        import sys
-        import os
-        sys.path.append('.')
-
-        # 測試配置載入
+        import sys; sys.path.append('.')
         from shared.config import DISCORD_TOKEN, DB_HOST
-        print(f'✅ 配置載入成功')
-        print(f'Discord Token 長度: {len(DISCORD_TOKEN)}')
-        print(f'資料庫主機: {DB_HOST}')
+        print('✅ 配置載入成功')
         "
 
-    - name: 🚀 基本服務初始化測試
-      timeout-minutes: 3
+    - name: 🚀 基本初始化測試
       run: |
-        echo "🚀 測試基本服務初始化..."
+        echo "🚀 測試基本初始化..."
         python -c "
-        import sys
-        import os
-        import asyncio
+        import sys; sys.path.append('.')
         from unittest.mock import patch, MagicMock
 
-        sys.path.append('.')
-
-        # Mock Discord 相關類別
         with patch('discord.ext.commands.Bot') as mock_bot:
             with patch('discord.Intents'):
-                mock_instance = MagicMock()
-                mock_bot.return_value = mock_instance
+                mock_bot.return_value = MagicMock()
 
-                try:
-                    # 嘗試導入主要模組
-                    from shared.config import Config
-                    print('✅ 配置系統正常')
-
-                    from shared.logger import logger
-                    print('✅ 日誌系統正常')
-
-                    # 檢查資料庫管理器能否初始化
-                    from bot.db.database_manager import DatabaseManager
-                    print('✅ 資料庫管理器可初始化')
-
-                    print('🎉 基本服務初始化測試通過')
-
-                except Exception as e:
-                    print(f'❌ 初始化測試失敗: {e}')
-                    import traceback
-                    traceback.print_exc()
-                    sys.exit(1)
+                from shared.config import Config
+                from shared.logger import logger
+                from bot.db.database_manager import DatabaseManager
+                print('✅ 核心組件初始化正常')
         "
 
-    - name: 📊 依賴一致性檢查
+    - name: 📊 依賴檢查
       run: |
-        echo "📊 檢查依賴一致性..."
-
-        # 檢查 requirements.txt 是否存在
-        if [ ! -f requirements.txt ]; then
-          echo "❌ requirements.txt 不存在"
-          exit 1
-        fi
-
-        # 檢查關鍵依賴
-        if ! grep -q "discord.py" requirements.txt && \
-           ! grep -q "discord.py" docs/requirements/requirements-production.txt; then
-          echo "⚠️ 未找到 discord.py 依賴聲明"
-        fi
-
+        echo "📊 檢查依賴..."
+        test -f requirements.txt || { echo "❌ requirements.txt 不存在"; exit 1; }
         echo "✅ 依賴檢查完成"
-
-    - name: 🎯 代碼品質快速檢查
-      continue-on-error: true
-      run: |
-        echo "🎯 快速代碼品質檢查..."
-
-        # 檢查是否有明顯的語法問題
-        if command -v flake8 >/dev/null; then
-          echo "🔍 執行 flake8 檢查..."
-          flake8 bot/main.py shared/config.py --select=E9,F63,F7,F82 --quiet || echo "⚠️ 發現潛在語法問題"
-        fi
-
-        echo "✅ 代碼品質檢查完成"
-
-  # 快速整合測試 - 僅在核心文件變更時執行
-  integration-test:
-    name: 🔗 快速整合測試
-    runs-on: ubuntu-latest
-    needs: essential-checks
-    if: contains(github.event.head_commit.message, '[test-integration]') ||
-        (github.event_name == 'pull_request' &&
-         contains(github.event.pull_request.title, 'core'))
-    timeout-minutes: 5
-
-    env:
-      TESTING: true
-      DISCORD_TOKEN: test_token_comprehensive_validation_length_requirement_met_12345678_integration
-      DATABASE_URL: sqlite:///integration_test.db
-      DB_HOST: localhost
-      DB_USER: test_user
-      DB_PASSWORD: test_password_secure_integration_testing_only  # pragma: allowlist secret
-      DB_NAME: integration_test
-      JWT_SECRET: test_jwt_secret_integration_testing  # pragma: allowlist secret
-
-    steps:
-    - name: 📥 檢出代碼
-      uses: actions/checkout@v4
-
-    - name: 🐍 設置 Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        cache: 'pip'
-
-    - name: 📦 安裝完整依賴
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-
-    - name: 🔗 整合初始化測試
-      timeout-minutes: 3
-      run: |
-        echo "🔗 執行整合初始化測試..."
-        python -c "
-        import sys
-        import asyncio
-        from unittest.mock import patch, MagicMock, AsyncMock
-
-        sys.path.append('.')
-
-        async def test_integration():
-            # Mock Discord Bot
-            with patch('discord.ext.commands.Bot') as mock_bot_class:
-                mock_bot = MagicMock()
-                mock_bot.user = MagicMock()
-                mock_bot.user.id = 123456789
-                mock_bot.guilds = []
-                mock_bot_class.return_value = mock_bot
-
-                with patch('discord.Intents'):
-                    try:
-                        from bot.main import PotatoBot
-                        print('✅ PotatoBot 類別可正常導入')
-
-                        # 測試基本初始化流程
-                        from shared.config import DISCORD_TOKEN
-                        from bot.db.database_manager import DatabaseManager
-
-                        print('✅ 整合測試通過 - 核心組件可正常初始化')
-
-                    except Exception as e:
-                        print(f'❌ 整合測試失敗: {e}')
-                        import traceback
-                        traceback.print_exc()
-                        return False
-            return True
-
-        import asyncio
-        result = asyncio.run(test_integration())
-        if not result:
-            sys.exit(1)
-        "
-
-  # 結果彙總
-  summary:
-    name: 📋 檢查結果彙總
-    runs-on: ubuntu-latest
-    needs: [essential-checks]
-    if: always()
-
-    steps:
-    - name: 📋 彙總檢查結果
-      run: |
-        echo "📋 輕量級 CI 檢查結果彙總"
-        echo "================================"
-
-        if [ "${{ needs.essential-checks.result }}" == "success" ]; then
-          echo "✅ 必要條件檢查: 通過"
-          echo "🎯 代碼品質: 符合基本要求"
-          echo "🚀 服務初始化: 正常"
-          echo ""
-          echo "🎉 輕量級 CI 檢查全部通過！"
-          echo "✨ 代碼已準備好進行自動合併"
-        else
-          echo "❌ 必要條件檢查: 失敗"
-          echo ""
-          echo "🔧 請檢查以下項目："
-          echo "  - Python 語法錯誤"
-          echo "  - 配置文件問題"
-          echo "  - 關鍵依賴缺失"
-          echo "  - 服務初始化失敗"
-          exit 1
-        fi

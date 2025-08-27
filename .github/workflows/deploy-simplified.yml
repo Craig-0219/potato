@@ -1,0 +1,81 @@
+name: 🚀 Simple Production Deploy
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - '.github/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: '部署環境'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - production
+        - staging
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    name: 🚀 部署到生產環境
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: 📥 檢出代碼
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: 🏷️ 生成版本標籤
+      id: version
+      run: |
+        TIMESTAMP=$(date -u '+%Y%m%d-%H%M%S')
+        COMMIT_HASH=$(git rev-parse --short HEAD)
+        VERSION_TAG="v${TIMESTAMP}-${COMMIT_HASH}"
+        echo "tag=$VERSION_TAG" >> $GITHUB_OUTPUT
+        echo "📋 版本: $VERSION_TAG"
+
+    - name: 🔍 基本檢查
+      run: |
+        echo "🔍 檢查核心文件..."
+        test -f bot/main.py || { echo "❌ 缺少 bot/main.py"; exit 1; }
+        test -f requirements.txt || { echo "❌ 缺少 requirements.txt"; exit 1; }
+        test -f start.py || { echo "❌ 缺少 start.py"; exit 1; }
+        echo "✅ 核心文件檢查通過"
+
+    - name: 🚀 推送到 ptero 部署分支
+      run: |
+        echo "🚀 準備部署分支..."
+
+        # 配置 Git
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+        # 創建或切換到 ptero 分支
+        git fetch origin ptero:ptero || git checkout -b ptero
+        git checkout ptero
+
+        # 合併 main 分支的變更
+        git merge main --no-edit
+
+        # 推送到遠端
+        git push origin ptero
+
+        echo "✅ 部署分支更新完成"
+
+    - name: 📊 部署統計
+      run: |
+        echo "📊 部署統計"
+        echo "==================="
+        echo "版本: ${{ steps.version.outputs.tag }}"
+        echo "分支: main → ptero"
+        echo "提交: $(git rev-parse --short HEAD)"
+        echo "時間: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+        echo "環境: ${{ github.event.inputs.environment || 'production' }}"

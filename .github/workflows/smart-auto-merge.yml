@@ -10,7 +10,7 @@ permissions:
 on:
   # 當輕量級 CI 成功完成時觸發
   workflow_run:
-    workflows: ["🚀 Lightweight CI - Essential Checks Only"]
+    workflows: ["🚀 Essential Checks Only"]
     types: [completed]
     branches: [dev]
 
