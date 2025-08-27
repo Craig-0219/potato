@@ -354,7 +354,7 @@ jobs:
 
     steps:
     - name: 📢 Discord Webhook 通知
-      if: ${{ secrets.DISCORD_WEBHOOK_URL != '' }}
+      if: ${{ secrets.DISCORD_WEBHOOK_URL }}
       run: |
         VERSION="${{ needs.pre-deployment-check.outputs.version_tag }}"
         COMMIT="${{ needs.pre-deployment-check.outputs.commit_hash }}"
@@ -401,7 +401,7 @@ jobs:
           }'
 
     - name: 📱 Slack 通知 (可選)
-      if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+      if: ${{ secrets.SLACK_WEBHOOK_URL }}
       run: |
         curl -X POST "${{ secrets.SLACK_WEBHOOK_URL }}" \
           -H "Content-Type: application/json" \
@@ -538,7 +538,7 @@ jobs:
           });
 
     - name: 🚨 緊急通知
-      if: ${{ secrets.DISCORD_WEBHOOK_URL != '' }}
+      if: ${{ secrets.DISCORD_WEBHOOK_URL }}
       run: |
         curl -X POST "${{ secrets.DISCORD_WEBHOOK_URL }}" \
           -H "Content-Type: application/json" \
