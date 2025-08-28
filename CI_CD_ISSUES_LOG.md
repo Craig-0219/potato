@@ -464,6 +464,72 @@ grep -r "upload-artifact@v4" .github/workflows/ | wc -l
 - 使用 Dependabot 自動化依賴更新
 - 在 CI 流程中加入棄用版本檢查
 
+## 問題 #15 - 日期: 2025-08-28
+**標題**: GitHub Actions 代碼品質檢查失敗 - redis-cli 和未使用導入問題
+
+**原因**: 
+1. **redis-cli 命令找不到**: 
+   - GitHub Actions Ubuntu 環境默認未安裝 redis-tools
+   - test-coverage.yml 在驗證 Redis 服務連接時失敗
+
+2. **代碼品質問題**: 
+   - 恢復的測試文件存在未使用導入
+   - 代碼格式不符合 black 和 isort 標準
+
+**錯誤**:
+```bash
+# Redis 連接驗證失敗
+/home/runner/work/_temp/3419c2bf-5c62-4d5a-9fb1-93cc010016e9.sh: line 6: redis-cli: command not found
+
+# 代碼品質檢查失敗  
+ERROR: Code quality checks failed due to unused imports and formatting issues
+```
+
+**影響範圍**:
+- `.github/workflows/test-coverage.yml` (redis-cli 使用)
+- `test_24h_stability.py` (代碼格式)
+- `test_api_system.py` (代碼格式)
+- code-quality workflow 執行失敗
+
+**解決方案**: 
+1. ✅ **修復 redis-cli 問題**:
+   ```yaml
+   - name: 📦 安裝依賴
+     run: |
+       python -m pip install --upgrade pip
+       pip install -r requirements.txt
+       # ... 其他依賴 ...
+       
+       # 安裝 redis-tools 用於整合測試
+       sudo apt-get update
+       sudo apt-get install -y redis-tools
+   ```
+
+2. ✅ **修復代碼品質問題**:
+   ```bash
+   # 清理未使用的導入和變數
+   python3 -m autoflake --remove-all-unused-imports --remove-unused-variables --in-place test_*.py
+   
+   # 統一代碼格式
+   python3 -m black test_*.py
+   
+   # 排序導入語句  
+   python3 -m isort test_*.py
+   ```
+
+**狀態**: ✅ 已修復 (Commit: 991df754)
+
+**修復驗證**:
+- ✅ GitHub Actions 不再出現 redis-cli 命令找不到錯誤
+- ✅ 所有代碼格式檢查 (black, flake8, isort) 通過
+- ✅ test-coverage workflow 中的 Redis 連接驗證正常
+- ✅ code-quality workflow 執行成功
+
+**預防措施**:
+- 在恢復文件後立即運行代碼品質工具檢查
+- 確保 GitHub Actions 環境包含所有必要的系統工具
+- 建立代碼品質預提交檢查機制
+
 ---
 
 *最後更新: 2025-08-28*
