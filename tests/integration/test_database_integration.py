@@ -2,11 +2,11 @@
 資料庫整合測試
 """
 
+import asyncio
 import os
 import sys
 import unittest
-from unittest.mock import patch, MagicMock, AsyncMock
-import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
 
 # 添加專案根目錄到 Python 路徑
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -19,7 +19,7 @@ class TestDatabaseIntegration(unittest.TestCase):
         """測試設置"""
         os.environ["TESTING"] = "true"
         os.environ["DATABASE_URL"] = (
-            "mysql://test_user:test_password@127.0.0.1:3306/test_potato_bot"
+            "mysql://test_user:test_password@localhost:3306/test_potato_bot"
         )
         os.environ["DB_HOST"] = "localhost"
         os.environ["DB_USER"] = "test_user"
@@ -49,9 +49,9 @@ class TestDatabaseIntegration(unittest.TestCase):
 
         try:
             # 測試多個 DAO 類別可以載入
+            from bot.db.base_dao import BaseDAO
             from bot.db.ticket_dao import TicketDAO
             from bot.db.vote_dao import VoteDAO
-            from bot.db.base_dao import BaseDAO
 
             dao_classes = [TicketDAO, VoteDAO, BaseDAO]
             for dao_class in dao_classes:
@@ -79,7 +79,7 @@ class TestDatabaseIntegration(unittest.TestCase):
     def test_database_configuration(self):
         """測試資料庫配置"""
         try:
-            from shared.config import DB_HOST, DB_USER, DB_NAME, DB_PORT
+            from shared.config import DB_HOST, DB_NAME, DB_PORT, DB_USER
 
             # 驗證測試環境配置
             self.assertEqual(DB_HOST, "localhost")
@@ -145,8 +145,8 @@ class TestServiceDataIntegration(unittest.TestCase):
 
         try:
             # 測試服務層可以與資料層整合
-            from bot.services.ticket_manager import TicketManager
             from bot.db.ticket_dao import TicketDAO
+            from bot.services.ticket_manager import TicketManager
 
             # 只測試類別結構存在
             self.assertTrue(hasattr(TicketManager, "__init__"))

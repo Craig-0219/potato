@@ -2,11 +2,12 @@
 Bot 生命週期端到端測試
 """
 
+import asyncio
 import os
 import sys
 import unittest
-import asyncio
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
 # 添加專案根目錄到 Python 路徑
@@ -92,9 +93,9 @@ class TestBotLifecycle(unittest.IsolatedAsyncioTestCase):
 
         try:
             # 測試關鍵 Cogs 可以載入
+            from bot.cogs.language_core import LanguageManager
             from bot.cogs.ticket_core import TicketCore
             from bot.cogs.vote_core import VoteCore
-            from bot.cogs.language_core import LanguageManager
 
             cogs = [TicketCore, VoteCore, LanguageManager]
             for cog_class in cogs:
@@ -138,9 +139,9 @@ class TestAPIEndToEnd(unittest.IsolatedAsyncioTestCase):
         """測試 API 路由可用性"""
         try:
             # 測試主要路由可以載入
-            from bot.api.routes.tickets import router as tickets_router
-            from bot.api.routes.system import router as system_router
             from bot.api.routes.analytics import router as analytics_router
+            from bot.api.routes.system import router as system_router
+            from bot.api.routes.tickets import router as tickets_router
 
             routers = [tickets_router, system_router, analytics_router]
             for router in routers:
@@ -180,8 +181,8 @@ class TestSystemIntegration(unittest.IsolatedAsyncioTestCase):
 
         try:
             # 測試整個系統的主要組件可以協同工作
-            from bot.main import PotatoBot
             from bot.db.database_manager import DatabaseManager
+            from bot.main import PotatoBot
             from shared.cache_manager import MultiLevelCacheManager
             from shared.offline_mode_manager import OfflineModeManager
 
@@ -234,8 +235,8 @@ class TestDataFlowEndToEnd(unittest.IsolatedAsyncioTestCase):
 
         try:
             # 測試 DAO 和快取層
-            from bot.db.ticket_dao import TicketDAO
             from bot.db.cached_ticket_dao import CachedTicketDAO
+            from bot.db.ticket_dao import TicketDAO
             from shared.cache_manager import MultiLevelCacheManager
 
             data_components = [TicketDAO, CachedTicketDAO, MultiLevelCacheManager]

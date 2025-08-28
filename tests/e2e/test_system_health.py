@@ -2,11 +2,12 @@
 系統健康檢查端到端測試
 """
 
+import asyncio
 import os
 import sys
 import unittest
-import asyncio
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
 # 添加專案根目錄到 Python 路徑
@@ -31,7 +32,7 @@ class TestSystemHealth(unittest.IsolatedAsyncioTestCase):
     async def test_configuration_health(self):
         """測試配置健康檢查"""
         try:
-            from shared.config import DISCORD_TOKEN, DB_HOST, DB_NAME
+            from shared.config import DB_HOST, DB_NAME, DISCORD_TOKEN
 
             # 驗證關鍵配置存在
             self.assertIsNotNone(DISCORD_TOKEN)
@@ -117,9 +118,9 @@ class TestComponentConnectivity(unittest.IsolatedAsyncioTestCase):
 
         try:
             # 測試 Bot 與核心 Cogs 的連接性
-            from bot.main import PotatoBot
             from bot.cogs.ticket_core import TicketCore
             from bot.cogs.vote_core import VoteCore
+            from bot.main import PotatoBot
 
             # 驗證組件都可以載入
             components = [PotatoBot, TicketCore, VoteCore]
@@ -142,8 +143,8 @@ class TestComponentConnectivity(unittest.IsolatedAsyncioTestCase):
 
         try:
             # 測試服務層與 DAO 層連接性
-            from bot.services.ticket_manager import TicketManager
             from bot.db.ticket_dao import TicketDAO
+            from bot.services.ticket_manager import TicketManager
 
             # 驗證兩層都存在
             self.assertTrue(hasattr(TicketManager, "__init__"))
@@ -161,8 +162,8 @@ class TestComponentConnectivity(unittest.IsolatedAsyncioTestCase):
         try:
             # 測試 API 路由與應用程式連接性
             from bot.api.app import create_app
-            from bot.api.routes.tickets import router as tickets_router
             from bot.api.routes.system import router as system_router
+            from bot.api.routes.tickets import router as tickets_router
 
             # 測試應用程式可以創建
             app = create_app()
@@ -238,9 +239,9 @@ class TestPerformanceBaseline(unittest.IsolatedAsyncioTestCase):
 
         try:
             # 測試關鍵模組導入時間
+            from bot.db.database_manager import DatabaseManager
             from shared.config import DISCORD_TOKEN
             from shared.logger import logger
-            from bot.db.database_manager import DatabaseManager
 
             import_time = time.time() - start_time
 

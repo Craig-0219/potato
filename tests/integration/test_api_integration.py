@@ -2,11 +2,11 @@
 API 系統整合測試
 """
 
+import asyncio
 import os
 import sys
 import unittest
-from unittest.mock import patch, MagicMock, AsyncMock
-import asyncio
+from unittest.mock import AsyncMock, MagicMock, patch
 
 # 添加專案根目錄到 Python 路徑
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -41,8 +41,8 @@ class TestAPIIntegration(unittest.TestCase):
     def test_api_routes_registration(self):
         """測試 API 路由註冊"""
         try:
-            from bot.api.routes.tickets import router as tickets_router
             from bot.api.routes.system import router as system_router
+            from bot.api.routes.tickets import router as tickets_router
 
             self.assertIsNotNone(tickets_router)
             self.assertIsNotNone(system_router)

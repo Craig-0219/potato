@@ -5,7 +5,7 @@
 import os
 import sys
 import unittest
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 # 添加專案根目錄到 Python 路徑
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))

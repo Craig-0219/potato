@@ -5,7 +5,7 @@
 import os
 import sys
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 # 添加專案根目錄到 Python 路徑
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -30,7 +30,7 @@ class TestConfig(unittest.TestCase):
     def test_config_import(self):
         """測試配置模組可以正常導入"""
         try:
-            from shared.config import DISCORD_TOKEN, DB_HOST
+            from shared.config import DB_HOST, DISCORD_TOKEN
 
             self.assertIsNotNone(DISCORD_TOKEN)
             self.assertIsNotNone(DB_HOST)
@@ -39,7 +39,7 @@ class TestConfig(unittest.TestCase):
 
     def test_environment_variables(self):
         """測試環境變數是否正確載入"""
-        from shared.config import DISCORD_TOKEN, DB_HOST, DB_USER
+        from shared.config import DB_HOST, DB_USER, DISCORD_TOKEN
 
         self.assertEqual(DB_HOST, "localhost")
         self.assertEqual(DB_USER, "test_user")
@@ -47,7 +47,7 @@ class TestConfig(unittest.TestCase):
 
     def test_database_config(self):
         """測試資料庫配置"""
-        from shared.config import DB_HOST, DB_PORT, DB_NAME
+        from shared.config import DB_HOST, DB_NAME, DB_PORT
 
         self.assertEqual(DB_HOST, "localhost")
         self.assertEqual(DB_NAME, "test_database")
