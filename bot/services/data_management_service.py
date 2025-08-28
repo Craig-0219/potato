@@ -313,7 +313,7 @@ class DataManagementService:
         try:
             # 定義需要匿名化的欄位
             anonymize_fields = {
-                "discord_id": f"anon_user_{hashlib.md5(str(guild_id).encode()).hexdigest()[:8]}",
+                "discord_id": f"anon_user_{hashlib.sha256(str(guild_id).encode()).hexdigest()[:16]}",
                 "username": "Anonymous User",
                 "discord_username": "Anonymous#0000",
                 "ip_address": "0.0.0.0",
@@ -518,7 +518,7 @@ class DataManagementService:
         # 匿名化個人識別資訊
         if "discord_id" in row:
             row["discord_id"] = (
-                f"anon_{hashlib.md5(str(row['discord_id']).encode()).hexdigest()[:8]}"
+                f"anon_{hashlib.sha256(str(row['discord_id']).encode()).hexdigest()[:16]}"
             )
         if "username" in row:
             row["username"] = "Anonymous User"

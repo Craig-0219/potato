@@ -142,6 +142,55 @@ ERROR: Imports are incorrectly sorted and/or formatted.
 
 ---
 
+## 🚨 安全問題 #5-8 - 日期: 2025-08-28
+**標題**: 使用弱 MD5 哈希的高危安全問題 (4個)
+
+**嚴重級別**: HIGH (高危)  
+**CWE**: CWE-327 - 使用弱加密算法
+
+**問題清單**:
+
+### 問題 #5: content_analyzer.py MD5 哈希用於快取鍵
+- **位置**: `./bot/services/content_analyzer.py:288`
+- **代碼**: `cache_key = f"sentiment:{hashlib.md5(text.encode()).hexdigest()}"`
+- **風險**: 用戶文本內容可能被暴力破解
+
+### 問題 #6: data_management_service.py 用戶ID匿名化
+- **位置**: `./bot/services/data_management_service.py:316`  
+- **代碼**: `f"anon_user_{hashlib.md5(str(guild_id).encode()).hexdigest()[:8]}"`
+- **風險**: Guild ID 可能被反向工程
+
+### 問題 #7: data_management_service.py Discord ID匿名化
+- **位置**: `./bot/services/data_management_service.py:521`
+- **代碼**: `f"anon_{hashlib.md5(str(row['discord_id']).encode()).hexdigest()[:8]}"`
+- **風險**: Discord ID 可能被反向工程
+
+### 問題 #8: economy_manager.py 交易ID生成
+- **位置**: `./bot/services/economy_manager.py:1122`
+- **代碼**: `hashlib.md5(f"{timestamp}{time.time()}".encode()).hexdigest()[:8]`
+- **風險**: 交易ID 可能被預測或碰撞
+
+**修復方案**:
+1. ✅ **非安全用途**: 使用 `usedforsecurity=False` 參數 (快取鍵)
+2. ✅ **安全用途**: 替換為 SHA-256 或更強的哈希算法  
+3. ✅ **隨機生成**: 使用 `secrets` 模組生成安全隨機值
+
+**修復詳情**:
+- **問題 #5**: 添加 `usedforsecurity=False` 參數到快取鍵生成
+- **問題 #6**: Guild ID 匿名化改用 SHA-256，輸出長度增加到16字符
+- **問題 #7**: Discord ID 匿名化改用 SHA-256，輸出長度增加到16字符  
+- **問題 #8**: 交易ID 改用 `secrets.token_hex(4)` 生成安全隨機字符串
+
+**驗證結果**: 
+```
+bandit 掃描結果: High: 0 (之前: High: 4)
+✅ 所有高危安全問題已修復
+```
+
+**狀態**: ✅ 已修復
+
+---
+
 ## 常見問題類別
 
 ### 1. 模組導入問題

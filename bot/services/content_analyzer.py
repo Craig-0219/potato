@@ -284,8 +284,8 @@ class ContentAnalyzer:
     async def _analyze_sentiment(self, text: str) -> SentimentResult:
         """情感分析"""
         try:
-            # 檢查快取
-            cache_key = f"sentiment:{hashlib.md5(text.encode()).hexdigest()}"
+            # 檢查快取 - 使用 MD5 僅作為非安全的快取鍵生成
+            cache_key = f"sentiment:{hashlib.md5(text.encode(), usedforsecurity=False).hexdigest()}"
             cached_result = await cache_manager.get(cache_key)
             if cached_result:
                 return SentimentResult(**cached_result)

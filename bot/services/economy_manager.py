@@ -11,6 +11,7 @@ import hashlib
 import hmac
 import json
 import math
+import secrets
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
@@ -1117,9 +1118,10 @@ class EconomyManager:
             logger.error(f"❌ 記錄同步交易失敗: {e}")
 
     def _generate_transaction_id(self) -> str:
-        """產生交易ID"""
+        """產生交易ID - 使用安全隨機數生成"""
         timestamp = str(int(time.time() * 1000))
-        random_str = hashlib.md5(f"{timestamp}{time.time()}".encode()).hexdigest()[:8]
+        # 使用 secrets 模組生成安全的隨機字符串
+        random_str = secrets.token_hex(4)  # 8個字符的十六進制字符串
         return f"tx_{timestamp}_{random_str}"
 
     async def handle_minecraft_webhook(self, webhook_data: Dict[str, Any]) -> bool:
