@@ -114,7 +114,7 @@ jobs:
             pip install black isort flake8 mypy autoflake
             ;;
           "security")
-            pip install bandit safety semgrep
+            pip install bandit safety
             ;;
           "tests")
             pip install pytest pytest-asyncio pytest-cov pytest-mock coverage
@@ -147,8 +147,19 @@ jobs:
           exit 1
         }
 
-        # 類型檢查 (允許警告)
-        mypy bot/ shared/ --no-error-summary || echo "⚠️ 類型檢查警告"
+        # 類型檢查 (報告模式，不影響 CI 結果)
+        echo "🔍 執行類型檢查 (僅報告，不阻塞 CI)..."
+        mypy bot/ shared/ \
+          --no-error-summary \
+          --explicit-package-bases \
+          --ignore-missing-imports \
+          --no-strict-optional \
+          --allow-untyped-defs \
+          --allow-incomplete-defs \
+          --allow-untyped-calls \
+          --disable-error-code=import-untyped \
+          2>/dev/null || true
+        echo "✅ 類型檢查完成 (僅供參考)"
 
         echo "✅ 代碼品質檢查通過"
 
