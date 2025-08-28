@@ -81,6 +81,38 @@ python3: can't open file '/home/runner/work/potato/potato/test_config_validation
 
 ---
 
+## 問題 #3 - 日期: 2025-08-28
+**標題**: isort 導入排序格式錯誤
+
+**原因**: 
+- 新創建的 `test_config_validation.py` 文件導入順序不符合 isort 標準
+- Python 標準庫導入未按字母順序排列
+- 第三方庫導入未正確分組
+
+**錯誤**:
+```
+ERROR: Imports are incorrectly sorted and/or formatted.
+❌ 導入排序問題
+```
+
+**解決方案**:
+1. ✅ 使用 `isort test_config_validation.py` 自動修復
+2. ✅ 修正導入順序：
+   - `import os` → `import sys` → `import traceback`
+   - `from shared.config import DB_HOST, DISCORD_TOKEN` (按字母順序)
+   - `from unittest.mock import MagicMock, patch` (按字母順序)
+   - `from bot.cogs.language_core` → `from bot.cogs.ticket_core` → `from bot.cogs.vote_core`
+
+**狀態**: ✅ 已修復
+
+**影響範圍**: 
+- `test_config_validation.py`
+- GitHub Actions code-quality 檢查
+
+**修復驗證**: 測試文件功能正常，5/5 測試通過
+
+---
+
 ## 常見問題類別
 
 ### 1. 模組導入問題

@@ -4,9 +4,10 @@
 用於 CI/CD 流程中驗證配置載入和基本系統初始化
 """
 
-import sys
 import os
+import sys
 import traceback
+
 
 def test_basic_imports():
     """測試基本模組導入"""
@@ -24,7 +25,7 @@ def test_config_loading():
     """測試配置載入"""
     print("🔧 測試配置載入...")
     try:
-        from shared.config import DISCORD_TOKEN, DB_HOST
+        from shared.config import DB_HOST, DISCORD_TOKEN
         
         if not DISCORD_TOKEN:
             print("❌ DISCORD_TOKEN 未設置")
@@ -70,16 +71,16 @@ def test_core_cogs():
     """測試核心 Cogs 載入"""
     print("🧪 測試核心 Cogs 載入...")
     try:
-        from unittest.mock import patch, MagicMock
+        from unittest.mock import MagicMock, patch
         
         with patch('discord.ext.commands.Bot') as mock_bot:
             with patch('discord.Intents'):
                 mock_bot.return_value = MagicMock()
                 
                 # 測試關鍵 Cogs
-                from bot.cogs.ticket_core import TicketCore
-                from bot.cogs.vote_core import VoteCore  
                 from bot.cogs.language_core import LanguageManager
+                from bot.cogs.ticket_core import TicketCore
+                from bot.cogs.vote_core import VoteCore
                 
                 print("✅ 核心 Cogs 可正常載入")
                 return True
