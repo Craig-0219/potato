@@ -1,1 +1,2 @@
 # 測試 pre-push hook 修復
+# 測試 hook 正常功能
