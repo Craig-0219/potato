@@ -22,7 +22,12 @@ main (生產環境)
 - **替代方案**: 使用 smart-auto-merge workflow
 - **觸發方式**: 推送到 dev 分支時自動執行
 
-### 2. Feature/Bugfix 分支直接合併到 main
+### 2. 直接合併 main → dev ⚠️ 新增
+- **原因**: 防止 main 分支的變更覆蓋 dev 分支的開發工作
+- **風險**: 可能導致 dev 分支的功能和測試被意外刪除
+- **正確做法**: 從 main 創建 feature 分支，然後合併到 dev
+
+### 3. Feature/Bugfix 分支直接合併到 main
 - **原因**: 應先經過 dev 分支的整合測試
 - **正確流程**: feature/bugfix → dev → main
 
@@ -57,6 +62,22 @@ git push origin hotfix/critical-security-fix
 # 創建 PR: hotfix/critical-security-fix → main (允許)
 ```
 
+### 4. 處理 main 分支的變更 (新增)
+```bash
+# 如果 main 分支有緊急修復需要同步到 dev
+# 不要直接合併 main → dev，而是：
+
+# 1. 從 main 創建 feature 分支
+git checkout -b feature/sync-main-hotfix main
+
+# 2. 將此分支合併到 dev
+git checkout dev
+git merge feature/sync-main-hotfix
+
+# 3. 刪除臨時分支
+git branch -d feature/sync-main-hotfix
+```
+
 ## 🔧 實施機制
 
 ### GitHub Actions 工作流程
@@ -74,6 +95,7 @@ git push origin hotfix/critical-security-fix
 | 源分支 | 目標分支 | 狀態 | 說明 |
 |--------|----------|------|------|
 | dev | main | ❌ 阻止 | 使用 smart-auto-merge |
+| main | dev | ❌ 阻止 | 防止資料覆蓋 ⚠️ 新增 |
 | feature/* | main | ❌ 阻止 | 應合併到 dev |
 | bugfix/* | main | ❌ 阻止 | 應合併到 dev |
 | hotfix/* | main | ✅ 允許 | 緊急修復 |
