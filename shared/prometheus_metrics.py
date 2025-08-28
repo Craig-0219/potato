@@ -11,12 +11,8 @@ Prometheus 監控指標管理器 v2.2.0
 """
 
 import asyncio
-import json
 import os
-import threading
 import time
-import weakref
-from collections import defaultdict, deque
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -389,7 +385,7 @@ class PrometheusMetricsManager:
                     duration = time.time() - start_time
                     self.observe_histogram(name, duration, labels)
                     return result
-                except Exception as e:
+                except Exception:
                     duration = time.time() - start_time
                     error_labels = (labels or {}).copy()
                     error_labels["status"] = "error"
@@ -622,7 +618,6 @@ prometheus_metrics = PrometheusMetricsManager()
 
 async def init_prometheus(start_http_server: bool = True, push_gateway_url: str = None):
     """初始化 Prometheus 監控"""
-    global prometheus_metrics
     await prometheus_metrics.initialize(start_http_server, push_gateway_url)
 
 

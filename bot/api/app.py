@@ -4,19 +4,11 @@ FastAPI 主應用程式
 提供完整的 REST API 端點和自動文檔生成
 """
 
-from fastapi import (
-    Depends,
-    FastAPI,
-    HTTPException,
-    Request,
-    Security,
-    WebSocket,
-    WebSocketDisconnect,
-)
+from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import HTTPBearer
 
 try:
     from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -30,10 +22,8 @@ except ImportError:
 # 暫時禁用 slowapi 以解決路由問題
 HAS_SLOWAPI = False
 import asyncio
-import logging
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
-from typing import Optional
 
 from shared.logger import logger
 
@@ -61,7 +51,7 @@ async def lifespan(app: FastAPI):
         # 初始化資料庫連接
         from bot.db.database_manager import get_database_manager
 
-        db = get_database_manager()
+        get_database_manager()
 
         # 初始化 API 金鑰管理器
         api_key_manager = APIKeyManager()
@@ -204,7 +194,7 @@ async def health_check(request: Request):
         # 檢查資料庫連接
         from bot.db.database_manager import get_database_manager
 
-        db = get_database_manager()
+        get_database_manager()
 
         # 簡單的資料庫連接測試
         # 這裡可以添加更詳細的健康檢查邏輯
@@ -607,7 +597,6 @@ bot_status_cache = {
 
 def update_bot_status(bot_instance):
     """更新全域 Bot 狀態"""
-    global bot_status_cache
     if bot_instance:
         bot_status_cache.update(
             {
@@ -706,7 +695,6 @@ async def get_bot_info():
 
 async def start_api_server():
     """啟動API伺服器"""
-    global api_task
 
     try:
         host = "0.0.0.0"
