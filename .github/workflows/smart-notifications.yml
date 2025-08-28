@@ -411,7 +411,7 @@ jobs:
 
     - name: 📧 發送郵件通知 (嚴重失敗)
       if: steps.workflow-info.outputs.WORKFLOW_STATUS == 'failure' && contains(github.ref, 'main')
-      uses: dawidd6/action-send-mail@v3
+      uses: dawidd6/action-send-mail@v3.12.0
       with:
         server_address: ${{ secrets.MAIL_SERVER }}
         server_port: ${{ secrets.MAIL_PORT }}

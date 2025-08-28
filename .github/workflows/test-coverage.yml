@@ -159,7 +159,7 @@ jobs:
 
     - name: 📤 上傳覆蓋率到 Codecov
       if: matrix.python-version == '3.10'
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         file: coverage-${{ matrix.python-version }}-${{ matrix.test-type }}.xml
         flags: ${{ matrix.test-type }}-tests
@@ -279,7 +279,7 @@ jobs:
         pip install coverage[toml] jq
 
     - name: 📥 下載覆蓋率報告
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         pattern: test-reports-*
         path: coverage-reports/
