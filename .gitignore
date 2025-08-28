@@ -326,6 +326,7 @@ site/
 # Claude AI 工作目錄
 .claude/
 .anthropic/
+CLAUDE.md
 
 # GPT/OpenAI 快取
 .openai_cache/

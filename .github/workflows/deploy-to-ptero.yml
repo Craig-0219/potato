@@ -51,13 +51,21 @@ jobs:
           rm -rf IMPLEMENTATION_PLAN.md
           rm -rf NEXT_PHASE_DEVELOPMENT_PLAN.md
           rm -rf PRIORITY_MATRIX.md
+          rm -rf PHASE_COMPLETION_SUMMARY.md
+          rm -rf DEV_WORKFLOWS_ENHANCEMENT_PLAN.md
           rm -rf test_*.py
           rm -rf trigger_merge.txt
+          rm -rf bandit-report.json
+          rm -rf security_reports
 
-          # 清理 Python 編譯文件
+          # 清理 Python 編譯文件和日誌
           find . -name "*.pyc" -delete
+          find . -name "*.log" -delete
           find . -name "__pycache__" -type d -exec rm -rf {} + 2>/dev/null || true
           find . -name ".pytest_cache" -type d -exec rm -rf {} + 2>/dev/null || true
+          
+          # 移除任何意外的文檔文件
+          find . -name "*.md" -not -path "./README.md" -delete 2>/dev/null || true
 
           # 確保必要的啟動文件有執行權限
           chmod +x start.sh 2>/dev/null || true
