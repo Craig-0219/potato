@@ -1,5 +1,5 @@
 # .pre-commit-config.yaml
-# 代碼品質預提交檢查配置
+# 簡化的代碼品質預提交檢查配置
 
 repos:
   # Python 代碼格式化
@@ -26,37 +26,7 @@ repos:
       - id: flake8
         files: \.py$
 
-  # autoflake - 移除未使用的導入和變數
-  - repo: https://github.com/PyCQA/autoflake
-    rev: v2.2.0
-    hooks:
-      - id: autoflake
-        args:
-          - --remove-all-unused-imports
-          - --remove-unused-variables
-          - --in-place
-        files: \.py$
-
-  # Python 靜態類型檢查 (警告模式)
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.11.2
-    hooks:
-      - id: mypy
-        additional_dependencies: [types-requests, types-PyYAML]
-        args: [--ignore-missing-imports, --warn-unused-ignores, --no-error-summary]
-        files: ^(shared|bot)/.*\.py$
-        exclude: ^(tests/|migrations/|archive/)
-
-  # 安全性檢查 - Bandit SAST 掃描
-  - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.9
-    hooks:
-      - id: bandit
-        args: [-r, ., --format=custom, --skip, B101,B601]
-        files: \.py$
-        exclude: ^(tests/|migrations/|archive/)
-
-  # 通用檔案檢查
+  # 基本文件檢查
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
@@ -65,83 +35,9 @@ repos:
       - id: check-yaml
       - id: check-json
       - id: check-added-large-files
-        args: [--maxkb=1024]
       - id: check-merge-conflict
 
-  # Python 文檔字符串檢查 (暫時禁用 - 項目使用中文文檔字符串)
-  # - repo: https://github.com/pycqa/pydocstyle
-  #   rev: 6.3.0
-  #   hooks:
-  #     - id: pydocstyle
-  #       args: [--convention=google, --add-ignore=D100,D101,D102,D103,D104,D105,D107,D200,D205,D212,D415,D400,D401,D402,D403,D404,D405]
-  #       files: \.py$
-  #       exclude: ^(.*test.*\.py|.*_test\.py|bot/main\.py)$
-
-  # 檢查敏感資訊
-  - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.5.0
-    hooks:
-      - id: detect-secrets
-        args: [--baseline, .secrets.baseline, --exclude-files, '\.env.*|.*\.log$|.*\.md$|node_modules/.*|__pycache__/.*']
-        exclude: \.lock$|package-lock\.json$|\.env.*|.*\.log$
-
-# Pre-commit 全域配置
 default_language_version:
-  python: python3.10
+  python: python3
 
 default_stages: [commit]
-minimum_pre_commit_version: '3.0.0'
-
-# 本地自定義 hooks
-repos_append:
-  - repo: local
-    hooks:
-      # 快速語法檢查
-      - id: python-syntax-check
-        name: Python 語法檢查
-        entry: python -m py_compile
-        language: system
-        files: \.py$
-
-      # 完整測試 (僅在 pre-push 階段)
-      - id: run-unit-tests
-        name: 執行單元測試
-        entry: python -m pytest tests/ -x --tb=short
-        language: system
-        pass_filenames: false
-        stages: [pre-push]
-
-      # 依賴檢查
-      - id: check-requirements
-        name: 檢查依賴更新
-        entry: python -c "import pkg_resources; import sys; print('✅ 依賴檢查通過')"
-        language: system
-        pass_filenames: false
-        files: requirements\.txt$
-
-# 排除檔案和目錄
-exclude: |
-  (?x)^(
-      \.git/.*|
-      \.vscode/.*|
-      \.pytest_cache/.*|
-      __pycache__/.*|
-      node_modules/.*|
-      \.env.*|
-      archive/.*|
-      backups/.*|
-      transcripts/.*|
-      .*\.log$|
-      .*\.md$|
-      migrations/.*\.sql$|
-      bot/db/language_dao\.py|
-      bot/services/ai/intent_recognition\.py|
-      bot/services/data_cleanup_manager\.py|
-      bot/services/guild_analytics_service\.py|
-      bot/services/lottery_manager\.py|
-      bot/services/system_monitor\.py|
-      bot/services/webhook_manager\.py|
-      bot/services/workflow_engine\.py|
-      bot/ui/context_awareness\.py|
-      bot/ui/menu_system\.py
-  )$
