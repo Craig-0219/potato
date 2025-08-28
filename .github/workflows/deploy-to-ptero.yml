@@ -10,6 +10,10 @@ on:
       - 'LICENSE'
   workflow_dispatch:
 
+permissions:
+  contents: write
+  actions: read
+
 jobs:
   deploy-to-ptero:
     name: 🚀 Deploy to Ptero Branch
