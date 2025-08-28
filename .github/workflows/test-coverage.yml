@@ -75,7 +75,7 @@ jobs:
       TESTING: true
       DISCORD_TOKEN: test_token_comprehensive_validation_length_requirement_met_12345678_abcdefghijk
       DATABASE_URL: mysql://test_user:test_password@127.0.0.1:3306/test_potato_bot  # pragma: allowlist secret
-      DB_HOST: 127.0.0.1
+      DB_HOST: localhost
       DB_USER: test_user
       DB_PASSWORD: test_password  # pragma: allowlist secret
       DB_NAME: test_potato_bot
@@ -212,7 +212,7 @@ jobs:
       E2E_TESTING: true
       DISCORD_TOKEN: test_token_comprehensive_validation_length_requirement_met_12345678_abcdefghijk
       DATABASE_URL: mysql://test_user:test_password@127.0.0.1:3306/test_potato_bot_e2e
-      DB_HOST: 127.0.0.1
+      DB_HOST: localhost
       DB_USER: test_user
       DB_PASSWORD: test_password
       DB_NAME: test_potato_bot_e2e

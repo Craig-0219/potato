@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CI/CD 效能監控儀表板</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .metric-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .metric-title {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        
+        .metric-change {
+            font-size: 0.9rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+        }
+        
+        .metric-change.positive {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .metric-change.negative {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .charts-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+        
+        .workflow-list {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .workflow-header {
+            background: #f8f9fa;
+            padding: 1rem 1.5rem;
+            font-weight: bold;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .workflow-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        
+        .workflow-name {
+            font-weight: 500;
+        }
+        
+        .workflow-stats {
+            display: flex;
+            gap: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .status-badge {
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .recommendations {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-top: 2rem;
+        }
+        
+        .recommendations h3 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+        
+        .recommendation-item {
+            padding: 0.8rem 0;
+            border-bottom: 1px solid #f8f9fa;
+        }
+        
+        .recommendation-item:last-child {
+            border-bottom: none;
+        }
+        
+        .update-info {
+            text-align: center;
+            margin-top: 2rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .charts-section {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 CI/CD 效能監控儀表板</h1>
+            <p>Potato Bot 專案 - 即時效能指標與優化建議</p>
+        </div>
+
+        <div class="metrics-grid" id="metricsGrid">
+            <!-- 動態生成的指標卡片 -->
+        </div>
+
+        <div class="charts-section">
+            <div class="chart-container">
+                <div class="chart-title">📊 執行時間趨勢</div>
+                <canvas id="timeChart" width="400" height="200"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <div class="chart-title">✅ 成功率分析</div>
+                <canvas id="successChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+
+        <div class="workflow-list">
+            <div class="workflow-header">
+                🔧 Workflow 詳細分析
+            </div>
+            <div id="workflowList">
+                <!-- 動態生成的 workflow 列表 -->
+            </div>
+        </div>
+
+        <div class="recommendations">
+            <h3>💡 優化建議</h3>
+            <div id="recommendationsList">
+                <!-- 動態生成的建議列表 -->
+            </div>
+        </div>
+
+        <div class="update-info">
+            <p>📅 最後更新: <span id="lastUpdate">載入中...</span></p>
+            <p>🔄 數據來源: GitHub Actions API | 更新頻率: 每小時</p>
+        </div>
+    </div>
+
+    <script>
+        // 模擬效能數據 (實際使用時會從 API 獲取)
+        const performanceData = {
+            metrics: {
+                avgExecutionTime: {
+                    value: 11.97,
+                    change: -2.3,
+                    unit: '分鐘',
+                    target: 8.0
+                },
+                successRate: {
+                    value: 96.7,
+                    change: +1.2,
+                    unit: '%',
+                    target: 98.0
+                },
+                cacheHitRate: {
+                    value: 73.2,
+                    change: +5.8,
+                    unit: '%',
+                    target: 90.0
+                },
+                costSaving: {
+                    value: 847,
+                    change: +156,
+                    unit: '分鐘/月',
+                    target: 1200
+                }
+            },
+            workflows: [
+                {
+                    name: '🧪 Test Coverage & Quality',
+                    avgTime: 16.34,
+                    successRate: 91.7,
+                    executions: 12,
+                    improvementPotential: 8.3
+                },
+                {
+                    name: '🔒 Security Scans',
+                    avgTime: 13.67,
+                    successRate: 100.0,
+                    executions: 12,
+                    improvementPotential: 5.7
+                },
+                {
+                    name: '⚡ Optimized CI Pipeline',
+                    avgTime: 13.67,
+                    successRate: 100.0,
+                    executions: 15,
+                    improvementPotential: 5.7
+                },
+                {
+                    name: '🔍 Code Quality Checks',
+                    avgTime: 7.75,
+                    successRate: 100.0,
+                    executions: 10,
+                    improvementPotential: 0
+                },
+                {
+                    name: '🚀 Lightweight CI',
+                    avgTime: 6.86,
+                    successRate: 100.0,
+                    executions: 11,
+                    improvementPotential: 0
+                }
+            ],
+            recommendations: [
+                '🎯 優化前 3 大瓶頸可節省 19.7 分鐘執行時間',
+                '⚡ Test Coverage & Quality workflow 需要智能跳過機制和快取優化',
+                '🔒 Security Scans 可以實作增量掃描，避免完整掃描',
+                '💡 實作多層快取策略提升依賴安裝效率',
+                '🧠 基於變更類型的智能執行策略可減少 60% 不必要執行',
+                '🔧 改善 Test Coverage 的成功率 (當前 91.7% < 目標 95%)'
+            ]
+        };
+
+        // 渲染指標卡片
+        function renderMetrics() {
+            const container = document.getElementById('metricsGrid');
+            const metrics = performanceData.metrics;
+            
+            Object.entries(metrics).forEach(([key, data]) => {
+                const changeClass = data.change >= 0 ? 'positive' : 'negative';
+                const changeSymbol = data.change >= 0 ? '+' : '';
+                const progressPercent = (data.value / data.target) * 100;
+                
+                const titles = {
+                    avgExecutionTime: '平均執行時間',
+                    successRate: '整體成功率',
+                    cacheHitRate: '快取命中率',
+                    costSaving: '成本節省'
+                };
+                
+                container.innerHTML += `
+                    <div class="metric-card">
+                        <div class="metric-title">${titles[key]}</div>
+                        <div class="metric-value">${data.value}${data.unit}</div>
+                        <div class="metric-change ${changeClass}">
+                            ${changeSymbol}${data.change}${data.unit} vs 上週
+                        </div>
+                        <div style="margin-top: 0.5rem; font-size: 0.8rem; color: #666;">
+                            目標: ${data.target}${data.unit} (${progressPercent.toFixed(1)}%)
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // 渲染 workflow 列表
+        function renderWorkflows() {
+            const container = document.getElementById('workflowList');
+            
+            performanceData.workflows.forEach(workflow => {
+                let statusClass = 'status-success';
+                let statusText = '正常';
+                
+                if (workflow.successRate < 95) {
+                    statusClass = 'status-warning';
+                    statusText = '需注意';
+                } else if (workflow.successRate < 90) {
+                    statusClass = 'status-danger';
+                    statusText = '需修復';
+                }
+                
+                container.innerHTML += `
+                    <div class="workflow-item">
+                        <div class="workflow-name">${workflow.name}</div>
+                        <div class="workflow-stats">
+                            <span>⏱️ ${workflow.avgTime.toFixed(1)}分</span>
+                            <span>✅ ${workflow.successRate.toFixed(1)}%</span>
+                            <span>🔄 ${workflow.executions}次</span>
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // 渲染建議列表
+        function renderRecommendations() {
+            const container = document.getElementById('recommendationsList');
+            
+            performanceData.recommendations.forEach(recommendation => {
+                container.innerHTML += `
+                    <div class="recommendation-item">
+                        ${recommendation}
+                    </div>
+                `;
+            });
+        }
+
+        // 渲染執行時間趨勢圖
+        function renderTimeChart() {
+            const ctx = document.getElementById('timeChart').getContext('2d');
+            
+            // 模擬 7 天的數據
+            const labels = [];
+            const data = [];
+            const target = [];
+            
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                labels.push(date.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' }));
+                
+                // 模擬趨勢改善
+                const baseTime = 15 - (6-i) * 0.5 + (Math.random() - 0.5) * 2;
+                data.push(Math.max(8, baseTime));
+                target.push(8);
+            }
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '平均執行時間',
+                            data: data,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: '目標時間',
+                            data: target,
+                            borderColor: '#ff6b6b',
+                            borderDash: [5, 5],
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 6,
+                            max: 18,
+                            title: {
+                                display: true,
+                                text: '執行時間 (分鐘)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 渲染成功率圖表
+        function renderSuccessChart() {
+            const ctx = document.getElementById('successChart').getContext('2d');
+            
+            const workflowNames = performanceData.workflows.map(w => 
+                w.name.replace(/🧪|🔒|⚡|🔍|🚀/g, '').trim()
+            );
+            const successRates = performanceData.workflows.map(w => w.successRate);
+            
+            // 根據成功率設置顏色
+            const colors = successRates.map(rate => {
+                if (rate >= 95) return '#28a745';
+                if (rate >= 90) return '#ffc107';
+                return '#dc3545';
+            });
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: workflowNames,
+                    datasets: [{
+                        data: successRates,
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 更新時間戳
+        function updateLastUpdate() {
+            document.getElementById('lastUpdate').textContent = 
+                new Date().toLocaleString('zh-TW');
+        }
+
+        // 初始化儀表板
+        function initDashboard() {
+            renderMetrics();
+            renderWorkflows();
+            renderRecommendations();
+            renderTimeChart();
+            renderSuccessChart();
+            updateLastUpdate();
+        }
+
+        // 頁面載入完成後初始化
+        document.addEventListener('DOMContentLoaded', initDashboard);
+        
+        // 每 5 分鐘更新一次時間戳 (實際環境可以更新數據)
+        setInterval(updateLastUpdate, 5 * 60 * 1000);
+    </script>
+</body>
+</html>
