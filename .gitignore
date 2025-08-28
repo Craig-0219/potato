@@ -373,8 +373,9 @@ settings.local.json
 # 臨時開發文件
 # ====================================
 
-# 臨時測試文件
+# 臨時測試文件（但不包括 tests/ 目錄）
 test_*.py
+!tests/**/test_*.py
 temp_*.py
 scratch_*.py
 check_*.py
