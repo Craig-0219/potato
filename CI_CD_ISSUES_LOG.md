@@ -113,6 +113,35 @@ ERROR: Imports are incorrectly sorted and/or formatted.
 
 ---
 
+## 問題 #4 - 日期: 2025-08-28
+**標題**: GitHub Actions 環境缺少 redis-cli 命令
+
+**原因**: 
+- GitHub Actions Ubuntu 環境默認未安裝 redis-tools 包
+- test-coverage.yml 工作流程嘗試使用 redis-cli 驗證 Redis 服務連接
+- 雖然 Redis 服務容器正在運行，但主機環境缺少客戶端工具
+
+**錯誤**:
+```
+/home/runner/work/_temp/5a0ede25-6ab0-4a8d-9689-3bfa53fba472.sh: line 6: redis-cli: command not found
+```
+
+**解決方案**:
+1. ✅ 在使用 redis-cli 之前先安裝 redis-tools 包
+2. ✅ 添加安裝步驟：`sudo apt-get update && sudo apt-get install -y redis-tools`
+3. ✅ 修復 test-coverage.yml 第 117 行
+
+**狀態**: ✅ 已修復
+
+**影響範圍**: 
+- `.github/workflows/test-coverage.yml`
+- 整合測試中的服務連接驗證
+
+**修復位置**: 
+- test-coverage.yml 第 116-117 行：添加 redis-tools 安裝步驟
+
+---
+
 ## 常見問題類別
 
 ### 1. 模組導入問題
