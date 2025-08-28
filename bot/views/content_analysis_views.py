@@ -4,18 +4,12 @@
 提供內容分析統計、情感分析、安全檢測等功能的用戶界面
 """
 
-import asyncio
-import time
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
 
 import discord
-from discord import ui
-from discord.ext import commands
 
 from bot.services.content_analyzer import (
     AnalysisType,
-    ContentAnalysisResult,
     ContentRiskLevel,
     SentimentType,
     content_analyzer,

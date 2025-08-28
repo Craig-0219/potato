@@ -4,17 +4,14 @@
 負責管理各種遊戲的核心邏輯和狀態
 """
 
-import asyncio
 import json
 import random
 import time
-from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta, timezone
-from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
 from bot.db.pool import db_pool
-from shared.cache_manager import cache_manager, cached
+from shared.cache_manager import cache_manager
 from shared.logger import logger
 
 

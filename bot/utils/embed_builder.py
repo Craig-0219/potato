@@ -10,7 +10,7 @@ Embed 建構器 - 修復版
 
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Union
 
 import discord
 

@@ -7,14 +7,12 @@ Discord Bot 音樂系統 v2.3.0
 import asyncio
 import logging
 import re
-import urllib.parse
-from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 import discord
 import yt_dlp
-from discord import FFmpegOpusAudio, FFmpegPCMAudio, app_commands
+from discord import FFmpegPCMAudio, app_commands
 from discord.ext import commands
 
 from bot.utils.embed_builder import EmbedBuilder

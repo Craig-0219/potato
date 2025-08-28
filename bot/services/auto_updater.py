@@ -11,11 +11,10 @@ import os
 import signal
 import subprocess
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
-import aiofiles
 import aiohttp
 import discord
 from discord.ext import commands, tasks

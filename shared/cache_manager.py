@@ -14,11 +14,9 @@ import hashlib
 import json
 import pickle
 import time
-import weakref
 from dataclasses import dataclass
-from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List
 
 try:
     import aioredis

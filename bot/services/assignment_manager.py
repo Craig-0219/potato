@@ -4,11 +4,7 @@
 處理自動指派、手動指派、工作量平衡等業務邏輯
 """
 
-import random
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
-
-import discord
 
 from bot.db.assignment_dao import AssignmentDAO
 from bot.db.ticket_dao import TicketDAO

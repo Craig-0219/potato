@@ -4,10 +4,9 @@
 包含歡迎系統設定、管理、測試等指令
 """
 
-from typing import List, Optional
+from typing import Optional
 
 import discord
-from discord import app_commands
 from discord.ext import commands
 
 from bot.db.welcome_dao import WelcomeDAO

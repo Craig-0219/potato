@@ -4,20 +4,16 @@
 提供音樂播放、歌詞顯示、音樂問答等功能
 """
 
-import asyncio
-import json
 import random
-import re
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import aiohttp
-import discord
 from discord.ext import commands
 
-from shared.cache_manager import cache_manager, cached
+from shared.cache_manager import cache_manager
 from shared.logger import logger
 
 

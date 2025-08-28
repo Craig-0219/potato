@@ -6,13 +6,13 @@
 
 import asyncio
 import random
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 import discord
 from discord.ext import tasks
 
-from bot.db.lottery_dao import LotteryDAO, LotteryData
+from bot.db.lottery_dao import LotteryDAO
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 

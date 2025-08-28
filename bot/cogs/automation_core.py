@@ -4,10 +4,6 @@
 提供Discord指令介面來管理和執行自動化規則
 """
 
-import asyncio
-import json
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
 
 import discord
 from discord import app_commands
@@ -15,14 +11,11 @@ from discord.ext import commands
 
 from bot.db.automation_dao import AutomationDAO
 from bot.services.automation_engine import (
-    ActionType,
-    ConditionOperator,
-    RuleStatus,
     TriggerType,
     automation_engine,
 )
 from bot.utils.embed_builder import EmbedBuilder
-from bot.views.automation_views import AutomationView, RuleBuilderModal, RuleExecutionView
+from bot.views.automation_views import AutomationView, RuleBuilderModal
 from shared.logger import logger
 
 

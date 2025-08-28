@@ -8,7 +8,7 @@ import asyncio
 import logging
 import traceback
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Union
 
 import discord
 from discord.ext import commands

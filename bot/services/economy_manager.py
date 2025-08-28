@@ -10,18 +10,17 @@ import base64
 import hashlib
 import hmac
 import json
-import math
 import secrets
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import aiohttp
 
 from bot.db.pool import db_pool
-from shared.cache_manager import cache_manager, cached
+from shared.cache_manager import cache_manager
 from shared.logger import logger
 
 # ========== 新增：跨平台經濟系統枚舉 ==========
@@ -743,7 +742,7 @@ class EconomyManager:
                 "games": "total_games DESC",
             }
 
-            order_by = order_by_map.get(metric, "coins DESC")
+            order_by_map.get(metric, "coins DESC")
 
             async with db_pool.connection() as conn:
                 async with conn.cursor() as cursor:

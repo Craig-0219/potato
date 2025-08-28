@@ -5,9 +5,7 @@
 """
 
 import asyncio
-import json
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
 
 import discord
 from discord import app_commands

@@ -4,9 +4,7 @@
 統一管理所有資料表的創建和更新
 """
 
-import asyncio
-import json
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 from bot.db.pool import db_pool
 from shared.logger import logger
@@ -32,12 +30,11 @@ class DatabaseManager:
             await self._create_version_table()
 
             # 檢查資料庫版本
-            current_db_version = await self._get_database_version()
+            await self._get_database_version()
 
             if force_recreate:
                 logger.warning("⚠️ 強制重建模式 - 將刪除所有現存表格")
                 await self._drop_all_tables()
-                current_db_version = None
 
             # 創建各系統的表格
             await self._create_auth_tables()

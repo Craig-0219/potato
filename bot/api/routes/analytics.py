@@ -8,14 +8,14 @@ from datetime import datetime, timedelta
 
 # from slowapi import Limiter, _rate_limit_exceeded_handler
 # from slowapi.util import get_remote_address
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from shared.logger import logger
 
 from ..auth import APIUser, require_read_permission
-from ..models import BaseResponse, StaffPerformance, SystemMetrics
+from ..models import StaffPerformance
 
 router = APIRouter()
 # limiter = Limiter(key_func=get_remote_address)

@@ -4,10 +4,9 @@ AI 智能回覆系統互動界面
 包含回覆建議選擇、標籤建議應用等 UI 元件
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import discord
-from discord.ext import commands
 
 from shared.logger import logger
 
@@ -288,7 +287,7 @@ class AITagSelect(discord.ui.Select):
 
             # 這裡需要實現實際的標籤應用邏輯
             # 暫時模擬成功
-            tag_names = [tag["tag_name"] for tag in selected_tags]
+            [tag["tag_name"] for tag in selected_tags]
 
             embed = discord.Embed(
                 title="✅ 標籤已應用",

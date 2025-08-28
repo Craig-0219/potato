@@ -5,17 +5,14 @@
 """
 
 import asyncio
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
 
 import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
 from bot.services.economy_manager import (
-    CurrencyType,
-    EconomyAction,
-    TransactionType,
     economy_manager,
 )
 from bot.utils.embed_builder import EmbedBuilder

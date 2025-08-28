@@ -4,13 +4,8 @@
 提供各種遊戲的互動界面和用戶交互組件
 """
 
-import asyncio
-import json
-import math
 import random
-import time
-from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict
 
 import discord
 from discord import ui

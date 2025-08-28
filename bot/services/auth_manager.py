@@ -4,7 +4,6 @@ API 認證管理器
 提供 JWT 令牌生成、驗證和用戶認證功能
 """
 
-import asyncio
 import hashlib
 import json
 import secrets

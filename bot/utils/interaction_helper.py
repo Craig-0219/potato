@@ -4,7 +4,7 @@
 提供統一的互動錯誤處理和安全回應方法
 """
 
-from typing import Any, Optional, Union
+from typing import Optional
 
 import discord
 

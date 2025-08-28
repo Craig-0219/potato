@@ -4,15 +4,9 @@
 提供統一的圖片處理管理界面，包括特效、格式轉換、壓縮等功能
 """
 
-import asyncio
-import io
-import traceback
 from enum import Enum
-from typing import Any, Dict, List, Optional
 
 import discord
-from discord import ui
-from discord.ext import commands
 
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger

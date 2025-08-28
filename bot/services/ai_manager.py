@@ -4,10 +4,8 @@ AI 智能回覆管理服務
 提供智能回覆建議、內容分析、自動標籤建議等 AI 功能
 """
 
-import json
-import re
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime
+from typing import Any, Dict, List
 
 from bot.db.tag_dao import TagDAO
 from bot.db.ticket_dao import TicketDAO
@@ -223,7 +221,7 @@ class AIManager:
         """建議適合的標籤"""
         try:
             suggestions = []
-            content_lower = ticket_content.lower()
+            ticket_content.lower()
 
             # 基於內容分析的標籤建議
             content_analysis = await self._analyze_content(ticket_content)

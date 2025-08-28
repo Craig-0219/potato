@@ -4,7 +4,6 @@
 處理成員加入/離開、自動身分組分配、歡迎訊息發送等業務邏輯
 """
 
-import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 

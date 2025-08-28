@@ -4,9 +4,7 @@
 提供抽獎相關的指令和功能
 """
 
-import asyncio
-from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Optional
 
 import discord
 from discord import app_commands
@@ -17,7 +15,6 @@ from bot.utils.embed_builder import EmbedBuilder
 from bot.views.lottery_views import (
     LotteryCreationModal,
     LotteryManagementView,
-    LotteryParticipationView,
 )
 from shared.logger import logger
 

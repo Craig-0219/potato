@@ -4,23 +4,16 @@ AI智能助手服務 v2.2.0
 整合ChatGPT和其他AI服務，提供智能對話、創意內容生成等功能
 """
 
-import asyncio
-import json
 import re
 import time
-import uuid
-from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import aiohttp
 
-from shared.cache_manager import cache_manager, cached
+from shared.cache_manager import cache_manager
 from shared.config import (
-    AI_MAX_TOKENS,
-    AI_RATE_LIMIT_GUILD,
-    AI_RATE_LIMIT_USER,
     ANTHROPIC_API_KEY,
     GEMINI_API_KEY,
     OPENAI_API_KEY,
@@ -29,8 +22,6 @@ from shared.logger import logger
 
 # 引入 Phase 7 新的 AI 服務
 from .ai.ai_engine_manager import AIEngineManager
-from .ai.ai_engine_manager import AIProvider as NewAIProvider
-from .ai.ai_engine_manager import ConversationContext
 from .ai.conversation_manager import ConversationFlow, ConversationManager
 from .ai.intent_recognition import IntentRecognizer, IntentType
 

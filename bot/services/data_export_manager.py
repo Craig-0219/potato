@@ -7,18 +7,15 @@
 import asyncio
 import csv
 import json
-import os
-import tempfile
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import aiomysql
 
 try:
-    import openpyxl
     import pandas as pd
 
     HAS_PANDAS = True
@@ -221,7 +218,7 @@ class DataExportManager:
                         await cursor.execute(tag_query, (ticket["id"],))
                         tags = await cursor.fetchall()
                         ticket["tags"] = [tag["name"] for tag in tags] if tags else []
-                    except Exception as e:
+                    except Exception:
                         # 如果標籤查詢失敗，設為空列表
                         ticket["tags"] = []
 

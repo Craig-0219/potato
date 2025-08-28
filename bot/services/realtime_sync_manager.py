@@ -9,7 +9,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, Optional
 
 # 可選依賴導入
 try:

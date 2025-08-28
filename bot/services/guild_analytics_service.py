@@ -2,16 +2,11 @@
 # 📊 伺服器分析服務
 # Guild Analytics and Monitoring Service
 
-import asyncio
-import json
 import logging
-import statistics
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
-
-import aiomysql
+from typing import Any, Dict, List
 
 from bot.db.pool import db_pool
 from bot.utils.multi_tenant_security import secure_query_builder
@@ -119,7 +114,7 @@ class GuildAnalyticsService:
         """收集伺服器指標"""
         try:
             metrics = {}
-            current_time = datetime.now(timezone.utc)
+            datetime.now(timezone.utc)
 
             # 基本統計
             metrics.update(await self._collect_basic_stats(guild_id))

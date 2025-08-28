@@ -10,7 +10,6 @@
 
 import asyncio
 from datetime import datetime, timezone
-from functools import lru_cache
 from typing import Any, Dict, List, Optional
 
 import discord
@@ -20,11 +19,6 @@ from discord.ext import commands, tasks
 from bot.db import vote_dao
 from bot.utils.vote_utils import build_result_embed, build_vote_embed
 from bot.views.vote_views import (
-    AnonSelectView,
-    DurationSelectView,
-    FinalStepView,
-    MultiSelectView,
-    RoleSelectView,
     VoteButtonView,
     VoteManagementView,
 )
@@ -99,7 +93,7 @@ class VoteCore(commands.Cog):
                 return None
 
             return {"vote": vote, "options": options, "stats": stats, "total": sum(stats.values())}
-        except Exception as e:
+        except Exception:
 
             return None
 
@@ -161,7 +155,7 @@ class VoteCore(commands.Cog):
                 )
 
             await interaction.response.send_message(embed=embed)
-        except Exception as e:
+        except Exception:
 
             await interaction.response.send_message("❌ 查詢投票時發生錯誤。", ephemeral=True)
 
@@ -178,7 +172,7 @@ class VoteCore(commands.Cog):
                 data["vote"]["title"], data["stats"], data["total"], vote_id=vote_id
             )
             await interaction.response.send_message(embed=embed)
-        except Exception as e:
+        except Exception:
 
             await interaction.response.send_message("❌ 查詢結果時發生錯誤。", ephemeral=True)
 
@@ -216,7 +210,7 @@ class VoteCore(commands.Cog):
                 total,
             )
             await interaction.response.send_message(embed=embed, view=view)
-        except Exception as e:
+        except Exception:
 
             await interaction.response.send_message("❌ 補發 UI 時發生錯誤。", ephemeral=True)
 
@@ -292,7 +286,7 @@ class VoteCore(commands.Cog):
             view = HistoryPaginationView(page, total_pages, status)
             await interaction.followup.send(embed=embed, view=view)
 
-        except Exception as e:
+        except Exception:
 
             await interaction.followup.send("❌ 查詢歷史記錄時發生錯誤。")
 
@@ -380,7 +374,7 @@ class VoteCore(commands.Cog):
 
             await interaction.followup.send(embed=embed)
 
-        except Exception as e:
+        except Exception:
 
             await interaction.followup.send("❌ 查詢投票詳情時發生錯誤。")
 
@@ -421,7 +415,7 @@ class VoteCore(commands.Cog):
 
             await interaction.followup.send(embed=embed)
 
-        except Exception as e:
+        except Exception:
 
             await interaction.followup.send("❌ 查詢個人投票記錄時發生錯誤。")
 
@@ -443,7 +437,7 @@ class VoteCore(commands.Cog):
             embed = discord.Embed(title=f"🔍 搜尋結果：「{keyword}」", color=0xF39C12)
             embed.set_footer(text=f"找到 {len(results)} 筆符合的投票")
 
-            now = datetime.now(timezone.utc)
+            datetime.now(timezone.utc)
             for vote in results:
                 is_active = vote["is_active"] == 1
                 status_emoji = "🟢" if is_active else "🔴"
@@ -464,7 +458,7 @@ class VoteCore(commands.Cog):
 
             await interaction.followup.send(embed=embed)
 
-        except Exception as e:
+        except Exception:
 
             await interaction.followup.send("❌ 搜尋時發生錯誤。")
 
@@ -570,7 +564,6 @@ class VoteCore(commands.Cog):
             session = VoteCore.vote_sessions.get(user_id)
             if not session:
                 return
-            import traceback
 
     async def handle_vote_submit(
         self, interaction: discord.Interaction, vote_id: int, selected_options: List[str]
@@ -619,7 +612,7 @@ class VoteCore(commands.Cog):
             # ✅ 更新 UI（非阻塞）
             asyncio.create_task(self._update_vote_ui(interaction, vote_id))
 
-        except Exception as e:
+        except Exception:
 
             if not interaction.response.is_done():
                 await interaction.response.send_message(

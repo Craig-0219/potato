@@ -11,14 +11,13 @@
 5. 團隊遊戲和協作模式
 """
 
-import asyncio
 import json
 import random
 import time
-from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 import discord
 from discord import app_commands
@@ -32,14 +31,10 @@ from bot.services.economy_manager import EconomyManager
 from bot.services.game_manager import GameManager
 from bot.utils.embed_builder import EmbedBuilder
 from bot.views.game_views import (
-    CoinFlipView,
     GameMenuView,
     GuessNumberView,
-    RockPaperScissorsView,
-    RouletteView,
-    TriviaView,
 )
-from shared.cache_manager import cache_manager, cached
+from shared.cache_manager import cache_manager
 from shared.logger import logger
 from shared.prometheus_metrics import prometheus_metrics, track_command_execution
 

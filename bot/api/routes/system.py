@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import psutil
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 try:
     from slowapi import Limiter
@@ -130,7 +130,7 @@ async def _get_system_metrics_internal():
         disk = psutil.disk_usage("/")
 
         # 網路統計 (簡化版)
-        network = psutil.net_io_counters()
+        psutil.net_io_counters()
 
         # 獲取真實業務指標
         try:

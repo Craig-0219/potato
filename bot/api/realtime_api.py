@@ -7,13 +7,11 @@
 import asyncio
 import json
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, Set
 
-import aiomysql
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
-from bot.db.pool import db_pool
 from bot.services.statistics_manager import StatisticsManager
 from shared.logger import logger
 

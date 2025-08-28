@@ -2,9 +2,6 @@
 # 🛡️ API 安全與速率限制系統
 # API Security & Rate Limiting Framework
 
-import asyncio
-import hashlib
-import hmac
 import ipaddress
 import logging
 import secrets
@@ -531,7 +528,7 @@ class APISecurityManager:
             bool: 是否允許存取
         """
         try:
-            ip = ipaddress.ip_address(ip_address)
+            ipaddress.ip_address(ip_address)
 
             # 檢查黑名單
             if ip_address in self._ip_blacklist:
@@ -634,7 +631,7 @@ class APISecurityManager:
     def _generate_api_key(self) -> str:
         """生成安全的 API 密鑰"""
         # 生成 32 字節的隨機數據
-        random_bytes = secrets.token_bytes(32)
+        secrets.token_bytes(32)
         # 使用 base64 編碼並添加前綴
         key = f"pk_{''.join(secrets.choice('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') for _ in range(48))}"
         return key

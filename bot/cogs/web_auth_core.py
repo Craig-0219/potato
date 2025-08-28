@@ -4,8 +4,6 @@ Web 認證相關指令
 提供 Discord 用戶設定 Web 密碼和管理 API 金鑰的功能
 """
 
-from datetime import datetime, timezone
-from typing import List, Optional
 
 import discord
 from discord import app_commands

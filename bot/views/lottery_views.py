@@ -4,9 +4,8 @@
 提供完整的抽獎管理和參與介面
 """
 
-import asyncio
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import discord
 from discord import ui

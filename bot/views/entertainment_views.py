@@ -6,15 +6,10 @@ Discord Bot 娛樂模組互動視圖組件
 
 import asyncio
 import random
-import time
-from datetime import datetime
-from typing import Any, Dict, List, Optional
 
 import discord
-from discord.ext import commands
 
 from bot.utils.embed_builder import EmbedBuilder
-from shared.logger import logger
 
 
 class EntertainmentMenuView(discord.ui.View):
@@ -158,7 +153,7 @@ class GuessNumberView(discord.ui.View):
     @discord.ui.button(label="🔙 返回菜單", style=discord.ButtonStyle.danger, row=1)
     async def back_to_menu(self, interaction: discord.Interaction, button: discord.ui.Button):
         view = EntertainmentMenuView(self.cog, self.user_id)
-        stats = await self.cog.get_user_stats(self.user_id)
+        await self.cog.get_user_stats(self.user_id)
         embed = EmbedBuilder.create_info_embed("🎮 娛樂中心", "選擇您想要的遊戲：")
         await interaction.response.edit_message(embed=embed, view=view)
 

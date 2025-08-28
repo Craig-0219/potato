@@ -4,9 +4,7 @@
 提供基本的系統管理功能
 """
 
-import asyncio
-from datetime import datetime, timedelta
-from typing import Optional
+from datetime import datetime
 
 import discord
 from discord import app_commands

@@ -4,15 +4,14 @@
 管理用戶的遊戲成就、徽章和里程碑
 """
 
-import asyncio
 import json
-from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 from bot.db.pool import db_pool
-from shared.cache_manager import cache_manager, cached
+from shared.cache_manager import cache_manager
 from shared.logger import logger
 
 

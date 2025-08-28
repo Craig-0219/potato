@@ -6,7 +6,7 @@
 
 import json
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from bot.db.base_dao import BaseDAO
 from shared.logger import logger
@@ -20,7 +20,6 @@ class WelcomeDAO(BaseDAO):
 
     async def _initialize(self):
         """初始化方法 - BaseDAO要求的抽象方法"""
-        pass
 
     # ========== 歡迎設定管理 ==========
 

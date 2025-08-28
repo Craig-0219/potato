@@ -10,14 +10,12 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, HTTPException, Query, Request, Response
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from jose import jwt
 
 from shared.config import DISCORD_TOKEN
 from shared.logger import logger
-
-from ..models import BaseResponse
 
 router = APIRouter()
 

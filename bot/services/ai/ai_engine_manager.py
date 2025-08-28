@@ -6,13 +6,11 @@ Author: Potato Bot Development Team
 Version: 3.1.0 - Phase 7 Stage 1
 """
 
-import asyncio
-import json
 import logging
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import aiohttp
 import openai

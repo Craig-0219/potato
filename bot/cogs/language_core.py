@@ -4,8 +4,6 @@
 提供語言設定、統計、管理等指令
 """
 
-import asyncio
-from typing import List, Optional
 
 import discord
 from discord import app_commands

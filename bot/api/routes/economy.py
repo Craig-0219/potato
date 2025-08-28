@@ -4,9 +4,8 @@
 提供 Minecraft 插件與 Discord Bot 之間的經濟數據同步接口
 """
 
-import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -391,7 +390,7 @@ async def health_check():
     """健康檢查端點"""
     try:
         # 檢查經濟管理器狀態
-        test_settings = await economy_manager.get_economy_settings(0)
+        await economy_manager.get_economy_settings(0)
 
         # 檢查活躍同步任務
         active_syncs = len(economy_manager._sync_tasks)

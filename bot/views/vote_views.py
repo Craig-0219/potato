@@ -4,9 +4,8 @@
 整合所有投票相關的 UI 組件
 """
 
-import asyncio
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List
 
 import discord
 from discord import ui
@@ -107,7 +106,6 @@ class SingleSelectVoteButton(discord.ui.Button):
                 return
 
             # 記錄投票
-            from bot.cogs.vote_core import VoteCore
 
             cog = interaction.client.get_cog("VoteCore")
             if cog:
@@ -200,7 +198,6 @@ class MultiSelectSubmitButton(discord.ui.Button):
                 return
 
             # 記錄投票
-            from bot.cogs.vote_core import VoteCore
 
             cog = interaction.client.get_cog("VoteCore")
             if cog:
@@ -243,7 +240,6 @@ class VoteButton(discord.ui.Button):
                 return
 
             # 記錄投票
-            from bot.cogs.vote_core import VoteCore
 
             cog = interaction.client.get_cog("VoteCore")
             if cog:
@@ -267,7 +263,7 @@ class VoteSubmitButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         """處理投票提交"""
         try:
-            from bot.cogs.vote_core import VoteCore
+            pass
 
             cog = interaction.client.get_cog("VoteCore")
             if cog:
@@ -964,8 +960,6 @@ class MultiSelectView(discord.ui.View):
             await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
             return
 
-        from bot.cogs.vote_core import VoteCore
-
         cog = interaction.client.get_cog("VoteCore")
         if cog and self.user_id in cog.vote_sessions:
             cog.vote_sessions[self.user_id]["is_multi"] = False
@@ -979,8 +973,6 @@ class MultiSelectView(discord.ui.View):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
             return
-
-        from bot.cogs.vote_core import VoteCore
 
         cog = interaction.client.get_cog("VoteCore")
         if cog and self.user_id in cog.vote_sessions:
@@ -1004,8 +996,6 @@ class AnonSelectView(discord.ui.View):
             await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
             return
 
-        from bot.cogs.vote_core import VoteCore
-
         cog = interaction.client.get_cog("VoteCore")
         if cog and self.user_id in cog.vote_sessions:
             cog.vote_sessions[self.user_id]["anonymous"] = False
@@ -1019,8 +1009,6 @@ class AnonSelectView(discord.ui.View):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
             return
-
-        from bot.cogs.vote_core import VoteCore
 
         cog = interaction.client.get_cog("VoteCore")
         if cog and self.user_id in cog.vote_sessions:
@@ -1071,8 +1059,6 @@ class DurationSelectView(discord.ui.View):
             await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
             return
 
-        from bot.cogs.vote_core import VoteCore
-
         cog = interaction.client.get_cog("VoteCore")
         if cog and self.user_id in cog.vote_sessions:
             session = cog.vote_sessions[self.user_id]
@@ -1097,8 +1083,6 @@ class RoleSelectView(discord.ui.View):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
             return
-
-        from bot.cogs.vote_core import VoteCore
 
         cog = interaction.client.get_cog("VoteCore")
         if cog and self.user_id in cog.vote_sessions:
@@ -1148,8 +1132,6 @@ class FinalStepView(discord.ui.View):
 
         await interaction.response.edit_message(content="正在創建投票...", embed=None, view=None)
 
-        from bot.cogs.vote_core import VoteCore
-
         cog = interaction.client.get_cog("VoteCore")
         if cog:
             # 設定 start_time
@@ -1162,8 +1144,6 @@ class FinalStepView(discord.ui.View):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
             return
-
-        from bot.cogs.vote_core import VoteCore
 
         cog = interaction.client.get_cog("VoteCore")
         if cog and self.user_id in cog.vote_sessions:

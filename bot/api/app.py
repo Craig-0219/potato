@@ -705,13 +705,7 @@ async def start_api_server():
         logger.info(f"📚 API 文檔位址: http://{host}:{port}{API_BASE_PATH}/docs")
 
         # 使用 uvicorn 啟動伺服器
-        config = uvicorn.Config(
-            app,
-            host=host,
-            port=port,
-            log_level="info",
-            access_log=True
-        )
+        config = uvicorn.Config(app, host=host, port=port, log_level="info", access_log=True)
         server = uvicorn.Server(config)
         await server.serve()
 

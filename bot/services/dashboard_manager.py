@@ -5,12 +5,11 @@
 """
 
 import asyncio
-import json
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from bot.db.ticket_dao import TicketDAO
 from bot.db.vote_dao import VoteDAO
@@ -381,7 +380,7 @@ class DashboardManager:
     async def _create_response_time_chart(self, performance_data: Dict[str, Any]) -> ChartData:
         """創建回應時間趨勢圖表"""
         ticket_metrics = performance_data.get("ticket_metrics", {})
-        system_metrics = performance_data.get("system_metrics", {})
+        performance_data.get("system_metrics", {})
 
         # 創建回應時間數據（模擬基於實際數據的時間序列）
         days_labels = []
@@ -432,7 +431,7 @@ class DashboardManager:
 
     async def _create_load_distribution_chart(self, performance_data: Dict[str, Any]) -> ChartData:
         """創建系統負載分佈圖表"""
-        ticket_metrics = performance_data.get("ticket_metrics", {})
+        performance_data.get("ticket_metrics", {})
 
         # 模擬系統負載數據
         hours = [f"{i:02d}:00" for i in range(0, 24, 3)]  # 每3小時一個點
@@ -525,7 +524,7 @@ class DashboardManager:
 
     async def _create_workflow_efficiency_chart(self, workflow_data: Dict[str, Any]) -> ChartData:
         """創建工作流程效率圖表"""
-        overall_stats = workflow_data.get("overall_stats", {})
+        workflow_data.get("overall_stats", {})
 
         # 模擬工作流程效率數據
         workflow_names = ["自動歡迎", "票券指派", "SLA監控", "報告生成", "用戶通知"]

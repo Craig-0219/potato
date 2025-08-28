@@ -5,14 +5,14 @@
 """
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
 from shared.logger import logger
 
-from ..auth import APIUser, require_admin_permission, require_read_permission
-from ..models import BaseResponse, PaginatedResponse
+from ..auth import APIUser, require_admin_permission
+from ..models import PaginatedResponse
 
 router = APIRouter()
 # limiter = Limiter(key_func=get_remote_address)

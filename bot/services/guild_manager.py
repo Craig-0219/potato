@@ -6,7 +6,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import aiomysql
 import discord
@@ -14,7 +14,6 @@ from discord.ext import commands
 
 from bot.db.pool import db_pool
 from bot.services.guild_permission_manager import (
-    GuildPermission,
     GuildRole,
     guild_permission_manager,
 )

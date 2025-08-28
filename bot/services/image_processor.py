@@ -6,19 +6,16 @@
 
 import asyncio
 import io
-import os
-import tempfile
 import time
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 import aiohttp
 
 # 嘗試導入 PIL，提供友善的錯誤訊息
 try:
-    from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageFont
+    from PIL import Image, ImageEnhance, ImageFilter
 
     PIL_AVAILABLE = True
 except ImportError as e:
@@ -125,7 +122,7 @@ class ImageProcessor:
 
             # 載入圖片
             image = Image.open(io.BytesIO(image_data))
-            original_size = image.size
+            image.size
 
             # 根據操作類型處理圖片
             processed_image = await self._apply_operation(image, request)

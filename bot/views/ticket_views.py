@@ -7,7 +7,7 @@
 from typing import Any, Dict, List, Optional
 
 import discord
-from discord.ui import Button, Select, View, button, select
+from discord.ui import Button, Select, View, button
 
 from bot.utils.ticket_constants import TicketConstants
 from shared.logger import logger

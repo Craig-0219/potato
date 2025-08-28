@@ -6,7 +6,7 @@ Author: Craig JunWei + ChatGPT Turbo
 
 import asyncio
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import discord
 from discord import app_commands
@@ -24,7 +24,7 @@ from bot.services.ticket_manager import TicketManager
 from bot.utils.embed_builder import EmbedBuilder
 from bot.utils.helper import format_duration, get_time_ago
 from bot.utils.ticket_constants import TicketConstants
-from bot.views.ticket_views import RatingView, TicketControlView, TicketListView, TicketPanelView
+from bot.views.ticket_views import RatingView, TicketControlView, TicketPanelView
 from shared.logger import logger
 
 
@@ -1689,7 +1689,7 @@ class TicketCore(commands.Cog):
                 if displayed_count >= max_display:
                     break
 
-                status_emoji = TicketConstants.STATUS_EMOJIS.get(ticket["status"], "🟢")
+                TicketConstants.STATUS_EMOJIS.get(ticket["status"], "🟢")
                 priority_emoji = TicketConstants.PRIORITY_EMOJIS.get(
                     ticket.get("priority", "medium"), "🟡"
                 )

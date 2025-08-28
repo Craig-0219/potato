@@ -4,9 +4,8 @@
 負責歷史資料的歸檔、清理和維護工作
 """
 
-import asyncio
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any, Dict, List
 
 from discord.ext import tasks
 
@@ -359,7 +358,7 @@ class DatabaseCleanupManager:
             }
 
             # 執行清理
-            result = await self.perform_comprehensive_cleanup(guild_id, cleanup_config)
+            await self.perform_comprehensive_cleanup(guild_id, cleanup_config)
 
             # 更新排程的下次執行時間
             await self._update_schedule_next_run(schedule["id"], schedule["schedule_type"])
@@ -372,7 +371,6 @@ class DatabaseCleanupManager:
     async def _update_schedule_next_run(self, schedule_id: int, schedule_type: str):
         """更新排程下次執行時間"""
         # 這裡需要在ArchiveDAO中實現相應的更新方法
-        pass
 
     @cleanup_scheduler.before_loop
     async def before_cleanup_scheduler(self):

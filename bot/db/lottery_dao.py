@@ -4,10 +4,9 @@
 處理抽獎相關的資料庫操作
 """
 
-import asyncio
 import json
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 import aiomysql

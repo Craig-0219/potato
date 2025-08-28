@@ -3,7 +3,6 @@ import os
 import sys
 from enum import Enum
 from logging.handlers import RotatingFileHandler
-from typing import Optional
 
 
 class LogLevel(Enum):

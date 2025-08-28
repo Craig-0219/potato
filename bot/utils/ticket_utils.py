@@ -3,26 +3,21 @@
 import asyncio
 import json
 import re
-from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import discord
 
 from bot.utils.ticket_constants import (
     TicketConstants,
-    calculate_sla_time,
     create_progress_indicator,
-    escape_markdown,
     format_duration_chinese,
     get_priority_color,
     get_priority_emoji,
-    get_status_color,
     get_status_emoji,
     get_time_ago_chinese,
     truncate_text,
 )
-from shared.logger import logger
 
 # ===== 權限檢查器 =====
 
@@ -856,7 +851,7 @@ async def send_sla_alert(
 
         await channel.send(embed=embed)
         return True
-    except Exception as e:
+    except Exception:
 
         return False
 

@@ -4,20 +4,18 @@
 提供Discord指令介面來生成和查看各種分析儀表板
 """
 
-import asyncio
-import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.services.dashboard_manager import ChartType, MetricType, dashboard_manager
+from bot.services.dashboard_manager import dashboard_manager
 from bot.services.statistics_manager import StatisticsManager
 from bot.utils.embed_builder import EmbedBuilder
-from bot.utils.interaction_helper import InteractionContext, SafeInteractionHandler
-from bot.views.dashboard_views import ChartDisplayView, DashboardView
+from bot.utils.interaction_helper import SafeInteractionHandler
+from bot.views.dashboard_views import DashboardView
 from shared.logger import logger
 
 

@@ -4,16 +4,13 @@ Webhook整合核心功能
 提供Discord指令介面來管理和配置Webhook
 """
 
-import asyncio
-import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.services.webhook_manager import WebhookEvent, WebhookStatus, WebhookType, webhook_manager
+from bot.services.webhook_manager import WebhookEvent, webhook_manager
 from bot.utils.embed_builder import EmbedBuilder
 from bot.views.webhook_views import WebhookConfigModal, WebhookManagerView
 from shared.logger import logger
@@ -470,7 +467,6 @@ class WebhookCore(commands.Cog):
     async def on_message(self, message):
         """監聽消息事件並觸發相應的Webhook"""
         # 可以根據需要添加自動觸發邏輯
-        pass
 
     # ========== 錯誤處理 ==========
 

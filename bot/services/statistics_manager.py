@@ -4,9 +4,8 @@
 提供基本的統計功能，避免複雜的合併衝突
 """
 
-import asyncio
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime
+from typing import Any, Dict, Optional
 
 import aiomysql
 

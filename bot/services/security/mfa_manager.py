@@ -2,18 +2,15 @@
 # 🔐 多因素認證 (MFA) 管理系統
 # 支援 TOTP, SMS, Email 驗證
 
-import asyncio
 import base64
 import hashlib
 import io
 import logging
 import secrets
-import smtplib
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
-import aiohttp
 import pyotp
 import qrcode
 

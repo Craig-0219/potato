@@ -7,18 +7,15 @@ Version: 3.2.0 - Phase 7 Stage 2
 Date: 2025-08-20
 """
 
-import asyncio
 import logging
-import traceback
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict
 
 import discord
-from discord import app_commands
 from discord.ext import commands
 
-from .context_awareness import RecommendationLevel, SmartRecommendation, get_context_engine
+from .context_awareness import RecommendationLevel, get_context_engine
 
 logger = logging.getLogger(__name__)
 
@@ -508,7 +505,7 @@ class TicketMenuView(discord.ui.View):
                 from bot.services.ticket_manager import TicketManager
 
                 ticket_dao = TicketDAO()
-                ticket_manager = TicketManager(ticket_dao)
+                TicketManager(ticket_dao)
 
                 # 查詢用戶的票券
                 tickets = await ticket_dao.get_user_tickets(

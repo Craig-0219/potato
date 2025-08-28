@@ -4,16 +4,15 @@
 提供工作流程創建、管理、執行等指令
 """
 
-import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 from bot.db.workflow_dao import WorkflowDAO
-from bot.services.workflow_engine import ActionType, TriggerType, WorkflowStatus, workflow_engine
+from bot.services.workflow_engine import TriggerType, WorkflowStatus, workflow_engine
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 

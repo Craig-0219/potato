@@ -6,12 +6,12 @@ Webhook整合系統的Discord互動介面
 
 import json
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import discord
 from discord import ui
 
-from bot.services.webhook_manager import WebhookEvent, WebhookStatus, WebhookType, webhook_manager
+from bot.services.webhook_manager import WebhookEvent, webhook_manager
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 

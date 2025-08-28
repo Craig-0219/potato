@@ -5,31 +5,26 @@ AI智能助手指令模組 v2.2.0
 """
 
 import asyncio
-import json
-import random
-import time
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict
 
 import discord
 from discord import app_commands
-from discord.ext import commands, tasks
+from discord.ext import commands
 
 from bot.services.ai.conversation_manager import ConversationFlow
-from bot.services.ai.intent_recognition import IntentType
 from bot.services.ai_assistant import (
     AIProvider,
-    AIRequest,
     AITaskType,
     ai_assistant,
     enhanced_ai_assistant,
 )
 from bot.services.economy_manager import EconomyManager
 from bot.utils.embed_builder import EmbedBuilder
-from bot.views.ai_assistant_views import AIAssistantControlView, AIMainMenuView
-from shared.cache_manager import cache_manager, cached
+from bot.views.ai_assistant_views import AIMainMenuView
+from shared.cache_manager import cache_manager
 from shared.logger import logger
-from shared.prometheus_metrics import prometheus_metrics, track_command_execution
+from shared.prometheus_metrics import track_command_execution
 
 
 class AIAssistantCog(commands.Cog):

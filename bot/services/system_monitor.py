@@ -5,16 +5,13 @@
 """
 
 import asyncio
-import json
-import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import aiomysql
 import psutil
 
 from bot.db.pool import db_pool
-from bot.services.realtime_sync_manager import SyncEvent, SyncEventType, realtime_sync
 from shared.logger import logger
 
 

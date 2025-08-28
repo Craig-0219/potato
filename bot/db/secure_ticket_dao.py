@@ -2,10 +2,9 @@
 # 🔐 安全的票券資料存取層
 # Secure Ticket Data Access Object
 
-import json
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
 
 import aiomysql
 

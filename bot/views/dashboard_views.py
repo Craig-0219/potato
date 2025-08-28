@@ -7,10 +7,10 @@
 import io
 import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Dict, List
 
 import discord
-from discord.ui import Button, Modal, Select, TextInput, View, button, select
+from discord.ui import Button, Modal, Select, TextInput, View, button
 
 from bot.services.dashboard_manager import ChartData, ChartType, DashboardData
 from bot.utils.embed_builder import EmbedBuilder

@@ -2,15 +2,12 @@
 # 🔐 多租戶安全架構核心
 # Multi-Tenant Security Framework
 
-import asyncio
-import json
 import logging
 from datetime import datetime
 from functools import wraps
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import discord
-from discord.ext import commands
 
 logger = logging.getLogger(__name__)
 
@@ -18,19 +15,13 @@ logger = logging.getLogger(__name__)
 class MultiTenantSecurityError(Exception):
     """多租戶安全異常"""
 
-    pass
-
 
 class TenantIsolationViolation(MultiTenantSecurityError):
     """租戶隔離違規異常"""
 
-    pass
-
 
 class UnauthorizedCrossTenantAccess(MultiTenantSecurityError):
     """未授權跨租戶存取異常"""
-
-    pass
 
 
 class MultiTenantSecurityManager:

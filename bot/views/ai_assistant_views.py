@@ -4,14 +4,9 @@ AI 助手管理界面視圖 - Phase 5
 提供統一的 AI 模型選擇、對話管理、使用統計等功能界面
 """
 
-import asyncio
 import traceback
-from enum import Enum
-from typing import Any, Dict, List, Optional
 
 import discord
-from discord import ui
-from discord.ext import commands
 
 from bot.services.ai_assistant import AIProvider, AIRequest, AITaskType, ai_assistant
 from bot.utils.embed_builder import EmbedBuilder
@@ -193,7 +188,7 @@ class AIAssistantControlView(discord.ui.View):
     async def usage_stats_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """顯示使用統計"""
         try:
-            user_id = interaction.user.id
+            interaction.user.id
 
             # 這裡應該從數據庫獲取實際的使用統計
             # 暫時使用模擬數據

@@ -5,8 +5,7 @@
 import asyncio
 import json
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
 
 import discord
 from discord import app_commands
@@ -14,7 +13,6 @@ from discord.ext import commands
 
 from bot.services.data_management_service import (
     DataExportRequest,
-    DataRetentionPolicy,
     ExportFormat,
     data_management_service,
 )

@@ -4,9 +4,8 @@
 提供詳細的抽獎系統統計和分析功能
 """
 
-import asyncio
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import discord
 from discord import ui

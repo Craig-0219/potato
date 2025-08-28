@@ -4,9 +4,7 @@
 處理客服指派、工作量追蹤、專精匹配等功能
 """
 
-import json
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from bot.db.pool import db_pool
 from shared.logger import logger

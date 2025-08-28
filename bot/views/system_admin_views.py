@@ -5,10 +5,9 @@
 """
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
 
 import discord
-from discord.ui import Button, Modal, Select, TextInput, View, button, select
+from discord.ui import Button, Modal, Select, TextInput, View, button
 
 from bot.db import vote_dao
 from bot.db.ticket_dao import TicketDAO
@@ -2384,7 +2383,7 @@ class ActiveVoteManageView(View):
             await interaction.response.defer()
 
             # 獲取統計數據
-            active_votes = await vote_dao.get_active_votes()
+            await vote_dao.get_active_votes()
             total_votes = await vote_dao.get_total_vote_count(interaction.guild.id)
             guild_stats = await vote_dao.get_guild_vote_stats(interaction.guild.id, 30)
 
@@ -2681,7 +2680,7 @@ class VoteConfirmActionView(View):
 
                 if success:
                     # 發送結果通知
-                    from bot.cogs.vote import VoteCore
+                    pass
 
                     vote_cog = interaction.client.get_cog("VoteCore")
                     if vote_cog:

@@ -4,20 +4,19 @@
 支援Discord機器人與Minecraft服務器之間的經濟數據同步
 """
 
-import asyncio
 import json
 import time
-from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import aiohttp
 
 from bot.db.pool import db_pool
 from bot.services.achievement_manager import AchievementManager
 from bot.services.economy_manager import EconomyManager
-from shared.cache_manager import cache_manager, cached
+from shared.cache_manager import cache_manager
 from shared.logger import logger
 
 

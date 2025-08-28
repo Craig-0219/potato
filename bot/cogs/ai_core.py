@@ -4,8 +4,7 @@ AI 智能回覆核心功能
 提供智能回覆建議、內容分析、自動標籤建議等指令
 """
 
-import asyncio
-from typing import List, Optional
+from typing import Optional
 
 import discord
 from discord import app_commands

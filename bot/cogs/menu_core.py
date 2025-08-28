@@ -7,17 +7,14 @@ Version: 3.2.0 - Phase 7 Stage 2
 Date: 2025-08-20
 """
 
-import asyncio
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 # 匯入選單系統
-from bot.ui.menu_system import AdminMenuView, MainMenuView, MenuStyle, MenuSystemManager, MenuType
+from bot.ui.menu_system import MenuSystemManager
 
 logger = logging.getLogger(__name__)
 

@@ -4,11 +4,9 @@
 負責定期清理過期資料、日誌和優化資料庫性能
 """
 
-import asyncio
-import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 import aiomysql
 
@@ -513,7 +511,6 @@ class DataCleanupManager:
 
     async def _cleanup_temporary_data(self) -> CleanupResult:
         """清理臨時資料 - 智能檢查每個表的結構"""
-        table_name = "temporary_data"
         cutoff_date = datetime.now() - timedelta(days=1)  # 清理1天前的臨時資料
 
         try:
@@ -616,7 +613,6 @@ class DataCleanupManager:
 
     async def _cleanup_orphaned_data(self) -> CleanupResult:
         """清理孤立資料"""
-        table_name = "orphaned_data"
 
         try:
             total_deleted = 0
@@ -680,7 +676,6 @@ class DataCleanupManager:
 
     async def _optimize_database(self) -> CleanupResult:
         """優化資料庫"""
-        table_name = "database_optimization"
 
         try:
             optimized_tables = 0

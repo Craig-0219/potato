@@ -4,18 +4,15 @@
 提供圖片格式轉換、特效處理、壓縮等功能的Discord指令
 """
 
-import asyncio
 import io
 import time
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Optional
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 from bot.services.image_processor import (
-    ImageEffect,
     ImageFormat,
     ImageOperation,
     ImageProcessRequest,

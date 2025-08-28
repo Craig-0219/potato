@@ -4,14 +4,9 @@
 完全重寫的互動處理機制，解決超時和響應問題
 """
 
-import asyncio
 import traceback
-from enum import Enum
-from typing import Any, Dict, List, Optional
 
 import discord
-from discord import ui
-from discord.ext import commands
 
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger

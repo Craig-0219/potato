@@ -4,9 +4,8 @@
 提供模板選擇、自定義、應用等UI功能
 """
 
-import asyncio
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import discord
 from discord import ui

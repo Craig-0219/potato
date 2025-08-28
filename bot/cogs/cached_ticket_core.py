@@ -6,8 +6,8 @@
 
 import asyncio
 import time
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timezone
+from typing import Any, Dict
 
 import discord
 from discord import app_commands
@@ -25,12 +25,12 @@ from bot.services.statistics_manager import StatisticsManager
 from bot.services.tag_manager import TagManager
 from bot.services.ticket_manager import TicketManager
 from bot.utils.embed_builder import EmbedBuilder
-from bot.utils.helper import format_duration, get_time_ago
+from bot.utils.helper import get_time_ago
 from bot.utils.ticket_constants import TicketConstants
-from bot.views.ticket_views import RatingView, TicketControlView, TicketListView, TicketPanelView
+from bot.views.ticket_views import TicketControlView, TicketPanelView
 
 # 快取和監控
-from shared.cache_manager import CacheStrategy, cache_manager, cached
+from shared.cache_manager import cache_manager, cached
 from shared.logger import logger
 
 
@@ -482,7 +482,7 @@ class CachedTicketCore(commands.Cog):
         """快取維護任務"""
         try:
             # 清理過期的快取條目
-            stats_before = await cache_manager.get_statistics()
+            await cache_manager.get_statistics()
 
             # 執行維護操作（這會由快取管理器自動處理）
             await asyncio.sleep(0.1)  # 讓其他任務有機會執行
@@ -543,12 +543,10 @@ class CachedTicketCore(commands.Cog):
     async def _check_sla_violations(self):
         """檢查 SLA 違規（快取優化版）"""
         # 實現 SLA 檢查邏輯
-        pass
 
     async def _cleanup_expired_tickets(self):
         """清理過期票券（快取優化版）"""
         # 實現票券清理邏輯
-        pass
 
     @sla_monitor.before_loop
     @cleanup_task.before_loop

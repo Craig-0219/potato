@@ -1,7 +1,6 @@
 # bot/listeners/ticket_listener.py - 票券系統事件監聽器完整版
 
 import asyncio
-import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -13,8 +12,7 @@ from bot.db.ticket_dao import TicketDAO
 from bot.services.chat_transcript_manager import ChatTranscriptManager
 from bot.services.realtime_sync_manager import SyncEvent, SyncEventType, realtime_sync
 from bot.services.ticket_manager import TicketManager
-from bot.utils.helper import format_duration
-from bot.utils.ticket_constants import ERROR_MESSAGES, get_priority_emoji
+from bot.utils.ticket_constants import get_priority_emoji
 from bot.utils.ticket_utils import TicketPermissionChecker, is_ticket_channel
 from shared.logger import logger
 
@@ -919,10 +917,10 @@ class TicketMaintenanceListener(commands.Cog):
             for guild in self.bot.guilds:
                 try:
                     # 更新基本統計
-                    stats = await self.dao.get_server_statistics(guild.id)
+                    await self.dao.get_server_statistics(guild.id)
 
                     # 更新 SLA 統計
-                    sla_stats = await self.dao.get_sla_statistics(guild.id)
+                    await self.dao.get_sla_statistics(guild.id)
 
                     # 可以在這裡添加更多統計更新邏輯
 

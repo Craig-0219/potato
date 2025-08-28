@@ -4,8 +4,8 @@
 監聽成員加入/離開事件，處理歡迎訊息和自動身分組分配
 """
 
-from datetime import datetime, timedelta, timezone
-from typing import Optional, Set
+from datetime import datetime, timezone
+from typing import Set
 
 import discord
 from discord.ext import commands
@@ -30,7 +30,7 @@ class WelcomeListener(commands.Cog):
     async def _handle_welcome_with_tracking(self, member: discord.Member, event_type: str = "join"):
         """處理歡迎事件並進行追蹤，避免重複處理"""
         member_id = member.id
-        current_time = datetime.now(timezone.utc)
+        datetime.now(timezone.utc)
 
         # 檢查是否在最近 30 秒內已處理過此成員
         if member_id in self.recent_joins:

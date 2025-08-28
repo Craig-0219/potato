@@ -4,10 +4,8 @@
 提供文本情感分析、內容安全檢查、連結分析等功能的Discord指令
 """
 
-import asyncio
-import time
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict
 
 import discord
 from discord import app_commands
@@ -15,7 +13,6 @@ from discord.ext import commands
 
 from bot.services.content_analyzer import (
     AnalysisType,
-    ContentAnalysisResult,
     ContentRiskLevel,
     SentimentType,
     content_analyzer,
@@ -24,7 +21,7 @@ from bot.services.economy_manager import EconomyManager
 from bot.utils.embed_builder import EmbedBuilder
 from shared.cache_manager import cache_manager
 from shared.logger import logger
-from shared.prometheus_metrics import prometheus_metrics, track_command_execution
+from shared.prometheus_metrics import track_command_execution
 
 
 class ContentAnalysisCog(commands.Cog):

@@ -4,11 +4,10 @@
 處理資料歸檔、清理和格式化功能
 """
 
-import asyncio
 import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 import aiomysql
 

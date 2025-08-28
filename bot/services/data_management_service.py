@@ -2,16 +2,13 @@
 # 🗄️ 數據管理服務
 # Data Management Service for GDPR Compliance
 
-import asyncio
 import hashlib
 import json
 import logging
-import os
-import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 import aiomysql
 
@@ -498,7 +495,6 @@ class DataManagementService:
 
     def _has_date_column(self, table: str) -> bool:
         """檢查表格是否有時間欄位"""
-        date_columns = ["created_at", "timestamp", "updated_at"]
         # 這裡可以根據已知的表格結構返回
         return True  # 大多數表格都有 created_at
 
@@ -532,7 +528,6 @@ class DataManagementService:
     async def _convert_to_csv(self, data: Dict) -> str:
         """轉換為 CSV 格式"""
         # 簡化版，實際實現需要更完整的 CSV 處理
-        import csv
         import io
 
         output = io.StringIO()
