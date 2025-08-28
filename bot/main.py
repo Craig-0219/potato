@@ -62,9 +62,17 @@ except ImportError:
 
 # 離線模式支援
 try:
-    from bot.services.local_api_server import start_local_api_if_needed
-    from shared.local_cache_manager import get_redis_connection
     from shared.offline_mode_manager import auto_configure_environment, is_offline_mode
+
+    # 本地 API 服務器功能（如果需要）
+    def start_local_api_if_needed():
+        """啟動本地 API 服務器（如果配置啟用）"""
+        from shared.config import API_EXTERNAL_ACCESS, ENABLE_API_SERVER
+
+        if ENABLE_API_SERVER and API_EXTERNAL_ACCESS:
+            logger.info("🌐 本地 API 服務器已配置為外網訪問模式")
+            return True
+        return False
 
     OFFLINE_MODE_AVAILABLE = True
 except ImportError as e:

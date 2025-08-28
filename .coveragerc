@@ -1,0 +1,66 @@
+# Coverage.py 配置
+# https://coverage.readthedocs.io/en/stable/config.html
+
+[run]
+source = bot, shared
+branch = True
+parallel = True
+concurrency = thread,multiprocessing
+
+omit =
+    */tests/*
+    */test_*
+    */__pycache__/*
+    */migrations/*
+    archive/*
+    backups/*
+    .venv/*
+    venv/*
+    */site-packages/*
+    */node_modules/*
+    setup.py
+    manage.py
+
+[report]
+precision = 2
+show_missing = True
+skip_covered = False
+skip_empty = True
+
+exclude_lines =
+    # 標準排除模式
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if settings.DEBUG
+    raise AssertionError
+    raise NotImplementedError
+    if 0:
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+
+    # 異常處理排除
+    except ImportError:
+    except ModuleNotFoundError:
+
+    # 抽象方法排除
+    @(abc\.)?abstractmethod
+
+    # 調試和開發代碼排除
+    def debug_
+    if DEBUG
+    # pragma: debug
+
+partial_branches =
+    pragma: no branch
+    pragma: no cover
+
+[html]
+directory = htmlcov
+title = Potato Bot - 測試覆蓋率報告
+
+[xml]
+output = coverage.xml
+
+[json]
+output = coverage.json

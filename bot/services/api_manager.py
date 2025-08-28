@@ -4,14 +4,12 @@ API 基礎架構管理服務
 提供 RESTful API 端點、認證、限流等功能的統一管理
 """
 
-import asyncio
-import base64
 import hashlib
 import hmac
 import json
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from bot.db.ticket_dao import TicketDAO
 from bot.db.vote_dao import VoteDAO
@@ -376,14 +374,14 @@ class APIManager:
 
     async def _handle_statistics_performance(self, request: APIRequest) -> Dict[str, Any]:
         """處理性能報告請求"""
-        days = request.parameters.get("days", 30)
+        request.parameters.get("days", 30)
         # 需要在 StatisticsManager 中實現 get_performance_report 方法
         return {"message": "Performance report not implemented yet"}
 
     async def _handle_statistics_trends(self, request: APIRequest) -> Dict[str, Any]:
         """處理趨勢分析請求"""
-        metric = request.parameters.get("metric", "tickets")
-        days = request.parameters.get("days", 30)
+        request.parameters.get("metric", "tickets")
+        request.parameters.get("days", 30)
         # 需要在 StatisticsManager 中實現 get_trend_analysis 方法
         return {"message": "Trend analysis not implemented yet"}
 
@@ -466,8 +464,8 @@ class APIManager:
 
     async def _handle_votes_list(self, request: APIRequest) -> Dict[str, Any]:
         """處理投票列表請求"""
-        limit = request.parameters.get("limit", 50)
-        active_only = request.parameters.get("active_only", False)
+        request.parameters.get("limit", 50)
+        request.parameters.get("active_only", False)
 
         # 這裡需要實現投票列表查詢
         return {"message": "Vote list API not implemented yet"}

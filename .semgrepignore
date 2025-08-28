@@ -1,0 +1,57 @@
+# Semgrep 忽略文件配置
+# https://semgrep.dev/docs/ignoring-files/
+
+# 忽略目錄
+tests/
+archive/
+backups/
+.github/
+node_modules/
+.venv/
+venv/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+htmlcov/
+
+# 忽略特定文件類型
+*.pyc
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+
+# 忽略配置和日誌文件
+*.log
+*.cfg
+*.ini
+*.conf
+.env
+.env.*
+
+# 忽略文檔和靜態文件
+*.md
+*.rst
+*.txt
+*.json
+*.yaml
+*.yml
+
+# 忽略建構和分發文件
+build/
+dist/
+*.tar.gz
+*.whl
+
+# 忽略 Git 相關
+.git/
+.gitignore
+.gitattributes
+
+# 忽略 IDE 配置
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

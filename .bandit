@@ -1,0 +1,30 @@
+# Bandit 安全掃描配置
+# https://bandit.readthedocs.io/en/latest/config.html
+
+[bandit]
+# 排除目錄
+exclude_dirs = [
+    "tests",
+    "archive",
+    "backups",
+    ".github",
+    "node_modules",
+    ".venv",
+    "venv",
+    "__pycache__"
+]
+
+# 跳過特定檢查
+skips = [
+    "B101",  # assert_used - 測試中可能使用 assert
+    "B601",  # paramiko_calls - 如果使用 SSH 功能
+]
+
+# 檢查的檔案類型
+include = ["*.py"]
+
+# 排除特定檔案 (如果需要)
+exclude = [
+    "*/migrations/*.py",
+    "manage.py"
+]

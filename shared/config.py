@@ -213,7 +213,7 @@ if __name__ == "__main__":
         print("❌ 配置驗證失敗")
         sys.exit(1)
 else:
-    # 模組被導入時自動驗證
-    if not validate_config_enhanced():
+    # 模組被導入時自動驗證 (跳過測試環境)
+    if not os.getenv("TESTING") and not validate_config_enhanced():
         print("❌ 配置無效，請檢查 .env 檔案")
         sys.exit(1)
