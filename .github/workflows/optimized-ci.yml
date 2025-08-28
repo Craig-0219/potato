@@ -213,7 +213,7 @@ jobs:
 
     - name: 📤 上傳報告
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ci-reports-${{ matrix.check-type }}
         path: |

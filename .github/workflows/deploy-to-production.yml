@@ -219,7 +219,7 @@ jobs:
           ls -la deployment-package.tar.gz
 
       - name: Upload deployment package
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: deployment-package
           path: deployment-package.tar.gz
