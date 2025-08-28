@@ -1,0 +1,275 @@
+name: 🛡️ Security Scans
+
+on:
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - '**.py'
+      - 'requirements*.txt'
+      - 'pyproject.toml'
+  push:
+    branches: [main, dev]
+    paths:
+      - '**.py'
+      - 'requirements*.txt'
+      - 'pyproject.toml'
+  schedule:
+    # 每日 02:00 執行深度安全掃描
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      scan_depth:
+        description: '掃描深度'
+        required: false
+        default: 'standard'
+        type: choice
+        options:
+          - standard
+          - deep
+
+env:
+  PYTHON_VERSION: '3.10'
+
+jobs:
+  security-scan:
+    name: 🛡️ 安全掃描
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+    - name: 📥 檢出代碼
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 完整歷史，用於 secrets 掃描
+
+    - name: 🐍 設置 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+
+    - name: 📦 安裝安全工具
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit[toml]>=1.7.9 safety>=3.0.0 semgrep>=1.45.0
+        pip install detect-secrets>=1.4.0 pip-audit>=2.6.0
+        pip install -r requirements.txt
+
+    # Stage 1: SAST (靜態應用安全測試)
+    - name: 🛡️ Bandit 安全掃描
+      run: |
+        echo "🛡️ 執行 Bandit 安全掃描..."
+        bandit -r . -f json -o bandit-report.json || true
+        bandit -r . -f txt || true
+
+    - name: 🔍 Semgrep 靜態分析
+      run: |
+        echo "🔍 執行 Semgrep 靜態分析..."
+        semgrep --config=auto --json --output=semgrep-report.json . || true
+        semgrep --config=auto --text || true
+
+    # Stage 2: 依賴安全檢查
+    - name: 📦 Safety 依賴漏洞掃描
+      run: |
+        echo "📦 檢查依賴漏洞..."
+        safety check --json --output=safety-report.json || true
+        safety check --short-report || true
+
+    - name: 🔒 pip-audit 依賴審計
+      run: |
+        echo "🔒 執行依賴審計..."
+        pip-audit --format=json --output=pip-audit-report.json || true
+        pip-audit --desc || true
+
+    # Stage 3: Secrets 檢測
+    - name: 🔐 detect-secrets 掃描
+      run: |
+        echo "🔐 檢測 secrets..."
+        detect-secrets scan --all-files --force-use-all-plugins > secrets-baseline.json || true
+
+    # 安全摘要分析
+    - name: 📊 安全掃描摘要
+      run: |
+        echo "📊 安全掃描摘要報告"
+        echo "===================="
+
+        # Bandit 摘要
+        if [ -f bandit-report.json ]; then
+          HIGH_ISSUES=$(jq '.results | map(select(.issue_severity == "HIGH")) | length' bandit-report.json 2>/dev/null || echo "0")
+          MEDIUM_ISSUES=$(jq '.results | map(select(.issue_severity == "MEDIUM")) | length' bandit-report.json 2>/dev/null || echo "0")
+          LOW_ISSUES=$(jq '.results | map(select(.issue_severity == "LOW")) | length' bandit-report.json 2>/dev/null || echo "0")
+          echo "🛡️ Bandit SAST: $HIGH_ISSUES high, $MEDIUM_ISSUES medium, $LOW_ISSUES low"
+
+          # 設置輸出變數供後續步驟使用
+          echo "BANDIT_HIGH=$HIGH_ISSUES" >> $GITHUB_ENV
+          echo "BANDIT_MEDIUM=$MEDIUM_ISSUES" >> $GITHUB_ENV
+        fi
+
+        # Safety 摘要
+        if [ -f safety-report.json ]; then
+          VULN_COUNT=$(jq 'length' safety-report.json 2>/dev/null || echo "0")
+          echo "📦 Safety 依賴掃描: $VULN_COUNT 個漏洞"
+          echo "SAFETY_VULNS=$VULN_COUNT" >> $GITHUB_ENV
+        fi
+
+        # Semgrep 摘要
+        if [ -f semgrep-report.json ]; then
+          SEM_ISSUES=$(jq '.results | length' semgrep-report.json 2>/dev/null || echo "0")
+          echo "🔍 Semgrep 分析: $SEM_ISSUES 個問題"
+          echo "SEMGREP_ISSUES=$SEM_ISSUES" >> $GITHUB_ENV
+        fi
+
+        # Secrets 摘要
+        if [ -f secrets-baseline.json ]; then
+          SECRET_COUNT=$(jq '.results | length' secrets-baseline.json 2>/dev/null || echo "0")
+          echo "🔐 Secrets 檢測: $SECRET_COUNT 個可能的 secrets"
+          echo "SECRET_DETECTIONS=$SECRET_COUNT" >> $GITHUB_ENV
+        fi
+
+    # 安全狀態評估
+    - name: 🚨 安全狀態評估
+      run: |
+        echo "🚨 評估安全狀態..."
+
+        # 初始化計數器
+        CRITICAL_ISSUES=0
+        WARNING_ISSUES=0
+
+        # 檢查 Bandit 高風險問題
+        if [ "${BANDIT_HIGH:-0}" -gt 0 ]; then
+          echo "❌ 發現 ${BANDIT_HIGH} 個 Bandit 高風險問題"
+          CRITICAL_ISSUES=$((CRITICAL_ISSUES + BANDIT_HIGH))
+        fi
+
+        # 檢查依賴漏洞
+        if [ "${SAFETY_VULNS:-0}" -gt 0 ]; then
+          echo "⚠️ 發現 ${SAFETY_VULNS} 個依賴安全漏洞"
+          WARNING_ISSUES=$((WARNING_ISSUES + SAFETY_VULNS))
+        fi
+
+        # 檢查可疑的 secrets
+        if [ "${SECRET_DETECTIONS:-0}" -gt 0 ]; then
+          echo "⚠️ 檢測到 ${SECRET_DETECTIONS} 個可能的敏感資訊"
+          WARNING_ISSUES=$((WARNING_ISSUES + SECRET_DETECTIONS))
+        fi
+
+        # 設置輸出
+        echo "CRITICAL_ISSUES=$CRITICAL_ISSUES" >> $GITHUB_ENV
+        echo "WARNING_ISSUES=$WARNING_ISSUES" >> $GITHUB_ENV
+
+        # 結論
+        echo ""
+        if [ "$CRITICAL_ISSUES" -gt 0 ]; then
+          echo "🚨 安全狀態: 嚴重 - 需要立即處理 $CRITICAL_ISSUES 個關鍵問題"
+        elif [ "$WARNING_ISSUES" -gt 0 ]; then
+          echo "⚠️ 安全狀態: 警告 - 建議處理 $WARNING_ISSUES 個問題"
+        else
+          echo "✅ 安全狀態: 良好 - 未發現嚴重安全問題"
+        fi
+
+    - name: 📤 上傳安全報告
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports-${{ github.run_id }}
+        path: |
+          bandit-report.json
+          semgrep-report.json
+          safety-report.json
+          pip-audit-report.json
+          secrets-baseline.json
+        retention-days: 30
+
+    # 僅在發現嚴重問題時失敗
+    - name: 🔒 安全門檻檢查
+      run: |
+        echo "🔒 檢查安全門檻..."
+
+        # 僅在有嚴重問題時失敗 CI
+        if [ "${CRITICAL_ISSUES:-0}" -gt 0 ]; then
+          echo "❌ 發現 $CRITICAL_ISSUES 個嚴重安全問題，CI 失敗"
+          echo ""
+          echo "請查看以下報告並修復問題："
+          echo "• Bandit 報告: bandit-report.json"
+          echo "• Semgrep 報告: semgrep-report.json"
+          echo "• Safety 報告: safety-report.json"
+          echo ""
+          echo "修復指南:"
+          echo "• 高風險 Bandit 問題: https://bandit.readthedocs.io/"
+          echo "• 依賴漏洞: 升級有問題的套件到安全版本"
+          echo "• Secrets: 移除硬編碼的敏感資訊"
+          exit 1
+        else
+          echo "✅ 通過安全門檻檢查"
+        fi
+
+  # 深度掃描作業 (僅在定時執行或手動觸發時)
+  deep-scan:
+    name: 🔬 深度安全掃描
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && github.event.inputs.scan_depth == 'deep')
+    timeout-minutes: 30
+
+    steps:
+    - name: 📥 檢出代碼
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: 🐍 設置 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+
+    - name: 📦 安裝擴展安全工具
+      run: |
+        python -m pip install --upgrade pip
+        pip install bandit[toml] safety semgrep detect-secrets pip-audit
+        pip install prospector vulture dlint
+        pip install -r requirements.txt
+
+    - name: 🔬 Prospector 深度分析
+      run: |
+        echo "🔬 執行 Prospector 深度代碼分析..."
+        prospector --output-format=json --output-file=prospector-report.json . || true
+        prospector . || true
+
+    - name: 🦅 Vulture 死代碼檢測
+      run: |
+        echo "🦅 檢測死代碼和未使用變數..."
+        vulture . --json > vulture-report.json || true
+        vulture . || true
+
+    - name: 🔍 dlint 安全 Lint
+      run: |
+        echo "🔍 執行安全相關 Lint 檢查..."
+        python -m flake8 --select=DL . || true
+
+    - name: 📊 深度掃描摘要
+      run: |
+        echo "📊 深度安全掃描摘要"
+        echo "===================="
+
+        if [ -f prospector-report.json ]; then
+          echo "🔬 Prospector 深度分析完成"
+        fi
+
+        if [ -f vulture-report.json ]; then
+          DEAD_CODE=$(jq 'length' vulture-report.json 2>/dev/null || echo "0")
+          echo "🦅 Vulture: $DEAD_CODE 個死代碼檢測"
+        fi
+
+        echo ""
+        echo "深度掃描有助於發現潛在的代碼品質和安全問題"
+        echo "建議定期檢查這些報告以改進代碼品質"
+
+    - name: 📤 上傳深度掃描報告
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: deep-security-reports-${{ github.run_id }}
+        path: |
+          prospector-report.json
+          vulture-report.json
+        retention-days: 90
