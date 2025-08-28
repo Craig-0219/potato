@@ -1,0 +1,141 @@
+name: 🎨 Code Quality Checks
+
+on:
+  pull_request:
+    branches: [main, dev]
+    paths:
+      - '**.py'
+      - 'pyproject.toml'
+      - 'requirements*.txt'
+  push:
+    branches: [main, dev]
+    paths:
+      - '**.py'
+      - 'pyproject.toml'
+      - 'requirements*.txt'
+
+env:
+  PYTHON_VERSION: '3.10'
+
+jobs:
+  format-and-lint:
+    name: 🎨 格式化和語法檢查
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+    - name: 📥 檢出代碼
+      uses: actions/checkout@v4
+
+    - name: 🐍 設置 Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+
+    - name: 📦 安裝格式化工具
+      run: |
+        python -m pip install --upgrade pip
+        pip install black>=24.8.0 isort>=5.13.2 flake8>=7.1.1 mypy>=1.11.2 autoflake>=2.0.0
+        pip install -r requirements.txt
+
+    - name: 🧹 檢查未使用的導入
+      run: |
+        echo "🧹 檢查未使用的導入和變量..."
+        autoflake --check --recursive --remove-all-unused-imports --remove-unused-variables bot/ shared/
+
+    - name: 🎨 代碼格式檢查 (Black)
+      run: |
+        echo "🎨 檢查代碼格式..."
+        black --check --diff --color .
+
+    - name: 📚 導入排序檢查 (isort)
+      run: |
+        echo "📚 檢查導入排序..."
+        isort --check --diff --color .
+
+    - name: 🔍 語法和風格檢查 (flake8)
+      run: |
+        echo "🔍 執行語法和風格檢查..."
+        flake8 . --statistics --tee --output-file=flake8-report.txt
+
+    - name: 🔬 類型檢查 (mypy)
+      run: |
+        echo "🔬 執行類型檢查..."
+        mypy bot/ shared/ --no-error-summary || true
+        # 暫時允許類型檢查失敗，僅作警告
+
+    - name: 📊 生成代碼品質報告
+      if: always()
+      run: |
+        echo "📊 代碼品質檢查摘要"
+        echo "===================="
+
+        if [ -f flake8-report.txt ]; then
+          echo "🔍 Flake8 結果:"
+          tail -n 10 flake8-report.txt
+        fi
+
+        echo ""
+        echo "✨ 如果檢查失敗，請運行以下命令修復:"
+        echo "black ."
+        echo "isort ."
+        echo "autoflake --in-place --recursive --remove-all-unused-imports --remove-unused-variables bot/ shared/"
+
+    - name: 📤 上傳品質報告
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: code-quality-reports
+        path: |
+          flake8-report.txt
+        retention-days: 7
+
+  format-fix:
+    name: 🔧 自動格式化修復 (僅限 dev 分支)
+    runs-on: ubuntu-latest
+    if: failure() && github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    needs: format-and-lint
+
+    steps:
+    - name: 📥 檢出代碼
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: 🐍 設置 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: 📦 安裝工具
+      run: |
+        pip install black isort autoflake
+
+    - name: 🔧 自動修復格式問題
+      run: |
+        echo "🔧 自動修復代碼格式..."
+        autoflake --in-place --recursive --remove-all-unused-imports --remove-unused-variables bot/ shared/
+        black .
+        isort .
+
+    - name: 📤 提交修復
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+        if ! git diff --quiet; then
+          echo "📤 發現格式問題，自動修復中..."
+          git add .
+          git commit -m "🎨 自動格式化修復
+
+          🤖 由 GitHub Actions 自動執行代碼格式化
+          • black、isort、autoflake 工具自動修復
+
+          Generated with Claude Code
+          Co-Authored-By: GitHub Actions <action@github.com>"
+          git push
+          echo "✅ 格式化修復完成"
+        else
+          echo "✅ 無需格式化修復"
+        fi
