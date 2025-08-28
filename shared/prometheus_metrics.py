@@ -622,7 +622,6 @@ prometheus_metrics = PrometheusMetricsManager()
 
 async def init_prometheus(start_http_server: bool = True, push_gateway_url: str = None):
     """初始化 Prometheus 監控"""
-    global prometheus_metrics
     await prometheus_metrics.initialize(start_http_server, push_gateway_url)
 
 

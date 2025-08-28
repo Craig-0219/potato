@@ -4,6 +4,11 @@ FastAPI 主應用程式
 提供完整的 REST API 端點和自動文檔生成
 """
 
+import asyncio
+from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+
+import uvicorn
 from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
@@ -19,12 +24,6 @@ try:
 except ImportError:
     HAS_SLOWAPI = False
 
-# 暫時禁用 slowapi 以解決路由問題
-HAS_SLOWAPI = False
-import asyncio
-from contextlib import asynccontextmanager
-from datetime import datetime, timezone
-
 from shared.logger import logger
 
 from . import API_BASE_PATH, API_VERSION
@@ -32,6 +31,9 @@ from .auth import APIKeyManager, get_current_user
 from .routes import analytics, automation, economy
 from .routes import security as security_routes
 from .routes import system, tickets
+
+# 暫時禁用 slowapi 以解決路由問題
+HAS_SLOWAPI = False
 
 # 設定限流器 (如果可用)
 if HAS_SLOWAPI:
@@ -700,19 +702,17 @@ async def start_api_server():
         host = "0.0.0.0"
         port = 8000
 
-        # 設置 Hypercorn 配置
-        config = Config()
-        config.bind = [f"{host}:{port}"]
-        config.accesslog = "-"
-        config.errorlog = "-"
-        config.access_log_format = "%(h)s %(r)s %(s)s %(b)s"
-        config.application_path = "bot.api.app:app"
-
-        # 創建伺服器實例
-        server = serve(app, config)
-
         logger.info(f"📚 API 文檔位址: http://{host}:{port}{API_BASE_PATH}/docs")
 
+        # 使用 uvicorn 啟動伺服器
+        config = uvicorn.Config(
+            app,
+            host=host,
+            port=port,
+            log_level="info",
+            access_log=True
+        )
+        server = uvicorn.Server(config)
         await server.serve()
 
     except Exception as e:

@@ -12,6 +12,72 @@
 
 ---
 
+## 問題 #9 - 日期: 2025-08-28
+**標題**: 代碼品質問題 - bot/api/app.py undefined names
+
+**原因**: 
+- `bot/api/app.py` 中使用了 Hypercorn 的 `Config` 和 `serve` 但缺少導入
+- 生產環境實際使用 `uvicorn` 而不是 `hypercorn`
+
+**解決方案**: 
+1. 添加 `import uvicorn` 導入
+2. 將 Hypercorn 配置改為 uvicorn 配置：
+   ```python
+   # 修改前 (Hypercorn)
+   config = Config()
+   server = serve(app, config)
+   
+   # 修改後 (uvicorn)  
+   config = uvicorn.Config(app, host=host, port=port, log_level="info", access_log=True)
+   server = uvicorn.Server(config)
+   ```
+
+**驗證**: 
+```bash
+python3 -m flake8 bot/api/app.py --select=F821  # 無 undefined name 錯誤
+```
+
+**狀態**: 已修復 ✅
+
+**影響範圍**: 
+- bot/api/app.py 的 API 服務器啟動功能
+- F821 flake8 檢查通過
+
+---
+
+## 問題 #10 - 日期: 2025-08-28
+**標題**: prometheus_metrics.py 中未使用的 global 宣告
+
+**原因**: 
+- `init_prometheus` 函數中使用 `global prometheus_metrics` 但從未重新賦值
+- 造成 F824 flake8 錯誤: "global is unused: name is never assigned in scope"
+
+**解決方案**: 
+移除不必要的 global 宣告：
+```python
+# 修改前
+async def init_prometheus(start_http_server: bool = True, push_gateway_url: str = None):
+    global prometheus_metrics  # 未使用的 global
+    await prometheus_metrics.initialize(start_http_server, push_gateway_url)
+
+# 修改後  
+async def init_prometheus(start_http_server: bool = True, push_gateway_url: str = None):
+    await prometheus_metrics.initialize(start_http_server, push_gateway_url)
+```
+
+**驗證**: 
+```bash
+python3 -m flake8 shared/ --max-line-length=100 --count  # 返回 0 錯誤
+```
+
+**狀態**: 已修復 ✅
+
+**影響範圍**: 
+- shared/prometheus_metrics.py
+- F824 flake8 檢查通過
+
+---
+
 ## 問題 #1 - 日期: 2025-08-28
 **標題**: lightweight-ci.yml 中模組導入路徑錯誤
 
