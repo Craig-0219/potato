@@ -530,6 +530,97 @@ ERROR: Code quality checks failed due to unused imports and formatting issues
 - 確保 GitHub Actions 環境包含所有必要的系統工具
 - 建立代碼品質預提交檢查機制
 
+## 問題 #16 - 日期: 2025-08-28
+**標題**: DB_HOST 配置不一致導致整合測試失敗
+
+**原因**: 
+1. **測試配置不一致**: 
+   - `.github/workflows/test-coverage.yml` 中設定 `DB_HOST: 127.0.0.1`
+   - `DATABASE_URL` 同時指向 `127.0.0.1:3306` 
+   - 但測試程式期望 `DB_HOST` 為 `localhost`
+   - 造成配置驗證測試失敗
+
+2. **環境變數污染**:
+   - 不同測試文件間的環境變數設定不統一
+   - 部分測試使用 `127.0.0.1`，部分使用 `localhost`
+   - 導致測試間相互干擾
+
+**錯誤**:
+```python
+# 整合測試失敗
+AssertionError: '127.0.0.1' != 'localhost'
+Expected :localhost
+Actual   :127.0.0.1
+
+# 在 tests/integration/test_database_integration.py::TestDatabaseIntegration::test_database_configuration
+def test_database_configuration(self):
+    self.assertEqual(DB_HOST, "localhost")  # 期望 localhost 但得到 127.0.0.1
+```
+
+**影響範圍**:
+- `.github/workflows/test-coverage.yml` (第 78, 214 行)
+- `tests/integration/test_database_integration.py`
+- `tests/e2e/test_bot_lifecycle.py` 
+- Python 3.10/3.11 測試矩陣全部失敗
+
+**解決方案**: 
+1. ✅ **修復 GitHub Actions 配置**:
+   ```yaml
+   # test-coverage.yml 第 78 行和 214 行
+   DB_HOST: localhost  # 從 127.0.0.1 改為 localhost
+   ```
+
+2. ✅ **統一測試文件配置**:
+   ```python
+   # tests/integration/test_database_integration.py
+   os.environ["DB_HOST"] = "localhost"
+   os.environ["DATABASE_URL"] = "mysql://test_user:test_password@localhost:3306/test_database"
+   
+   # tests/e2e/test_bot_lifecycle.py  
+   os.environ["DB_HOST"] = "localhost"
+   ```
+
+3. ✅ **Pydantic V2 遷移**:
+   ```python
+   # bot/api/models.py - 修復棄用警告
+   @field_validator("sort_order")
+   @classmethod  # V2 新要求
+   def validate_sort_order(cls, v):
+       if v not in ["asc", "desc"]:
+           raise ValueError("sort_order must be either asc or desc")
+       return v
+   ```
+
+**狀態**: ✅ 已修復
+
+**修復驗證**:
+```bash
+# 本地測試通過
+TESTING=true python3 -m pytest tests/integration/test_database_integration.py::TestDatabaseIntegration::test_database_configuration -v
+# PASSED
+
+# 完整測試套件結果
+pytest tests/ --tb=short -q
+# 49 passed, 7 skipped, 0 failed ✅
+```
+
+**根本原因分析**:
+- **設計問題**: 
+  - `127.0.0.1` 和 `localhost` 在技術上等效，但字串比較會失敗
+  - 測試環境應該統一使用同一種格式
+  - GitHub Actions 和本地測試環境配置不一致
+
+- **測試設計缺陷**:
+  - 硬編碼期望值 `localhost` 而非使用環境變數
+  - 缺乏配置一致性驗證機制
+  - 測試間環境變數污染未隔離
+
+**預防措施**:
+- 統一所有測試環境使用相同的主機名格式 (`localhost`)
+- 建立配置一致性檢查機制
+- 測試文件中使用動態配置而非硬編碼期望值
+- 增加測試環境初始化驗證步驟
+
 ---
 
 *最後更新: 2025-08-28*
