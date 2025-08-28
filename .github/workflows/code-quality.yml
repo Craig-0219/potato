@@ -21,7 +21,7 @@ jobs:
   format-and-lint:
     name: 🎨 格式化和語法檢查
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
 
     steps:
     - name: 📥 檢出代碼

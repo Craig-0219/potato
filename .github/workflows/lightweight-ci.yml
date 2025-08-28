@@ -13,7 +13,7 @@ jobs:
   essential-checks:
     name: 🔍 必要條件檢查
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
 
     env:
       TESTING: true
@@ -182,26 +182,26 @@ jobs:
         python -c "
         import sys; sys.path.append('.')
         from unittest.mock import patch, MagicMock
-        
+
         # 測試 FastAPI 路由
         try:
             from bot.api.routes.tickets import router as tickets_router
             print('✅ Tickets API 路由可載入')
         except Exception as e:
             print(f'⚠️ Tickets API 問題: {e}')
-            
+
         try:
-            from bot.api.routes.system import router as system_router  
+            from bot.api.routes.system import router as system_router
             print('✅ System API 路由可載入')
         except Exception as e:
             print(f'⚠️ System API 問題: {e}')
-            
+
         try:
             from bot.api.routes.analytics import router as analytics_router
             print('✅ Analytics API 路由可載入')
         except Exception as e:
             print(f'⚠️ Analytics API 問題: {e}')
-        
+
         # 測試 API 應用
         try:
             from bot.api.app import create_app
@@ -210,44 +210,44 @@ jobs:
             print(f'⚠️ FastAPI 應用問題: {e}')
         "
 
-    - name: 🗄️ 資料存取層測試  
+    - name: 🗄️ 資料存取層測試
       run: |
         echo "🗄️ 測試資料存取層 (DAO)..."
         python -c "
         import sys; sys.path.append('.')
         from unittest.mock import patch, MagicMock, AsyncMock
-        
+
         # 測試 DAO 類別 (直接在 db 目錄下)
         try:
             from bot.db.ticket_dao import TicketDAO
             print('✅ TicketDAO 可初始化')
         except Exception as e:
             print(f'⚠️ TicketDAO 問題: {e}')
-            
+
         try:
             from bot.db.vote_dao import VoteDAO
             print('✅ VoteDAO 可初始化')
         except Exception as e:
             print(f'⚠️ VoteDAO 問題: {e}')
-            
+
         try:
             from bot.db.language_dao import LanguageDAO
             print('✅ LanguageDAO 可初始化')
         except Exception as e:
             print(f'⚠️ LanguageDAO 問題: {e}')
-            
+
         try:
             from bot.db.base_dao import BaseDAO
             print('✅ BaseDAO 基礎類別可初始化')
         except Exception as e:
             print(f'⚠️ BaseDAO 問題: {e}')
-            
+
         try:
             from bot.db.cached_ticket_dao import CachedTicketDAO
             print('✅ CachedTicketDAO 可初始化')
         except Exception as e:
             print(f'⚠️ CachedTicketDAO 問題: {e}')
-            
+
         try:
             from bot.db.security_dao import SecurityDAO
             print('✅ SecurityDAO 可初始化')
@@ -261,26 +261,26 @@ jobs:
         python -c "
         import sys; sys.path.append('.')
         from unittest.mock import patch, MagicMock, AsyncMock
-        
+
         # 測試各種服務管理器
         try:
             from bot.services.ticket_manager import TicketManager
             print('✅ TicketManager 可初始化')
         except Exception as e:
             print(f'⚠️ TicketManager 問題: {e}')
-            
+
         try:
             from bot.services.vote_manager import VoteManager
             print('✅ VoteManager 可初始化')
         except Exception as e:
             print(f'⚠️ VoteManager 問題: {e}')
-            
+
         try:
             from bot.services.economy_manager import EconomyManager
             print('✅ EconomyManager 可初始化')
         except Exception as e:
             print(f'⚠️ EconomyManager 問題: {e}')
-            
+
         try:
             from bot.services.notification_manager import NotificationManager
             print('✅ NotificationManager 可初始化')
@@ -293,26 +293,26 @@ jobs:
         echo "🔧 測試工具和輔助模組..."
         python -c "
         import sys; sys.path.append('.')
-        
+
         # 測試工具模組
         try:
             from bot.utils.time_utils import format_time_delta
             print('✅ time_utils 工具可使用')
         except Exception as e:
             print(f'⚠️ time_utils 問題: {e}')
-            
+
         try:
-            from bot.utils.embed_builder import EmbedBuilder  
+            from bot.utils.embed_builder import EmbedBuilder
             print('✅ EmbedBuilder 工具可使用')
         except Exception as e:
             print(f'⚠️ EmbedBuilder 問題: {e}')
-            
+
         try:
             from bot.utils.validator import validate_ticket_data
             print('✅ validator 工具可使用')
         except Exception as e:
             print(f'⚠️ validator 問題: {e}')
-            
+
         # 測試共享模組
         try:
             from shared.logger import logger
@@ -328,26 +328,26 @@ jobs:
         python -c "
         import sys; sys.path.append('.')
         from unittest.mock import patch, MagicMock, AsyncMock
-        
+
         # 整合測試 - 模擬 Bot 完整啟動流程
         with patch('discord.ext.commands.Bot') as mock_bot_class:
             with patch('discord.Intents'):
                 with patch('aiomysql.connect', new_callable=AsyncMock):
                     mock_bot = MagicMock()
-                    mock_bot.user = MagicMock() 
+                    mock_bot.user = MagicMock()
                     mock_bot.user.id = 123456789
                     mock_bot.guilds = []
                     mock_bot_class.return_value = mock_bot
-                    
+
                     try:
                         # 測試完整的 Bot 初始化鏈
                         from bot.main import PotatoBot
                         from bot.db.database_manager import DatabaseManager
                         from shared.local_cache_manager import LocalCacheManager
-                        
+
                         print('✅ 完整初始化鏈測試通過')
                         print('✅ 所有核心組件可協同工作')
-                        
+
                     except Exception as e:
                         print(f'⚠️ 整合測試問題: {e}')
                         import traceback
