@@ -168,7 +168,7 @@ jobs:
 
     - name: 📤 上傳測試報告
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-reports-${{ matrix.python-version }}-${{ matrix.test-type }}
         path: |
@@ -250,7 +250,7 @@ jobs:
 
     - name: 📤 上傳 E2E 報告
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: e2e-test-reports
         path: |
@@ -379,7 +379,7 @@ jobs:
 
     - name: 📤 上傳最終摘要
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: coverage-summary
         path: |
@@ -452,7 +452,7 @@ jobs:
 
     - name: 📤 上傳性能報告
       if: always()
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: performance-reports
         path: |

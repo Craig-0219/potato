@@ -409,5 +409,62 @@ ERROR: file or directory not found: tests/integration/
 
 ---
 
+## 問題 #14 - 日期: 2025-08-28
+**標題**: GitHub Actions upload-artifact v3 版本棄用警告
+
+**原因**: 
+- 多個 workflows 中使用了棄用的 `actions/upload-artifact@v3`
+- GitHub 推薦使用 v4 版本以獲得更好的性能和功能
+- v3 版本將在未來版本中不再支援
+
+**影響範圍**:
+- `.github/workflows/code-quality.yml` (1 處)
+- `.github/workflows/optimized-ci.yml` (1 處)
+- `.github/workflows/smart-notifications.yml` (1 處)
+- `.github/workflows/security-scans.yml` (2 處)
+- `.github/workflows/test-coverage.yml` (4 處)
+- `.github/workflows/deploy-to-production.yml` (1 處)
+- 總計: 10 處使用 v3 版本
+
+**錯誤/警告**:
+```
+Warning: actions/upload-artifact@v3 is deprecated. 
+Please update your workflow to use actions/upload-artifact@v4.
+```
+
+**解決方案**: 
+1. ✅ 批量更新所有 workflows 中的版本：
+   ```bash
+   find .github/workflows/ -name "*.yml" -exec sed -i 's/actions/upload-artifact@v3/actions/upload-artifact@v4/g' {} \;
+   ```
+
+2. ✅ 影響的 workflows:
+   - code-quality.yml: 代碼品質報告上傳
+   - optimized-ci.yml: CI 報告上傳
+   - smart-notifications.yml: 通知統計資料上傳
+   - security-scans.yml: 安全掃描報告上傳 (2處)
+   - test-coverage.yml: 測試報告上傳 (4處)
+   - deploy-to-production.yml: 部署包上傳
+
+**狀態**: ✅ 已修復
+
+**修復驗證**:
+```bash
+# 確認無 v3 版本殘留
+grep -r "upload-artifact@v3" .github/workflows/ 
+# (無結果 = 修復成功)
+
+# 確認 v4 版本數量
+grep -r "upload-artifact@v4" .github/workflows/ | wc -l
+# 結果: 10 處已更新
+```
+
+**預防措施**:
+- 定期檢查 GitHub Actions 版本更新
+- 使用 Dependabot 自動化依賴更新
+- 在 CI 流程中加入棄用版本檢查
+
+---
+
 *最後更新: 2025-08-28*
 *維護者: Claude Code Assistant*
