@@ -737,3 +737,140 @@ os.environ["DATABASE_URL"] = "mysql://test_user:test_password@localhost:3306/tes
 
 ---
 
+## 問題 #19 - 日期: 2025-08-29
+**標題**: GitHub Actions 整合測試 DB_NAME 配置不一致持續失敗
+
+**原因**: 
+- 雖然本地測試文件已修復，但 GitHub Actions workflows 中的環境變數仍使用舊配置
+- `test-coverage.yml` 中的環境變數和 MySQL 服務配置未同步更新
+- 導致 GitHub Actions 測試矩陣持續失敗
+
+**影響範圍**:
+- `.github/workflows/test-coverage.yml` - 整合測試和 E2E 測試環境變數
+- MySQL 服務配置 - 資料庫名稱不匹配
+- 所有 Python 3.10/3.11 測試矩陣執行失敗
+
+**錯誤訊息**:
+```
+AssertionError: 'test_potato_bot' != 'test_database'
+- test_potato_bot
++ test_database
+
+FAILED tests/integration/test_database_integration.py::TestDatabaseIntegration::test_database_configuration
+```
+
+**解決方案**: 
+1. ✅ **統一整合測試環境變數**:
+   ```yaml
+   # 修復前
+   DATABASE_URL: mysql://test_user:test_password@127.0.0.1:3306/test_potato_bot
+   DB_NAME: test_potato_bot
+   MYSQL_DATABASE: test_potato_bot
+   
+   # 修復後
+   DATABASE_URL: mysql://test_user:test_password@localhost:3306/test_database
+   DB_NAME: test_database
+   MYSQL_DATABASE: test_database
+   ```
+
+2. ✅ **統一 E2E 測試環境變數**:
+   ```yaml
+   # 修復前
+   DATABASE_URL: mysql://test_user:test_password@127.0.0.1:3306/test_potato_bot_e2e
+   DB_NAME: test_potato_bot_e2e
+   
+   # 修復後
+   DATABASE_URL: mysql://test_user:test_password@localhost:3306/test_database_e2e
+   DB_NAME: test_database_e2e
+   ```
+
+3. ✅ **修復資料庫連接測試**:
+   ```bash
+   # 修復前
+   mysql -h 127.0.0.1 -u test_user -ptest_password -e "SELECT 1" test_potato_bot
+   mysql -h 127.0.0.1 -u test_user -ptest_password -e "CREATE DATABASE IF NOT EXISTS test_potato_bot_e2e;"
+   
+   # 修復後
+   mysql -h 127.0.0.1 -u test_user -ptest_password -e "SELECT 1" test_database
+   mysql -h 127.0.0.1 -u test_user -ptest_password -e "CREATE DATABASE IF NOT EXISTS test_database_e2e;"
+   ```
+
+**狀態**: ✅ 已修復
+
+**驗證結果**:
+- ✅ 統一所有資料庫名稱為 `test_database` / `test_database_e2e`
+- ✅ MySQL 服務配置與測試環境變數保持一致
+- ✅ 資料庫連接和初始化命令同步更新
+- ✅ 整合測試應該不再出現配置不一致錯誤
+
+**預防措施**:
+1. **配置同步檢查**: 建立自動化檢查確保 workflows 和測試文件配置一致
+2. **標準化命名**: 統一所有測試環境使用相同的命名慣例
+3. **環境變數驗證**: 在測試開始前驗證所有環境變數配置正確性
+
+---
+
+## 問題 #20 - 日期: 2025-08-29
+**標題**: GitHub Actions isort colorama 依賴缺失問題
+
+**原因**: 
+- 多個 workflows 中使用 `isort --color` 選項但未安裝 colorama 套件
+- 導致代碼品質檢查失敗並出現依賴缺失錯誤
+- 影響所有使用 isort 進行導入排序檢查的 workflows
+
+**影響範圍**:
+- `.github/workflows/code-quality.yml` - 代碼品質檢查
+- `.github/workflows/optimized-ci.yml` - 優化版 CI 管線
+- `.github/workflows/intelligent-caching.yml` - 智能快取測試
+
+**錯誤訊息**:
+```
+Sorry, but to use --color (color_output) the colorama python package is required.
+
+Reference: https://pypi.org/project/colorama/
+
+You can either install it separately on your system or as the colors extra for isort. Ex: 
+$ pip install isort[colors]
+```
+
+**解決方案**: 
+1. ✅ **更新 isort 安裝配置**:
+   ```bash
+   # 修復前
+   pip install isort>=5.13.2
+   
+   # 修復後  
+   pip install "isort[colors]>=5.13.2"
+   ```
+
+2. ✅ **批量修復所有 workflows**:
+   - code-quality.yml: 2 處 isort 安裝修復
+   - optimized-ci.yml: 2 處 isort 安裝修復
+   - intelligent-caching.yml: 1 處工具安裝修復
+
+3. ✅ **統一工具依賴管理**:
+   ```bash
+   # 標準化的工具安裝配置
+   pip install black "isort[colors]" flake8 mypy autoflake
+   ```
+
+**狀態**: ✅ 已修復
+
+**驗證結果**:
+- ✅ 所有 workflows 現在安裝 `isort[colors]` 而非純 `isort`
+- ✅ `isort --check --diff --color .` 命令可正常執行
+- ✅ 代碼品質檢查不再因 colorama 缺失而失敗
+- ✅ 4 個 workflows 的依賴配置已統一標準化
+
+**技術改進**:
+- 使用 `"isort[colors]"` 格式確保正確安裝額外依賴
+- 統一所有 workflows 的工具安裝配置
+- 避免因可選依賴缺失導致的 CI 失敗
+
+**預防措施**:
+1. **依賴完整性檢查**: 定期檢查所有工具的可選依賴需求
+2. **標準化配置**: 建立統一的工具安裝配置範本
+3. **本地測試**: 在提交前本地測試所有 CI 工具命令
+
+---
+
