@@ -11,6 +11,11 @@ This package contains all AI-related services for Potato Bot:
 Version: 3.1.0 - Phase 7
 """
 
-from .ai_engine_manager import AIEngineManager, AIProvider, AIResponse, ConversationContext
+from .ai_engine_manager import (
+    AIEngineManager,
+    AIProvider,
+    AIResponse,
+    ConversationContext,
+)
 
 __all__ = ["AIEngineManager", "AIProvider", "AIResponse", "ConversationContext"]

@@ -23,12 +23,16 @@ class EntertainmentMenuView(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         """確保只有原始用戶可以使用"""
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message("這不是您的遊戲面板！", ephemeral=True)
+            await interaction.response.send_message(
+                "這不是您的遊戲面板！", ephemeral=True
+            )
             return False
         return True
 
     @discord.ui.button(label="🔢 猜數字", style=discord.ButtonStyle.primary, row=0)
-    async def guess_number_game(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def guess_number_game(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """猜數字遊戲"""
         view = GuessNumberView(self.cog, self.user_id)
         embed = view.create_game_embed()
@@ -44,49 +48,67 @@ class EntertainmentMenuView(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=view)
 
     @discord.ui.button(label="🪙 拋硬幣", style=discord.ButtonStyle.primary, row=0)
-    async def coin_flip(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def coin_flip(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """拋硬幣遊戲"""
         view = CoinFlipView(self.cog, self.user_id)
         embed = view.create_game_embed()
         await interaction.response.edit_message(embed=embed, view=view)
 
     @discord.ui.button(label="🎲 骰子遊戲", style=discord.ButtonStyle.primary, row=0)
-    async def dice_roll(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def dice_roll(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """骰子遊戲"""
         view = DiceRollView(self.cog, self.user_id)
         embed = view.create_game_embed()
         await interaction.response.edit_message(embed=embed, view=view)
 
-    @discord.ui.button(label="❓ 真心話大冒險", style=discord.ButtonStyle.secondary, row=1)
-    async def truth_dare(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="❓ 真心話大冒險", style=discord.ButtonStyle.secondary, row=1
+    )
+    async def truth_dare(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """真心話大冒險"""
         view = TruthDareView(self.cog, self.user_id)
         embed = view.create_game_embed()
         await interaction.response.edit_message(embed=embed, view=view)
 
     @discord.ui.button(label="🧠 知識問答", style=discord.ButtonStyle.secondary, row=1)
-    async def quiz_game(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def quiz_game(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """知識問答遊戲"""
         view = QuizView(self.cog, self.user_id)
         embed = view.create_game_embed()
         await interaction.response.edit_message(embed=embed, view=view)
 
-    @discord.ui.button(label="🎮 小遊戲合集", style=discord.ButtonStyle.secondary, row=1)
-    async def mini_games(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="🎮 小遊戲合集", style=discord.ButtonStyle.secondary, row=1
+    )
+    async def mini_games(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """小遊戲合集"""
         view = MiniGameView(self.cog, self.user_id)
         embed = view.create_game_embed()
         await interaction.response.edit_message(embed=embed, view=view)
 
     @discord.ui.button(label="🏆 排行榜", style=discord.ButtonStyle.secondary, row=1)
-    async def leaderboard(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def leaderboard(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """顯示排行榜"""
         view = GameLeaderboardView(self.cog)
         embed = await view.create_leaderboard_embed()
         await interaction.response.edit_message(embed=embed, view=view)
 
     @discord.ui.button(label="🔙 返回", style=discord.ButtonStyle.danger, row=2)
-    async def back_to_menu(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def back_to_menu(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """返回主菜單"""
         await interaction.response.edit_message(view=None)
         self.stop()
@@ -131,27 +153,39 @@ class GuessNumberView(discord.ui.View):
         return True
 
     @discord.ui.button(label="1-25", style=discord.ButtonStyle.primary, row=0)
-    async def guess_1_25(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def guess_1_25(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         await self.make_guess(interaction, random.randint(1, 25))
 
     @discord.ui.button(label="26-50", style=discord.ButtonStyle.primary, row=0)
-    async def guess_26_50(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def guess_26_50(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         await self.make_guess(interaction, random.randint(26, 50))
 
     @discord.ui.button(label="51-75", style=discord.ButtonStyle.primary, row=0)
-    async def guess_51_75(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def guess_51_75(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         await self.make_guess(interaction, random.randint(51, 75))
 
     @discord.ui.button(label="76-100", style=discord.ButtonStyle.primary, row=0)
-    async def guess_76_100(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def guess_76_100(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         await self.make_guess(interaction, random.randint(76, 100))
 
     @discord.ui.button(label="🎲 隨機猜測", style=discord.ButtonStyle.secondary, row=1)
-    async def random_guess(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def random_guess(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         await self.make_guess(interaction, random.randint(1, 100))
 
     @discord.ui.button(label="🔙 返回菜單", style=discord.ButtonStyle.danger, row=1)
-    async def back_to_menu(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def back_to_menu(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         view = EntertainmentMenuView(self.cog, self.user_id)
         await self.cog.get_user_stats(self.user_id)
         embed = EmbedBuilder.create_info_embed("🎮 娛樂中心", "選擇您想要的遊戲：")
@@ -181,7 +215,8 @@ class GuessNumberView(discord.ui.View):
             await self.cog.update_user_stats(self.user_id, "guess_number", False, 0)
 
             embed = EmbedBuilder.create_error_embed(
-                "💥 遊戲結束", f"很遺憾，正確答案是 **{self.target_number}**\n下次加油！"
+                "💥 遊戲結束",
+                f"很遺憾，正確答案是 **{self.target_number}**\n下次加油！",
             )
             self.game_over = True
 
@@ -220,13 +255,19 @@ class RockPaperScissorsView(discord.ui.View):
 
     def create_game_embed(self) -> discord.Embed:
         """創建遊戲嵌入"""
-        embed = EmbedBuilder.create_info_embed("✂️ 剪刀石頭布", f"五局三勝制！選擇你的出招：")
-
-        embed.add_field(
-            name="📊 當前比分", value=f"你：{self.user_score} | Bot：{self.bot_score}", inline=True
+        embed = EmbedBuilder.create_info_embed(
+            "✂️ 剪刀石頭布", f"五局三勝制！選擇你的出招："
         )
 
-        embed.add_field(name="🎯 局數", value=f"{self.games_played}/{self.max_games}", inline=True)
+        embed.add_field(
+            name="📊 當前比分",
+            value=f"你：{self.user_score} | Bot：{self.bot_score}",
+            inline=True,
+        )
+
+        embed.add_field(
+            name="🎯 局數", value=f"{self.games_played}/{self.max_games}", inline=True
+        )
 
         return embed
 
@@ -237,7 +278,9 @@ class RockPaperScissorsView(discord.ui.View):
         return True
 
     @discord.ui.button(label="✂️ 剪刀", style=discord.ButtonStyle.primary, emoji="✂️")
-    async def scissors(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def scissors(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         await self.play_round(interaction, "scissors", "✂️")
 
     @discord.ui.button(label="🗿 石頭", style=discord.ButtonStyle.primary, emoji="🗿")
@@ -249,12 +292,16 @@ class RockPaperScissorsView(discord.ui.View):
         await self.play_round(interaction, "paper", "📄")
 
     @discord.ui.button(label="🔙 返回菜單", style=discord.ButtonStyle.danger, row=1)
-    async def back_to_menu(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def back_to_menu(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         view = EntertainmentMenuView(self.cog, self.user_id)
         embed = EmbedBuilder.create_info_embed("🎮 娛樂中心", "選擇您想要的遊戲：")
         await interaction.response.edit_message(embed=embed, view=view)
 
-    async def play_round(self, interaction: discord.Interaction, user_choice: str, user_emoji: str):
+    async def play_round(
+        self, interaction: discord.Interaction, user_choice: str, user_emoji: str
+    ):
         """進行一輪遊戲"""
         choices = {"scissors": "✂️", "rock": "🗿", "paper": "📄"}
         bot_choice = random.choice(list(choices.keys()))
@@ -285,9 +332,13 @@ class RockPaperScissorsView(discord.ui.View):
             inline=False,
         )
         embed.add_field(
-            name="📊 總比分", value=f"你：{self.user_score} | Bot：{self.bot_score}", inline=True
+            name="📊 總比分",
+            value=f"你：{self.user_score} | Bot：{self.bot_score}",
+            inline=True,
         )
-        embed.add_field(name="🎯 局數", value=f"{self.games_played}/{self.max_games}", inline=True)
+        embed.add_field(
+            name="🎯 局數", value=f"{self.games_played}/{self.max_games}", inline=True
+        )
 
         # 檢查遊戲是否結束
         if (
@@ -302,16 +353,26 @@ class RockPaperScissorsView(discord.ui.View):
             )
 
             if winner == "user":
-                embed.add_field(name="🏆 最終結果", value="恭喜你獲得勝利！", inline=False)
+                embed.add_field(
+                    name="🏆 最終結果", value="恭喜你獲得勝利！", inline=False
+                )
                 points = 30
-                await self.cog.update_user_stats(self.user_id, "rock_paper_scissors", True, points)
+                await self.cog.update_user_stats(
+                    self.user_id, "rock_paper_scissors", True, points
+                )
             elif winner == "bot":
-                embed.add_field(name="💔 最終結果", value="很遺憾，Bot 獲勝了！", inline=False)
-                await self.cog.update_user_stats(self.user_id, "rock_paper_scissors", False, 0)
+                embed.add_field(
+                    name="💔 最終結果", value="很遺憾，Bot 獲勝了！", inline=False
+                )
+                await self.cog.update_user_stats(
+                    self.user_id, "rock_paper_scissors", False, 0
+                )
             else:
                 embed.add_field(name="🤝 最終結果", value="平局！", inline=False)
                 points = 10
-                await self.cog.update_user_stats(self.user_id, "rock_paper_scissors", False, points)
+                await self.cog.update_user_stats(
+                    self.user_id, "rock_paper_scissors", False, points
+                )
 
             # 禁用遊戲按鈕
             for item in self.children:
@@ -325,7 +386,11 @@ class RockPaperScissorsView(discord.ui.View):
         if user_choice == bot_choice:
             return "tie"
 
-        winning_combinations = {"rock": "scissors", "paper": "rock", "scissors": "paper"}
+        winning_combinations = {
+            "rock": "scissors",
+            "paper": "rock",
+            "scissors": "paper",
+        }
 
         if winning_combinations[user_choice] == bot_choice:
             return "user"
@@ -343,7 +408,9 @@ class CoinFlipView(discord.ui.View):
         self.bet_amount = 10
 
     def create_game_embed(self) -> discord.Embed:
-        embed = EmbedBuilder.create_info_embed("🪙 拋硬幣遊戲", "選擇正面或反面，猜對了獲得積分！")
+        embed = EmbedBuilder.create_info_embed(
+            "🪙 拋硬幣遊戲", "選擇正面或反面，猜對了獲得積分！"
+        )
         embed.add_field(name="賭注", value=f"{self.bet_amount} 積分", inline=True)
         embed.add_field(name="獎勵", value=f"{self.bet_amount * 2} 積分", inline=True)
         return embed
@@ -363,7 +430,9 @@ class CoinFlipView(discord.ui.View):
         await self.flip_coin(interaction, "tails")
 
     @discord.ui.button(label="🔙 返回菜單", style=discord.ButtonStyle.danger)
-    async def back_to_menu(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def back_to_menu(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         view = EntertainmentMenuView(self.cog, self.user_id)
         embed = EmbedBuilder.create_info_embed("🎮 娛樂中心", "選擇您想要的遊戲：")
         await interaction.response.edit_message(embed=embed, view=view)
@@ -385,7 +454,8 @@ class CoinFlipView(discord.ui.View):
             points = self.bet_amount * 2
             await self.cog.update_user_stats(self.user_id, "coin_flip", True, points)
             embed = EmbedBuilder.create_success_embed(
-                f"🎉 猜對了！硬幣是{result_text} {result_emoji}", f"獲得 {points} 積分！"
+                f"🎉 猜對了！硬幣是{result_text} {result_emoji}",
+                f"獲得 {points} 積分！",
             )
         else:
             await self.cog.update_user_stats(self.user_id, "coin_flip", False, 0)
@@ -395,7 +465,9 @@ class CoinFlipView(discord.ui.View):
 
         # 添加再玩一次按鈕
         new_view = CoinFlipView(self.cog, self.user_id)
-        embed.add_field(name="想再玩一次嗎？", value="點擊下方按鈕繼續遊戲", inline=False)
+        embed.add_field(
+            name="想再玩一次嗎？", value="點擊下方按鈕繼續遊戲", inline=False
+        )
 
         await interaction.edit_original_response(embed=embed, view=new_view)
 
@@ -409,7 +481,9 @@ class DiceRollView(discord.ui.View):
         self.user_id = user_id
 
     def create_game_embed(self) -> discord.Embed:
-        embed = EmbedBuilder.create_info_embed("🎲 骰子遊戲", "擲骰子比大小！選擇骰子數量：")
+        embed = EmbedBuilder.create_info_embed(
+            "🎲 骰子遊戲", "擲骰子比大小！選擇骰子數量："
+        )
         embed.add_field(
             name="🎯 遊戲規則",
             value="• 擲出的點數總和越大越好\n• 單顆骰子：1-6點\n• 雙骰子：2-12點\n• 三骰子：3-18點",
@@ -424,19 +498,27 @@ class DiceRollView(discord.ui.View):
         return True
 
     @discord.ui.button(label="🎲 單骰子", style=discord.ButtonStyle.primary)
-    async def single_dice(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def single_dice(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         await self.roll_dice(interaction, 1)
 
     @discord.ui.button(label="🎲🎲 雙骰子", style=discord.ButtonStyle.primary)
-    async def double_dice(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def double_dice(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         await self.roll_dice(interaction, 2)
 
     @discord.ui.button(label="🎲🎲🎲 三骰子", style=discord.ButtonStyle.primary)
-    async def triple_dice(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def triple_dice(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         await self.roll_dice(interaction, 3)
 
     @discord.ui.button(label="🔙 返回菜單", style=discord.ButtonStyle.danger, row=1)
-    async def back_to_menu(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def back_to_menu(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         view = EntertainmentMenuView(self.cog, self.user_id)
         embed = EmbedBuilder.create_info_embed("🎮 娛樂中心", "選擇您想要的遊戲：")
         await interaction.response.edit_message(embed=embed, view=view)
@@ -479,16 +561,22 @@ class DiceRollView(discord.ui.View):
 
         embed = discord.Embed(title=title, color=color)
         embed.add_field(
-            name="你的骰子", value=f"{user_dice_display}\n總計：{user_total}", inline=True
+            name="你的骰子",
+            value=f"{user_dice_display}\n總計：{user_total}",
+            inline=True,
         )
         embed.add_field(
-            name="Bot的骰子", value=f"{bot_dice_display}\n總計：{bot_total}", inline=True
+            name="Bot的骰子",
+            value=f"{bot_dice_display}\n總計：{bot_total}",
+            inline=True,
         )
 
         if points > 0:
             embed.add_field(name="獲得積分", value=f"+{points} 分", inline=False)
 
-        await self.cog.update_user_stats(self.user_id, "dice_roll", result == "win", points)
+        await self.cog.update_user_stats(
+            self.user_id, "dice_roll", result == "win", points
+        )
 
         # 再玩一次視圖
         new_view = DiceRollView(self.cog, self.user_id)
@@ -532,7 +620,9 @@ class TruthDareView(discord.ui.View):
         ]
 
     def create_game_embed(self) -> discord.Embed:
-        embed = EmbedBuilder.create_info_embed("❓ 真心話大冒險", "選擇真心話或大冒險！")
+        embed = EmbedBuilder.create_info_embed(
+            "❓ 真心話大冒險", "選擇真心話或大冒險！"
+        )
         embed.add_field(name="🤔 真心話", value="回答一個私人問題", inline=True)
         embed.add_field(name="😎 大冒險", value="完成一個有趣的挑戰", inline=True)
         return embed
@@ -566,7 +656,9 @@ class TruthDareView(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=new_view)
 
     @discord.ui.button(label="🔙 返回菜單", style=discord.ButtonStyle.danger)
-    async def back_to_menu(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def back_to_menu(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         view = EntertainmentMenuView(self.cog, self.user_id)
         embed = EmbedBuilder.create_info_embed("🎮 娛樂中心", "選擇您想要的遊戲：")
         await interaction.response.edit_message(embed=embed, view=view)
@@ -640,27 +732,39 @@ class QuizView(discord.ui.View):
         return True
 
     @discord.ui.button(label="🚀 開始問答", style=discord.ButtonStyle.success)
-    async def start_quiz(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def start_quiz(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         await self.next_question(interaction)
 
     @discord.ui.button(label="A", style=discord.ButtonStyle.secondary, row=1)
-    async def option_a(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def option_a(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         await self.answer_question(interaction, 0)
 
     @discord.ui.button(label="B", style=discord.ButtonStyle.secondary, row=1)
-    async def option_b(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def option_b(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         await self.answer_question(interaction, 1)
 
     @discord.ui.button(label="C", style=discord.ButtonStyle.secondary, row=1)
-    async def option_c(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def option_c(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         await self.answer_question(interaction, 2)
 
     @discord.ui.button(label="D", style=discord.ButtonStyle.secondary, row=1)
-    async def option_d(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def option_d(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         await self.answer_question(interaction, 3)
 
     @discord.ui.button(label="🔙 返回菜單", style=discord.ButtonStyle.danger, row=2)
-    async def back_to_menu(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def back_to_menu(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         view = EntertainmentMenuView(self.cog, self.user_id)
         embed = EmbedBuilder.create_info_embed("🎮 娛樂中心", "選擇您想要的遊戲：")
         await interaction.response.edit_message(embed=embed, view=view)
@@ -702,14 +806,20 @@ class QuizView(discord.ui.View):
             title = "❌ 答錯了！"
             color = discord.Color.red()
 
-        correct_answer = self.current_question["options"][self.current_question["correct"]]
+        correct_answer = self.current_question["options"][
+            self.current_question["correct"]
+        ]
 
         embed = discord.Embed(title=title, color=color)
         embed.add_field(name="正確答案", value=f"{correct_answer}", inline=False)
-        embed.add_field(name="解釋", value=self.current_question["explanation"], inline=False)
+        embed.add_field(
+            name="解釋", value=self.current_question["explanation"], inline=False
+        )
         embed.add_field(name="目前積分", value=f"{self.score} 分", inline=True)
         embed.add_field(
-            name="進度", value=f"{self.question_count}/{self.max_questions}", inline=True
+            name="進度",
+            value=f"{self.question_count}/{self.max_questions}",
+            inline=True,
         )
 
         # 禁用選項按鈕
@@ -745,7 +855,9 @@ class QuizView(discord.ui.View):
         embed.add_field(name="最終得分", value=f"{self.score} 分", inline=True)
         embed.add_field(name="正確率", value=f"{percentage:.1f}%", inline=True)
 
-        await self.cog.update_user_stats(self.user_id, "quiz", percentage >= 60, self.score)
+        await self.cog.update_user_stats(
+            self.user_id, "quiz", percentage >= 60, self.score
+        )
 
         # 重置所有按鈕
         for button in self.children:
@@ -755,7 +867,9 @@ class QuizView(discord.ui.View):
         try:
             await interaction.edit_original_response(embed=embed, view=self)
         except:
-            await interaction.followup.edit_message(interaction.message.id, embed=embed, view=self)
+            await interaction.followup.edit_message(
+                interaction.message.id, embed=embed, view=self
+            )
 
 
 class MiniGameView(discord.ui.View):
@@ -782,7 +896,9 @@ class MiniGameView(discord.ui.View):
         return True
 
     @discord.ui.button(label="🎯 射箭遊戲", style=discord.ButtonStyle.primary)
-    async def archery_game(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def archery_game(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         # 簡單的射箭遊戲
         target_zones = [
             "❌ 脫靶",
@@ -817,13 +933,17 @@ class MiniGameView(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=new_view)
 
     @discord.ui.button(label="🧩 記憶遊戲", style=discord.ButtonStyle.primary)
-    async def memory_game(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def memory_game(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         # 生成隨機序列讓用戶記住
         sequence_length = random.randint(3, 6)
         emojis = ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼"]
         sequence = [random.choice(emojis) for _ in range(sequence_length)]
 
-        embed = EmbedBuilder.create_info_embed("🧩 記憶挑戰", f"記住這個序列：{''.join(sequence)}")
+        embed = EmbedBuilder.create_info_embed(
+            "🧩 記憶挑戰", f"記住這個序列：{''.join(sequence)}"
+        )
         embed.add_field(name="指示", value="記住後點擊完成按鈕！", inline=False)
 
         # 創建簡化的記憶遊戲（自動完成）
@@ -850,7 +970,9 @@ class MiniGameView(discord.ui.View):
         await interaction.response.edit_message(embed=result_embed, view=new_view)
 
     @discord.ui.button(label="🔤 文字遊戲", style=discord.ButtonStyle.primary)
-    async def word_game(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def word_game(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         # 隨機生成字母，讓用戶組詞
         letters = random.sample("ABCDEFGHIJKLMNOPQRSTUVWXYZ", 6)
 
@@ -869,7 +991,9 @@ class MiniGameView(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=new_view)
 
     @discord.ui.button(label="🔙 返回菜單", style=discord.ButtonStyle.danger)
-    async def back_to_menu(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def back_to_menu(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         view = EntertainmentMenuView(self.cog, self.user_id)
         embed = EmbedBuilder.create_info_embed("🎮 娛樂中心", "選擇您想要的遊戲：")
         await interaction.response.edit_message(embed=embed, view=view)
@@ -897,12 +1021,20 @@ class GameLeaderboardView(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=self)
 
     @discord.ui.button(label="📊 個人統計", style=discord.ButtonStyle.secondary)
-    async def personal_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def personal_stats(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         stats = await self.cog.get_user_stats(interaction.user.id)
 
-        embed = EmbedBuilder.create_info_embed(f"📊 {interaction.user.display_name} 的統計", "")
+        embed = EmbedBuilder.create_info_embed(
+            f"📊 {interaction.user.display_name} 的統計", ""
+        )
 
-        win_rate = (stats["wins"] / stats["total_games"] * 100) if stats["total_games"] > 0 else 0
+        win_rate = (
+            (stats["wins"] / stats["total_games"] * 100)
+            if stats["total_games"] > 0
+            else 0
+        )
         embed.add_field(
             name="🎮 遊戲統計",
             value=f"總遊戲: {stats['total_games']}\n"

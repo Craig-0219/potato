@@ -222,8 +222,10 @@ class DatabaseOptimizer:
             indexes_used = self._extract_indexes_from_explain(explain_result)
 
             # 生成優化建議
-            optimization_level, suggestions = await self._generate_optimization_suggestions(
-                explain_result, execution_time, query_type, query
+            optimization_level, suggestions = (
+                await self._generate_optimization_suggestions(
+                    explain_result, execution_time, query_type, query
+                )
             )
 
             # 創建分析結果
@@ -247,7 +249,9 @@ class DatabaseOptimizer:
 
             # 如果是慢查詢，記錄警告
             if execution_time > self.slow_query_threshold:
-                logger.warning(f"🐌 慢查詢檢測: {execution_time:.3f}s - {query[:100]}...")
+                logger.warning(
+                    f"🐌 慢查詢檢測: {execution_time:.3f}s - {query[:100]}..."
+                )
 
             return analysis
 
@@ -398,7 +402,11 @@ class DatabaseOptimizer:
         return tables
 
     async def _generate_optimization_suggestions(
-        self, explain_result: Dict, execution_time: float, query_type: QueryType, query: str
+        self,
+        explain_result: Dict,
+        execution_time: float,
+        query_type: QueryType,
+        query: str,
     ) -> Tuple[OptimizationLevel, List[str]]:
         """生成優化建議"""
         suggestions = []
@@ -434,7 +442,9 @@ class DatabaseOptimizer:
             # 檢查查詢結構
             if query_type == QueryType.SELECT:
                 if re.search(r'\bLIKE\s+[\'"]%.*%[\'"]', query, re.IGNORECASE):
-                    suggestions.append("避免使用前導萬用字元的 LIKE 查詢，考慮使用全文搜索")
+                    suggestions.append(
+                        "避免使用前導萬用字元的 LIKE 查詢，考慮使用全文搜索"
+                    )
 
                 if re.search(r"\bORDER BY\b.*\bRAND\(\)", query, re.IGNORECASE):
                     suggestions.append("避免使用 ORDER BY RAND()，考慮其他隨機化方案")
@@ -522,7 +532,9 @@ class DatabaseOptimizer:
 
     # ========== 索引管理 ==========
 
-    async def analyze_index_usage(self, table_name: str = None) -> List[IndexRecommendation]:
+    async def analyze_index_usage(
+        self, table_name: str = None
+    ) -> List[IndexRecommendation]:
         """分析索引使用並生成建議"""
         try:
             recommendations = []
@@ -695,7 +707,9 @@ class DatabaseOptimizer:
                     recommendations.append(recommendation)
 
             # 生成複合索引建議
-            composite_candidates = self._identify_composite_index_candidates(query_patterns)
+            composite_candidates = self._identify_composite_index_candidates(
+                query_patterns
+            )
             for columns in composite_candidates:
                 if not self._has_composite_index(existing_indexes, columns):
                     columns_str = "_".join(columns)
@@ -795,14 +809,18 @@ class DatabaseOptimizer:
                 return True
         return False
 
-    def _has_composite_index(self, existing_indexes: List[Dict], columns: List[str]) -> bool:
+    def _has_composite_index(
+        self, existing_indexes: List[Dict], columns: List[str]
+    ) -> bool:
         """檢查是否已存在複合索引"""
         for index in existing_indexes:
             if set(columns).issubset(set(index["columns"])):
                 return True
         return False
 
-    def _identify_composite_index_candidates(self, query_patterns: List[Dict]) -> List[List[str]]:
+    def _identify_composite_index_candidates(
+        self, query_patterns: List[Dict]
+    ) -> List[List[str]]:
         """識別複合索引候選"""
         candidates = []
 
@@ -876,8 +894,12 @@ class DatabaseOptimizer:
                             result = await cursor.fetchone()
 
                             if metric_name == "connections":
-                                metrics_data["connections_used"] = int(result[0]) if result else 0
-                                metrics_data["max_connections"] = int(result[1]) if result else 0
+                                metrics_data["connections_used"] = (
+                                    int(result[0]) if result else 0
+                                )
+                                metrics_data["max_connections"] = (
+                                    int(result[1]) if result else 0
+                                )
                             else:
                                 metrics_data[metric_name] = (
                                     float(result[0]) if result and result[0] else 0.0
@@ -889,11 +911,15 @@ class DatabaseOptimizer:
 
                     # 創建指標物件
                     metrics = DatabaseMetrics(
-                        query_cache_hit_rate=metrics_data.get("query_cache_hit_rate", 0.0),
+                        query_cache_hit_rate=metrics_data.get(
+                            "query_cache_hit_rate", 0.0
+                        ),
                         slow_query_count=int(metrics_data.get("slow_queries", 0)),
                         connections_used=metrics_data.get("connections_used", 0),
                         max_connections=metrics_data.get("max_connections", 0),
-                        innodb_buffer_pool_hit_rate=metrics_data.get("innodb_buffer_pool", 0.0),
+                        innodb_buffer_pool_hit_rate=metrics_data.get(
+                            "innodb_buffer_pool", 0.0
+                        ),
                         table_scan_rate=0.0,  # 需要額外計算
                         temp_table_rate=0.0,  # 需要額外計算
                         key_read_hit_rate=0.0,  # 需要額外計算
@@ -1006,12 +1032,16 @@ class DatabaseOptimizer:
                                 if slow_query_stats and slow_query_stats[2]
                                 else 0
                             ),
-                            "unique_count": slow_query_stats[3] if slow_query_stats else 0,
+                            "unique_count": (
+                                slow_query_stats[3] if slow_query_stats else 0
+                            ),
                         },
                         "optimization_levels": optimization_levels,
                         "frequent_queries": [
                             {
-                                "query": query[:100] + "..." if len(query) > 100 else query,
+                                "query": (
+                                    query[:100] + "..." if len(query) > 100 else query
+                                ),
                                 "frequency": freq,
                                 "avg_time": float(avg_time),
                                 "level": level,

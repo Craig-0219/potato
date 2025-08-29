@@ -141,10 +141,34 @@ class LanguageManager:
         chinese_chars = len(re.findall(r"[\u4e00-\u9fff]", text))
         if chinese_chars > 0:
             # 繁簡體偵測
-            traditional_indicators = ["請", "時", "會", "說", "門", "車", "電", "話", "問", "題"]
-            simplified_indicators = ["请", "时", "会", "说", "门", "车", "电", "话", "问", "题"]
+            traditional_indicators = [
+                "請",
+                "時",
+                "會",
+                "說",
+                "門",
+                "車",
+                "電",
+                "話",
+                "問",
+                "題",
+            ]
+            simplified_indicators = [
+                "请",
+                "时",
+                "会",
+                "说",
+                "门",
+                "车",
+                "电",
+                "话",
+                "问",
+                "题",
+            ]
 
-            traditional_score = sum(1 for char in traditional_indicators if char in text)
+            traditional_score = sum(
+                1 for char in traditional_indicators if char in text
+            )
             simplified_score = sum(1 for char in simplified_indicators if char in text)
 
             if traditional_score > simplified_score:
@@ -166,7 +190,18 @@ class LanguageManager:
             return "ko"
 
         # 英文偵測（基於常見英文詞彙）
-        english_words = ["the", "and", "you", "that", "was", "for", "are", "with", "his", "they"]
+        english_words = [
+            "the",
+            "and",
+            "you",
+            "that",
+            "was",
+            "for",
+            "are",
+            "with",
+            "his",
+            "they",
+        ]
         english_score = sum(1 for word in english_words if f" {word} " in f" {text} ")
         if english_score >= 2:
             return "en"
@@ -220,13 +255,17 @@ class LanguageManager:
 
             # 後備語言
             if self.fallback_language in self.language_packs:
-                text = self._get_nested_string(self.language_packs[self.fallback_language], key)
+                text = self._get_nested_string(
+                    self.language_packs[self.fallback_language], key
+                )
                 if text:
                     return self._format_string(text, **kwargs)
 
             # 預設語言
             if self.default_language in self.language_packs:
-                text = self._get_nested_string(self.language_packs[self.default_language], key)
+                text = self._get_nested_string(
+                    self.language_packs[self.default_language], key
+                )
                 if text:
                     return self._format_string(text, **kwargs)
 
@@ -238,7 +277,9 @@ class LanguageManager:
             logger.error(f"獲取本地化字串錯誤: {e}")
             return key
 
-    def _get_nested_string(self, language_pack: Dict[str, Any], key: str) -> Optional[str]:
+    def _get_nested_string(
+        self, language_pack: Dict[str, Any], key: str
+    ) -> Optional[str]:
         """獲取嵌套的字串"""
         try:
             keys = key.split(".")
@@ -267,7 +308,9 @@ class LanguageManager:
 
     # ========== 語言設定管理 ==========
 
-    async def set_user_language(self, user_id: int, guild_id: int, lang_code: str) -> bool:
+    async def set_user_language(
+        self, user_id: int, guild_id: int, lang_code: str
+    ) -> bool:
         """設定用戶語言"""
         try:
             if lang_code not in self.supported_languages:

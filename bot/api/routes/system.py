@@ -27,7 +27,13 @@ from ..auth import (
     require_read_permission,
     require_super_admin_permission,
 )
-from ..models import APIKeyCreate, APIKeyResponse, BaseResponse, SystemHealth, SystemMetrics
+from ..models import (
+    APIKeyCreate,
+    APIKeyResponse,
+    BaseResponse,
+    SystemHealth,
+    SystemMetrics,
+)
 
 router = APIRouter()
 
@@ -140,7 +146,9 @@ async def _get_system_metrics_internal():
             mysql_connections = sum(
                 1
                 for conn in connections
-                if conn.laddr and conn.laddr.port == 3306 and conn.status == "ESTABLISHED"
+                if conn.laddr
+                and conn.laddr.port == 3306
+                and conn.status == "ESTABLISHED"
             )
             database_connections = max(1, mysql_connections)  # 至少顯示 1 個連線
         except Exception as e:
@@ -199,7 +207,9 @@ async def get_system_info(user: APIUser = Depends(require_read_permission)):
 
 
 # API 金鑰管理端點
-@router.get("/api-keys", response_model=List[APIKeyResponse], summary="獲取 API 金鑰列表")
+@router.get(
+    "/api-keys", response_model=List[APIKeyResponse], summary="獲取 API 金鑰列表"
+)
 # @limiter.limit("10/minute")
 async def get_api_keys(user: APIUser = Depends(require_super_admin_permission)):
     """獲取所有 API 金鑰（不包含實際金鑰值）"""
@@ -232,7 +242,9 @@ async def get_api_keys(user: APIUser = Depends(require_super_admin_permission)):
         raise HTTPException(status_code=500, detail="獲取 API 金鑰列表失敗")
 
 
-@router.post("/api-keys", response_model=BaseResponse, summary="創建 API 金鑰", status_code=201)
+@router.post(
+    "/api-keys", response_model=BaseResponse, summary="創建 API 金鑰", status_code=201
+)
 # @limiter.limit("5/minute")
 async def create_api_key(
     key_data: APIKeyCreate, user: APIUser = Depends(require_super_admin_permission)
@@ -268,9 +280,13 @@ async def create_api_key(
         raise HTTPException(status_code=500, detail="創建 API 金鑰失敗")
 
 
-@router.delete("/api-keys/{key_id}", response_model=BaseResponse, summary="撤銷 API 金鑰")
+@router.delete(
+    "/api-keys/{key_id}", response_model=BaseResponse, summary="撤銷 API 金鑰"
+)
 # @limiter.limit("10/minute")
-async def revoke_api_key(key_id: str, user: APIUser = Depends(require_super_admin_permission)):
+async def revoke_api_key(
+    key_id: str, user: APIUser = Depends(require_super_admin_permission)
+):
     """撤銷指定的 API 金鑰"""
     try:
         from ..auth import get_api_key_manager
@@ -306,7 +322,9 @@ async def enter_maintenance_mode(
             "message": "系統已進入維護模式",
             "data": {
                 "maintenance_start": datetime.now(),
-                "estimated_end": datetime.now() if not duration_minutes else datetime.now(),
+                "estimated_end": (
+                    datetime.now() if not duration_minutes else datetime.now()
+                ),
                 "reason": reason or "系統維護",
             },
         }
@@ -365,7 +383,11 @@ async def get_bot_settings(user: APIUser = Depends(require_admin_permission)):
             "ticket_settings": (
                 {row[0]: row[1] for row in ticket_rows}
                 if ticket_rows
-                else {"auto_assign": False, "max_tickets_per_user": 3, "staff_notifications": True}
+                else {
+                    "auto_assign": False,
+                    "max_tickets_per_user": 3,
+                    "staff_notifications": True,
+                }
             ),
             "welcome_settings": (
                 {row[0]: row[1] for row in welcome_rows}
@@ -380,7 +402,11 @@ async def get_bot_settings(user: APIUser = Depends(require_admin_permission)):
             "vote_settings": (
                 {row[0]: row[1] for row in vote_rows}
                 if vote_rows
-                else {"default_duration": 24, "allow_anonymous": False, "auto_close": True}
+                else {
+                    "default_duration": 24,
+                    "allow_anonymous": False,
+                    "auto_close": True,
+                }
             ),
         }
 
@@ -391,9 +417,13 @@ async def get_bot_settings(user: APIUser = Depends(require_admin_permission)):
         raise HTTPException(status_code=500, detail="獲取 Bot 設定失敗")
 
 
-@router.post("/bot-settings/{section}", response_model=BaseResponse, summary="更新 Bot 設定")
+@router.post(
+    "/bot-settings/{section}", response_model=BaseResponse, summary="更新 Bot 設定"
+)
 async def update_bot_settings(
-    section: str, settings: Dict[str, Any], user: APIUser = Depends(require_admin_permission)
+    section: str,
+    settings: Dict[str, Any],
+    user: APIUser = Depends(require_admin_permission),
 ):
     """更新 Discord Bot 的特定模組設定"""
     try:
@@ -403,7 +433,8 @@ async def update_bot_settings(
         valid_sections = ["tickets", "welcome", "votes"]
         if section not in valid_sections:
             raise HTTPException(
-                status_code=400, detail=f"無效的模組名稱，支援: {', '.join(valid_sections)}"
+                status_code=400,
+                detail=f"無效的模組名稱，支援: {', '.join(valid_sections)}",
             )
 
         # 對應的資料表
@@ -500,7 +531,9 @@ async def get_bot_commands(user: APIUser = Depends(require_read_permission)):
         raise HTTPException(status_code=500, detail="獲取 Bot 指令列表失敗")
 
 
-@router.post("/bot-reload-extension", response_model=BaseResponse, summary="重新載入 Bot 擴展")
+@router.post(
+    "/bot-reload-extension", response_model=BaseResponse, summary="重新載入 Bot 擴展"
+)
 async def reload_bot_extension(
     extension_name: str, user: APIUser = Depends(require_admin_permission)
 ):

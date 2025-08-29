@@ -50,7 +50,10 @@ class AutoUpdater:
             "webhook_secret": None,
             "update_channel_id": None,
             "authorized_users": [],
-            "maintenance_window": {"start_hour": 2, "end_hour": 6},  # UTC 2:00  # UTC 6:00
+            "maintenance_window": {
+                "start_hour": 2,
+                "end_hour": 6,
+            },  # UTC 2:00  # UTC 6:00
             "backup_before_update": True,
             "rollback_on_failure": True,
         }
@@ -118,10 +121,14 @@ class AutoUpdater:
                 "current_commit": self.current_commit,
                 "commit_info": commit_info,
                 "commit_message": commit_info.get("commit", {}).get("message", ""),
-                "commit_date": commit_info.get("commit", {}).get("author", {}).get("date"),
+                "commit_date": commit_info.get("commit", {})
+                .get("author", {})
+                .get("date"),
                 "author": commit_info.get("commit", {}).get("author", {}).get("name"),
                 "files_changed": (
-                    len(commit_info.get("files", [])) if "files" in commit_info else "未知"
+                    len(commit_info.get("files", []))
+                    if "files" in commit_info
+                    else "未知"
                 ),
             }
             return True, update_info
@@ -203,7 +210,15 @@ class AutoUpdater:
         """更新依賴包"""
         try:
             result = subprocess.run(
-                [sys.executable, "-m", "pip", "install", "-r", "requirements.txt", "--upgrade"],
+                [
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "install",
+                    "-r",
+                    "requirements.txt",
+                    "--upgrade",
+                ],
                 capture_output=True,
                 text=True,
                 timeout=300,  # 5分鐘超時
@@ -219,7 +234,9 @@ class AutoUpdater:
         except Exception as e:
             return False, f"更新依賴時發生錯誤: {e}"
 
-    async def _send_update_notification(self, message: str, embed: Optional[discord.Embed] = None):
+    async def _send_update_notification(
+        self, message: str, embed: Optional[discord.Embed] = None
+    ):
         """發送更新通知"""
         if not self.update_channel_id:
             return
@@ -296,7 +313,9 @@ class AutoUpdater:
 
                 # 創建重啟通知
                 embed = discord.Embed(
-                    title="✅ 更新完成 - 準備重啟", color=0x00FF00, timestamp=datetime.utcnow()
+                    title="✅ 更新完成 - 準備重啟",
+                    color=0x00FF00,
+                    timestamp=datetime.utcnow(),
                 )
                 embed.add_field(
                     name="🔄 新版本信息",
@@ -385,7 +404,9 @@ class AutoUpdater:
                         # 自動重啟
                         self.restart_bot()
                     else:
-                        await self._send_update_notification(f"❌ 自動更新失敗: {result['error']}")
+                        await self._send_update_notification(
+                            f"❌ 自動更新失敗: {result['error']}"
+                        )
 
             self.last_check = datetime.utcnow()
 
@@ -456,7 +477,9 @@ class AutoUpdateCog(commands.Cog, name="自動更新"):
                     + ("..." if len(update_info["commit_message"]) > 500 else ""),
                     inline=False,
                 )
-                embed.add_field(name="⏰ 提交時間", value=update_info["commit_date"], inline=True)
+                embed.add_field(
+                    name="⏰ 提交時間", value=update_info["commit_date"], inline=True
+                )
             else:
                 embed = discord.Embed(
                     title="✅ 已是最新版本",
@@ -492,7 +515,9 @@ class AutoUpdateCog(commands.Cog, name="自動更新"):
             )
 
         try:
-            reaction, user = await self.bot.wait_for("reaction_add", timeout=30.0, check=check)
+            reaction, user = await self.bot.wait_for(
+                "reaction_add", timeout=30.0, check=check
+            )
 
             if str(reaction.emoji) == "✅":
                 await ctx.send("🔄 開始執行更新...")
@@ -514,7 +539,9 @@ class AutoUpdateCog(commands.Cog, name="自動更新"):
     @update_group.command(name="status", aliases=["狀態"])
     async def update_status(self, ctx):
         """查看自動更新狀態"""
-        embed = discord.Embed(title="📊 自動更新狀態", color=0x0099FF, timestamp=datetime.utcnow())
+        embed = discord.Embed(
+            title="📊 自動更新狀態", color=0x0099FF, timestamp=datetime.utcnow()
+        )
 
         embed.add_field(
             name="⚙️ 配置狀態",

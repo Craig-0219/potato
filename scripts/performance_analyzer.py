@@ -30,7 +30,9 @@ class CICDPerformanceAnalyzer:
             "🚀 Lightweight CI",
         ]
 
-    def fetch_workflow_runs(self, days: int = 7, limit: int = 50) -> List[Dict[str, Any]]:
+    def fetch_workflow_runs(
+        self, days: int = 7, limit: int = 50
+    ) -> List[Dict[str, Any]]:
         """獲取 workflow 執行數據"""
         if not self.token:
             print("❌ 需要 GITHUB_TOKEN 環境變數")
@@ -48,13 +50,17 @@ class CICDPerformanceAnalyzer:
             cutoff_date = datetime.now() - timedelta(days=days)
 
             for run in runs_data.get("workflow_runs", []):
-                created_at = datetime.fromisoformat(run["created_at"].replace("Z", "+00:00"))
+                created_at = datetime.fromisoformat(
+                    run["created_at"].replace("Z", "+00:00")
+                )
 
                 # 只分析最近指定天數的數據
                 if created_at < cutoff_date:
                     continue
 
-                updated_at = datetime.fromisoformat(run["updated_at"].replace("Z", "+00:00"))
+                updated_at = datetime.fromisoformat(
+                    run["updated_at"].replace("Z", "+00:00")
+                )
                 duration_seconds = (updated_at - created_at).total_seconds()
 
                 metrics.append(
@@ -77,7 +83,9 @@ class CICDPerformanceAnalyzer:
             print(f"❌ API 請求失敗: {e}")
             return []
 
-    def analyze_by_workflow(self, metrics: List[Dict[str, Any]]) -> Dict[str, Dict[str, float]]:
+    def analyze_by_workflow(
+        self, metrics: List[Dict[str, Any]]
+    ) -> Dict[str, Dict[str, float]]:
         """按 workflow 分析效能"""
         workflow_data = {}
 
@@ -104,7 +112,9 @@ class CICDPerformanceAnalyzer:
 
         return analysis
 
-    def calculate_success_rates(self, metrics: List[Dict[str, Any]]) -> Dict[str, float]:
+    def calculate_success_rates(
+        self, metrics: List[Dict[str, Any]]
+    ) -> Dict[str, float]:
         """計算成功率"""
         workflow_results = {}
 
@@ -122,17 +132,23 @@ class CICDPerformanceAnalyzer:
         success_rates = {}
         for name, results in workflow_results.items():
             success_rates[name] = (
-                (results["success"] / results["total"]) * 100 if results["total"] > 0 else 0
+                (results["success"] / results["total"]) * 100
+                if results["total"] > 0
+                else 0
             )
 
         return success_rates
 
-    def identify_bottlenecks(self, analysis: Dict[str, Dict[str, float]]) -> List[Dict[str, Any]]:
+    def identify_bottlenecks(
+        self, analysis: Dict[str, Dict[str, float]]
+    ) -> List[Dict[str, Any]]:
         """識別效能瓶頸"""
         bottlenecks = []
 
         # 按平均執行時間排序
-        sorted_workflows = sorted(analysis.items(), key=lambda x: x[1]["mean"], reverse=True)
+        sorted_workflows = sorted(
+            analysis.items(), key=lambda x: x[1]["mean"], reverse=True
+        )
 
         for i, (name, stats) in enumerate(sorted_workflows[:3], 1):
             improvement_potential = max(0, stats["mean"] - 5.0)  # 目標 5 分鐘
@@ -160,7 +176,9 @@ class CICDPerformanceAnalyzer:
         # 基於瓶頸的建議
         total_potential = sum(b["improvement_potential"] for b in bottlenecks)
         if total_potential > 0:
-            suggestions.append(f"🎯 優化前 3 大瓶頸可節省 {total_potential:.1f} 分鐘執行時間")
+            suggestions.append(
+                f"🎯 優化前 3 大瓶頸可節省 {total_potential:.1f} 分鐘執行時間"
+            )
 
         # 基於執行時間的建議
         for b in bottlenecks:
@@ -180,7 +198,9 @@ class CICDPerformanceAnalyzer:
         # 基於成功率的建議
         failing_workflows = [name for name, rate in success_rates.items() if rate < 95]
         if failing_workflows:
-            suggestions.append(f"🔧 改善失敗率較高的 workflows: {', '.join(failing_workflows)}")
+            suggestions.append(
+                f"🔧 改善失敗率較高的 workflows: {', '.join(failing_workflows)}"
+            )
 
         # 通用建議
         suggestions.extend(
@@ -223,7 +243,9 @@ class CICDPerformanceAnalyzer:
         analysis = self.analyze_by_workflow(metrics)
         print("📊 各 Workflow 效能分析:")
 
-        for name, stats in sorted(analysis.items(), key=lambda x: x[1]["mean"], reverse=True):
+        for name, stats in sorted(
+            analysis.items(), key=lambda x: x[1]["mean"], reverse=True
+        ):
             print(f"• {name}:")
             print(f"  - 執行次數: {stats['count']}")
             print(f"  - 平均時間: {stats['mean']:.2f} 分鐘")
@@ -236,7 +258,9 @@ class CICDPerformanceAnalyzer:
         # 成功率分析
         success_rates = self.calculate_success_rates(metrics)
         print("✅ 成功率分析:")
-        for name, rate in sorted(success_rates.items(), key=lambda x: x[1], reverse=True):
+        for name, rate in sorted(
+            success_rates.items(), key=lambda x: x[1], reverse=True
+        ):
             status = "✅" if rate >= 95 else "⚠️" if rate >= 90 else "❌"
             print(f"  {status} {name}: {rate:.1f}%")
         print()
@@ -246,7 +270,9 @@ class CICDPerformanceAnalyzer:
         print("🚨 效能瓶頸 TOP 3:")
         for b in bottlenecks:
             print(f"  {b['rank']}. {b['workflow']}")
-            print(f"     平均: {b['avg_duration']:.2f} 分鐘 | 最長: {b['max_duration']:.2f} 分鐘")
+            print(
+                f"     平均: {b['avg_duration']:.2f} 分鐘 | 最長: {b['max_duration']:.2f} 分鐘"
+            )
             print(
                 f"     執行次數: {b['execution_count']} | 改善潛力: {b['improvement_potential']:.1f} 分鐘"
             )
@@ -268,7 +294,9 @@ class CICDPerformanceAnalyzer:
             print(f"🎯 優化目標:")
             print(f"  • 當前平均: {current_avg:.2f} 分鐘")
             print(f"  • 目標時間: {target_time} 分鐘")
-            print(f"  • 需要改善: {improvement_needed:.2f} 分鐘 ({improvement_percent:.1f}%)")
+            print(
+                f"  • 需要改善: {improvement_needed:.2f} 分鐘 ({improvement_percent:.1f}%)"
+            )
         else:
             print(
                 f"🎉 已達成目標! 當前平均執行時間 {current_avg:.2f} 分鐘 < 目標 {target_time} 分鐘"
@@ -277,10 +305,16 @@ class CICDPerformanceAnalyzer:
 
 def main():
     parser = argparse.ArgumentParser(description="CI/CD 效能分析工具")
-    parser.add_argument("--days", type=int, default=7, help="分析最近N天的數據 (默認: 7)")
-    parser.add_argument("--limit", type=int, default=50, help="最大分析記錄數 (默認: 50)")
     parser.add_argument(
-        "--repo", default="Craig-0219/potato", help="GitHub 倉庫 (默認: Craig-0219/potato)"
+        "--days", type=int, default=7, help="分析最近N天的數據 (默認: 7)"
+    )
+    parser.add_argument(
+        "--limit", type=int, default=50, help="最大分析記錄數 (默認: 50)"
+    )
+    parser.add_argument(
+        "--repo",
+        default="Craig-0219/potato",
+        help="GitHub 倉庫 (默認: Craig-0219/potato)",
     )
     parser.add_argument("--output", help="輸出報告到文件")
 

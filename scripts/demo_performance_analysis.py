@@ -24,10 +24,22 @@ def generate_demo_data():
 
     # 為每個 workflow 生成執行數據
     workflow_characteristics = {
-        "🧪 Test Coverage & Quality": {"base_duration": 18, "variance": 5, "success_rate": 0.92},
-        "🔍 Code Quality Checks": {"base_duration": 8, "variance": 2, "success_rate": 0.96},
+        "🧪 Test Coverage & Quality": {
+            "base_duration": 18,
+            "variance": 5,
+            "success_rate": 0.92,
+        },
+        "🔍 Code Quality Checks": {
+            "base_duration": 8,
+            "variance": 2,
+            "success_rate": 0.96,
+        },
         "🔒 Security Scans": {"base_duration": 12, "variance": 3, "success_rate": 0.94},
-        "⚡ Optimized CI Pipeline": {"base_duration": 15, "variance": 4, "success_rate": 0.89},
+        "⚡ Optimized CI Pipeline": {
+            "base_duration": 15,
+            "variance": 4,
+            "success_rate": 0.89,
+        },
         "🚀 Lightweight CI": {"base_duration": 6, "variance": 2, "success_rate": 0.98},
     }
 
@@ -39,13 +51,17 @@ def generate_demo_data():
 
         for i in range(num_runs):
             # 生成執行時間 (正態分佈)
-            duration_minutes = max(1, random.normalvariate(char["base_duration"], char["variance"]))
+            duration_minutes = max(
+                1, random.normalvariate(char["base_duration"], char["variance"])
+            )
 
             # 生成狀態 (基於成功率)
             status = "success" if random.random() < char["success_rate"] else "failure"
 
             # 生成時間戳
-            created_at = base_time + timedelta(hours=random.randint(0, 168))  # 7天內隨機
+            created_at = base_time + timedelta(
+                hours=random.randint(0, 168)
+            )  # 7天內隨機
 
             metrics.append(
                 {
@@ -56,7 +72,9 @@ def generate_demo_data():
                     "duration_seconds": duration_minutes * 60,
                     "duration_minutes": round(duration_minutes, 2),
                     "created_at": created_at.isoformat(),
-                    "trigger_event": random.choice(["push", "pull_request", "workflow_dispatch"]),
+                    "trigger_event": random.choice(
+                        ["push", "pull_request", "workflow_dispatch"]
+                    ),
                     "attempt": 1,
                 }
             )
@@ -138,7 +156,9 @@ def analyze_demo_data():
     print("✅ 成功率分析:")
     success_rates = {}
     for name, results in workflow_results.items():
-        rate = (results["success"] / results["total"]) * 100 if results["total"] > 0 else 0
+        rate = (
+            (results["success"] / results["total"]) * 100 if results["total"] > 0 else 0
+        )
         success_rates[name] = rate
         status_icon = "✅" if rate >= 95 else "⚠️" if rate >= 90 else "❌"
         print(f"  {status_icon} {name}: {rate:.1f}%")
@@ -146,7 +166,9 @@ def analyze_demo_data():
 
     # 瓶頸分析
     print("🚨 效能瓶頸 TOP 3:")
-    sorted_workflows = sorted(workflow_stats.items(), key=lambda x: x[1]["mean"], reverse=True)
+    sorted_workflows = sorted(
+        workflow_stats.items(), key=lambda x: x[1]["mean"], reverse=True
+    )
 
     bottlenecks = []
     for i, (name, stats) in enumerate(sorted_workflows[:3], 1):
@@ -162,7 +184,9 @@ def analyze_demo_data():
 
         print(f"  {i}. {name}")
         print(f"     平均: {stats['mean']:.2f} 分鐘 | 最長: {stats['max']:.2f} 分鐘")
-        print(f"     執行次數: {stats['count']} | 改善潛力: {improvement_potential:.1f} 分鐘")
+        print(
+            f"     執行次數: {stats['count']} | 改善潛力: {improvement_potential:.1f} 分鐘"
+        )
     print()
 
     # 優化建議
@@ -198,9 +222,13 @@ def analyze_demo_data():
         print(f"🎯 優化目標:")
         print(f"  • 當前平均: {current_avg:.2f} 分鐘")
         print(f"  • 目標時間: {target_time} 分鐘")
-        print(f"  • 需要改善: {improvement_needed:.2f} 分鐘 ({improvement_percent:.1f}%)")
+        print(
+            f"  • 需要改善: {improvement_needed:.2f} 分鐘 ({improvement_percent:.1f}%)"
+        )
     else:
-        print(f"🎉 已達成目標! 當前平均執行時間 {current_avg:.2f} 分鐘 < 目標 {target_time} 分鐘")
+        print(
+            f"🎉 已達成目標! 當前平均執行時間 {current_avg:.2f} 分鐘 < 目標 {target_time} 分鐘"
+        )
 
     print()
     print("📋 下一步行動:")

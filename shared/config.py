@@ -70,7 +70,9 @@ IMAGE_STORAGE_PATH = os.getenv(
 CLOUD_STORAGE_BUCKET = os.getenv("CLOUD_STORAGE_BUCKET")  # 可選的雲端存儲
 
 # 內容分析配置
-CONTENT_ANALYSIS_ENABLED = os.getenv("CONTENT_ANALYSIS_ENABLED", "true").lower() == "true"
+CONTENT_ANALYSIS_ENABLED = (
+    os.getenv("CONTENT_ANALYSIS_ENABLED", "true").lower() == "true"
+)
 SENTIMENT_ANALYSIS_THRESHOLD = float(os.getenv("SENTIMENT_ANALYSIS_THRESHOLD", "0.5"))
 
 # 經濟系統配置
@@ -82,7 +84,9 @@ MINECRAFT_SERVER_PORT = int(os.getenv("MINECRAFT_SERVER_PORT", "25565"))
 MINECRAFT_RCON_HOST = os.getenv("MINECRAFT_RCON_HOST", "localhost")
 MINECRAFT_RCON_PORT = int(os.getenv("MINECRAFT_RCON_PORT", "25575"))
 MINECRAFT_RCON_PASSWORD = os.getenv("MINECRAFT_RCON_PASSWORD", "")
-MINECRAFT_NOTIFICATION_CHANNEL = os.getenv("MINECRAFT_NOTIFICATION_CHANNEL")  # Discord 頻道 ID
+MINECRAFT_NOTIFICATION_CHANNEL = os.getenv(
+    "MINECRAFT_NOTIFICATION_CHANNEL"
+)  # Discord 頻道 ID
 TICKET_RATING_SYSTEM = os.getenv("TICKET_RATING_SYSTEM", "true").lower() == "true"
 TICKET_ADVANCED_STATS = os.getenv("TICKET_ADVANCED_STATS", "true").lower() == "true"
 
@@ -104,7 +108,9 @@ JWT_SECRET = os.getenv("JWT_SECRET", "default_jwt_secret_for_development_only")
 # Image Processing Configuration
 IMAGE_DAILY_FREE_QUOTA = int(os.getenv("IMAGE_DAILY_FREE_QUOTA", 5))
 IMAGE_MAX_SIZE_MB = int(os.getenv("IMAGE_MAX_SIZE_MB", 10))
-IMAGE_SUPPORTED_FORMATS = os.getenv("IMAGE_SUPPORTED_FORMATS", "jpg,jpeg,png,gif,webp").split(",")
+IMAGE_SUPPORTED_FORMATS = os.getenv(
+    "IMAGE_SUPPORTED_FORMATS", "jpg,jpeg,png,gif,webp"
+).split(",")
 
 # Music System Configuration
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
@@ -201,7 +207,11 @@ def get_config_summary() -> dict:
             "auto_close_hours": TICKET_DEFAULT_AUTO_CLOSE_HOURS,
             "max_tickets_per_user": TICKET_MAX_PER_USER,
         },
-        "system": {"debug": DEBUG, "log_level": LOG_LEVEL, "redis_enabled": bool(REDIS_URL)},
+        "system": {
+            "debug": DEBUG,
+            "log_level": LOG_LEVEL,
+            "redis_enabled": bool(REDIS_URL),
+        },
     }
 
 

@@ -15,7 +15,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from shared.logger import logger
 
 from ..auth import APIUser, require_read_permission, require_write_permission
-from ..models import AutomationExecution, AutomationRule, BaseResponse, PaginatedResponse
+from ..models import (
+    AutomationExecution,
+    AutomationRule,
+    BaseResponse,
+    PaginatedResponse,
+)
 
 router = APIRouter()
 # limiter = Limiter(key_func=get_remote_address)
@@ -71,7 +76,9 @@ async def get_automation_rules(
         raise HTTPException(status_code=500, detail="獲取自動化規則失敗")
 
 
-@router.post("/rules", response_model=BaseResponse, summary="創建自動化規則", status_code=201)
+@router.post(
+    "/rules", response_model=BaseResponse, summary="創建自動化規則", status_code=201
+)
 # @limiter.limit("5/minute")
 async def create_automation_rule(
     rule_data: AutomationRule, user: APIUser = Depends(require_write_permission)
@@ -91,7 +98,9 @@ async def create_automation_rule(
         raise HTTPException(status_code=500, detail="創建自動化規則失敗")
 
 
-@router.get("/executions", response_model=List[AutomationExecution], summary="獲取執行記錄")
+@router.get(
+    "/executions", response_model=List[AutomationExecution], summary="獲取執行記錄"
+)
 # @limiter.limit("20/minute")
 async def get_automation_executions(
     rule_id: Optional[str] = Query(None),

@@ -133,7 +133,9 @@ class MultiTenantSecurityManager:
             @wraps(func)
             async def wrapper(*args, **kwargs):
                 if require_guild_id and "guild_id" not in kwargs:
-                    raise TenantIsolationViolation(f"查詢 {table_name} 表格必須提供 guild_id 參數")
+                    raise TenantIsolationViolation(
+                        f"查詢 {table_name} 表格必須提供 guild_id 參數"
+                    )
 
                 guild_id = kwargs.get("guild_id")
                 if guild_id and not await self.validate_guild_access(
@@ -180,7 +182,9 @@ class SecureQueryBuilder:
         if guild_id is not None:
             where_conditions.append("guild_id = %s")
             params.append(guild_id)
-        elif self.security_manager.security_policies["data_isolation"]["enforce_guild_id"]:
+        elif self.security_manager.security_policies["data_isolation"][
+            "enforce_guild_id"
+        ]:
             raise TenantIsolationViolation(f"查詢 {table} 必須提供 guild_id")
 
         # 添加額外條件
@@ -257,7 +261,10 @@ class SecureQueryBuilder:
         return query, params
 
     def build_delete(
-        self, table: str, where_conditions: Dict[str, Any], guild_id: Optional[int] = None
+        self,
+        table: str,
+        where_conditions: Dict[str, Any],
+        guild_id: Optional[int] = None,
     ) -> Tuple[str, List[Any]]:
         """建構安全的 DELETE 查詢"""
 
@@ -288,7 +295,9 @@ class TenantDataManager:
         self.security_manager = security_manager
         self.query_builder = SecureQueryBuilder(security_manager)
 
-    async def export_guild_data(self, guild_id: int, data_types: List[str]) -> Dict[str, Any]:
+    async def export_guild_data(
+        self, guild_id: int, data_types: List[str]
+    ) -> Dict[str, Any]:
         """匯出伺服器資料（GDPR 合規）"""
         try:
             export_data = {
@@ -308,7 +317,9 @@ class TenantDataManager:
             logger.error(f"❌ 資料匯出失敗: {e}")
             raise
 
-    async def delete_guild_data(self, guild_id: int, retain_logs: bool = True) -> Dict[str, Any]:
+    async def delete_guild_data(
+        self, guild_id: int, retain_logs: bool = True
+    ) -> Dict[str, Any]:
         """刪除伺服器資料（GDPR 刪除權）"""
         try:
             deleted_records = {}

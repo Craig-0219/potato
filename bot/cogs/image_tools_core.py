@@ -38,7 +38,9 @@ class ImageToolsCog(commands.Cog):
         try:
             view = ImageToolsMainView()
 
-            embed = EmbedBuilder.create_info_embed("🖼️ 圖片處理工具", "選擇要使用的圖片處理功能。")
+            embed = EmbedBuilder.create_info_embed(
+                "🖼️ 圖片處理工具", "選擇要使用的圖片處理功能。"
+            )
 
             embed.add_field(
                 name="🔧 可用功能",
@@ -56,14 +58,18 @@ class ImageToolsCog(commands.Cog):
             )
 
             embed.add_field(
-                name="📏 限制", value="**最大文件**: 10MB\n**最大尺寸**: 2000x2000", inline=True
+                name="📏 限制",
+                value="**最大文件**: 10MB\n**最大尺寸**: 2000x2000",
+                inline=True,
             )
 
             await interaction.response.send_message(embed=embed, view=view)
 
         except Exception as e:
             logger.error(f"❌ 圖片工具界面錯誤: {e}")
-            await interaction.response.send_message("❌ 啟動圖片工具時發生錯誤。", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 啟動圖片工具時發生錯誤。", ephemeral=True
+            )
 
     # ========== 圖片格式轉換 ==========
 
@@ -95,7 +101,9 @@ class ImageToolsCog(commands.Cog):
 
             # 驗證圖片
             if not image.content_type or not image.content_type.startswith("image/"):
-                await interaction.followup.send("❌ 請上傳有效的圖片文件！", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ 請上傳有效的圖片文件！", ephemeral=True
+                )
                 return
 
             # 檢查文件大小
@@ -140,7 +148,9 @@ class ImageToolsCog(commands.Cog):
                 )
 
                 if target_format in ["jpeg", "webp"]:
-                    embed.add_field(name="🎚️ 品質設定", value=f"壓縮品質: {quality}%", inline=True)
+                    embed.add_field(
+                        name="🎚️ 品質設定", value=f"壓縮品質: {quality}%", inline=True
+                    )
 
                 embed.set_footer(text=f"處理者: {interaction.user.display_name}")
 
@@ -154,7 +164,9 @@ class ImageToolsCog(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ 格式轉換錯誤: {e}")
-            await interaction.followup.send("❌ 轉換圖片時發生錯誤，請稍後再試。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 轉換圖片時發生錯誤，請稍後再試。", ephemeral=True
+            )
 
     # ========== 圖片特效 ==========
 
@@ -187,7 +199,9 @@ class ImageToolsCog(commands.Cog):
 
             # 驗證圖片
             if not image.content_type or not image.content_type.startswith("image/"):
-                await interaction.followup.send("❌ 請上傳有效的圖片文件！", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ 請上傳有效的圖片文件！", ephemeral=True
+                )
                 return
 
             # 檢查文件大小
@@ -236,20 +250,28 @@ class ImageToolsCog(commands.Cog):
 
             else:
                 embed = EmbedBuilder.create_error_embed(
-                    "❌ 特效處理失敗", result.error_message or "特效處理過程中發生未知錯誤"
+                    "❌ 特效處理失敗",
+                    result.error_message or "特效處理過程中發生未知錯誤",
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"❌ 特效處理錯誤: {e}")
-            await interaction.followup.send("❌ 處理圖片時發生錯誤，請稍後再試。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 處理圖片時發生錯誤，請稍後再試。", ephemeral=True
+            )
 
     # ========== 圖片壓縮 ==========
 
     @app_commands.command(name="compress_image", description="壓縮圖片以減少文件大小")
-    @app_commands.describe(image="要壓縮的圖片附件", quality="壓縮品質 (1-100，數值越低壓縮越大)")
+    @app_commands.describe(
+        image="要壓縮的圖片附件", quality="壓縮品質 (1-100，數值越低壓縮越大)"
+    )
     async def compress_image(
-        self, interaction: discord.Interaction, image: discord.Attachment, quality: int = 75
+        self,
+        interaction: discord.Interaction,
+        image: discord.Attachment,
+        quality: int = 75,
     ):
         """壓縮圖片"""
         try:
@@ -257,7 +279,9 @@ class ImageToolsCog(commands.Cog):
 
             # 驗證圖片
             if not image.content_type or not image.content_type.startswith("image/"):
-                await interaction.followup.send("❌ 請上傳有效的圖片文件！", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ 請上傳有效的圖片文件！", ephemeral=True
+                )
                 return
 
             # 檢查文件大小
@@ -336,7 +360,9 @@ class ImageToolsCog(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ 圖片壓縮錯誤: {e}")
-            await interaction.followup.send("❌ 壓縮圖片時發生錯誤，請稍後再試。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 壓縮圖片時發生錯誤，請稍後再試。", ephemeral=True
+            )
 
     # ========== 圖片調整尺寸 ==========
 
@@ -361,7 +387,9 @@ class ImageToolsCog(commands.Cog):
 
             # 驗證圖片
             if not image.content_type or not image.content_type.startswith("image/"):
-                await interaction.followup.send("❌ 請上傳有效的圖片文件！", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ 請上傳有效的圖片文件！", ephemeral=True
+                )
                 return
 
             # 檢查文件大小
@@ -380,7 +408,11 @@ class ImageToolsCog(commands.Cog):
             request = ImageProcessRequest(
                 image_url=image.url,
                 operation=ImageOperation.RESIZE,
-                parameters={"width": width, "height": height, "maintain_aspect": maintain_aspect},
+                parameters={
+                    "width": width,
+                    "height": height,
+                    "maintain_aspect": maintain_aspect,
+                },
                 output_format=ImageFormat.PNG,
             )
 
@@ -393,7 +425,8 @@ class ImageToolsCog(commands.Cog):
                 file = discord.File(io.BytesIO(result.image_data), filename=filename)
 
                 embed = EmbedBuilder.create_success_embed(
-                    "📏 圖片尺寸調整完成", f"新尺寸: **{result.size[0]}×{result.size[1]}**"
+                    "📏 圖片尺寸調整完成",
+                    f"新尺寸: **{result.size[0]}×{result.size[1]}**",
                 )
 
                 embed.add_field(
@@ -418,13 +451,16 @@ class ImageToolsCog(commands.Cog):
 
             else:
                 embed = EmbedBuilder.create_error_embed(
-                    "❌ 尺寸調整失敗", result.error_message or "尺寸調整過程中發生未知錯誤"
+                    "❌ 尺寸調整失敗",
+                    result.error_message or "尺寸調整過程中發生未知錯誤",
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"❌ 尺寸調整錯誤: {e}")
-            await interaction.followup.send("❌ 調整圖片時發生錯誤，請稍後再試。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 調整圖片時發生錯誤，請稍後再試。", ephemeral=True
+            )
 
 
 async def setup(bot):

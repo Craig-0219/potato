@@ -136,14 +136,20 @@ class PrometheusMetricsManager:
         self.http_port = int(os.getenv("PROMETHEUS_PORT", 8090))
 
         # 性能統計
-        self.stats = {"metrics_collected": 0, "collections_per_second": 0, "last_collection": None}
+        self.stats = {
+            "metrics_collected": 0,
+            "collections_per_second": 0,
+            "last_collection": None,
+        }
 
         logger.info(f"📊 Prometheus 監控管理器初始化 - 可用: {PROMETHEUS_AVAILABLE}")
 
         if PROMETHEUS_AVAILABLE:
             self._create_default_metrics()
 
-    async def initialize(self, start_http_server: bool = True, push_gateway_url: str = None):
+    async def initialize(
+        self, start_http_server: bool = True, push_gateway_url: str = None
+    ):
         """初始化監控系統"""
         try:
             if not PROMETHEUS_AVAILABLE:
@@ -190,11 +196,15 @@ class PrometheusMetricsManager:
             )
 
             self.register_gauge(
-                "potato_bot_active_tickets", "Number of active tickets", ["guild", "status"]
+                "potato_bot_active_tickets",
+                "Number of active tickets",
+                ["guild", "status"],
             )
 
             self.register_counter(
-                "potato_bot_tickets_total", "Total number of tickets created", ["guild", "category"]
+                "potato_bot_tickets_total",
+                "Total number of tickets created",
+                ["guild", "category"],
             )
 
             # 快取指標
@@ -211,9 +221,13 @@ class PrometheusMetricsManager:
                 buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5],
             )
 
-            self.register_gauge("potato_bot_cache_hit_rate", "Cache hit rate percentage", ["level"])
+            self.register_gauge(
+                "potato_bot_cache_hit_rate", "Cache hit rate percentage", ["level"]
+            )
 
-            self.register_gauge("potato_bot_cache_size", "Cache size in items", ["level"])
+            self.register_gauge(
+                "potato_bot_cache_size", "Cache size in items", ["level"]
+            )
 
             # 資料庫指標
             self.register_counter(
@@ -229,10 +243,13 @@ class PrometheusMetricsManager:
                 buckets=[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0],
             )
 
-            self.register_gauge("potato_bot_db_connections_active", "Active database connections")
+            self.register_gauge(
+                "potato_bot_db_connections_active", "Active database connections"
+            )
 
             self.register_gauge(
-                "potato_bot_db_slow_queries", "Number of slow queries in the last period"
+                "potato_bot_db_slow_queries",
+                "Number of slow queries in the last period",
             )
 
             # Discord Bot 指標
@@ -243,11 +260,15 @@ class PrometheusMetricsManager:
             self.register_gauge("potato_bot_latency_seconds", "Bot latency in seconds")
 
             self.register_counter(
-                "potato_bot_events_total", "Total Discord events received", ["event_type"]
+                "potato_bot_events_total",
+                "Total Discord events received",
+                ["event_type"],
             )
 
             # 系統資源指標
-            self.register_gauge("potato_bot_memory_usage_bytes", "Memory usage in bytes", ["type"])
+            self.register_gauge(
+                "potato_bot_memory_usage_bytes", "Memory usage in bytes", ["type"]
+            )
 
             self.register_gauge("potato_bot_cpu_usage_percent", "CPU usage percentage")
 
@@ -260,7 +281,9 @@ class PrometheusMetricsManager:
             )
 
             self.register_gauge(
-                "potato_bot_sla_violations", "Number of SLA violations", ["guild", "sla_type"]
+                "potato_bot_sla_violations",
+                "Number of SLA violations",
+                ["guild", "sla_type"],
             )
 
             logger.info("✅ 預設指標創建完成")
@@ -268,7 +291,9 @@ class PrometheusMetricsManager:
         except Exception as e:
             logger.error(f"❌ 創建預設指標失敗: {e}")
 
-    def register_counter(self, name: str, help: str, labels: List[str] = None) -> Counter:
+    def register_counter(
+        self, name: str, help: str, labels: List[str] = None
+    ) -> Counter:
         """註冊計數器指標"""
         if not PROMETHEUS_AVAILABLE:
             return Counter()
@@ -299,7 +324,11 @@ class PrometheusMetricsManager:
             return Gauge()
 
     def register_histogram(
-        self, name: str, help: str, labels: List[str] = None, buckets: List[float] = None
+        self,
+        name: str,
+        help: str,
+        labels: List[str] = None,
+        buckets: List[float] = None,
     ) -> Histogram:
         """註冊直方圖指標"""
         if not PROMETHEUS_AVAILABLE:
@@ -307,7 +336,9 @@ class PrometheusMetricsManager:
 
         try:
             labels = labels or []
-            histogram = Histogram(name, help, labels, buckets=buckets, registry=self.registry)
+            histogram = Histogram(
+                name, help, labels, buckets=buckets, registry=self.registry
+            )
             self.metrics[name] = histogram
             logger.debug(f"📊 註冊直方圖: {name}")
             return histogram
@@ -315,7 +346,9 @@ class PrometheusMetricsManager:
             logger.error(f"❌ 註冊直方圖失敗 {name}: {e}")
             return Histogram()
 
-    def register_summary(self, name: str, help: str, labels: List[str] = None) -> Summary:
+    def register_summary(
+        self, name: str, help: str, labels: List[str] = None
+    ) -> Summary:
         """註冊摘要指標"""
         if not PROMETHEUS_AVAILABLE:
             return Summary()
@@ -336,7 +369,9 @@ class PrometheusMetricsManager:
 
     # ========== 便捷方法 ==========
 
-    def increment_counter(self, name: str, labels: Dict[str, str] = None, value: float = 1):
+    def increment_counter(
+        self, name: str, labels: Dict[str, str] = None, value: float = 1
+    ):
         """增加計數器"""
         try:
             counter = self.get_metric(name)
@@ -419,7 +454,9 @@ class PrometheusMetricsManager:
                 else:
                     final_labels["status"] = "success"
 
-                self.metrics_manager.observe_histogram(self.metric_name, duration, final_labels)
+                self.metrics_manager.observe_histogram(
+                    self.metric_name, duration, final_labels
+                )
 
         return AsyncTimer(self, name, labels)
 
@@ -436,17 +473,25 @@ class PrometheusMetricsManager:
 
             # 記憶體使用
             memory = psutil.virtual_memory()
-            self.set_gauge("potato_bot_memory_usage_bytes", memory.used, {"type": "used"})
-            self.set_gauge("potato_bot_memory_usage_bytes", memory.available, {"type": "available"})
+            self.set_gauge(
+                "potato_bot_memory_usage_bytes", memory.used, {"type": "used"}
+            )
+            self.set_gauge(
+                "potato_bot_memory_usage_bytes", memory.available, {"type": "available"}
+            )
 
             # 進程資訊
             process = psutil.Process()
             process_memory = process.memory_info()
             self.set_gauge(
-                "potato_bot_memory_usage_bytes", process_memory.rss, {"type": "process_rss"}
+                "potato_bot_memory_usage_bytes",
+                process_memory.rss,
+                {"type": "process_rss"},
             )
             self.set_gauge(
-                "potato_bot_memory_usage_bytes", process_memory.vms, {"type": "process_vms"}
+                "potato_bot_memory_usage_bytes",
+                process_memory.vms,
+                {"type": "process_vms"},
             )
 
         except ImportError:
@@ -462,7 +507,9 @@ class PrometheusMetricsManager:
 
             # 基本統計
             guild_count = len(bot.guilds)
-            user_count = sum(guild.member_count for guild in bot.guilds if guild.member_count)
+            user_count = sum(
+                guild.member_count for guild in bot.guilds if guild.member_count
+            )
 
             self.set_gauge("potato_bot_guilds_total", guild_count)
             self.set_gauge("potato_bot_users_total", user_count)
@@ -496,7 +543,9 @@ class PrometheusMetricsManager:
             self.set_gauge("potato_bot_cache_hit_rate", l2_hit_rate, {"level": "l2"})
 
             # 快取大小
-            self.set_gauge("potato_bot_cache_size", stats["l1_memory"]["size"], {"level": "l1"})
+            self.set_gauge(
+                "potato_bot_cache_size", stats["l1_memory"]["size"], {"level": "l1"}
+            )
 
             # 操作統計
             self.set_gauge(
@@ -517,13 +566,16 @@ class PrometheusMetricsManager:
             metrics = await db_optimizer.collect_database_metrics()
 
             # 資料庫性能指標
-            self.set_gauge("potato_bot_db_query_cache_hit_rate", metrics.query_cache_hit_rate)
+            self.set_gauge(
+                "potato_bot_db_query_cache_hit_rate", metrics.query_cache_hit_rate
+            )
             self.set_gauge("potato_bot_db_slow_queries", metrics.slow_query_count)
             self.set_gauge("potato_bot_db_connections_active", metrics.connections_used)
 
             # InnoDB 緩衝池命中率
             self.set_gauge(
-                "potato_bot_db_innodb_buffer_pool_hit_rate", metrics.innodb_buffer_pool_hit_rate
+                "potato_bot_db_innodb_buffer_pool_hit_rate",
+                metrics.innodb_buffer_pool_hit_rate,
             )
 
         except Exception as e:
@@ -541,7 +593,9 @@ class PrometheusMetricsManager:
             # 在背景線程中啟動 HTTP 服務器
             def start_server():
                 start_http_server(self.http_port, registry=self.registry)
-                logger.info(f"✅ Prometheus HTTP 服務器啟動: http://localhost:{self.http_port}")
+                logger.info(
+                    f"✅ Prometheus HTTP 服務器啟動: http://localhost:{self.http_port}"
+                )
 
             # 在執行器中運行以避免阻塞
             loop = asyncio.get_event_loop()
@@ -569,7 +623,9 @@ class PrometheusMetricsManager:
             return
 
         try:
-            push_to_gateway(self.push_gateway_url, job=self.job_name, registry=self.registry)
+            push_to_gateway(
+                self.push_gateway_url, job=self.job_name, registry=self.registry
+            )
             logger.debug("📤 指標已推送到 Push Gateway")
 
         except Exception as e:
@@ -627,7 +683,9 @@ def get_prometheus_metrics() -> PrometheusMetricsManager:
 
 
 # 裝飾器：自動監控函數執行
-def monitored(metric_name: str, labels: Dict[str, str] = None, metric_type: str = "histogram"):
+def monitored(
+    metric_name: str, labels: Dict[str, str] = None, metric_type: str = "histogram"
+):
     """監控裝飾器"""
 
     def decorator(func: Callable):
@@ -643,7 +701,9 @@ def monitored(metric_name: str, labels: Dict[str, str] = None, metric_type: str 
                     prometheus_metrics.increment_counter(metric_name, final_labels)
                 elif metric_type == "histogram":
                     duration = time.time() - start_time
-                    prometheus_metrics.observe_histogram(metric_name, duration, final_labels)
+                    prometheus_metrics.observe_histogram(
+                        metric_name, duration, final_labels
+                    )
 
                 return result
 
@@ -655,7 +715,9 @@ def monitored(metric_name: str, labels: Dict[str, str] = None, metric_type: str 
                     prometheus_metrics.increment_counter(metric_name, final_labels)
                 elif metric_type == "histogram":
                     duration = time.time() - start_time
-                    prometheus_metrics.observe_histogram(metric_name, duration, final_labels)
+                    prometheus_metrics.observe_histogram(
+                        metric_name, duration, final_labels
+                    )
 
                 raise
 
@@ -671,7 +733,9 @@ def monitored(metric_name: str, labels: Dict[str, str] = None, metric_type: str 
                     prometheus_metrics.increment_counter(metric_name, final_labels)
                 elif metric_type == "histogram":
                     duration = time.time() - start_time
-                    prometheus_metrics.observe_histogram(metric_name, duration, final_labels)
+                    prometheus_metrics.observe_histogram(
+                        metric_name, duration, final_labels
+                    )
 
                 return result
 
@@ -683,7 +747,9 @@ def monitored(metric_name: str, labels: Dict[str, str] = None, metric_type: str 
                     prometheus_metrics.increment_counter(metric_name, final_labels)
                 elif metric_type == "histogram":
                     duration = time.time() - start_time
-                    prometheus_metrics.observe_histogram(metric_name, duration, final_labels)
+                    prometheus_metrics.observe_histogram(
+                        metric_name, duration, final_labels
+                    )
 
                 raise
 

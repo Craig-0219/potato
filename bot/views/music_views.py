@@ -35,16 +35,22 @@ class SafeInteractionMixin:
                 # 使用 followup - 檢查 view 參數
                 if embed:
                     if view is not None:
-                        await interaction.followup.send(embed=embed, ephemeral=ephemeral, view=view)
+                        await interaction.followup.send(
+                            embed=embed, ephemeral=ephemeral, view=view
+                        )
                     else:
-                        await interaction.followup.send(embed=embed, ephemeral=ephemeral)
+                        await interaction.followup.send(
+                            embed=embed, ephemeral=ephemeral
+                        )
                 else:
                     if view is not None:
                         await interaction.followup.send(
                             content=content, ephemeral=ephemeral, view=view
                         )
                     else:
-                        await interaction.followup.send(content=content, ephemeral=ephemeral)
+                        await interaction.followup.send(
+                            content=content, ephemeral=ephemeral
+                        )
             else:
                 # 使用原始響應 - 檢查 view 參數
                 if embed:
@@ -53,7 +59,9 @@ class SafeInteractionMixin:
                             embed=embed, ephemeral=ephemeral, view=view
                         )
                     else:
-                        await interaction.response.send_message(embed=embed, ephemeral=ephemeral)
+                        await interaction.response.send_message(
+                            embed=embed, ephemeral=ephemeral
+                        )
                 else:
                     if view is not None:
                         await interaction.response.send_message(
@@ -68,16 +76,22 @@ class SafeInteractionMixin:
             try:
                 if embed:
                     if view is not None:
-                        await interaction.followup.send(embed=embed, ephemeral=ephemeral, view=view)
+                        await interaction.followup.send(
+                            embed=embed, ephemeral=ephemeral, view=view
+                        )
                     else:
-                        await interaction.followup.send(embed=embed, ephemeral=ephemeral)
+                        await interaction.followup.send(
+                            embed=embed, ephemeral=ephemeral
+                        )
                 else:
                     if view is not None:
                         await interaction.followup.send(
                             content=content, ephemeral=ephemeral, view=view
                         )
                     else:
-                        await interaction.followup.send(content=content, ephemeral=ephemeral)
+                        await interaction.followup.send(
+                            content=content, ephemeral=ephemeral
+                        )
             except Exception as e:
                 logger.error(f"安全響應最終失敗: {e}")
         except discord.errors.NotFound:
@@ -94,13 +108,20 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
         super().__init__(timeout=300)
         self.player = player
 
-    @discord.ui.button(label="⏯️", style=discord.ButtonStyle.primary, custom_id="music_toggle")
-    async def toggle_play(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="⏯️", style=discord.ButtonStyle.primary, custom_id="music_toggle"
+    )
+    async def toggle_play(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """播放/暫停按鈕 - 重寫版"""
         try:
             logger.info(f"播放/暫停按鈕被點擊 - 用戶: {interaction.user.name}")
 
-            if not self.player.voice_client or not self.player.voice_client.is_connected():
+            if (
+                not self.player.voice_client
+                or not self.player.voice_client.is_connected()
+            ):
                 embed = EmbedBuilder.create_error_embed(
                     "❌ 未連接語音頻道", "Bot 目前未連接到任何語音頻道"
                 )
@@ -119,7 +140,9 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
                 embed = EmbedBuilder.create_success_embed("▶️ 已恢復", "音樂播放已恢復")
                 logger.info("音樂已恢復")
             else:
-                embed = EmbedBuilder.create_warning_embed("ℹ️ 未播放", "目前沒有音樂正在播放")
+                embed = EmbedBuilder.create_warning_embed(
+                    "ℹ️ 未播放", "目前沒有音樂正在播放"
+                )
 
             await self.safe_respond(interaction, embed=embed)
 
@@ -129,13 +152,20 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
             embed = EmbedBuilder.create_error_embed("❌ 操作失敗", "播放控制出現錯誤")
             await self.safe_respond(interaction, embed=embed)
 
-    @discord.ui.button(label="⏭️", style=discord.ButtonStyle.secondary, custom_id="music_skip")
-    async def skip_song(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="⏭️", style=discord.ButtonStyle.secondary, custom_id="music_skip"
+    )
+    async def skip_song(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """跳過歌曲按鈕 - 重寫版"""
         try:
             logger.info(f"跳過按鈕被點擊 - 用戶: {interaction.user.name}")
 
-            if not self.player.voice_client or not self.player.voice_client.is_connected():
+            if (
+                not self.player.voice_client
+                or not self.player.voice_client.is_connected()
+            ):
                 embed = EmbedBuilder.create_error_embed(
                     "❌ 未連接語音頻道", "Bot 目前未連接到任何語音頻道"
                 )
@@ -151,10 +181,15 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
 
             # 跳過當前歌曲
             current_title = self.player.current.title
-            if self.player.voice_client.is_playing() or self.player.voice_client.is_paused():
+            if (
+                self.player.voice_client.is_playing()
+                or self.player.voice_client.is_paused()
+            ):
                 self.player.voice_client.stop()
 
-            embed = EmbedBuilder.create_success_embed("⏭️ 已跳過", f"已跳過：**{current_title}**")
+            embed = EmbedBuilder.create_success_embed(
+                "⏭️ 已跳過", f"已跳過：**{current_title}**"
+            )
             await self.safe_respond(interaction, embed=embed)
             logger.info(f"跳過歌曲: {current_title}")
 
@@ -164,8 +199,12 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
             embed = EmbedBuilder.create_error_embed("❌ 操作失敗", "跳過操作出現錯誤")
             await self.safe_respond(interaction, embed=embed)
 
-    @discord.ui.button(label="🔁", style=discord.ButtonStyle.secondary, custom_id="music_loop")
-    async def toggle_loop(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="🔁", style=discord.ButtonStyle.secondary, custom_id="music_loop"
+    )
+    async def toggle_loop(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """循環模式按鈕 - 重寫版"""
         try:
             logger.info(f"循環按鈕被點擊 - 用戶: {interaction.user.name}")
@@ -183,18 +222,26 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
                 self.player.loop_mode = LoopMode.NONE
                 mode_text = "➡️ 順序播放"
 
-            embed = EmbedBuilder.create_success_embed("🔁 循環模式已變更", f"當前模式：{mode_text}")
+            embed = EmbedBuilder.create_success_embed(
+                "🔁 循環模式已變更", f"當前模式：{mode_text}"
+            )
             await self.safe_respond(interaction, embed=embed)
             logger.info(f"循環模式切換至: {mode_text}")
 
         except Exception as e:
             logger.error(f"循環按鈕錯誤: {e}")
             logger.error(traceback.format_exc())
-            embed = EmbedBuilder.create_error_embed("❌ 操作失敗", "循環模式切換出現錯誤")
+            embed = EmbedBuilder.create_error_embed(
+                "❌ 操作失敗", "循環模式切換出現錯誤"
+            )
             await self.safe_respond(interaction, embed=embed)
 
-    @discord.ui.button(label="🔊", style=discord.ButtonStyle.secondary, custom_id="music_volume")
-    async def volume_control(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="🔊", style=discord.ButtonStyle.secondary, custom_id="music_volume"
+    )
+    async def volume_control(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """音量控制按鈕 - 重寫版"""
         try:
             logger.info(f"音量按鈕被點擊 - 用戶: {interaction.user.name}")
@@ -203,10 +250,13 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
             volume_view = VolumeControlView(self.player)
 
             embed = EmbedBuilder.create_info_embed(
-                "🔊 音量控制", f"當前音量：{int(self.player.volume * 100)}%\n使用下方按鈕調整音量"
+                "🔊 音量控制",
+                f"當前音量：{int(self.player.volume * 100)}%\n使用下方按鈕調整音量",
             )
 
-            await self.safe_respond(interaction, embed=embed, ephemeral=True, view=volume_view)
+            await self.safe_respond(
+                interaction, embed=embed, ephemeral=True, view=volume_view
+            )
 
         except Exception as e:
             logger.error(f"音量控制按鈕錯誤: {e}")
@@ -214,13 +264,20 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
             embed = EmbedBuilder.create_error_embed("❌ 操作失敗", "音量控制出現錯誤")
             await self.safe_respond(interaction, embed=embed)
 
-    @discord.ui.button(label="🛑", style=discord.ButtonStyle.danger, custom_id="music_stop")
-    async def stop_music(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="🛑", style=discord.ButtonStyle.danger, custom_id="music_stop"
+    )
+    async def stop_music(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """停止音樂按鈕 - 重寫版"""
         try:
             logger.info(f"停止按鈕被點擊 - 用戶: {interaction.user.name}")
 
-            if not self.player.voice_client or not self.player.voice_client.is_connected():
+            if (
+                not self.player.voice_client
+                or not self.player.voice_client.is_connected()
+            ):
                 embed = EmbedBuilder.create_error_embed(
                     "❌ 未連接語音頻道", "Bot 目前未連接到任何語音頻道"
                 )
@@ -228,7 +285,10 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
                 return
 
             # 停止播放並清空隊列
-            if self.player.voice_client.is_playing() or self.player.voice_client.is_paused():
+            if (
+                self.player.voice_client.is_playing()
+                or self.player.voice_client.is_paused()
+            ):
                 self.player.voice_client.stop()
 
             self.player.queue.clear()
@@ -277,7 +337,9 @@ class VolumeControlView(discord.ui.View, SafeInteractionMixin):
         await self.set_volume(interaction, 0.75)
 
     @discord.ui.button(label="🔊 100%", style=discord.ButtonStyle.danger)
-    async def vol_100(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def vol_100(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """100% 音量"""
         await self.set_volume(interaction, 1.0)
 
@@ -309,7 +371,9 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
         """增強的語音連接狀態檢測"""
         try:
             # 檢查 player 的 voice_client
-            player_connected = player.voice_client and player.voice_client.is_connected()
+            player_connected = (
+                player.voice_client and player.voice_client.is_connected()
+            )
 
             # 檢查 guild 的 voice_client (更可靠)
             guild_voice_client = guild.voice_client
@@ -323,7 +387,9 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
             logger.info(f"🔍 Guild voice_client: {guild_voice_client}")
 
             if guild_voice_client:
-                logger.info(f"🔍 Guild voice_client channel: {guild_voice_client.channel}")
+                logger.info(
+                    f"🔍 Guild voice_client channel: {guild_voice_client.channel}"
+                )
                 logger.info(
                     f"🔍 Guild voice_client is_connected: {guild_voice_client.is_connected()}"
                 )
@@ -353,7 +419,9 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
     @discord.ui.button(
         label="🎵 播放音樂", style=discord.ButtonStyle.primary, custom_id="menu_play"
     )
-    async def play_music_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def play_music_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """播放音樂按鈕 - 重寫版"""
         try:
             logger.info(f"播放音樂按鈕被點擊 - 用戶: {interaction.user.name}")
@@ -373,11 +441,15 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
         except Exception as e:
             logger.error(f"播放音樂按鈕錯誤: {e}")
             logger.error(traceback.format_exc())
-            embed = EmbedBuilder.create_error_embed("❌ 系統錯誤", "播放功能暫時無法使用")
+            embed = EmbedBuilder.create_error_embed(
+                "❌ 系統錯誤", "播放功能暫時無法使用"
+            )
             await self.safe_respond(interaction, embed=embed)
 
     @discord.ui.button(
-        label="🎛️ 控制面板", style=discord.ButtonStyle.secondary, custom_id="menu_control"
+        label="🎛️ 控制面板",
+        style=discord.ButtonStyle.secondary,
+        custom_id="menu_control",
     )
     async def control_panel_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
@@ -410,7 +482,9 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
             is_connected = self._check_voice_connection(player, interaction.guild)
 
             if is_connected:
-                embed = EmbedBuilder.create_info_embed("🎛️ 音樂控制面板", "使用下方按鈕控制音樂播放")
+                embed = EmbedBuilder.create_info_embed(
+                    "🎛️ 音樂控制面板", "使用下方按鈕控制音樂播放"
+                )
             else:
                 embed = EmbedBuilder.create_warning_embed(
                     "🎛️ 音樂控制面板", "Bot 目前未連接語音頻道，請先使用播放功能"
@@ -464,13 +538,17 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
             logger.error(f"控制面板按鈕錯誤: {e}")
             logger.error(traceback.format_exc())
             try:
-                embed = EmbedBuilder.create_error_embed("❌ 系統錯誤", "無法顯示控制面板")
+                embed = EmbedBuilder.create_error_embed(
+                    "❌ 系統錯誤", "無法顯示控制面板"
+                )
                 await interaction.followup.send(embed=embed, ephemeral=True)
             except:
                 pass
 
     @discord.ui.button(
-        label="🔍 搜索音樂", style=discord.ButtonStyle.secondary, custom_id="menu_search"
+        label="🔍 搜索音樂",
+        style=discord.ButtonStyle.secondary,
+        custom_id="menu_search",
     )
     async def search_music_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
@@ -552,7 +630,9 @@ class MusicInputModal(discord.ui.Modal, title="🎵 播放音樂"):
             )
 
             if player.queue or player.current != source:
-                embed.add_field(name="排隊位置", value=f"第 {len(player.queue)} 位", inline=True)
+                embed.add_field(
+                    name="排隊位置", value=f"第 {len(player.queue)} 位", inline=True
+                )
 
             if source.thumbnail:
                 embed.set_thumbnail(url=source.thumbnail)
@@ -563,7 +643,9 @@ class MusicInputModal(discord.ui.Modal, title="🎵 播放音樂"):
         except Exception as e:
             logger.error(f"音樂輸入模態框錯誤: {e}")
             logger.error(traceback.format_exc())
-            embed = EmbedBuilder.create_error_embed("❌ 播放失敗", f"播放音樂時發生錯誤")
+            embed = EmbedBuilder.create_error_embed(
+                "❌ 播放失敗", f"播放音樂時發生錯誤"
+            )
             try:
                 if not interaction.response.is_done():
                     await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -614,7 +696,8 @@ class SearchInputModal(discord.ui.Modal, title="🔍 搜索音樂"):
 
                 if not search_results:
                     embed = EmbedBuilder.create_warning_embed(
-                        "🔍 無搜索結果", f"沒有找到與 '{self.search_input.value}' 相關的音樂"
+                        "🔍 無搜索結果",
+                        f"沒有找到與 '{self.search_input.value}' 相關的音樂",
                     )
                     await search_msg.edit(embed=embed)
                     return
@@ -622,13 +705,14 @@ class SearchInputModal(discord.ui.Modal, title="🔍 搜索音樂"):
                 # 創建搜索結果列表
                 result_text = ""
                 for i, result in enumerate(search_results[:5], 1):
+                    result_text += f"{i}. **{result.title[:50]}{'...' if len(result.title) > 50 else ''}**\n"
                     result_text += (
-                        f"{i}. **{result.title[:50]}{'...' if len(result.title) > 50 else ''}**\n"
+                        f"   👤 {result.uploader} | ⏱️ {result.duration_str}\n\n"
                     )
-                    result_text += f"   👤 {result.uploader} | ⏱️ {result.duration_str}\n\n"
 
                 embed = EmbedBuilder.create_info_embed(
-                    "🔍 搜索結果", f"找到 {len(search_results)} 個結果：\n\n{result_text}"
+                    "🔍 搜索結果",
+                    f"找到 {len(search_results)} 個結果：\n\n{result_text}",
                 )
 
                 embed.add_field(
@@ -642,14 +726,18 @@ class SearchInputModal(discord.ui.Modal, title="🔍 搜索音樂"):
 
             except Exception as e:
                 logger.error(f"搜索執行錯誤: {e}")
-                embed = EmbedBuilder.create_error_embed("❌ 搜索失敗", f"搜索時發生錯誤: {str(e)}")
+                embed = EmbedBuilder.create_error_embed(
+                    "❌ 搜索失敗", f"搜索時發生錯誤: {str(e)}"
+                )
                 await search_msg.edit(embed=embed)
 
         except Exception as e:
             logger.error(f"搜索輸入模態框錯誤: {e}")
             logger.error(traceback.format_exc())
             try:
-                embed = EmbedBuilder.create_error_embed("❌ 搜索失敗", "搜索音樂時發生錯誤")
+                embed = EmbedBuilder.create_error_embed(
+                    "❌ 搜索失敗", "搜索音樂時發生錯誤"
+                )
                 if not interaction.response.is_done():
                     await interaction.response.send_message(embed=embed, ephemeral=True)
                 else:

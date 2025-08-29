@@ -52,7 +52,9 @@ class LotteryManager:
         self._cache[cache_key] = (data, datetime.now())
 
         # 定期清理過期快取
-        if (datetime.now() - self._last_cleanup).total_seconds() > 600:  # 10分鐘清理一次
+        if (
+            datetime.now() - self._last_cleanup
+        ).total_seconds() > 600:  # 10分鐘清理一次
             await self._cleanup_cache()
             self._last_cleanup = datetime.now()
 
@@ -95,7 +97,9 @@ class LotteryManager:
                 return False, validation_result[1]
 
             # 添加參與者
-            success = await self.dao.add_entry(lottery_id, user.id, user.display_name, method)
+            success = await self.dao.add_entry(
+                lottery_id, user.id, user.display_name, method
+            )
 
             if success:
                 return True, "成功參與抽獎！"
@@ -106,7 +110,9 @@ class LotteryManager:
             logger.error(f"參與抽獎失敗: {e}")
             return False, f"參與抽獎時發生錯誤: {str(e)}"
 
-    async def leave_lottery(self, lottery_id: int, user: discord.Member) -> Tuple[bool, str]:
+    async def leave_lottery(
+        self, lottery_id: int, user: discord.Member
+    ) -> Tuple[bool, str]:
         """退出抽獎"""
         try:
             lottery = await self.dao.get_lottery(lottery_id)
@@ -177,7 +183,9 @@ class LotteryManager:
                 self._running_lotteries[lottery_id].cancel()
                 del self._running_lotteries[lottery_id]
 
-            logger.info(f"抽獎結束: {lottery_id} - {lottery['name']}, 中獎者: {len(winners)}")
+            logger.info(
+                f"抽獎結束: {lottery_id} - {lottery['name']}, 中獎者: {len(winners)}"
+            )
             return True, f"抽獎已結束，共 {len(winners)} 位中獎者", winners
 
         except Exception as e:
@@ -206,20 +214,30 @@ class LotteryManager:
             logger.error(f"獲取抽獎資訊失敗: {e}")
             return None
 
-    async def _validate_participant(self, user: discord.Member, lottery: Dict) -> Tuple[bool, str]:
+    async def _validate_participant(
+        self, user: discord.Member, lottery: Dict
+    ) -> Tuple[bool, str]:
         """驗證參與者條件"""
         try:
             # 檢查帳號年齡
             if lottery["min_account_age_days"] > 0:
-                account_age = (datetime.now(user.created_at.tzinfo) - user.created_at).days
+                account_age = (
+                    datetime.now(user.created_at.tzinfo) - user.created_at
+                ).days
                 if account_age < lottery["min_account_age_days"]:
-                    return False, f"帳號年齡需要至少 {lottery['min_account_age_days']} 天"
+                    return (
+                        False,
+                        f"帳號年齡需要至少 {lottery['min_account_age_days']} 天",
+                    )
 
             # 檢查加入伺服器時間
             if lottery["min_server_join_days"] > 0 and user.joined_at:
                 join_age = (datetime.now(user.joined_at.tzinfo) - user.joined_at).days
                 if join_age < lottery["min_server_join_days"]:
-                    return False, f"加入伺服器需要至少 {lottery['min_server_join_days']} 天"
+                    return (
+                        False,
+                        f"加入伺服器需要至少 {lottery['min_server_join_days']} 天",
+                    )
 
             # 檢查必需角色
             if lottery["required_roles"]:
@@ -241,7 +259,9 @@ class LotteryManager:
             logger.error(f"驗證參與者條件失敗: {e}")
             return False, f"驗證失敗: {str(e)}"
 
-    async def _check_lottery_permission(self, user: discord.Member, settings: Dict) -> bool:
+    async def _check_lottery_permission(
+        self, user: discord.Member, settings: Dict
+    ) -> bool:
         """檢查抽獎創建權限"""
         try:
             # 檢查是否為管理員
@@ -271,14 +291,20 @@ class LotteryManager:
             prize_info = lottery["prize_data"]
             if isinstance(prize_info, dict):
                 embed.add_field(
-                    name="🎁 獎品", value=prize_info.get("description", "未知獎品"), inline=False
+                    name="🎁 獎品",
+                    value=prize_info.get("description", "未知獎品"),
+                    inline=False,
                 )
             else:
                 embed.add_field(name="🎁 獎品", value=str(prize_info), inline=False)
 
-        embed.add_field(name="👥 中獎人數", value=f"{lottery['winner_count']} 人", inline=True)
         embed.add_field(
-            name="⏰ 結束時間", value=f"<t:{int(lottery['end_time'].timestamp())}:R>", inline=True
+            name="👥 中獎人數", value=f"{lottery['winner_count']} 人", inline=True
+        )
+        embed.add_field(
+            name="⏰ 結束時間",
+            value=f"<t:{int(lottery['end_time'].timestamp())}:R>",
+            inline=True,
         )
 
         # 參與方式
@@ -301,7 +327,9 @@ class LotteryManager:
             conditions.append(f"加入伺服器: {lottery['min_server_join_days']} 天以上")
 
         if conditions:
-            embed.add_field(name="📋 參與條件", value="\n".join(conditions), inline=False)
+            embed.add_field(
+                name="📋 參與條件", value="\n".join(conditions), inline=False
+            )
 
         embed.set_footer(
             text=f"抽獎 ID: {lottery['id']} | 創建者: {lottery.get('creator_name', 'Unknown')}"
@@ -313,7 +341,9 @@ class LotteryManager:
         self, lottery: Dict, winners: List[Dict], total_participants: int
     ) -> discord.Embed:
         """創建抽獎結果嵌入"""
-        embed = EmbedBuilder.build(title=f"🏆 {lottery['name']} - 抽獎結果", color="success")
+        embed = EmbedBuilder.build(
+            title=f"🏆 {lottery['name']} - 抽獎結果", color="success"
+        )
 
         if winners:
             winner_list = []
@@ -328,10 +358,14 @@ class LotteryManager:
                 )
 
             embed.add_field(
-                name=f"🎊 中獎者 ({len(winners)} 人)", value="\n".join(winner_list), inline=False
+                name=f"🎊 中獎者 ({len(winners)} 人)",
+                value="\n".join(winner_list),
+                inline=False,
             )
 
-        embed.add_field(name="👥 總參與人數", value=f"{total_participants} 人", inline=True)
+        embed.add_field(
+            name="👥 總參與人數", value=f"{total_participants} 人", inline=True
+        )
         embed.add_field(
             name="🎲 中獎機率",
             value=f"{len(winners)/max(total_participants, 1)*100:.1f}%",
@@ -387,6 +421,8 @@ class LotteryManager:
     async def before_lottery_scheduler(self):
         await self.bot.wait_until_ready()
 
-    async def get_lottery_statistics(self, guild_id: int, days: int = 30) -> Dict[str, Any]:
+    async def get_lottery_statistics(
+        self, guild_id: int, days: int = 30
+    ) -> Dict[str, Any]:
         """獲取抽獎統計"""
         return await self.dao.get_lottery_statistics(guild_id, days)

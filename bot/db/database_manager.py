@@ -82,7 +82,9 @@ class DatabaseManager:
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute("SELECT version FROM database_version WHERE id = 1")
+                    await cursor.execute(
+                        "SELECT version FROM database_version WHERE id = 1"
+                    )
                     result = await cursor.fetchone()
                     return result[0] if result else None
         except Exception as e:
@@ -167,7 +169,10 @@ class DatabaseManager:
                     return {
                         "database_version": version or "未知",
                         "current_version": self.current_version,
-                        "tables": {"count": table_count, "initialized": self._initialized},
+                        "tables": {
+                            "count": table_count,
+                            "initialized": self._initialized,
+                        },
                         "status": "healthy" if self._initialized else "initializing",
                     }
         except Exception as e:
@@ -528,10 +533,14 @@ class DatabaseManager:
                             logger.debug(f"✅ 表格 {table_name} 創建成功")
                             success_count += 1
                         except Exception as table_error:
-                            logger.error(f"❌ 創建表格 {table_name} 失敗: {table_error}")
+                            logger.error(
+                                f"❌ 創建表格 {table_name} 失敗: {table_error}"
+                            )
 
                     await conn.commit()
-                    logger.info(f"🎯 {system_name} 表格批次創建完成: {success_count}/{len(tables)}")
+                    logger.info(
+                        f"🎯 {system_name} 表格批次創建完成: {success_count}/{len(tables)}"
+                    )
 
         except Exception as e:
             logger.error(f"❌ {system_name} 資料庫批次操作失敗: {e}")

@@ -57,7 +57,9 @@ class AIReplyView(discord.ui.View):
 
         async def callback(interaction: discord.Interaction):
             if index >= len(self.suggestions):
-                await interaction.response.send_message("❌ 無效的建議選擇", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 無效的建議選擇", ephemeral=True
+                )
                 return
 
             suggestion = self.suggestions[index]
@@ -139,7 +141,9 @@ class AIReplyEditModal(discord.ui.Modal):
             reply_content = self.reply_input.value.strip()
 
             if not reply_content:
-                await interaction.response.send_message("❌ 回覆內容不能為空", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 回覆內容不能為空", ephemeral=True
+                )
                 return
 
             # 處理評分
@@ -159,7 +163,9 @@ class AIReplyEditModal(discord.ui.Modal):
             # 這裡可以添加實際的回饋記錄邏輯
 
             success_embed = discord.Embed(
-                title="✅ 回覆已發送", description="AI 建議回覆已成功發送到票券頻道", color=0x28A745
+                title="✅ 回覆已發送",
+                description="AI 建議回覆已成功發送到票券頻道",
+                color=0x28A745,
             )
 
             if rating:
@@ -202,7 +208,10 @@ class AITagSuggestionView(discord.ui.View):
 
         # 添加拒絕按鈕
         reject_button = discord.ui.Button(
-            label="不採用", style=discord.ButtonStyle.danger, custom_id="reject_tags", emoji="❌"
+            label="不採用",
+            style=discord.ButtonStyle.danger,
+            custom_id="reject_tags",
+            emoji="❌",
         )
         reject_button.callback = self._reject_callback
         self.add_item(reject_button)
@@ -293,7 +302,10 @@ class AITagSelect(discord.ui.Select):
                 title="✅ 標籤已應用",
                 description=f"已成功應用以下標籤：\n"
                 + "\n".join(
-                    [f"• `{tag['tag_name']}` ({tag['confidence']:.1%})" for tag in selected_tags]
+                    [
+                        f"• `{tag['tag_name']}` ({tag['confidence']:.1%})"
+                        for tag in selected_tags
+                    ]
                 ),
                 color=0x28A745,
             )
@@ -402,7 +414,9 @@ class AIPriorityView(discord.ui.View):
         if self.priority_result.get("adjustments"):
             embed.add_field(
                 name="⚖️ 調整因子",
-                value="\n".join([f"• {adj}" for adj in self.priority_result["adjustments"]]),
+                value="\n".join(
+                    [f"• {adj}" for adj in self.priority_result["adjustments"]]
+                ),
                 inline=True,
             )
 

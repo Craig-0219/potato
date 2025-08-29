@@ -100,7 +100,9 @@ class AIAssistantCog(commands.Cog):
                 available_models.append("✅ **Google Gemini**: 多模態任務")
 
             if available_models:
-                embed.add_field(name="🔧 可用模型", value="\n".join(available_models), inline=False)
+                embed.add_field(
+                    name="🔧 可用模型", value="\n".join(available_models), inline=False
+                )
             else:
                 embed.add_field(
                     name="⚠️ 模型狀態",
@@ -109,16 +111,22 @@ class AIAssistantCog(commands.Cog):
                 )
 
             embed.add_field(
-                name="🚀 開始使用", value="點擊下方按鈕開始使用 AI 助手功能！", inline=False
+                name="🚀 開始使用",
+                value="點擊下方按鈕開始使用 AI 助手功能！",
+                inline=False,
             )
 
             embed.set_footer(text="Potato Bot v3.2.0 | Phase 5 AI 整合系統")
 
-            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, view=view, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"AI 助手選單錯誤: {e}")
-            embed = EmbedBuilder.create_error_embed("❌ 系統錯誤", "無法啟動 AI 助手管理界面")
+            embed = EmbedBuilder.create_error_embed(
+                "❌ 系統錯誤", "無法啟動 AI 助手管理界面"
+            )
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
     # ========== 基礎AI對話 (兼容舊命令) ==========
@@ -137,14 +145,18 @@ class AIAssistantCog(commands.Cog):
 
             if not can_use:
                 embed = EmbedBuilder.build(
-                    title="❌ 使用受限", description=cost_info["message"], color=0xFF0000
+                    title="❌ 使用受限",
+                    description=cost_info["message"],
+                    color=0xFF0000,
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
 
             # 處理AI請求
             response = await ai_assistant.chat(
-                user_id=interaction.user.id, guild_id=interaction.guild.id, message=message
+                user_id=interaction.user.id,
+                guild_id=interaction.guild.id,
+                message=message,
             )
 
             if response.success:
@@ -165,7 +177,11 @@ class AIAssistantCog(commands.Cog):
                     name="📊 使用資訊",
                     value=f"消耗代幣: {response.tokens_used:,}\n"
                     f"回應時間: {response.response_time:.2f}秒"
-                    + (f"\n消耗金幣: {cost_info['cost']}🪙" if cost_info["cost"] > 0 else ""),
+                    + (
+                        f"\n消耗金幣: {cost_info['cost']}🪙"
+                        if cost_info["cost"] > 0
+                        else ""
+                    ),
                     inline=True,
                 )
 
@@ -185,7 +201,9 @@ class AIAssistantCog(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ AI對話錯誤: {e}")
-            await interaction.followup.send("❌ AI對話時發生錯誤，請稍後再試。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ AI對話時發生錯誤，請稍後再試。", ephemeral=True
+            )
 
     # ========== 代碼助手 ==========
 
@@ -216,7 +234,9 @@ class AIAssistantCog(commands.Cog):
 
             if not can_use:
                 embed = EmbedBuilder.build(
-                    title="❌ 使用受限", description=cost_info["message"], color=0xFF0000
+                    title="❌ 使用受限",
+                    description=cost_info["message"],
+                    color=0xFF0000,
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
@@ -245,14 +265,20 @@ class AIAssistantCog(commands.Cog):
                     content = content[:1800] + "...\n\n*回應內容過長，已截斷*"
 
                 embed = EmbedBuilder.build(
-                    title=f"💻 代碼助手 ({language.title()})", description=content, color=0x00FF88
+                    title=f"💻 代碼助手 ({language.title()})",
+                    description=content,
+                    color=0x00FF88,
                 )
 
                 embed.add_field(
                     name="📊 使用資訊",
                     value=f"消耗代幣: {response.tokens_used:,}\n"
                     f"回應時間: {response.response_time:.2f}秒"
-                    + (f"\n消耗金幣: {cost_info['cost']}🪙" if cost_info["cost"] > 0 else ""),
+                    + (
+                        f"\n消耗金幣: {cost_info['cost']}🪙"
+                        if cost_info["cost"] > 0
+                        else ""
+                    ),
                     inline=True,
                 )
 
@@ -311,7 +337,9 @@ class AIAssistantCog(commands.Cog):
 
             if not can_use:
                 embed = EmbedBuilder.build(
-                    title="❌ 使用受限", description=cost_info["message"], color=0xFF0000
+                    title="❌ 使用受限",
+                    description=cost_info["message"],
+                    color=0xFF0000,
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
@@ -334,7 +362,9 @@ class AIAssistantCog(commands.Cog):
                 # 記錄使用量
                 await self._record_daily_usage(interaction.user.id)
 
-                embed = EmbedBuilder.build(title=f"🌐 翻譯結果 → {target_language}", color=0x4169E1)
+                embed = EmbedBuilder.build(
+                    title=f"🌐 翻譯結果 → {target_language}", color=0x4169E1
+                )
 
                 embed.add_field(
                     name="📝 原文",
@@ -348,7 +378,11 @@ class AIAssistantCog(commands.Cog):
                     name="📊 使用資訊",
                     value=f"消耗代幣: {response.tokens_used:,}\n"
                     f"回應時間: {response.response_time:.2f}秒"
-                    + (f"\n消耗金幣: {cost_info['cost']}🪙" if cost_info["cost"] > 0 else ""),
+                    + (
+                        f"\n消耗金幣: {cost_info['cost']}🪙"
+                        if cost_info["cost"] > 0
+                        else ""
+                    ),
                     inline=True,
                 )
 
@@ -366,7 +400,9 @@ class AIAssistantCog(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ 翻譯錯誤: {e}")
-            await interaction.followup.send("❌ 翻譯時發生錯誤，請稍後再試。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 翻譯時發生錯誤，請稍後再試。", ephemeral=True
+            )
 
     # ========== 創意內容生成 ==========
 
@@ -396,14 +432,19 @@ class AIAssistantCog(commands.Cog):
 
             if not can_use:
                 embed = EmbedBuilder.build(
-                    title="❌ 使用受限", description=cost_info["message"], color=0xFF0000
+                    title="❌ 使用受限",
+                    description=cost_info["message"],
+                    color=0xFF0000,
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
 
             # 生成故事
             response = await ai_assistant.generate_story(
-                user_id=interaction.user.id, guild_id=interaction.guild.id, theme=theme, style=style
+                user_id=interaction.user.id,
+                guild_id=interaction.guild.id,
+                theme=theme,
+                style=style,
             )
 
             if response.success:
@@ -420,7 +461,9 @@ class AIAssistantCog(commands.Cog):
                 content = response.content
                 if len(content) > 1500:
                     # 分段發送
-                    parts = [content[i : i + 1500] for i in range(0, len(content), 1500)]
+                    parts = [
+                        content[i : i + 1500] for i in range(0, len(content), 1500)
+                    ]
 
                     for i, part in enumerate(parts):
                         embed = EmbedBuilder.build(
@@ -453,18 +496,26 @@ class AIAssistantCog(commands.Cog):
                             await asyncio.sleep(1)  # 避免速率限制
                 else:
                     embed = EmbedBuilder.build(
-                        title=f"📚 AI故事創作 - {theme}", description=content, color=0xFF6B6B
+                        title=f"📚 AI故事創作 - {theme}",
+                        description=content,
+                        color=0xFF6B6B,
                     )
 
                     embed.add_field(
-                        name="🎭 故事設定", value=f"主題: {theme}\n風格: {style}", inline=True
+                        name="🎭 故事設定",
+                        value=f"主題: {theme}\n風格: {style}",
+                        inline=True,
                     )
 
                     embed.add_field(
                         name="📊 使用資訊",
                         value=f"消耗代幣: {response.tokens_used:,}\n"
                         f"回應時間: {response.response_time:.2f}秒"
-                        + (f"\n消耗金幣: {cost_info['cost']}🪙" if cost_info["cost"] > 0 else ""),
+                        + (
+                            f"\n消耗金幣: {cost_info['cost']}🪙"
+                            if cost_info["cost"] > 0
+                            else ""
+                        ),
                         inline=True,
                     )
 
@@ -482,7 +533,9 @@ class AIAssistantCog(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ 故事生成錯誤: {e}")
-            await interaction.followup.send("❌ 故事生成時發生錯誤，請稍後再試。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 故事生成時發生錯誤，請稍後再試。", ephemeral=True
+            )
 
     @app_commands.command(name="generate_poem", description="AI詩歌創作")
     @app_commands.describe(theme="詩歌主題", style="詩歌風格")
@@ -510,14 +563,19 @@ class AIAssistantCog(commands.Cog):
 
             if not can_use:
                 embed = EmbedBuilder.build(
-                    title="❌ 使用受限", description=cost_info["message"], color=0xFF0000
+                    title="❌ 使用受限",
+                    description=cost_info["message"],
+                    color=0xFF0000,
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
 
             # 生成詩歌
             response = await ai_assistant.generate_poem(
-                user_id=interaction.user.id, guild_id=interaction.guild.id, theme=theme, style=style
+                user_id=interaction.user.id,
+                guild_id=interaction.guild.id,
+                theme=theme,
+                style=style,
             )
 
             if response.success:
@@ -537,14 +595,20 @@ class AIAssistantCog(commands.Cog):
                 )
 
                 embed.add_field(
-                    name="🎭 創作設定", value=f"主題: {theme}\n風格: {style}", inline=True
+                    name="🎭 創作設定",
+                    value=f"主題: {theme}\n風格: {style}",
+                    inline=True,
                 )
 
                 embed.add_field(
                     name="📊 使用資訊",
                     value=f"消耗代幣: {response.tokens_used:,}\n"
                     f"回應時間: {response.response_time:.2f}秒"
-                    + (f"\n消耗金幣: {cost_info['cost']}🪙" if cost_info["cost"] > 0 else ""),
+                    + (
+                        f"\n消耗金幣: {cost_info['cost']}🪙"
+                        if cost_info["cost"] > 0
+                        else ""
+                    ),
                     inline=True,
                 )
 
@@ -562,7 +626,9 @@ class AIAssistantCog(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ 詩歌創作錯誤: {e}")
-            await interaction.followup.send("❌ 詩歌創作時發生錯誤，請稍後再試。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 詩歌創作時發生錯誤，請稍後再試。", ephemeral=True
+            )
 
     # ========== 使用統計和管理 ==========
 
@@ -577,7 +643,9 @@ class AIAssistantCog(commands.Cog):
             daily_usage = await self._get_daily_usage(user_id)
 
             # 獲取經濟狀態
-            economy = await self.economy_manager.get_user_economy(user_id, interaction.guild.id)
+            economy = await self.economy_manager.get_user_economy(
+                user_id, interaction.guild.id
+            )
 
             embed = EmbedBuilder.build(
                 title="🤖 AI使用統計",
@@ -629,11 +697,15 @@ class AIAssistantCog(commands.Cog):
                 cost_text.append(f"{task_name}: {cost}🪙")
 
             embed.add_field(
-                name="💳 服務費用", value="\n".join(cost_text[:4]), inline=True  # 只顯示前4個
+                name="💳 服務費用",
+                value="\n".join(cost_text[:4]),
+                inline=True,  # 只顯示前4個
             )
 
             embed.add_field(
-                name="💳 其他服務", value="\n".join(cost_text[4:]), inline=True  # 顯示剩餘的
+                name="💳 其他服務",
+                value="\n".join(cost_text[4:]),
+                inline=True,  # 顯示剩餘的
             )
 
             embed.add_field(
@@ -648,7 +720,9 @@ class AIAssistantCog(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ AI使用統計錯誤: {e}")
-            await interaction.response.send_message("❌ 獲取使用統計時發生錯誤。", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 獲取使用統計時發生錯誤。", ephemeral=True
+            )
 
     # ========== 輔助方法 ==========
 
@@ -697,7 +771,9 @@ class AIAssistantCog(commands.Cog):
             current_usage = await self._get_daily_usage(user_id)
 
             # 設置到明天零點過期
-            tomorrow = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+            tomorrow = datetime.now(timezone.utc).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
             tomorrow += timedelta(days=1)
             ttl = int((tomorrow - datetime.now(timezone.utc)).total_seconds())
 
@@ -741,10 +817,13 @@ class AIAssistantCog(commands.Cog):
         except Exception as e:
             logger.error(f"❌ Phase 7 智能對話失敗: {e}")
             await interaction.followup.send(
-                "❌ 抱歉，我遇到了一些技術問題。請稍後再試或使用 `/ask` 指令。", ephemeral=True
+                "❌ 抱歉，我遇到了一些技術問題。請稍後再試或使用 `/ask` 指令。",
+                ephemeral=True,
             )
 
-    @app_commands.command(name="start_ticket_flow", description="🎫 開始建立票券的引導式對話")
+    @app_commands.command(
+        name="start_ticket_flow", description="🎫 開始建立票券的引導式對話"
+    )
     async def start_ticket_flow(self, interaction: discord.Interaction):
         """開始票券建立引導式對話"""
         await interaction.response.defer()
@@ -761,7 +840,8 @@ class AIAssistantCog(commands.Cog):
                 await interaction.followup.send(response)
             else:
                 await interaction.followup.send(
-                    "❌ 無法啟動引導式對話，請使用傳統的 `/ticket create` 指令。", ephemeral=True
+                    "❌ 無法啟動引導式對話，請使用傳統的 `/ticket create` 指令。",
+                    ephemeral=True,
                 )
 
         except Exception as e:
@@ -770,7 +850,9 @@ class AIAssistantCog(commands.Cog):
                 "❌ 啟動引導對話失敗，請使用傳統的票券指令。", ephemeral=True
             )
 
-    @app_commands.command(name="start_vote_flow", description="🗳️ 開始建立投票的引導式對話")
+    @app_commands.command(
+        name="start_vote_flow", description="🗳️ 開始建立投票的引導式對話"
+    )
     async def start_vote_flow(self, interaction: discord.Interaction):
         """開始投票建立引導式對話"""
         await interaction.response.defer()
@@ -787,7 +869,8 @@ class AIAssistantCog(commands.Cog):
                 await interaction.followup.send(response)
             else:
                 await interaction.followup.send(
-                    "❌ 無法啟動引導式對話，請使用傳統的 `/vote create` 指令。", ephemeral=True
+                    "❌ 無法啟動引導式對話，請使用傳統的 `/vote create` 指令。",
+                    ephemeral=True,
                 )
 
         except Exception as e:
@@ -796,7 +879,9 @@ class AIAssistantCog(commands.Cog):
                 "❌ 啟動引導對話失敗，請使用傳統的投票指令。", ephemeral=True
             )
 
-    @app_commands.command(name="start_welcome_flow", description="👋 開始設定歡迎系統的引導式對話")
+    @app_commands.command(
+        name="start_welcome_flow", description="👋 開始設定歡迎系統的引導式對話"
+    )
     async def start_welcome_flow(self, interaction: discord.Interaction):
         """開始歡迎系統設定引導式對話"""
         if not interaction.user.guild_permissions.manage_guild:
@@ -819,7 +904,8 @@ class AIAssistantCog(commands.Cog):
                 await interaction.followup.send(response)
             else:
                 await interaction.followup.send(
-                    "❌ 無法啟動引導式對話，請使用傳統的 `/welcome_setup` 指令。", ephemeral=True
+                    "❌ 無法啟動引導式對話，請使用傳統的 `/welcome_setup` 指令。",
+                    ephemeral=True,
                 )
 
         except Exception as e:
@@ -835,7 +921,9 @@ class AIAssistantCog(commands.Cog):
 
         try:
             # 獲取統計信息
-            stats = await enhanced_ai_assistant.get_conversation_stats(str(interaction.user.id))
+            stats = await enhanced_ai_assistant.get_conversation_stats(
+                str(interaction.user.id)
+            )
             health = await enhanced_ai_assistant.health_check()
 
             embed = discord.Embed(
@@ -853,7 +941,9 @@ class AIAssistantCog(commands.Cog):
 
             # 活躍會話
             active_sessions = stats.get("active_sessions", 0)
-            embed.add_field(name="💬 活躍對話", value=f"{active_sessions} 個會話", inline=True)
+            embed.add_field(
+                name="💬 活躍對話", value=f"{active_sessions} 個會話", inline=True
+            )
 
             # AI 引擎狀態
             if "ai_engine_stats" in stats:
@@ -892,7 +982,9 @@ class AIAssistantCog(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ AI 狀態查詢失敗: {e}")
-            await interaction.followup.send("❌ 無法獲取 AI 系統狀態，請稍後再試。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 無法獲取 AI 系統狀態，請稍後再試。", ephemeral=True
+            )
 
 
 async def setup(bot):

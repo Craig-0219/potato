@@ -123,7 +123,9 @@ async def get_tickets(
         if status and status != "all":
             filtered_tickets = [t for t in filtered_tickets if t["status"] == status]
         if discord_id:
-            filtered_tickets = [t for t in filtered_tickets if t["discord_id"] == str(discord_id)]
+            filtered_tickets = [
+                t for t in filtered_tickets if t["discord_id"] == str(discord_id)
+            ]
 
         # 分頁
         total = len(filtered_tickets)
@@ -220,7 +222,9 @@ async def create_ticket(
 @router.put("/{ticket_id}", response_model=BaseResponse, summary="更新票券")
 # @limiter.limit("20/minute")
 async def update_ticket(
-    ticket_id: int, ticket_data: TicketUpdate, user: APIUser = Depends(require_write_permission)
+    ticket_id: int,
+    ticket_data: TicketUpdate,
+    user: APIUser = Depends(require_write_permission),
 ):
     """更新票券信息"""
     try:
@@ -263,7 +267,9 @@ async def update_ticket(
 
 @router.delete("/{ticket_id}", response_model=BaseResponse, summary="刪除票券")
 # @limiter.limit("10/minute")
-async def delete_ticket(ticket_id: int, user: APIUser = Depends(require_write_permission)):
+async def delete_ticket(
+    ticket_id: int, user: APIUser = Depends(require_write_permission)
+):
     """刪除票券（標記為已刪除）"""
     try:
         ticket_dao = get_ticket_dao()
@@ -290,7 +296,9 @@ async def delete_ticket(ticket_id: int, user: APIUser = Depends(require_write_pe
 @router.post("/{ticket_id}/close", response_model=BaseResponse, summary="關閉票券")
 # @limiter.limit("20/minute")
 async def close_ticket(
-    ticket_id: int, reason: Optional[str] = None, user: APIUser = Depends(require_write_permission)
+    ticket_id: int,
+    reason: Optional[str] = None,
+    user: APIUser = Depends(require_write_permission),
 ):
     """關閉指定的票券"""
     try:
@@ -324,13 +332,18 @@ async def assign_ticket(
 
         # 指派票券
         success = await ticket_manager.assign_ticket(
-            ticket_id=ticket_id, assigned_to=assigned_to, assigned_by=0  # API 指派，使用特殊用戶 ID
+            ticket_id=ticket_id,
+            assigned_to=assigned_to,
+            assigned_by=0,  # API 指派，使用特殊用戶 ID
         )
 
         if not success:
             raise HTTPException(status_code=400, detail="指派票券失敗")
 
-        return {"success": True, "message": f"票券 #{ticket_id} 已指派給用戶 {assigned_to}"}
+        return {
+            "success": True,
+            "message": f"票券 #{ticket_id} 已指派給用戶 {assigned_to}",
+        }
 
     except HTTPException:
         raise
@@ -368,7 +381,9 @@ async def rate_ticket(
         raise HTTPException(status_code=500, detail="保存評分失敗")
 
 
-@router.get("/statistics/overview", response_model=TicketStatistics, summary="獲取票券統計概覽")
+@router.get(
+    "/statistics/overview", response_model=TicketStatistics, summary="獲取票券統計概覽"
+)
 # @limiter.limit("10/minute")
 async def get_ticket_statistics(
     guild_id: Optional[int] = Query(None, description="伺服器 ID 篩選"),
@@ -424,7 +439,9 @@ async def get_public_ticket_statistics(
                 "period_end": datetime.now().isoformat(),
                 "daily_stats": [
                     {
-                        "date": (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d"),
+                        "date": (datetime.now() - timedelta(days=i)).strftime(
+                            "%Y-%m-%d"
+                        ),
                         "created": 5 + (i % 3),
                         "resolved": 4 + (i % 2),
                     }

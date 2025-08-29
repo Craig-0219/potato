@@ -70,7 +70,9 @@ class WebhookManagerView(ui.View):
             else:
                 embed.description = "目前沒有Webhook"
 
-            await interaction.followup.edit_message(interaction.message.id, embed=embed, view=self)
+            await interaction.followup.edit_message(
+                interaction.message.id, embed=embed, view=self
+            )
 
         except Exception as e:
             logger.error(f"刷新Webhook列表失敗: {e}")
@@ -83,7 +85,9 @@ class WebhookManagerView(ui.View):
         await interaction.response.send_modal(modal)
 
     @ui.button(label="系統統計", style=discord.ButtonStyle.secondary, emoji="📊")
-    async def view_statistics(self, interaction: discord.Interaction, button: ui.Button):
+    async def view_statistics(
+        self, interaction: discord.Interaction, button: ui.Button
+    ):
         """查看系統統計"""
         await interaction.response.defer(ephemeral=True)
 
@@ -91,7 +95,9 @@ class WebhookManagerView(ui.View):
             stats = webhook_manager.get_webhook_statistics()
 
             embed = EmbedBuilder.build(
-                title="📊 Webhook系統統計", description="系統整體使用統計", color=0x9B59B6
+                title="📊 Webhook系統統計",
+                description="系統整體使用統計",
+                color=0x9B59B6,
             )
 
             embed.add_field(
@@ -115,7 +121,9 @@ class WebhookManagerView(ui.View):
                 for event, count in list(stats["event_distribution"].items())[:5]:
                     event_info.append(f"• {event}: {count}")
 
-                embed.add_field(name="🎯 熱門事件", value="\n".join(event_info), inline=False)
+                embed.add_field(
+                    name="🎯 熱門事件", value="\n".join(event_info), inline=False
+                )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -132,11 +140,17 @@ class WebhookCreateModal(ui.Modal):
         self.guild_id = guild_id
 
     name = ui.TextInput(
-        label="Webhook名稱", placeholder="輸入Webhook名稱", required=True, max_length=100
+        label="Webhook名稱",
+        placeholder="輸入Webhook名稱",
+        required=True,
+        max_length=100,
     )
 
     url = ui.TextInput(
-        label="目標URL", placeholder="https://example.com/webhook", required=True, max_length=500
+        label="目標URL",
+        placeholder="https://example.com/webhook",
+        required=True,
+        max_length=500,
     )
 
     webhook_type = ui.TextInput(
@@ -217,11 +231,14 @@ class WebhookCreateModal(ui.Modal):
             if webhook_info.secret:
                 embed.add_field(
                     name="🔐 安全資訊",
-                    value=f"密鑰: `{webhook_info.secret[:16]}...`\n" f"簽名驗證: 已啟用",
+                    value=f"密鑰: `{webhook_info.secret[:16]}...`\n"
+                    f"簽名驗證: 已啟用",
                     inline=False,
                 )
 
-            embed.add_field(name="🎯 監聽事件", value=", ".join(event_list), inline=False)
+            embed.add_field(
+                name="🎯 監聽事件", value=", ".join(event_list), inline=False
+            )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -254,10 +271,15 @@ class WebhookConfigModal(ui.Modal):
         default="{}",
     )
 
-    timeout = ui.TextInput(label="超時時間 (秒)", placeholder="30", required=False, default="30")
+    timeout = ui.TextInput(
+        label="超時時間 (秒)", placeholder="30", required=False, default="30"
+    )
 
     status = ui.TextInput(
-        label="狀態", placeholder="active, inactive, paused", required=False, default="active"
+        label="狀態",
+        placeholder="active, inactive, paused",
+        required=False,
+        default="active",
     )
 
     async def on_submit(self, interaction: discord.Interaction):
@@ -300,7 +322,9 @@ class WebhookConfigModal(ui.Modal):
                         )
                         return
                 except ValueError:
-                    await interaction.followup.send("❌ 超時時間必須是有效數字", ephemeral=True)
+                    await interaction.followup.send(
+                        "❌ 超時時間必須是有效數字", ephemeral=True
+                    )
                     return
 
             # 更新狀態
@@ -310,12 +334,15 @@ class WebhookConfigModal(ui.Modal):
                     updates["status"] = status_val
                 else:
                     await interaction.followup.send(
-                        "❌ 狀態必須是 active, inactive, paused 或 error", ephemeral=True
+                        "❌ 狀態必須是 active, inactive, paused 或 error",
+                        ephemeral=True,
                     )
                     return
 
             if not updates:
-                await interaction.followup.send("❌ 沒有提供任何更新內容", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ 沒有提供任何更新內容", ephemeral=True
+                )
                 return
 
             # 執行更新
@@ -340,21 +367,29 @@ class WebhookConfigModal(ui.Modal):
                         update_info.append(f"• 狀態: {value}")
 
                 if update_info:
-                    embed.add_field(name="🔄 更新項目", value="\n".join(update_info), inline=False)
+                    embed.add_field(
+                        name="🔄 更新項目", value="\n".join(update_info), inline=False
+                    )
 
                 await interaction.followup.send(embed=embed, ephemeral=True)
             else:
-                await interaction.followup.send("❌ 配置更新失敗，請稍後再試", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ 配置更新失敗，請稍後再試", ephemeral=True
+                )
 
         except Exception as e:
             logger.error(f"更新Webhook配置失敗: {e}")
-            await interaction.followup.send(f"❌ 配置更新失敗: {str(e)}", ephemeral=True)
+            await interaction.followup.send(
+                f"❌ 配置更新失敗: {str(e)}", ephemeral=True
+            )
 
 
 class WebhookDetailView(ui.View):
     """Webhook詳情查看界面"""
 
-    def __init__(self, webhook_id: str, webhook_data: Dict[str, Any], user_id: int, timeout=300):
+    def __init__(
+        self, webhook_id: str, webhook_data: Dict[str, Any], user_id: int, timeout=300
+    ):
         super().__init__(timeout=timeout)
         self.webhook_id = webhook_id
         self.webhook_data = webhook_data
@@ -393,7 +428,9 @@ class WebhookDetailView(ui.View):
                 "message": "This is a test webhook from Potato Bot",
                 "timestamp": datetime.utcnow().isoformat(),
                 "triggered_by": interaction.user.name,
-                "guild_name": interaction.guild.name if interaction.guild else "Unknown",
+                "guild_name": (
+                    interaction.guild.name if interaction.guild else "Unknown"
+                ),
             }
 
             await webhook_manager.trigger_webhook_event(
@@ -414,7 +451,9 @@ class WebhookDetailView(ui.View):
                 inline=False,
             )
 
-            embed.add_field(name="ℹ️ 說明", value="請檢查目標端點是否收到測試數據", inline=False)
+            embed.add_field(
+                name="ℹ️ 說明", value="請檢查目標端點是否收到測試數據", inline=False
+            )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -459,7 +498,9 @@ class WebhookDetailView(ui.View):
                         inline=True,
                     )
             else:
-                embed.add_field(name="ℹ️ 無記錄", value="最近7天沒有執行記錄", inline=False)
+                embed.add_field(
+                    name="ℹ️ 無記錄", value="最近7天沒有執行記錄", inline=False
+                )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -477,10 +518,14 @@ class WebhookDetailView(ui.View):
         )
 
         embed.add_field(
-            name="ℹ️ 警告", value="此操作無法復原，所有相關設定和統計數據將被永久刪除", inline=False
+            name="ℹ️ 警告",
+            value="此操作無法復原，所有相關設定和統計數據將被永久刪除",
+            inline=False,
         )
 
-        view = WebhookDeleteConfirmView(self.webhook_id, self.webhook_data["name"], self.user_id)
+        view = WebhookDeleteConfirmView(
+            self.webhook_id, self.webhook_data["name"], self.user_id
+        )
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 
@@ -518,17 +563,25 @@ class WebhookDeleteConfirmView(ui.View):
                 )
             else:
                 embed = EmbedBuilder.build(
-                    title="❌ 刪除失敗", description="刪除Webhook時發生錯誤", color=0xE74C3C
+                    title="❌ 刪除失敗",
+                    description="刪除Webhook時發生錯誤",
+                    color=0xE74C3C,
                 )
 
-            await interaction.followup.edit_message(interaction.message.id, embed=embed, view=None)
+            await interaction.followup.edit_message(
+                interaction.message.id, embed=embed, view=None
+            )
 
         except Exception as e:
             logger.error(f"刪除Webhook失敗: {e}")
             embed = EmbedBuilder.build(
-                title="❌ 刪除失敗", description=f"刪除過程中發生錯誤: {str(e)}", color=0xE74C3C
+                title="❌ 刪除失敗",
+                description=f"刪除過程中發生錯誤: {str(e)}",
+                color=0xE74C3C,
             )
-            await interaction.followup.edit_message(interaction.message.id, embed=embed, view=None)
+            await interaction.followup.edit_message(
+                interaction.message.id, embed=embed, view=None
+            )
 
     @ui.button(label="取消", style=discord.ButtonStyle.secondary, emoji="❌")
     async def cancel_delete(self, interaction: discord.Interaction, button: ui.Button):

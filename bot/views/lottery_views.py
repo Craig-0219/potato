@@ -23,7 +23,10 @@ class LotteryCreationModal(ui.Modal):
 
         # 抽獎名稱
         self.name_input = ui.TextInput(
-            label="抽獎名稱", placeholder="輸入抽獎活動的名稱...", max_length=100, required=True
+            label="抽獎名稱",
+            placeholder="輸入抽獎活動的名稱...",
+            max_length=100,
+            required=True,
         )
         self.add_item(self.name_input)
 
@@ -39,19 +42,30 @@ class LotteryCreationModal(ui.Modal):
 
         # 獎品描述
         self.prize_input = ui.TextInput(
-            label="獎品說明", placeholder="描述抽獎獎品...", max_length=200, required=False
+            label="獎品說明",
+            placeholder="描述抽獎獎品...",
+            max_length=200,
+            required=False,
         )
         self.add_item(self.prize_input)
 
         # 中獎人數
         self.winner_count_input = ui.TextInput(
-            label="中獎人數", placeholder="1-50", default="1", max_length=2, required=True
+            label="中獎人數",
+            placeholder="1-50",
+            default="1",
+            max_length=2,
+            required=True,
         )
         self.add_item(self.winner_count_input)
 
         # 持續時間
         self.duration_input = ui.TextInput(
-            label="持續時間(小時)", placeholder="1-168", default="24", max_length=3, required=True
+            label="持續時間(小時)",
+            placeholder="1-168",
+            default="24",
+            max_length=3,
+            required=True,
         )
         self.add_item(self.duration_input)
 
@@ -108,12 +122,16 @@ class LotteryCreationModal(ui.Modal):
                 "請確認設定後點擊「創建抽獎」",
             )
 
-            await interaction.followup.send(embed=embed, view=confirmation_view, ephemeral=True)
+            await interaction.followup.send(
+                embed=embed, view=confirmation_view, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"處理抽獎創建表單失敗: {e}")
             if not interaction.response.is_done():
-                await interaction.response.send_message("❌ 處理表單時發生錯誤", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 處理表單時發生錯誤", ephemeral=True
+                )
             else:
                 await interaction.followup.send("❌ 處理表單時發生錯誤", ephemeral=True)
 
@@ -147,7 +165,9 @@ class LotteryCreationConfirmView(ui.View):
             if success and lottery_id:
                 # 立即開始抽獎
                 start_success, start_message, lottery_message = (
-                    await self.lottery_manager.start_lottery(lottery_id, interaction.channel)
+                    await self.lottery_manager.start_lottery(
+                        lottery_id, interaction.channel
+                    )
                 )
 
                 if start_success:
@@ -170,7 +190,9 @@ class LotteryCreationConfirmView(ui.View):
             await interaction.followup.send("❌ 創建抽獎時發生錯誤", ephemeral=True)
 
     @ui.button(label="❌ 取消", style=discord.ButtonStyle.grey)
-    async def cancel_creation(self, interaction: discord.Interaction, button: ui.Button):
+    async def cancel_creation(
+        self, interaction: discord.Interaction, button: ui.Button
+    ):
         """取消創建"""
         await interaction.response.send_message("❌ 已取消創建抽獎", ephemeral=True)
         for item in self.children:
@@ -291,7 +313,12 @@ class LotteryParticipationView(ui.View):
             )
 
         # 狀態資訊
-        status_emoji = {"active": "🟢", "pending": "🟡", "ended": "🔴", "cancelled": "⚫"}
+        status_emoji = {
+            "active": "🟢",
+            "pending": "🟡",
+            "ended": "🔴",
+            "cancelled": "⚫",
+        }
 
         embed.add_field(
             name="📊 狀態",
@@ -305,7 +332,11 @@ class LotteryParticipationView(ui.View):
 
     def _get_entry_method_text(self, entry_method: str) -> str:
         """獲取參與方式文字"""
-        method_map = {"reaction": "反應點擊", "command": "指令參與", "both": "反應 + 指令"}
+        method_map = {
+            "reaction": "反應點擊",
+            "command": "指令參與",
+            "both": "反應 + 指令",
+        }
         return method_map.get(entry_method, "未知")
 
     def _format_time_delta(self, delta: timedelta) -> str:
@@ -336,7 +367,9 @@ class LotteryManagementView(ui.View):
         self.lottery_manager = LotteryManager()
 
     @ui.button(label="🎲 創建新抽獎", style=discord.ButtonStyle.primary, emoji="🎲")
-    async def create_new_lottery(self, interaction: discord.Interaction, button: ui.Button):
+    async def create_new_lottery(
+        self, interaction: discord.Interaction, button: ui.Button
+    ):
         """創建新抽獎"""
         if not interaction.user.guild_permissions.manage_messages:
             await interaction.response.send_message(
@@ -348,7 +381,9 @@ class LotteryManagementView(ui.View):
         await interaction.response.send_modal(modal)
 
     @ui.button(label="📋 活動抽獎", style=discord.ButtonStyle.secondary, emoji="📋")
-    async def active_lotteries(self, interaction: discord.Interaction, button: ui.Button):
+    async def active_lotteries(
+        self, interaction: discord.Interaction, button: ui.Button
+    ):
         """查看活動抽獎"""
         try:
             await interaction.response.defer(ephemeral=True)
@@ -358,16 +393,20 @@ class LotteryManagementView(ui.View):
             )
 
             if not active_lotteries:
-                embed = EmbedBuilder.create_info_embed("📋 活動抽獎", "目前沒有進行中的抽獎活動")
+                embed = EmbedBuilder.create_info_embed(
+                    "📋 活動抽獎", "目前沒有進行中的抽獎活動"
+                )
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
 
             # 創建抽獎列表嵌入
-            embed = EmbedBuilder.create_info_embed(f"📋 活動抽獎 ({len(active_lotteries)})")
+            embed = EmbedBuilder.create_info_embed(
+                f"📋 活動抽獎 ({len(active_lotteries)})"
+            )
 
             for lottery in active_lotteries[:10]:  # 最多顯示10個
-                participant_count = await self.lottery_manager.dao.get_participant_count(
-                    lottery["id"]
+                participant_count = (
+                    await self.lottery_manager.dao.get_participant_count(lottery["id"])
                 )
 
                 end_time = lottery.get("end_time")
@@ -383,7 +422,9 @@ class LotteryManagementView(ui.View):
                 )
 
             if len(active_lotteries) > 10:
-                embed.set_footer(text=f"顯示前 10 個，共 {len(active_lotteries)} 個活動抽獎")
+                embed.set_footer(
+                    text=f"顯示前 10 個，共 {len(active_lotteries)} 個活動抽獎"
+                )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -392,7 +433,9 @@ class LotteryManagementView(ui.View):
             await interaction.followup.send("❌ 獲取活動抽獎時發生錯誤", ephemeral=True)
 
     @ui.button(label="📊 統計儀表板", style=discord.ButtonStyle.secondary, emoji="📊")
-    async def lottery_statistics(self, interaction: discord.Interaction, button: ui.Button):
+    async def lottery_statistics(
+        self, interaction: discord.Interaction, button: ui.Button
+    ):
         """打開統計儀表板"""
         try:
             await interaction.response.defer(ephemeral=True)
@@ -401,7 +444,9 @@ class LotteryManagementView(ui.View):
             from bot.views.lottery_dashboard_views import LotteryStatsDashboardView
 
             # 獲取統計資料
-            stats = await self.lottery_manager.dao.get_lottery_statistics(interaction.guild.id)
+            stats = await self.lottery_manager.dao.get_lottery_statistics(
+                interaction.guild.id
+            )
 
             # 創建儀表板視圖
             dashboard_view = LotteryStatsDashboardView(interaction.guild.id)
@@ -409,30 +454,45 @@ class LotteryManagementView(ui.View):
             # 創建統計嵌入
             embed = await dashboard_view._create_stats_embed(stats, 30)
 
-            await interaction.followup.send(embed=embed, view=dashboard_view, ephemeral=True)
+            await interaction.followup.send(
+                embed=embed, view=dashboard_view, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"打開統計儀表板失敗: {e}")
-            await interaction.followup.send("❌ 打開統計儀表板時發生錯誤", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 打開統計儀表板時發生錯誤", ephemeral=True
+            )
 
     @ui.select(
         placeholder="選擇管理操作...",
         options=[
             discord.SelectOption(
-                label="結束抽獎", description="提前結束指定的抽獎", emoji="🛑", value="end_lottery"
+                label="結束抽獎",
+                description="提前結束指定的抽獎",
+                emoji="🛑",
+                value="end_lottery",
             ),
             discord.SelectOption(
                 label="重新開獎", description="重新進行開獎", emoji="🔄", value="redraw"
             ),
             discord.SelectOption(
-                label="查看中獎者", description="查看抽獎中獎者", emoji="🏆", value="view_winners"
+                label="查看中獎者",
+                description="查看抽獎中獎者",
+                emoji="🏆",
+                value="view_winners",
             ),
             discord.SelectOption(
-                label="抽獎設定", description="修改抽獎系統設定", emoji="⚙️", value="settings"
+                label="抽獎設定",
+                description="修改抽獎系統設定",
+                emoji="⚙️",
+                value="settings",
             ),
         ],
     )
-    async def management_select(self, interaction: discord.Interaction, select: ui.Select):
+    async def management_select(
+        self, interaction: discord.Interaction, select: ui.Select
+    ):
         """管理操作選擇"""
         if not interaction.user.guild_permissions.manage_messages:
             await interaction.response.send_message(
@@ -454,19 +514,27 @@ class LotteryManagementView(ui.View):
     async def _handle_end_lottery(self, interaction: discord.Interaction):
         """處理結束抽獎"""
         # 這裡會實現結束抽獎的邏輯
-        await interaction.response.send_message("🛑 結束抽獎功能開發中...", ephemeral=True)
+        await interaction.response.send_message(
+            "🛑 結束抽獎功能開發中...", ephemeral=True
+        )
 
     async def _handle_redraw(self, interaction: discord.Interaction):
         """處理重新開獎"""
         # 這裡會實現重新開獎的邏輯
-        await interaction.response.send_message("🔄 重新開獎功能開發中...", ephemeral=True)
+        await interaction.response.send_message(
+            "🔄 重新開獎功能開發中...", ephemeral=True
+        )
 
     async def _handle_view_winners(self, interaction: discord.Interaction):
         """處理查看中獎者"""
         # 這裡會實現查看中獎者的邏輯
-        await interaction.response.send_message("🏆 查看中獎者功能開發中...", ephemeral=True)
+        await interaction.response.send_message(
+            "🏆 查看中獎者功能開發中...", ephemeral=True
+        )
 
     async def _handle_settings(self, interaction: discord.Interaction):
         """處理抽獎設定"""
         # 這裡會實現抽獎設定的邏輯
-        await interaction.response.send_message("⚙️ 抽獎設定功能開發中...", ephemeral=True)
+        await interaction.response.send_message(
+            "⚙️ 抽獎設定功能開發中...", ephemeral=True
+        )

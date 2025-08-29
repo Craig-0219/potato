@@ -78,7 +78,10 @@ class TemplateCategorySelect(ui.Select):
     def __init__(self):
         options = [
             discord.SelectOption(
-                label="📊 民意調查", description="快速收集意見的投票模板", value="poll", emoji="📊"
+                label="📊 民意調查",
+                description="快速收集意見的投票模板",
+                value="poll",
+                emoji="📊",
             ),
             discord.SelectOption(
                 label="🗓️ 活動安排",
@@ -87,21 +90,35 @@ class TemplateCategorySelect(ui.Select):
                 emoji="🗓️",
             ),
             discord.SelectOption(
-                label="🍕 聚餐選擇", description="地點、菜單選擇模板", value="food", emoji="🍕"
+                label="🍕 聚餐選擇",
+                description="地點、菜單選擇模板",
+                value="food",
+                emoji="🍕",
             ),
             discord.SelectOption(
-                label="⭐ 評分投票", description="滿意度和評分調查模板", value="rating", emoji="⭐"
+                label="⭐ 評分投票",
+                description="滿意度和評分調查模板",
+                value="rating",
+                emoji="⭐",
             ),
             discord.SelectOption(
-                label="🎮 遊戲選擇", description="遊戲和娛樂相關模板", value="game", emoji="🎮"
+                label="🎮 遊戲選擇",
+                description="遊戲和娛樂相關模板",
+                value="game",
+                emoji="🎮",
             ),
             discord.SelectOption(
-                label="🛠️ 自定義", description="用戶創建的自定義模板", value="custom", emoji="🛠️"
+                label="🛠️ 自定義",
+                description="用戶創建的自定義模板",
+                value="custom",
+                emoji="🛠️",
             ),
         ]
 
         super().__init__(
-            placeholder="選擇模板類別...", options=options, custom_id="template_category_select"
+            placeholder="選擇模板類別...",
+            options=options,
+            custom_id="template_category_select",
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -125,18 +142,24 @@ class TemplateCategorySelect(ui.Select):
             template_view = TemplateListView(templates, view.user_id, view.guild_id)
             embed = template_view.create_embed(category)
 
-            await interaction.response.send_message(embed=embed, view=template_view, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, view=template_view, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"處理模板類別選擇失敗: {e}")
-            await interaction.response.send_message("❌ 載入模板時發生錯誤", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 載入模板時發生錯誤", ephemeral=True
+            )
 
 
 class FavoriteTemplatesButton(ui.Button):
     """收藏模板按鈕"""
 
     def __init__(self):
-        super().__init__(label="⭐ 我的收藏", style=discord.ButtonStyle.secondary, emoji="⭐")
+        super().__init__(
+            label="⭐ 我的收藏", style=discord.ButtonStyle.secondary, emoji="⭐"
+        )
 
     async def callback(self, interaction: discord.Interaction):
         """顯示收藏的模板"""
@@ -152,7 +175,8 @@ class FavoriteTemplatesButton(ui.Button):
 
             if not favorites:
                 await interaction.response.send_message(
-                    "📭 你還沒有收藏任何模板\n💡 在模板詳情中點擊 ⭐ 可以收藏模板", ephemeral=True
+                    "📭 你還沒有收藏任何模板\n💡 在模板詳情中點擊 ⭐ 可以收藏模板",
+                    ephemeral=True,
                 )
                 return
 
@@ -160,18 +184,24 @@ class FavoriteTemplatesButton(ui.Button):
             template_view = TemplateListView(favorites, view.user_id, view.guild_id)
             embed = template_view.create_embed("收藏")
 
-            await interaction.response.send_message(embed=embed, view=template_view, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, view=template_view, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"載入收藏模板失敗: {e}")
-            await interaction.response.send_message("❌ 載入收藏模板時發生錯誤", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 載入收藏模板時發生錯誤", ephemeral=True
+            )
 
 
 class CreateCustomTemplateButton(ui.Button):
     """創建自定義模板按鈕"""
 
     def __init__(self):
-        super().__init__(label="🛠️ 創建模板", style=discord.ButtonStyle.success, emoji="🛠️")
+        super().__init__(
+            label="🛠️ 創建模板", style=discord.ButtonStyle.success, emoji="🛠️"
+        )
 
     async def callback(self, interaction: discord.Interaction):
         """顯示創建自定義模板的模態框"""
@@ -181,7 +211,9 @@ class CreateCustomTemplateButton(ui.Button):
 
         except Exception as e:
             logger.error(f"顯示創建模板模態框失敗: {e}")
-            await interaction.response.send_message("❌ 創建模板功能暫時無法使用", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 創建模板功能暫時無法使用", ephemeral=True
+            )
 
 
 class TemplateListView(ui.View):
@@ -203,7 +235,9 @@ class TemplateListView(ui.View):
             self.add_item(TemplateSelectMenu(self.get_current_templates()))
 
         # 分頁按鈕
-        total_pages = (len(self.templates) + self.templates_per_page - 1) // self.templates_per_page
+        total_pages = (
+            len(self.templates) + self.templates_per_page - 1
+        ) // self.templates_per_page
         if total_pages > 1:
             self.add_item(PreviousPageButton(enabled=self.current_page > 0))
             self.add_item(NextPageButton(enabled=self.current_page < total_pages - 1))
@@ -216,7 +250,9 @@ class TemplateListView(ui.View):
 
     def create_embed(self, category: str) -> discord.Embed:
         """創建模板列表嵌入"""
-        total_pages = (len(self.templates) + self.templates_per_page - 1) // self.templates_per_page
+        total_pages = (
+            len(self.templates) + self.templates_per_page - 1
+        ) // self.templates_per_page
 
         embed = EmbedBuilder.create_info_embed(
             f"📋 {category}模板列表", f"找到 {len(self.templates)} 個模板"
@@ -261,7 +297,9 @@ class TemplateSelectMenu(ui.Select):
             )
 
         super().__init__(
-            placeholder="選擇要使用的模板...", options=options, custom_id="template_select_menu"
+            placeholder="選擇要使用的模板...",
+            options=options,
+            custom_id="template_select_menu",
         )
 
     def _get_category_emoji(self, category: str) -> str:
@@ -282,7 +320,9 @@ class TemplateSelectMenu(ui.Select):
             template_id = int(self.values[0])
 
             # 顯示模板詳情和自定義選項
-            detail_view = TemplateDetailView(template_id, interaction.user.id, interaction.guild.id)
+            detail_view = TemplateDetailView(
+                template_id, interaction.user.id, interaction.guild.id
+            )
             embed = await detail_view.create_embed()
 
             if embed:
@@ -290,11 +330,15 @@ class TemplateSelectMenu(ui.Select):
                     embed=embed, view=detail_view, ephemeral=True
                 )
             else:
-                await interaction.response.send_message("❌ 無法載入模板詳情", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 無法載入模板詳情", ephemeral=True
+                )
 
         except Exception as e:
             logger.error(f"處理模板選擇失敗: {e}")
-            await interaction.response.send_message("❌ 載入模板時發生錯誤", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 載入模板時發生錯誤", ephemeral=True
+            )
 
 
 class PreviousPageButton(ui.Button):
@@ -363,7 +407,8 @@ class TemplateDetailView(ui.View):
                 return None
 
             embed = EmbedBuilder.create_info_embed(
-                f"📋 模板詳情：{template['name']}", template.get("description", "無描述")
+                f"📋 模板詳情：{template['name']}",
+                template.get("description", "無描述"),
             )
 
             # 模板資訊
@@ -382,14 +427,18 @@ class TemplateDetailView(ui.View):
 
             # 標題模板
             embed.add_field(
-                name="📝 標題模板", value=f"```{template['title_template']}```", inline=False
+                name="📝 標題模板",
+                value=f"```{template['title_template']}```",
+                inline=False,
             )
 
             # 選項模板
             options_text = "\n".join(
                 [f"{i+1}. {opt}" for i, opt in enumerate(template["options_template"])]
             )
-            embed.add_field(name="📋 選項模板", value=f"```{options_text}```", inline=False)
+            embed.add_field(
+                name="📋 選項模板", value=f"```{options_text}```", inline=False
+            )
 
             # 標籤
             if template["tags"]:
@@ -420,7 +469,9 @@ class UseTemplateButton(ui.Button):
     """使用模板按鈕"""
 
     def __init__(self, template_id: int):
-        super().__init__(label="✅ 使用模板", style=discord.ButtonStyle.success, emoji="✅")
+        super().__init__(
+            label="✅ 使用模板", style=discord.ButtonStyle.success, emoji="✅"
+        )
         self.template_id = template_id
 
     async def callback(self, interaction: discord.Interaction):
@@ -432,14 +483,18 @@ class UseTemplateButton(ui.Button):
 
         except Exception as e:
             logger.error(f"使用模板失敗: {e}")
-            await interaction.response.send_message("❌ 使用模板時發生錯誤", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 使用模板時發生錯誤", ephemeral=True
+            )
 
 
 class FavoriteToggleButton(ui.Button):
     """收藏切換按鈕"""
 
     def __init__(self, template_id: int):
-        super().__init__(label="⭐ 收藏", style=discord.ButtonStyle.secondary, emoji="⭐")
+        super().__init__(
+            label="⭐ 收藏", style=discord.ButtonStyle.secondary, emoji="⭐"
+        )
         self.template_id = template_id
 
     async def callback(self, interaction: discord.Interaction):
@@ -473,7 +528,9 @@ class FavoriteToggleButton(ui.Button):
 
         except Exception as e:
             logger.error(f"切換收藏狀態失敗: {e}")
-            await interaction.response.send_message("❌ 收藏操作時發生錯誤", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 收藏操作時發生錯誤", ephemeral=True
+            )
 
 
 class TemplateCustomizationModal(ui.Modal):
@@ -523,7 +580,9 @@ class TemplateCustomizationModal(ui.Modal):
             )
 
             if not vote_config:
-                await interaction.response.send_message("❌ 無法應用模板", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 無法應用模板", ephemeral=True
+                )
                 return
 
             # 處理持續時間調整
@@ -589,12 +648,16 @@ class TemplateCustomizationModal(ui.Modal):
                     ephemeral=True,
                 )
             else:
-                await interaction.followup.send("❌ 創建投票失敗，請稍後再試", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ 創建投票失敗，請稍後再試", ephemeral=True
+                )
 
         except Exception as e:
             logger.error(f"模板應用失敗: {e}")
             if not interaction.response.is_done():
-                await interaction.response.send_message("❌ 應用模板時發生錯誤", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 應用模板時發生錯誤", ephemeral=True
+                )
             else:
                 await interaction.followup.send("❌ 應用模板時發生錯誤", ephemeral=True)
 
@@ -606,7 +669,10 @@ class CreateCustomTemplateModal(ui.Modal):
         super().__init__(title="🛠️ 創建自定義模板", timeout=300)
 
         self.name = ui.TextInput(
-            label="模板名稱", placeholder="例如：每週例會時間投票", max_length=100, required=True
+            label="模板名稱",
+            placeholder="例如：每週例會時間投票",
+            max_length=100,
+            required=True,
         )
         self.add_item(self.name)
 
@@ -640,10 +706,16 @@ class CreateCustomTemplateModal(ui.Modal):
         """處理自定義模板創建"""
         try:
             # 解析選項
-            options = [opt.strip() for opt in self.options_template.value.split(",") if opt.strip()]
+            options = [
+                opt.strip()
+                for opt in self.options_template.value.split(",")
+                if opt.strip()
+            ]
 
             if len(options) < 2:
-                await interaction.response.send_message("❌ 至少需要2個選項", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 至少需要2個選項", ephemeral=True
+                )
                 return
 
             # 準備模板數據
@@ -662,7 +734,9 @@ class CreateCustomTemplateModal(ui.Modal):
             }
 
             # 創建模板
-            template_id = await vote_template_manager.create_custom_template(template_data)
+            template_id = await vote_template_manager.create_custom_template(
+                template_data
+            )
 
             if template_id:
                 await interaction.response.send_message(
@@ -678,4 +752,6 @@ class CreateCustomTemplateModal(ui.Modal):
 
         except Exception as e:
             logger.error(f"創建自定義模板失敗: {e}")
-            await interaction.response.send_message("❌ 創建模板時發生錯誤", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 創建模板時發生錯誤", ephemeral=True
+            )

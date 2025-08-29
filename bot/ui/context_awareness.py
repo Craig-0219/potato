@@ -179,11 +179,15 @@ class ContextAwarenessEngine:
             # 獲取最近活動數據（模擬）
             context.update(
                 {
-                    "messages_last_hour": await self._get_recent_message_count(guild_id),
+                    "messages_last_hour": await self._get_recent_message_count(
+                        guild_id
+                    ),
                     "new_members_last_hour": await self._get_new_member_count(guild_id),
                     "open_tickets": await self._get_open_ticket_count(guild_id),
                     "active_votes": await self._get_active_vote_count(guild_id),
-                    "ai_interactions_today": await self._get_ai_interaction_count(guild_id),
+                    "ai_interactions_today": await self._get_ai_interaction_count(
+                        guild_id
+                    ),
                 }
             )
 
@@ -209,7 +213,9 @@ class ContextAwarenessEngine:
             logger.error(f"❌ 伺服器情境分析失敗: {e}")
             return {}
 
-    async def analyze_user_behavior(self, user_id: str, guild_id: str) -> Dict[str, Any]:
+    async def analyze_user_behavior(
+        self, user_id: str, guild_id: str
+    ) -> Dict[str, Any]:
         """分析用戶行為模式"""
         try:
             user_key = f"{guild_id}_{user_id}"
@@ -225,7 +231,9 @@ class ContextAwarenessEngine:
                 "most_used_features": self._get_top_features(preferences),
                 "usage_frequency": self._calculate_usage_frequency(preferences),
                 "time_patterns": self._analyze_time_patterns(preferences),
-                "last_activity": max([p.last_used for p in preferences]) if preferences else 0,
+                "last_activity": (
+                    max([p.last_used for p in preferences]) if preferences else 0
+                ),
             }
 
             return behavior_analysis
@@ -294,7 +302,9 @@ class ContextAwarenessEngine:
     def _get_top_features(self, preferences: List[UserPreference]) -> List[str]:
         """獲取最常用功能"""
         try:
-            sorted_prefs = sorted(preferences, key=lambda p: p.usage_count, reverse=True)
+            sorted_prefs = sorted(
+                preferences, key=lambda p: p.usage_count, reverse=True
+            )
             return [p.feature for p in sorted_prefs[:5]]
         except Exception as e:
             logger.error(f"❌ 獲取熱門功能失敗: {e}")
@@ -320,14 +330,18 @@ class ContextAwarenessEngine:
             logger.error(f"❌ 計算使用頻率失敗: {e}")
             return 0.0
 
-    def _analyze_time_patterns(self, preferences: List[UserPreference]) -> Dict[str, Any]:
+    def _analyze_time_patterns(
+        self, preferences: List[UserPreference]
+    ) -> Dict[str, Any]:
         """分析時間模式"""
         try:
             if not preferences:
                 return {}
 
             # 簡化的時間分析
-            recent_usage = [p for p in preferences if time.time() - p.last_used < 7 * 86400]
+            recent_usage = [
+                p for p in preferences if time.time() - p.last_used < 7 * 86400
+            ]
 
             return {
                 "recent_activity": len(recent_usage),
@@ -379,7 +393,8 @@ class ContextAwarenessEngine:
                         self.server_contexts[guild_id] = [
                             ctx
                             for ctx in contexts
-                            if current_time - ctx.timestamp < 86400  # 保留24小時內的數據
+                            if current_time - ctx.timestamp
+                            < 86400  # 保留24小時內的數據
                         ]
 
                     # 清理舊的用戶偏好
@@ -388,7 +403,8 @@ class ContextAwarenessEngine:
                         self.user_preferences[user_key] = [
                             pref
                             for pref in preferences
-                            if current_time - pref.last_used < 7 * 86400  # 保留7天內的偏好
+                            if current_time - pref.last_used
+                            < 7 * 86400  # 保留7天內的偏好
                         ]
 
                     await asyncio.sleep(3600)  # 每小時清理一次

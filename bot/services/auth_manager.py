@@ -136,17 +136,27 @@ class AuthenticationManager:
         """同步 Discord 用戶到 API 認證系統"""
         try:
             # 檢查用戶角色和權限
-            roles = [role.name for role in discord_user.roles if role.name != "@everyone"]
+            roles = [
+                role.name for role in discord_user.roles if role.name != "@everyone"
+            ]
 
             # 判斷是否為管理員或客服（支援模糊匹配）
             admin_keywords = ["管理員", "admin", "owner", "服主", "commander"]
-            staff_keywords = ["客服", "staff", "support", "moderator", "mod"] + admin_keywords
+            staff_keywords = [
+                "客服",
+                "staff",
+                "support",
+                "moderator",
+                "mod",
+            ] + admin_keywords
 
             is_admin = any(
-                any(keyword.lower() in role.lower() for keyword in admin_keywords) for role in roles
+                any(keyword.lower() in role.lower() for keyword in admin_keywords)
+                for role in roles
             )
             is_staff = any(
-                any(keyword.lower() in role.lower() for keyword in staff_keywords) for role in roles
+                any(keyword.lower() in role.lower() for keyword in staff_keywords)
+                for role in roles
             )
 
             # 基於角色設定權限
@@ -201,7 +211,9 @@ class AuthenticationManager:
                         user_id = existing_user["id"]
                     else:
                         # 創建新用戶
-                        password_hash = self._hash_password(password) if password else None
+                        password_hash = (
+                            self._hash_password(password) if password else None
+                        )
                         # 根據權限設定permission_level
                         if is_admin:
                             permission_level = "admin"
@@ -296,7 +308,8 @@ class AuthenticationManager:
 
                     # 更新最後登入時間
                     await cursor.execute(
-                        "UPDATE api_users SET last_login = NOW() WHERE id = %s", (user_data["id"],)
+                        "UPDATE api_users SET last_login = NOW() WHERE id = %s",
+                        (user_data["id"],),
                     )
                     await conn.commit()
 
@@ -306,9 +319,13 @@ class AuthenticationManager:
                         discord_id=user_data["discord_id"],
                         username=user_data["username"],
                         guild_id=user_data["guild_id"],
-                        roles=json.loads(user_data["roles"]) if user_data["roles"] else [],
+                        roles=(
+                            json.loads(user_data["roles"]) if user_data["roles"] else []
+                        ),
                         permissions=(
-                            json.loads(user_data["permissions"]) if user_data["permissions"] else []
+                            json.loads(user_data["permissions"])
+                            if user_data["permissions"]
+                            else []
                         ),
                         is_admin=user_data["is_admin"],
                         is_staff=user_data["is_staff"],
@@ -335,7 +352,8 @@ class AuthenticationManager:
                 "permissions": auth_user.permissions,
                 "is_admin": auth_user.is_admin,
                 "is_staff": auth_user.is_staff,
-                "exp": datetime.now(timezone.utc) + timedelta(hours=self.token_expiry_hours),
+                "exp": datetime.now(timezone.utc)
+                + timedelta(hours=self.token_expiry_hours),
                 "iat": datetime.now(timezone.utc),
             }
 
@@ -347,7 +365,9 @@ class AuthenticationManager:
             logger.error(f"生成 JWT 令牌失敗: {e}")
             return None
 
-    def verify_jwt_token(self, token: str) -> Tuple[bool, Optional[Dict[str, Any]], str]:
+    def verify_jwt_token(
+        self, token: str
+    ) -> Tuple[bool, Optional[Dict[str, Any]], str]:
         """驗證 JWT 令牌"""
         try:
             payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
@@ -364,7 +384,11 @@ class AuthenticationManager:
     # ===== API 金鑰管理 =====
 
     async def create_api_key(
-        self, user_id: int, name: str, permissions: List[str] = None, expires_days: int = 30
+        self,
+        user_id: int,
+        name: str,
+        permissions: List[str] = None,
+        expires_days: int = 30,
     ) -> Tuple[bool, str, Optional[str]]:
         """創建 API 金鑰"""
         try:
@@ -409,7 +433,9 @@ class AuthenticationManager:
             logger.error(f"創建 API 金鑰失敗: {e}")
             return False, f"創建失敗: {str(e)}", None
 
-    async def verify_api_key(self, api_key: str) -> Tuple[bool, Optional[AuthUser], str]:
+    async def verify_api_key(
+        self, api_key: str
+    ) -> Tuple[bool, Optional[AuthUser], str]:
         """驗證 API 金鑰"""
         try:
             if "." not in api_key:
@@ -441,20 +467,27 @@ class AuthenticationManager:
 
                     # 更新最後使用時間
                     await cursor.execute(
-                        "UPDATE api_keys SET last_used = NOW() WHERE id = %s", (result["id"],)
+                        "UPDATE api_keys SET last_used = NOW() WHERE id = %s",
+                        (result["id"],),
                     )
                     await conn.commit()
 
                     # 合併用戶權限和金鑰權限
                     user_permissions = (
-                        json.loads(result["user_permissions"]) if result["user_permissions"] else []
+                        json.loads(result["user_permissions"])
+                        if result["user_permissions"]
+                        else []
                     )
                     key_permissions = (
-                        json.loads(result["key_permissions"]) if result["key_permissions"] else []
+                        json.loads(result["key_permissions"])
+                        if result["key_permissions"]
+                        else []
                     )
 
                     # 如果金鑰有特定權限，使用金鑰權限；否則使用用戶權限
-                    final_permissions = key_permissions if key_permissions else user_permissions
+                    final_permissions = (
+                        key_permissions if key_permissions else user_permissions
+                    )
 
                     auth_user = AuthUser(
                         user_id=result["user_id"],
@@ -476,7 +509,11 @@ class AuthenticationManager:
     # ===== 會話管理 =====
 
     async def create_login_session(
-        self, user_id: int, ip_address: str = None, user_agent: str = None, expires_hours: int = 24
+        self,
+        user_id: int,
+        ip_address: str = None,
+        user_agent: str = None,
+        expires_hours: int = 24,
     ) -> Optional[str]:
         """創建登入會話"""
         try:
@@ -502,7 +539,9 @@ class AuthenticationManager:
             logger.error(f"創建登入會話失敗: {e}")
             return None
 
-    async def verify_session(self, session_token: str) -> Tuple[bool, Optional[AuthUser], str]:
+    async def verify_session(
+        self, session_token: str
+    ) -> Tuple[bool, Optional[AuthUser], str]:
         """驗證登入會話"""
         try:
             async with self.db.connection() as conn:
@@ -538,7 +577,9 @@ class AuthenticationManager:
                         guild_id=result["guild_id"],
                         roles=json.loads(result["roles"]) if result["roles"] else [],
                         permissions=(
-                            json.loads(result["permissions"]) if result["permissions"] else []
+                            json.loads(result["permissions"])
+                            if result["permissions"]
+                            else []
                         ),
                         is_admin=result["is_admin"],
                         is_staff=result["is_staff"],
@@ -596,13 +637,19 @@ class AuthenticationManager:
                                 "key_id": row["key_id"],
                                 "name": row["name"],
                                 "permissions": (
-                                    json.loads(row["permissions"]) if row["permissions"] else []
+                                    json.loads(row["permissions"])
+                                    if row["permissions"]
+                                    else []
                                 ),
                                 "expires_at": (
-                                    row["expires_at"].isoformat() if row["expires_at"] else None
+                                    row["expires_at"].isoformat()
+                                    if row["expires_at"]
+                                    else None
                                 ),
                                 "last_used": (
-                                    row["last_used"].isoformat() if row["last_used"] else None
+                                    row["last_used"].isoformat()
+                                    if row["last_used"]
+                                    else None
                                 ),
                                 "created_at": row["created_at"].isoformat(),
                                 "is_active": row["is_active"],

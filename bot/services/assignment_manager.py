@@ -14,7 +14,9 @@ from shared.logger import logger
 class AssignmentManager:
     """票券指派管理器"""
 
-    def __init__(self, assignment_dao: AssignmentDAO = None, ticket_dao: TicketDAO = None):
+    def __init__(
+        self, assignment_dao: AssignmentDAO = None, ticket_dao: TicketDAO = None
+    ):
         self.assignment_dao = assignment_dao or AssignmentDAO()
         self.ticket_dao = ticket_dao or TicketDAO()
 
@@ -40,20 +42,26 @@ class AssignmentManager:
 
             # 檢查客服人員當前工作量
             guild_id = ticket["guild_id"]
-            workload = await self.assignment_dao.get_staff_workload(guild_id, assigned_to)
+            workload = await self.assignment_dao.get_staff_workload(
+                guild_id, assigned_to
+            )
 
             # 取得指派規則
             assignment_rule = await self.assignment_dao.get_assignment_rule(
                 guild_id, ticket["type"], ticket.get("priority", "medium")
             )
-            max_concurrent = assignment_rule["max_concurrent_tickets"] if assignment_rule else 5
+            max_concurrent = (
+                assignment_rule["max_concurrent_tickets"] if assignment_rule else 5
+            )
 
             if workload and workload["current_tickets"] >= max_concurrent:
                 return False, f"客服人員當前工作量已達上限（{max_concurrent}張票券）"
 
             # 執行指派
             original_assigned = ticket.get("assigned_to")
-            success = await self.ticket_dao.assign_ticket(ticket_id, assigned_to, assigned_by)
+            success = await self.ticket_dao.assign_ticket(
+                ticket_id, assigned_to, assigned_by
+            )
 
             if success:
                 # 更新工作量
@@ -74,7 +82,12 @@ class AssignmentManager:
 
                 # 記錄指派歷史
                 await self.assignment_dao.record_assignment(
-                    ticket_id, original_assigned, assigned_to, assigned_by, reason, method
+                    ticket_id,
+                    original_assigned,
+                    assigned_to,
+                    assigned_by,
+                    reason,
+                    method,
                 )
 
                 logger.info(
@@ -112,7 +125,9 @@ class AssignmentManager:
                 await self.assignment_dao.create_assignment_rule(
                     guild_id, "default", None, None, "auto_least_workload", 5
                 )
-                assignment_rule = await self.assignment_dao.get_assignment_rule(guild_id)
+                assignment_rule = await self.assignment_dao.get_assignment_rule(
+                    guild_id
+                )
 
             method = assignment_rule["assignment_method"]
             max_concurrent = assignment_rule["max_concurrent_tickets"]
@@ -121,11 +136,17 @@ class AssignmentManager:
             assigned_to = None
 
             if method == "auto_least_workload":
-                assigned_to = await self._assign_by_least_workload(guild_id, max_concurrent)
+                assigned_to = await self._assign_by_least_workload(
+                    guild_id, max_concurrent
+                )
             elif method == "auto_round_robin":
-                assigned_to = await self._assign_by_round_robin(guild_id, max_concurrent)
+                assigned_to = await self._assign_by_round_robin(
+                    guild_id, max_concurrent
+                )
             elif method == "auto_specialty":
-                assigned_to = await self._assign_by_specialty(guild_id, ticket_type, max_concurrent)
+                assigned_to = await self._assign_by_specialty(
+                    guild_id, ticket_type, max_concurrent
+                )
 
             if assigned_to:
                 success, message = await self.assign_ticket(
@@ -141,17 +162,25 @@ class AssignmentManager:
 
     # ========== 指派演算法 ==========
 
-    async def _assign_by_least_workload(self, guild_id: int, max_concurrent: int) -> Optional[int]:
+    async def _assign_by_least_workload(
+        self, guild_id: int, max_concurrent: int
+    ) -> Optional[int]:
         """根據最少工作量指派"""
-        available_staff = await self.assignment_dao.get_available_staff(guild_id, max_concurrent)
+        available_staff = await self.assignment_dao.get_available_staff(
+            guild_id, max_concurrent
+        )
         if available_staff:
             # 選擇工作量最少的客服
             return available_staff[0]["staff_id"]
         return None
 
-    async def _assign_by_round_robin(self, guild_id: int, max_concurrent: int) -> Optional[int]:
+    async def _assign_by_round_robin(
+        self, guild_id: int, max_concurrent: int
+    ) -> Optional[int]:
         """輪流指派"""
-        available_staff = await self.assignment_dao.get_available_staff(guild_id, max_concurrent)
+        available_staff = await self.assignment_dao.get_available_staff(
+            guild_id, max_concurrent
+        )
         if available_staff:
             # 找出最久沒有被指派的客服
             oldest_assignment = None
@@ -162,7 +191,10 @@ class AssignmentManager:
                     # 從未被指派過的客服優先
                     return staff["staff_id"]
 
-                if oldest_assignment is None or staff["last_assigned_at"] < oldest_assignment:
+                if (
+                    oldest_assignment is None
+                    or staff["last_assigned_at"] < oldest_assignment
+                ):
                     oldest_assignment = staff["last_assigned_at"]
                     selected_staff = staff["staff_id"]
 
@@ -174,10 +206,14 @@ class AssignmentManager:
     ) -> Optional[int]:
         """根據專精指派"""
         # 先嘗試找專精匹配的客服
-        specialty_staff = await self.assignment_dao.find_specialty_staff(guild_id, ticket_type)
+        specialty_staff = await self.assignment_dao.find_specialty_staff(
+            guild_id, ticket_type
+        )
 
         for staff in specialty_staff:
-            workload = await self.assignment_dao.get_staff_workload(guild_id, staff["staff_id"])
+            workload = await self.assignment_dao.get_staff_workload(
+                guild_id, staff["staff_id"]
+            )
             current_tickets = workload["current_tickets"] if workload else 0
 
             if current_tickets < max_concurrent:
@@ -229,7 +265,9 @@ class AssignmentManager:
 
             summary = []
             for staff in available_staff:
-                workload = await self.assignment_dao.get_staff_workload(guild_id, staff["staff_id"])
+                workload = await self.assignment_dao.get_staff_workload(
+                    guild_id, staff["staff_id"]
+                )
                 if workload:
                     # 計算效率指標
                     completion_rate = 0
@@ -269,7 +307,11 @@ class AssignmentManager:
     # ========== 專精管理 ==========
 
     async def add_staff_specialty(
-        self, guild_id: int, staff_id: int, specialty_type: str, skill_level: str = "intermediate"
+        self,
+        guild_id: int,
+        staff_id: int,
+        specialty_type: str,
+        skill_level: str = "intermediate",
     ) -> Tuple[bool, str]:
         """添加客服專精"""
         try:
@@ -299,10 +341,14 @@ class AssignmentManager:
             if not workload:
                 # 初始化工作量記錄
                 await self.assignment_dao.initialize_staff_workload(guild_id, staff_id)
-                workload = await self.assignment_dao.get_staff_workload(guild_id, staff_id)
+                workload = await self.assignment_dao.get_staff_workload(
+                    guild_id, staff_id
+                )
 
             # 取得專精資訊
-            specialties = await self.assignment_dao.get_staff_specialties(guild_id, staff_id)
+            specialties = await self.assignment_dao.get_staff_specialties(
+                guild_id, staff_id
+            )
 
             # 組合檔案資訊
             profile = {
@@ -324,7 +370,9 @@ class AssignmentManager:
 
             # 效率分數（基於平均完成時間和完成率）
             if workload["avg_completion_time"] > 0:
-                time_score = max(0, 100 - (workload["avg_completion_time"] / 60))  # 以1小時為基準
+                time_score = max(
+                    0, 100 - (workload["avg_completion_time"] / 60)
+                )  # 以1小時為基準
                 completion_score = profile["performance_metrics"]["completion_rate"]
                 profile["performance_metrics"]["efficiency_score"] = (
                     time_score + completion_score
@@ -338,7 +386,9 @@ class AssignmentManager:
 
     # ========== 統計與報告 ==========
 
-    async def get_assignment_analytics(self, guild_id: int, days: int = 30) -> Dict[str, Any]:
+    async def get_assignment_analytics(
+        self, guild_id: int, days: int = 30
+    ) -> Dict[str, Any]:
         """取得指派分析報告"""
         try:
             # 基礎統計
@@ -348,19 +398,30 @@ class AssignmentManager:
             workload_summary = await self.get_staff_workload_summary(guild_id)
 
             # 計算整體指標
-            total_current_tickets = sum(staff["current_tickets"] for staff in workload_summary)
-            total_completed = sum(staff["total_completed"] for staff in workload_summary)
+            total_current_tickets = sum(
+                staff["current_tickets"] for staff in workload_summary
+            )
+            total_completed = sum(
+                staff["total_completed"] for staff in workload_summary
+            )
             avg_completion_rate = (
-                sum(staff["completion_rate"] for staff in workload_summary) / len(workload_summary)
+                sum(staff["completion_rate"] for staff in workload_summary)
+                / len(workload_summary)
                 if workload_summary
                 else 0
             )
 
             # 工作量分佈
             load_distribution = {
-                "輕鬆": len([s for s in workload_summary if s["load_status"] == "輕鬆"]),
-                "適中": len([s for s in workload_summary if s["load_status"] == "適中"]),
-                "繁忙": len([s for s in workload_summary if s["load_status"] == "繁忙"]),
+                "輕鬆": len(
+                    [s for s in workload_summary if s["load_status"] == "輕鬆"]
+                ),
+                "適中": len(
+                    [s for s in workload_summary if s["load_status"] == "適中"]
+                ),
+                "繁忙": len(
+                    [s for s in workload_summary if s["load_status"] == "繁忙"]
+                ),
             }
 
             return {

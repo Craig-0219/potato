@@ -33,12 +33,20 @@ class AutoUpdateManager:
         self.github_token = os.getenv("GITHUB_TOKEN")
 
         # 更新配置
-        self.auto_update_enabled = os.getenv("AUTO_UPDATE_ENABLED", "true").lower() == "true"
-        self.update_channel_id = (
-            int(os.getenv("UPDATE_CHANNEL_ID", "0")) if os.getenv("UPDATE_CHANNEL_ID") else None
+        self.auto_update_enabled = (
+            os.getenv("AUTO_UPDATE_ENABLED", "true").lower() == "true"
         )
-        self.maintenance_window_start = int(os.getenv("MAINTENANCE_WINDOW_START", "2"))  # 2 AM
-        self.maintenance_window_end = int(os.getenv("MAINTENANCE_WINDOW_END", "6"))  # 6 AM
+        self.update_channel_id = (
+            int(os.getenv("UPDATE_CHANNEL_ID", "0"))
+            if os.getenv("UPDATE_CHANNEL_ID")
+            else None
+        )
+        self.maintenance_window_start = int(
+            os.getenv("MAINTENANCE_WINDOW_START", "2")
+        )  # 2 AM
+        self.maintenance_window_end = int(
+            os.getenv("MAINTENANCE_WINDOW_END", "6")
+        )  # 6 AM
 
         # 狀態追蹤
         self.last_check = None
@@ -89,7 +97,10 @@ class AutoUpdateManager:
 
             # 備選：從 git log 獲取簡短 hash
             result = subprocess.run(
-                ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=10
+                ["git", "rev-parse", "--short", "HEAD"],
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
 
             if result.returncode == 0:
@@ -214,7 +225,9 @@ class AutoUpdateManager:
 
             cmd = ["tar", "czf", backup_path, *exclude_patterns, "."]
 
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)  # 5分鐘超時
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, timeout=300
+            )  # 5分鐘超時
 
             if result.returncode == 0:
                 return {"success": True, "backup_path": backup_path}
@@ -232,7 +245,10 @@ class AutoUpdateManager:
 
             # 2. Pull 最新更改
             pull_result = subprocess.run(
-                ["git", "pull", "origin", "main"], capture_output=True, text=True, timeout=300
+                ["git", "pull", "origin", "main"],
+                capture_output=True,
+                text=True,
+                timeout=300,
             )
 
             if pull_result.returncode == 0:
@@ -261,7 +277,11 @@ class AutoUpdateManager:
 
         if self.maintenance_window_start <= self.maintenance_window_end:
             # 同一天的維護窗口
-            return self.maintenance_window_start <= current_hour < self.maintenance_window_end
+            return (
+                self.maintenance_window_start
+                <= current_hour
+                < self.maintenance_window_end
+            )
         else:
             # 跨天的維護窗口
             return (
@@ -316,7 +336,9 @@ class AutoUpdateManager:
                 channel = self.bot.get_channel(self.update_channel_id)
                 if channel:
                     embed = discord.Embed(
-                        description=message, color=discord.Color.blue(), timestamp=datetime.now()
+                        description=message,
+                        color=discord.Color.blue(),
+                        timestamp=datetime.now(),
                     )
                     embed.set_footer(text="Potato Bot 自動更新系統")
                     await channel.send(embed=embed)
@@ -338,7 +360,8 @@ class AutoUpdateManager:
             "last_update": self.last_update.isoformat() if self.last_update else None,
             "update_in_progress": self.update_in_progress,
             "maintenance_window": (
-                f"{self.maintenance_window_start:02d}:00 - " f"{self.maintenance_window_end:02d}:00"
+                f"{self.maintenance_window_start:02d}:00 - "
+                f"{self.maintenance_window_end:02d}:00"
             ),
             "is_maintenance_window": self._is_maintenance_window(),
             "next_maintenance_window": self._get_next_maintenance_window(),
@@ -372,7 +395,10 @@ class AutoUpdateCog(commands.Cog):
         try:
             result = await self.update_manager.check_for_updates()
 
-            if result.get("has_update") and self.update_manager._is_maintenance_window():
+            if (
+                result.get("has_update")
+                and self.update_manager._is_maintenance_window()
+            ):
                 logger.info("🎉 發現新版本且處於維護窗口，開始自動更新...")
                 await self.update_manager.perform_update()
 
@@ -417,10 +443,18 @@ class AutoUpdateCog(commands.Cog):
                     color=discord.Color.red(),
                 )
             elif result.get("has_update"):
-                embed = discord.Embed(title="🎉 發現新版本!", color=discord.Color.green())
-                embed.add_field(name="當前版本", value=result["current_version"], inline=True)
-                embed.add_field(name="最新版本", value=result["latest_version"], inline=True)
-                embed.add_field(name="發布時間", value=result["published_at"][:10], inline=True)
+                embed = discord.Embed(
+                    title="🎉 發現新版本!", color=discord.Color.green()
+                )
+                embed.add_field(
+                    name="當前版本", value=result["current_version"], inline=True
+                )
+                embed.add_field(
+                    name="最新版本", value=result["latest_version"], inline=True
+                )
+                embed.add_field(
+                    name="發布時間", value=result["published_at"][:10], inline=True
+                )
 
                 if result["release_notes"]:
                     notes = (
@@ -428,7 +462,9 @@ class AutoUpdateCog(commands.Cog):
                         if len(result["release_notes"]) > 500
                         else result["release_notes"]
                     )
-                    embed.add_field(name="更新說明", value=f"```\n{notes}\n```", inline=False)
+                    embed.add_field(
+                        name="更新說明", value=f"```\n{notes}\n```", inline=False
+                    )
             else:
                 embed = discord.Embed(
                     title="✅ 已是最新版本",
@@ -436,7 +472,9 @@ class AutoUpdateCog(commands.Cog):
                     color=discord.Color.green(),
                 )
                 embed.add_field(
-                    name="最後檢查", value=datetime.now().strftime("%Y-%m-%d %H:%M:%S"), inline=True
+                    name="最後檢查",
+                    value=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    inline=True,
                 )
 
             await ctx.followup.send(embed=embed)
@@ -460,18 +498,24 @@ class AutoUpdateCog(commands.Cog):
 
             if result.get("error"):
                 embed = discord.Embed(
-                    title="❌ 更新失敗", description=result["error"], color=discord.Color.red()
+                    title="❌ 更新失敗",
+                    description=result["error"],
+                    color=discord.Color.red(),
                 )
             else:
                 embed = discord.Embed(
-                    title="✅ 更新啟動", description=result["message"], color=discord.Color.green()
+                    title="✅ 更新啟動",
+                    description=result["message"],
+                    color=discord.Color.green(),
                 )
 
             await ctx.followup.send(embed=embed)
 
         except Exception as e:
             embed = discord.Embed(
-                title="❌ 更新失敗", description=f"發生錯誤: {str(e)}", color=discord.Color.red()
+                title="❌ 更新失敗",
+                description=f"發生錯誤: {str(e)}",
+                color=discord.Color.red(),
             )
             await ctx.followup.send(embed=embed)
 
@@ -501,14 +545,14 @@ class AutoUpdateCog(commands.Cog):
 
         # 維護窗口
         maintenance_info = f"維護窗口: {status['maintenance_window']}\n"
-        maintenance_info += (
-            f"目前狀態: {'🟢 維護時間' if status['is_maintenance_window'] else '🔴 非維護時間'}\n"
-        )
+        maintenance_info += f"目前狀態: {'🟢 維護時間' if status['is_maintenance_window'] else '🔴 非維護時間'}\n"
         maintenance_info += f"下次窗口: {status['next_maintenance_window']}"
 
         embed.add_field(name="維護窗口", value=maintenance_info, inline=True)
 
-        embed.set_footer(text=f"查詢時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        embed.set_footer(
+            text=f"查詢時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+        )
 
         await ctx.send(embed=embed, ephemeral=True)
 
@@ -516,7 +560,9 @@ class AutoUpdateCog(commands.Cog):
     @commands.is_owner()
     async def toggle_auto_update(self, ctx):
         """切換自動更新開關"""
-        self.update_manager.auto_update_enabled = not self.update_manager.auto_update_enabled
+        self.update_manager.auto_update_enabled = (
+            not self.update_manager.auto_update_enabled
+        )
 
         status = "啟用" if self.update_manager.auto_update_enabled else "停用"
         embed = discord.Embed(

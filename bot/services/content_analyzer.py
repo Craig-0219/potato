@@ -164,7 +164,11 @@ class ContentAnalyzer:
         }
 
         # 危險域名清單
-        self.dangerous_domains = ["malware-example.com", "phishing-site.net", "spam-domain.org"]
+        self.dangerous_domains = [
+            "malware-example.com",
+            "phishing-site.net",
+            "spam-domain.org",
+        ]
 
         # 短網址服務清單
         self.url_shorteners = [
@@ -311,7 +315,10 @@ class ContentAnalyzer:
                 text.count("😊") + text.count("😄") + text.count("❤️") + text.count("👍")
             )
             negative_emojis = (
-                text.count("😢") + text.count("😡") + text.count("💔") + text.count("👎")
+                text.count("😢")
+                + text.count("😡")
+                + text.count("💔")
+                + text.count("👎")
             )
 
             positive_count += positive_emojis
@@ -503,7 +510,9 @@ class ContentAnalyzer:
             }
 
             # 過濾停用詞和短詞
-            keywords = [word for word in words if len(word) > 2 and word not in stop_words]
+            keywords = [
+                word for word in words if len(word) > 2 and word not in stop_words
+            ]
 
             # 計算詞頻
             word_freq = {}
@@ -511,7 +520,9 @@ class ContentAnalyzer:
                 word_freq[word] = word_freq.get(word, 0) + 1
 
             # 按頻率排序並返回前10個
-            sorted_keywords = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
+            sorted_keywords = sorted(
+                word_freq.items(), key=lambda x: x[1], reverse=True
+            )
 
             return [word for word, freq in sorted_keywords[:10]]
 
@@ -635,7 +646,9 @@ class ContentAnalyzer:
 
     # ========== 風險評估 ==========
 
-    async def _calculate_risk_level(self, result: ContentAnalysisResult) -> ContentRiskLevel:
+    async def _calculate_risk_level(
+        self, result: ContentAnalysisResult
+    ) -> ContentRiskLevel:
         """計算整體風險等級"""
         try:
             risk_score = 0.0
@@ -645,13 +658,19 @@ class ContentAnalyzer:
                 risk_score += result.toxicity.toxicity_score * 0.4
 
             # 情感分析風險（極端負面情感可能有風險）
-            if result.sentiment and result.sentiment.sentiment == SentimentType.NEGATIVE:
+            if (
+                result.sentiment
+                and result.sentiment.sentiment == SentimentType.NEGATIVE
+            ):
                 risk_score += result.sentiment.negative_score * 0.2
 
             # 連結風險
             if result.links:
                 link_risk = max(
-                    [self._risk_level_to_score(link.risk_level) for link in result.links]
+                    [
+                        self._risk_level_to_score(link.risk_level)
+                        for link in result.links
+                    ]
                 )
                 risk_score += link_risk * 0.3
 
@@ -700,7 +719,9 @@ class ContentAnalyzer:
 
             if result.toxicity:
                 # 毒性分析的信心度基於檢測到的關鍵詞數量
-                keyword_confidence = min(1.0, len(result.toxicity.flagged_phrases) * 0.2 + 0.3)
+                keyword_confidence = min(
+                    1.0, len(result.toxicity.flagged_phrases) * 0.2 + 0.3
+                )
                 confidence_scores.append(keyword_confidence)
 
             if result.language:
@@ -718,7 +739,9 @@ class ContentAnalyzer:
 
     # ========== 統計分析 ==========
 
-    async def get_content_statistics(self, guild_id: int, days: int = 7) -> Dict[str, Any]:
+    async def get_content_statistics(
+        self, guild_id: int, days: int = 7
+    ) -> Dict[str, Any]:
         """獲取內容統計"""
         try:
             cache_key = f"content_stats:{guild_id}:{days}"

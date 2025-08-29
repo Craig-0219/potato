@@ -34,12 +34,16 @@ class TicketListener(commands.Cog):
         self.transcript_manager = ChatTranscriptManager()
 
         # 可選服務
-        self.auto_reply_service = auto_reply_service or getattr(bot, "auto_reply_service", None)
+        self.auto_reply_service = auto_reply_service or getattr(
+            bot, "auto_reply_service", None
+        )
         self.sla_service = sla_service or getattr(bot, "sla_service", None)
         self.notification_service = notification_service or getattr(
             bot, "notification_service", None
         )
-        self.assignment_service = assignment_service or getattr(bot, "assignment_service", None)
+        self.assignment_service = assignment_service or getattr(
+            bot, "assignment_service", None
+        )
 
         # 狀態追蹤
         self.user_activity = {}  # 追蹤用戶活動
@@ -81,7 +85,9 @@ class TicketListener(commands.Cog):
                 return
 
             # 記錄聊天訊息到資料庫
-            await self.transcript_manager.record_message(ticket_info["ticket_id"], message)
+            await self.transcript_manager.record_message(
+                ticket_info["ticket_id"], message
+            )
 
             # 發布訊息接收事件
             await realtime_sync.publish_event(
@@ -90,7 +96,10 @@ class TicketListener(commands.Cog):
                     ticket_id=ticket_info["ticket_id"],
                     user_id=message.author.id,
                     guild_id=message.guild.id,
-                    data={"content": message.content[:100], "author": message.author.display_name},
+                    data={
+                        "content": message.content[:100],
+                        "author": message.author.display_name,
+                    },
                 )
             )
 
@@ -148,13 +157,17 @@ class TicketListener(commands.Cog):
                 return
 
             # 記錄首次回應（SLA 監控）
-            if self.sla_service and not await self.dao.has_staff_response(ticket_info["ticket_id"]):
+            if self.sla_service and not await self.dao.has_staff_response(
+                ticket_info["ticket_id"]
+            ):
                 await self.sla_service.record_first_response(
                     ticket_info["ticket_id"], message.author.id
                 )
 
                 # 發送 SLA 達標通知
-                await self._send_sla_compliance_notification(message, ticket_info, settings)
+                await self._send_sla_compliance_notification(
+                    message, ticket_info, settings
+                )
 
             # 自動指派票券（如果尚未指派）
             if not ticket_info.get("assigned_to"):
@@ -166,7 +179,9 @@ class TicketListener(commands.Cog):
         except Exception as e:
             logger.error(f"處理票券回覆時發生錯誤: {e}", exc_info=True)
 
-    async def _should_trigger_auto_reply(self, message: discord.Message, ticket_info: Dict) -> bool:
+    async def _should_trigger_auto_reply(
+        self, message: discord.Message, ticket_info: Dict
+    ) -> bool:
         """檢查是否應該觸發自動回覆"""
         # 避免過於頻繁的自動回覆
         cache_key = f"auto_reply_{ticket_info['ticket_id']}"
@@ -216,7 +231,9 @@ class TicketListener(commands.Cog):
                     )
                     await message.channel.send(embed=embed)
 
-    async def _auto_assign_responding_staff(self, message: discord.Message, ticket_info: Dict):
+    async def _auto_assign_responding_staff(
+        self, message: discord.Message, ticket_info: Dict
+    ):
         """自動指派回應的客服"""
         try:
             success = await self.dao.assign_ticket(
@@ -252,7 +269,9 @@ class TicketListener(commands.Cog):
         for indicator in template_indicators:
             if indicator in content:
                 # 記錄模板使用（可用於統計）
-                logger.info(f"檢測到模板使用: {indicator} 在票券 {ticket_info.get('ticket_id')}")
+                logger.info(
+                    f"檢測到模板使用: {indicator} 在票券 {ticket_info.get('ticket_id')}"
+                )
                 break
 
     async def _flag_negative_sentiment(
@@ -279,14 +298,18 @@ class TicketListener(commands.Cog):
                         f"**頻道：** {message.channel.mention}",
                         inline=False,
                     )
-                    embed.add_field(name="建議", value="建議主管或資深客服介入處理", inline=False)
+                    embed.add_field(
+                        name="建議", value="建議主管或資深客服介入處理", inline=False
+                    )
 
                     await log_channel.send(embed=embed)
 
         except Exception as e:
             logger.error(f"標記負面情感失敗: {e}")
 
-    async def _detect_repetitive_issues(self, message: discord.Message, ticket_info: Dict):
+    async def _detect_repetitive_issues(
+        self, message: discord.Message, ticket_info: Dict
+    ):
         """檢測重複問題"""
         # 簡化的重複檢測邏輯
         cache_key = f"messages_{ticket_info['ticket_id']}"
@@ -329,7 +352,9 @@ class TicketListener(commands.Cog):
 
         return len(intersection) / len(union)
 
-    async def _handle_repetitive_issue(self, message: discord.Message, ticket_info: Dict):
+    async def _handle_repetitive_issue(
+        self, message: discord.Message, ticket_info: Dict
+    ):
         """處理重複問題"""
         embed = discord.Embed(
             title="🔄 重複問題檢測",
@@ -365,7 +390,9 @@ class TicketListener(commands.Cog):
         except Exception as e:
             logger.error(f"處理頻道刪除事件時發生錯誤: {e}")
 
-    async def _log_channel_deletion(self, channel: discord.TextChannel, ticket_info: Dict):
+    async def _log_channel_deletion(
+        self, channel: discord.TextChannel, ticket_info: Dict
+    ):
         """記錄頻道刪除事件"""
         try:
             settings = await self.dao.get_guild_settings(channel.guild.id)
@@ -378,10 +405,16 @@ class TicketListener(commands.Cog):
             if not log_channel:
                 return
 
-            embed = discord.Embed(title="🗑️ 票券頻道被刪除", color=discord.Color.orange())
-            embed.add_field(name="票券編號", value=f"#{ticket_info['ticket_id']:04d}", inline=True)
+            embed = discord.Embed(
+                title="🗑️ 票券頻道被刪除", color=discord.Color.orange()
+            )
+            embed.add_field(
+                name="票券編號", value=f"#{ticket_info['ticket_id']:04d}", inline=True
+            )
             embed.add_field(name="類型", value=ticket_info["type"], inline=True)
-            embed.add_field(name="開票者", value=f"<@{ticket_info['discord_id']}>", inline=True)
+            embed.add_field(
+                name="開票者", value=f"<@{ticket_info['discord_id']}>", inline=True
+            )
             embed.add_field(name="頻道名稱", value=channel.name, inline=True)
             embed.add_field(
                 name="刪除時間",
@@ -398,7 +431,9 @@ class TicketListener(commands.Cog):
             from bot.utils.ticket_constants import format_duration
 
             embed.add_field(
-                name="持續時間", value=format_duration(int(duration.total_seconds())), inline=True
+                name="持續時間",
+                value=format_duration(int(duration.total_seconds())),
+                inline=True,
             )
 
             await log_channel.send(embed=embed)
@@ -414,7 +449,10 @@ class TicketListener(commands.Cog):
         try:
             # 檢查該成員是否有開啟的票券
             tickets, _ = await self.dao.paginate_tickets(
-                user_id=str(member.id), status="open", guild_id=member.guild.id, page_size=50
+                user_id=str(member.id),
+                status="open",
+                guild_id=member.guild.id,
+                page_size=50,
             )
 
             if not tickets:
@@ -423,7 +461,9 @@ class TicketListener(commands.Cog):
             # 自動關閉該成員的所有開啟票券
             for ticket in tickets:
                 await self.dao.close_ticket(
-                    ticket["channel_id"], "system", f"用戶 {member.display_name} 離開伺服器"
+                    ticket["channel_id"],
+                    "system",
+                    f"用戶 {member.display_name} 離開伺服器",
                 )
 
                 # 嘗試在頻道中通知並延遲刪除
@@ -439,7 +479,9 @@ class TicketListener(commands.Cog):
 
                         # 延遲刪除頻道
                         await asyncio.sleep(30)
-                        await channel.delete(reason=f"用戶 {member.display_name} 離開伺服器")
+                        await channel.delete(
+                            reason=f"用戶 {member.display_name} 離開伺服器"
+                        )
 
                     except discord.NotFound:
                         pass  # 頻道已被刪除
@@ -558,7 +600,9 @@ class TicketListener(commands.Cog):
         except Exception as e:
             logger.error(f"清理用戶快取時發生錯誤: {e}")
 
-    async def _handle_status_change(self, before: discord.Member, after: discord.Member):
+    async def _handle_status_change(
+        self, before: discord.Member, after: discord.Member
+    ):
         """處理狀態變更"""
         # 只追蹤客服人員
         if after.id not in self.staff_online_status:
@@ -575,7 +619,10 @@ class TicketListener(commands.Cog):
             )
 
             # 如果客服上線且有待分配的票券，發送通知
-            if before.status == discord.Status.offline and after.status != discord.Status.offline:
+            if (
+                before.status == discord.Status.offline
+                and after.status != discord.Status.offline
+            ):
 
                 await self._notify_staff_of_pending_tickets(after)
 
@@ -586,7 +633,9 @@ class TicketListener(commands.Cog):
         """處理客服身分組被移除"""
         try:
             # 查找該成員被指派的票券
-            tickets, _ = await self.dao.paginate_tickets(guild_id=member.guild.id, page_size=100)
+            tickets, _ = await self.dao.paginate_tickets(
+                guild_id=member.guild.id, page_size=100
+            )
 
             assigned_tickets = [
                 ticket
@@ -691,12 +740,16 @@ class TicketListener(commands.Cog):
                 # 顯示前5張票券
                 ticket_list = []
                 for ticket in unassigned_tickets[:5]:
-                    priority_emoji = get_priority_emoji(ticket.get("priority", "medium"))
+                    priority_emoji = get_priority_emoji(
+                        ticket.get("priority", "medium")
+                    )
                     ticket_list.append(
                         f"{priority_emoji} #{ticket['ticket_id']:04d} - {ticket['type']}"
                     )
 
-                embed.add_field(name="票券列表", value="\n".join(ticket_list), inline=False)
+                embed.add_field(
+                    name="票券列表", value="\n".join(ticket_list), inline=False
+                )
 
                 await member.send(embed=embed)
 
@@ -759,7 +812,9 @@ class TicketListener(commands.Cog):
 
             # 統計在線客服數
             online_staff = sum(
-                1 for status in self.staff_online_status.values() if status.get("is_online", False)
+                1
+                for status in self.staff_online_status.values()
+                if status.get("is_online", False)
             )
 
         except Exception as e:
@@ -792,7 +847,9 @@ class TicketListener(commands.Cog):
                 if (current_time - timestamp).total_seconds() < 1800
             ),
             "online_staff": sum(
-                1 for status in self.staff_online_status.values() if status.get("is_online", False)
+                1
+                for status in self.staff_online_status.values()
+                if status.get("is_online", False)
             ),
             "total_tracked_staff": len(self.staff_online_status),
             "cache_size": len(self._message_cache),
@@ -900,7 +957,8 @@ class TicketMaintenanceListener(commands.Cog):
             async with self.dao.db_pool.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
-                        "DELETE FROM auto_reply_logs WHERE created_at < %s", (cutoff_date,)
+                        "DELETE FROM auto_reply_logs WHERE created_at < %s",
+                        (cutoff_date,),
                     )
                     await conn.commit()
 
@@ -1072,7 +1130,11 @@ class TicketAnalyticsListener(commands.Cog):
 
     def get_peak_hours_analysis(self, guild_id: int) -> Dict[str, Any]:
         """取得高峰時段分析"""
-        guild_data = {k: v for k, v in self.peak_hours_data.items() if k.startswith(f"{guild_id}_")}
+        guild_data = {
+            k: v
+            for k, v in self.peak_hours_data.items()
+            if k.startswith(f"{guild_id}_")
+        }
 
         if not guild_data:
             return {"peak_hours": [], "total_activity": 0}
@@ -1085,13 +1147,17 @@ class TicketAnalyticsListener(commands.Cog):
             hourly_activity[hour] = hourly_activity.get(hour, 0) + activity
 
         # 找出前3個高峰時段
-        peak_hours = sorted(hourly_activity.items(), key=lambda x: x[1], reverse=True)[:3]
+        peak_hours = sorted(hourly_activity.items(), key=lambda x: x[1], reverse=True)[
+            :3
+        ]
 
         return {
             "peak_hours": [{"hour": h, "activity": a} for h, a in peak_hours],
             "total_activity": sum(hourly_activity.values()),
             "average_activity": (
-                sum(hourly_activity.values()) / len(hourly_activity) if hourly_activity else 0
+                sum(hourly_activity.values()) / len(hourly_activity)
+                if hourly_activity
+                else 0
             ),
         }
 

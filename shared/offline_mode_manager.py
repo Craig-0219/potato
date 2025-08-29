@@ -43,13 +43,16 @@ class OfflineModeManager:
 
         # 判斷是否為內網環境
         detection["local_network_only"] = (
-            not detection["internet_available"] or not detection["external_apis_available"]
+            not detection["internet_available"]
+            or not detection["external_apis_available"]
         )
 
         self._detection_results = detection
         self.is_offline_mode = detection["local_network_only"]
 
-        logger.info(f"環境檢測結果: {'內網模式' if self.is_offline_mode else '外網模式'}")
+        logger.info(
+            f"環境檢測結果: {'內網模式' if self.is_offline_mode else '外網模式'}"
+        )
         logger.debug(f"檢測詳情: {detection}")
 
         return detection
@@ -143,8 +146,14 @@ class OfflineModeManager:
                 "type": "local" if self.is_offline_mode else "external",
                 "enabled": True,
             },
-            "cache": {"type": "memory" if self.is_offline_mode else "redis", "enabled": True},
-            "websocket": {"type": "local" if self.is_offline_mode else "external", "enabled": True},
+            "cache": {
+                "type": "memory" if self.is_offline_mode else "redis",
+                "enabled": True,
+            },
+            "websocket": {
+                "type": "local" if self.is_offline_mode else "external",
+                "enabled": True,
+            },
             "external_apis": {"enabled": not self.is_offline_mode},
         }
 

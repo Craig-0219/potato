@@ -21,7 +21,8 @@ router = APIRouter()
 @router.get("/overview", summary="獲取安全狀況總覽")
 # @limiter.limit("10/minute")
 async def get_security_overview(
-    guild_id: Optional[int] = Query(None), user: APIUser = Depends(require_admin_permission)
+    guild_id: Optional[int] = Query(None),
+    user: APIUser = Depends(require_admin_permission),
 ):
     """獲取系統安全狀況總覽"""
     try:

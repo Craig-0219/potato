@@ -174,9 +174,9 @@ class AuditManager:
                 self._user_activity_cache[event.user_id].append(event.timestamp)
                 # 保持快取大小
                 if len(self._user_activity_cache[event.user_id]) > 100:
-                    self._user_activity_cache[event.user_id] = self._user_activity_cache[
-                        event.user_id
-                    ][-50:]
+                    self._user_activity_cache[event.user_id] = (
+                        self._user_activity_cache[event.user_id][-50:]
+                    )
 
             if event.ip_address:
                 self._ip_activity_cache[event.ip_address] += 1
@@ -210,7 +210,12 @@ class AuditManager:
         return await self.log_event(event)
 
     async def log_authorization_event(
-        self, user_id: int, guild_id: int, permission: str, granted: bool, resource: str = None
+        self,
+        user_id: int,
+        guild_id: int,
+        permission: str,
+        granted: bool,
+        resource: str = None,
     ) -> bool:
         """記錄授權事件"""
         event = SecurityEvent(
@@ -220,7 +225,11 @@ class AuditManager:
             category=EventCategory.AUTHORIZATION,
             severity=EventSeverity.LOW,
             message=f"權限檢查: {permission} - {'允許' if granted else '拒絕'}",
-            details={"permission": permission, "granted": granted, "resource": resource},
+            details={
+                "permission": permission,
+                "granted": granted,
+                "resource": resource,
+            },
         )
 
         return await self.log_event(event)
@@ -265,7 +274,11 @@ class AuditManager:
             category=EventCategory.API_ACCESS,
             severity=severity,
             message=f"API 存取: {method} {endpoint} - {status_code}",
-            details={"endpoint": endpoint, "method": method, "status_code": status_code},
+            details={
+                "endpoint": endpoint,
+                "method": method,
+                "status_code": status_code,
+            },
             ip_address=ip_address,
             user_agent=user_agent,
         )
@@ -411,7 +424,10 @@ class AuditManager:
         try:
             report = {
                 "standard": standard.value,
-                "period": {"start": start_date.isoformat(), "end": end_date.isoformat()},
+                "period": {
+                    "start": start_date.isoformat(),
+                    "end": end_date.isoformat(),
+                },
                 "guild_id": guild_id,
                 "generated_at": datetime.now().isoformat(),
                 "summary": {},
@@ -465,7 +481,9 @@ class AuditManager:
                         )
 
                     # 計算合規分數
-                    compliance_score = await self._calculate_compliance_score(event_stats, standard)
+                    compliance_score = await self._calculate_compliance_score(
+                        event_stats, standard
+                    )
                     report["compliance_score"] = compliance_score
 
                     if compliance_score >= 90:
@@ -521,7 +539,14 @@ class AuditManager:
                     total_count = len(records)
 
                     for record in records:
-                        event_id, stored_hash, user_id, event_type, timestamp, details = record
+                        (
+                            event_id,
+                            stored_hash,
+                            user_id,
+                            event_type,
+                            timestamp,
+                            details,
+                        ) = record
 
                         # 重新計算雜湊值
                         calculated_hash = self._calculate_record_hash(
@@ -541,7 +566,9 @@ class AuditManager:
                                 }
                             )
 
-            integrity_percentage = (verified_count / total_count * 100) if total_count > 0 else 0
+            integrity_percentage = (
+                (verified_count / total_count * 100) if total_count > 0 else 0
+            )
 
             result = {
                 "verification_period": {
@@ -610,7 +637,8 @@ class AuditManager:
                 # 檢測私有 IP 範圍外的可疑存取
                 if (
                     not ip.is_private
-                    and self._ip_activity_cache[event.ip_address] > self.suspicious_ip_threshold
+                    and self._ip_activity_cache[event.ip_address]
+                    > self.suspicious_ip_threshold
                 ):
                     return True
             except ValueError:

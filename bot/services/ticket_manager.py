@@ -103,8 +103,12 @@ class TicketManager:
 
             # 生成頻道名稱（包含優先級標識）
             ticket_id = await self.repository.get_next_ticket_id()
-            priority_prefix = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(priority, "🟡")
-            channel_name = f"{priority_prefix}ticket-{ticket_id:04d}-{user.display_name[:8]}"
+            priority_prefix = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(
+                priority, "🟡"
+            )
+            channel_name = (
+                f"{priority_prefix}ticket-{ticket_id:04d}-{user.display_name[:8]}"
+            )
 
             # 設定權限
             overwrites = await self._create_channel_overwrites(user, settings)
@@ -222,7 +226,9 @@ class TicketManager:
         except Exception as e:
             logger.error(f"發送歡迎訊息錯誤：{e}")
 
-    async def _try_auto_assign(self, ticket_id: int, guild: discord.Guild, settings: Dict):
+    async def _try_auto_assign(
+        self, ticket_id: int, guild: discord.Guild, settings: Dict
+    ):
         """嘗試自動分配"""
         try:
             support_roles = settings.get("support_roles", [])
@@ -248,11 +254,15 @@ class TicketManager:
 
                 assigned_staff = random.choice(online_staff)
 
-                success = await self.repository.assign_ticket(ticket_id, assigned_staff.id, 0)
+                success = await self.repository.assign_ticket(
+                    ticket_id, assigned_staff.id, 0
+                )
                 if success:
                     # 通知被分配的客服
                     try:
-                        await assigned_staff.send(f"📋 你被自動分配了票券 #{ticket_id:04d}")
+                        await assigned_staff.send(
+                            f"📋 你被自動分配了票券 #{ticket_id:04d}"
+                        )
                     except:
                         pass
 
@@ -262,7 +272,12 @@ class TicketManager:
             logger.error(f"自動分配錯誤：{e}")
 
     async def _apply_auto_tags(
-        self, ticket_id: int, guild_id: int, ticket_type: str, content: str, user: discord.Member
+        self,
+        ticket_id: int,
+        guild_id: int,
+        ticket_type: str,
+        content: str,
+        user: discord.Member,
     ):
         """應用自動標籤"""
         try:
@@ -286,7 +301,9 @@ class TicketManager:
 
     # ===== 票券關閉 =====
 
-    async def close_ticket(self, ticket_id: int, closed_by: int, reason: str = None) -> bool:
+    async def close_ticket(
+        self, ticket_id: int, closed_by: int, reason: str = None
+    ) -> bool:
         """關閉票券"""
         try:
             success = await self.repository.close_ticket(ticket_id, closed_by, reason)
@@ -308,7 +325,9 @@ class TicketManager:
                         ticket_id, "html"
                     )
                     if transcript_path:
-                        logger.info(f"✅ 票券 #{ticket_id:04d} 聊天記錄已匯出: {transcript_path}")
+                        logger.info(
+                            f"✅ 票券 #{ticket_id:04d} 聊天記錄已匯出: {transcript_path}"
+                        )
                     else:
                         # 如果資料庫中沒有記錄，嘗試從 Discord 頻道匯入歷史訊息並匯出
                         logger.info(
@@ -320,11 +339,17 @@ class TicketManager:
                         if ticket_info and ticket_info.get("channel_id"):
                             # 這裡需要 bot 實例來獲取頻道，但在當前架構下較難實現
                             # 建議使用背景任務或在關閉票券的指令中直接處理
-                            logger.warning(f"⚠️ 票券 #{ticket_id:04d} 需要手動匯入頻道歷史訊息")
+                            logger.warning(
+                                f"⚠️ 票券 #{ticket_id:04d} 需要手動匯入頻道歷史訊息"
+                            )
                         else:
-                            logger.warning(f"⚠️ 票券 #{ticket_id:04d} 聊天記錄匯出失敗或無記錄")
+                            logger.warning(
+                                f"⚠️ 票券 #{ticket_id:04d} 聊天記錄匯出失敗或無記錄"
+                            )
                 except Exception as transcript_error:
-                    logger.error(f"❌ 票券 #{ticket_id:04d} 聊天記錄匯出錯誤: {transcript_error}")
+                    logger.error(
+                        f"❌ 票券 #{ticket_id:04d} 聊天記錄匯出錯誤: {transcript_error}"
+                    )
 
                 logger.info(f"關閉票券 #{ticket_id:04d}")
 
@@ -336,10 +361,14 @@ class TicketManager:
 
     # ===== 票券指派 =====
 
-    async def assign_ticket(self, ticket_id: int, assigned_to: int, assigned_by: int) -> bool:
+    async def assign_ticket(
+        self, ticket_id: int, assigned_to: int, assigned_by: int
+    ) -> bool:
         """指派票券"""
         try:
-            success = await self.repository.assign_ticket(ticket_id, assigned_to, assigned_by)
+            success = await self.repository.assign_ticket(
+                ticket_id, assigned_to, assigned_by
+            )
 
             if success:
                 # 發布即時同步事件
@@ -361,7 +390,9 @@ class TicketManager:
 
     # ===== 評分系統 =====
 
-    async def save_rating(self, ticket_id: int, rating: int, feedback: str = None) -> bool:
+    async def save_rating(
+        self, ticket_id: int, rating: int, feedback: str = None
+    ) -> bool:
         """保存票券評分"""
         try:
             if not 1 <= rating <= 5:
@@ -407,7 +438,11 @@ class TicketManager:
             return False
 
     async def send_channel_notification(
-        self, channel: discord.TextChannel, title: str, message: str, color: int = 0x00FF00
+        self,
+        channel: discord.TextChannel,
+        title: str,
+        message: str,
+        color: int = 0x00FF00,
     ) -> bool:
         """發送頻道通知"""
         try:
@@ -448,7 +483,9 @@ class TicketManager:
             actual_overdue = overdue_minutes - target_minutes
 
             # 建立警告訊息
-            priority_emoji = TicketConstants.PRIORITY_EMOJIS.get(ticket["priority"], "🟡")
+            priority_emoji = TicketConstants.PRIORITY_EMOJIS.get(
+                ticket["priority"], "🟡"
+            )
 
             embed = discord.Embed(
                 title="⚠️ SLA 超時警告",
@@ -509,12 +546,16 @@ class TicketManager:
 
     # ===== 系統維護 =====
 
-    async def cleanup_old_tickets(self, guild_id: int, hours_threshold: int = 24) -> int:
+    async def cleanup_old_tickets(
+        self, guild_id: int, hours_threshold: int = 24
+    ) -> int:
         """清理舊的無活動票券"""
         try:
             # 這裡可以實作自動關閉無活動票券的邏輯
             # 暫時返回0，因為需要在 repository 中實作相關方法
-            logger.info(f"執行票券清理 - 伺服器: {guild_id}, 閾值: {hours_threshold}小時")
+            logger.info(
+                f"執行票券清理 - 伺服器: {guild_id}, 閾值: {hours_threshold}小時"
+            )
             return 0
 
         except Exception as e:
@@ -539,4 +580,8 @@ class TicketManager:
 
         except Exception as e:
             logger.error(f"健康檢查錯誤：{e}")
-            return {"status": "unhealthy", "error": str(e), "timestamp": datetime.now(timezone.utc)}
+            return {
+                "status": "unhealthy",
+                "error": str(e),
+                "timestamp": datetime.now(timezone.utc),
+            }

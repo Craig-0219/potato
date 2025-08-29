@@ -218,7 +218,11 @@ def format_role_list(role_ids: List[int], max_display: int = 3) -> str:
 
 
 def create_progress_bar(
-    current: int, total: int, length: int = 10, filled_char: str = "█", empty_char: str = "░"
+    current: int,
+    total: int,
+    length: int = 10,
+    filled_char: str = "█",
+    empty_char: str = "░",
 ) -> str:
     """建立進度條"""
     if total <= 0:
@@ -262,7 +266,9 @@ def parse_time_string(time_str: str) -> Optional[int]:
     time_str = time_str.lower().strip()
 
     # 匹配數字和單位
-    match = re.match(r"(\d+)\s*(m|min|mins|minutes?|h|hr|hrs|hours?|d|day|days?)", time_str)
+    match = re.match(
+        r"(\d+)\s*(m|min|mins|minutes?|h|hr|hrs|hours?|d|day|days?)", time_str
+    )
 
     if not match:
         # 嘗試只匹配數字（默認分鐘）
@@ -419,26 +425,37 @@ def create_simple_embed(
 
 def create_error_embed(message: str) -> discord.Embed:
     """建立錯誤嵌入"""
-    return discord.Embed(title="❌ 錯誤", description=message, color=discord.Color.red())
+    return discord.Embed(
+        title="❌ 錯誤", description=message, color=discord.Color.red()
+    )
 
 
 def create_success_embed(message: str) -> discord.Embed:
     """建立成功嵌入"""
-    return discord.Embed(title="✅ 成功", description=message, color=discord.Color.green())
+    return discord.Embed(
+        title="✅ 成功", description=message, color=discord.Color.green()
+    )
 
 
 def create_warning_embed(message: str) -> discord.Embed:
     """建立警告嵌入"""
-    return discord.Embed(title="⚠️ 警告", description=message, color=discord.Color.orange())
+    return discord.Embed(
+        title="⚠️ 警告", description=message, color=discord.Color.orange()
+    )
 
 
 def create_info_embed(message: str) -> discord.Embed:
     """建立資訊嵌入"""
-    return discord.Embed(title="ℹ️ 資訊", description=message, color=discord.Color.blue())
+    return discord.Embed(
+        title="ℹ️ 資訊", description=message, color=discord.Color.blue()
+    )
 
 
 async def safe_send_message(
-    channel: discord.TextChannel, content: str = None, embed: discord.Embed = None, **kwargs
+    channel: discord.TextChannel,
+    content: str = None,
+    embed: discord.Embed = None,
+    **kwargs,
 ) -> Optional[discord.Message]:
     """安全發送訊息"""
     try:

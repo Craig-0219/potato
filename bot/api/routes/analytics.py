@@ -156,20 +156,27 @@ async def _get_dashboard_data_internal(guild_id: Optional[int], period: str):
                         ),
                         "satisfaction_score": 4.2,  # 暫時使用固定值
                         "response_time": (
-                            round(convert_decimal(ticket_stats["avg_resolution_hours"]), 1)
+                            round(
+                                convert_decimal(ticket_stats["avg_resolution_hours"]), 1
+                            )
                             if ticket_stats["avg_resolution_hours"]
                             else 0
                         ),
                         "active_agents": 8,  # 暫時使用固定值
-                        "pending_tickets": convert_decimal(ticket_stats["active_tickets"]),
+                        "pending_tickets": convert_decimal(
+                            ticket_stats["active_tickets"]
+                        ),
                         "vote_statistics": {
                             "total_votes": convert_decimal(vote_stats["total_votes"]),
                             "active_votes": convert_decimal(vote_stats["active_votes"]),
-                            "completed_votes": convert_decimal(vote_stats["completed_votes"]),
+                            "completed_votes": convert_decimal(
+                                vote_stats["completed_votes"]
+                            ),
                         },
                         "trends": {
                             "daily_counts": [
-                                convert_decimal(item["count"]) for item in daily_tickets[::-1]
+                                convert_decimal(item["count"])
+                                for item in daily_tickets[::-1]
                             ]  # 反轉以顯示時間順序
                         },
                     },
@@ -214,7 +221,11 @@ async def generate_report(
         raise HTTPException(status_code=500, detail="生成報告失敗")
 
 
-@router.get("/staff-performance", response_model=List[StaffPerformance], summary="獲取客服績效數據")
+@router.get(
+    "/staff-performance",
+    response_model=List[StaffPerformance],
+    summary="獲取客服績效數據",
+)
 # @limiter.limit("10/minute")
 async def get_staff_performance(
     guild_id: Optional[int] = Query(None),

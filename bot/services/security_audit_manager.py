@@ -165,7 +165,10 @@ class SecurityAuditManager:
                 "name": "權限提升檢測",
                 "description": "檢測異常權限變更",
                 "rule_type": "anomaly",
-                "conditions": {"event_type": "role_assignment", "check_elevation": True},
+                "conditions": {
+                    "event_type": "role_assignment",
+                    "check_elevation": True,
+                },
                 "actions": [
                     {"type": "alert", "severity": "critical"},
                     {"type": "require_approval"},
@@ -177,8 +180,15 @@ class SecurityAuditManager:
                 "name": "資料匯出監控",
                 "description": "監控大量資料匯出活動",
                 "rule_type": "volume",
-                "conditions": {"action": "export", "volume_threshold": 1000, "time_window": 3600},
-                "actions": [{"type": "alert", "severity": "medium"}, {"type": "log_detail"}],
+                "conditions": {
+                    "action": "export",
+                    "volume_threshold": 1000,
+                    "time_window": 3600,
+                },
+                "actions": [
+                    {"type": "alert", "severity": "medium"},
+                    {"type": "log_detail"},
+                ],
                 "severity": RiskLevel.MEDIUM,
             },
         ]
@@ -359,7 +369,10 @@ class SecurityAuditManager:
 
         if recent_events > 50:  # 1小時內超過50個事件
             await self._handle_suspicious_activity(
-                event.user_id, event.guild_id, "異常高頻操作", {"events_per_hour": recent_events}
+                event.user_id,
+                event.guild_id,
+                "異常高頻操作",
+                {"events_per_hour": recent_events},
             )
 
         # 檢測異常時間模式
@@ -374,7 +387,10 @@ class SecurityAuditManager:
         # 檢測IP地址異常
         if event.ip_address and await self._is_suspicious_ip(event.ip_address):
             await self._handle_suspicious_activity(
-                event.user_id, event.guild_id, "可疑IP地址", {"ip_address": event.ip_address}
+                event.user_id,
+                event.guild_id,
+                "可疑IP地址",
+                {"ip_address": event.ip_address},
             )
 
     def _is_unusual_time(self, timestamp: datetime) -> bool:
@@ -408,7 +424,11 @@ class SecurityAuditManager:
             return True  # 無效IP地址本身就可疑
 
     async def _handle_suspicious_activity(
-        self, user_id: int, guild_id: Optional[int], activity_type: str, details: Dict[str, Any]
+        self,
+        user_id: int,
+        guild_id: Optional[int],
+        activity_type: str,
+        details: Dict[str, Any],
     ):
         """處理可疑活動"""
         await self.log_security_event(
@@ -442,7 +462,9 @@ class SecurityAuditManager:
             except Exception as e:
                 logger.error(f"評估安全規則失敗 {rule_id}: {e}")
 
-    async def _rule_matches_event(self, rule: SecurityRule, event: SecurityEvent) -> bool:
+    async def _rule_matches_event(
+        self, rule: SecurityRule, event: SecurityEvent
+    ) -> bool:
         """檢查規則是否匹配事件"""
         conditions = rule.conditions
 
@@ -510,7 +532,9 @@ class SecurityAuditManager:
 
         return False
 
-    async def _evaluate_volume_rule(self, conditions: Dict[str, Any], event: SecurityEvent) -> bool:
+    async def _evaluate_volume_rule(
+        self, conditions: Dict[str, Any], event: SecurityEvent
+    ) -> bool:
         """評估數量規則"""
         volume_threshold = conditions.get("volume_threshold", 1000)
         time_window = conditions.get("time_window", 3600)
@@ -586,7 +610,9 @@ class SecurityAuditManager:
         logger.info(f"📋 事件 {event.id} 需要管理員審批")
         # 可以發送通知給管理員
 
-    async def _log_detailed_information(self, event: SecurityEvent, action: Dict[str, Any]):
+    async def _log_detailed_information(
+        self, event: SecurityEvent, action: Dict[str, Any]
+    ):
         """記錄詳細資訊"""
         detailed_info = {
             "event_id": event.id,
@@ -671,7 +697,9 @@ class SecurityAuditManager:
             }
             return session_id
         else:
-            self.active_sessions[session_key]["last_activity"] = datetime.now(timezone.utc)
+            self.active_sessions[session_key]["last_activity"] = datetime.now(
+                timezone.utc
+            )
             return self.active_sessions[session_key]["session_id"]
 
     async def cleanup_expired_sessions(self):
@@ -706,17 +734,24 @@ class SecurityAuditManager:
             relevant_events = [
                 event
                 for event in self.event_buffer
-                if (event.guild_id == guild_id and start_date <= event.timestamp <= end_date)
+                if (
+                    event.guild_id == guild_id
+                    and start_date <= event.timestamp <= end_date
+                )
             ]
 
             # 分析違規情況
-            violations = await self._analyze_compliance_violations(relevant_events, standard)
+            violations = await self._analyze_compliance_violations(
+                relevant_events, standard
+            )
 
             # 生成摘要
             summary = await self._generate_compliance_summary(relevant_events, standard)
 
             # 提供建議
-            recommendations = await self._generate_compliance_recommendations(violations, standard)
+            recommendations = await self._generate_compliance_recommendations(
+                violations, standard
+            )
 
             report = ComplianceReport(
                 id=report_id,
@@ -751,7 +786,9 @@ class SecurityAuditManager:
             ]
 
             for event in data_access_events:
-                if event.risk_level == RiskLevel.HIGH and "personal_data" in str(event.details):
+                if event.risk_level == RiskLevel.HIGH and "personal_data" in str(
+                    event.details
+                ):
                     violations.append(
                         {
                             "type": "unauthorized_personal_data_access",
@@ -765,7 +802,9 @@ class SecurityAuditManager:
         elif standard == ComplianceStandard.SOX:
             # SOX相關檢查
             financial_events = [
-                e for e in events if "financial" in str(e.resource) or "audit" in str(e.resource)
+                e
+                for e in events
+                if "financial" in str(e.resource) or "audit" in str(e.resource)
             ]
 
             for event in financial_events:
@@ -788,8 +827,12 @@ class SecurityAuditManager:
         """生成合規摘要"""
         return {
             "total_events": len(events),
-            "high_risk_events": len([e for e in events if e.risk_level == RiskLevel.HIGH]),
-            "critical_events": len([e for e in events if e.risk_level == RiskLevel.CRITICAL]),
+            "high_risk_events": len(
+                [e for e in events if e.risk_level == RiskLevel.HIGH]
+            ),
+            "critical_events": len(
+                [e for e in events if e.risk_level == RiskLevel.CRITICAL]
+            ),
             "data_access_events": len(
                 [e for e in events if e.event_type == SecurityEventType.DATA_ACCESS]
             ),
@@ -851,7 +894,9 @@ class SecurityAuditManager:
 
     # ========== 統計和報告 ==========
 
-    async def get_security_statistics(self, guild_id: int, days: int = 30) -> Dict[str, Any]:
+    async def get_security_statistics(
+        self, guild_id: int, days: int = 30
+    ) -> Dict[str, Any]:
         """獲取安全統計資訊"""
         cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
 
@@ -874,7 +919,11 @@ class SecurityAuditManager:
                 ]
             ),
             "security_violations": len(
-                [e for e in relevant_events if e.event_type == SecurityEventType.SECURITY_VIOLATION]
+                [
+                    e
+                    for e in relevant_events
+                    if e.event_type == SecurityEventType.SECURITY_VIOLATION
+                ]
             ),
         }
 
@@ -886,7 +935,9 @@ class SecurityAuditManager:
             counts[event_type] = counts.get(event_type, 0) + 1
         return counts
 
-    def _count_events_by_risk_level(self, events: List[SecurityEvent]) -> Dict[str, int]:
+    def _count_events_by_risk_level(
+        self, events: List[SecurityEvent]
+    ) -> Dict[str, int]:
         """按風險等級統計事件"""
         counts = {}
         for event in events:
@@ -907,9 +958,9 @@ class SecurityAuditManager:
             if event.risk_level in [RiskLevel.HIGH, RiskLevel.CRITICAL]:
                 user_counts[user_id]["high_risk_count"] += 1
 
-        sorted_users = sorted(user_counts.items(), key=lambda x: x[1]["count"], reverse=True)[
-            :limit
-        ]
+        sorted_users = sorted(
+            user_counts.items(), key=lambda x: x[1]["count"], reverse=True
+        )[:limit]
 
         return [{"user_id": user_id, **stats} for user_id, stats in sorted_users]
 

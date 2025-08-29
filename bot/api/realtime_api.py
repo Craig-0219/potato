@@ -129,7 +129,9 @@ async def websocket_endpoint(websocket: WebSocket, guild_id: int, client_id: str
                 if message.get("type") == "ping":
                     # 回應心跳
                     await websocket.send_text(
-                        json.dumps({"type": "pong", "timestamp": datetime.now().isoformat()})
+                        json.dumps(
+                            {"type": "pong", "timestamp": datetime.now().isoformat()}
+                        )
                     )
                 elif message.get("type") == "request_update":
                     # 發送最新數據
@@ -147,7 +149,9 @@ async def websocket_endpoint(websocket: WebSocket, guild_id: int, client_id: str
             except asyncio.TimeoutError:
                 # 心跳超時，發送ping
                 await websocket.send_text(
-                    json.dumps({"type": "ping", "timestamp": datetime.now().isoformat()})
+                    json.dumps(
+                        {"type": "ping", "timestamp": datetime.now().isoformat()}
+                    )
                 )
 
     except WebSocketDisconnect:
@@ -313,7 +317,11 @@ async def get_real_time_vote_stats(guild_id: int) -> Dict[str, Any]:
                 import decimal
 
                 def convert_decimal(value):
-                    return int(value) if isinstance(value, decimal.Decimal) else (value or 0)
+                    return (
+                        int(value)
+                        if isinstance(value, decimal.Decimal)
+                        else (value or 0)
+                    )
 
                 return {
                     "active_votes": process_vote_data(active_votes),
@@ -326,7 +334,9 @@ async def get_real_time_vote_stats(guild_id: int) -> Dict[str, Any]:
                             today_stats["votes_completed_today"] if today_stats else 0
                         ),
                         "total_participants": convert_decimal(
-                            today_stats["total_participants_today"] if today_stats else 0
+                            today_stats["total_participants_today"]
+                            if today_stats
+                            else 0
                         ),
                     },
                     "summary": {
@@ -347,7 +357,11 @@ async def get_real_time_vote_stats(guild_id: int) -> Dict[str, Any]:
             "error": str(e),
             "active_votes": [],
             "recent_completed": [],
-            "today_statistics": {"votes_created": 0, "votes_completed": 0, "total_participants": 0},
+            "today_statistics": {
+                "votes_created": 0,
+                "votes_completed": 0,
+                "total_participants": 0,
+            },
             "summary": {"active_count": 0, "total_active_participants": 0},
         }
 

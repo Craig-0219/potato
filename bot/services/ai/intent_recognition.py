@@ -197,7 +197,9 @@ class IntentRecognizer:
             ],
         }
 
-        logger.info(f"✅ 意圖識別模式初始化完成，支援 {len(self.intent_patterns)} 種意圖")
+        logger.info(
+            f"✅ 意圖識別模式初始化完成，支援 {len(self.intent_patterns)} 種意圖"
+        )
 
     async def recognize_intent(
         self, text: str, user_id: str, context: Dict[str, Any] = None
@@ -344,7 +346,9 @@ class IntentRecognizer:
 
         return adjusted_scores
 
-    def _select_best_intent(self, scores: Dict[IntentType, float]) -> Tuple[IntentType, float]:
+    def _select_best_intent(
+        self, scores: Dict[IntentType, float]
+    ) -> Tuple[IntentType, float]:
         """選擇最佳意圖"""
         if not scores:
             return IntentType.UNKNOWN, 0.0
@@ -400,7 +404,9 @@ class IntentRecognizer:
 
         return entities
 
-    async def _record_intent_history(self, user_id: str, intent: IntentType, confidence: float):
+    async def _record_intent_history(
+        self, user_id: str, intent: IntentType, confidence: float
+    ):
         """記錄意圖歷史"""
         if user_id not in self.intent_history:
             self.intent_history[user_id] = []
@@ -440,7 +446,9 @@ class IntentRecognizer:
             "intent_distribution": intent_counts,
             "average_confidence": avg_confidence,
             "most_common_intent": (
-                max(intent_counts.items(), key=lambda x: x[1])[0] if intent_counts else None
+                max(intent_counts.items(), key=lambda x: x[1])[0]
+                if intent_counts
+                else None
             ),
         }
 
@@ -467,7 +475,8 @@ class IntentRecognizer:
         """導出訓練數據用於模型改進"""
         training_data = {
             "intent_patterns": {
-                intent.value: patterns for intent, patterns in self.intent_patterns.items()
+                intent.value: patterns
+                for intent, patterns in self.intent_patterns.items()
             },
             "entity_patterns": self.entity_patterns,
             "user_interactions": {},

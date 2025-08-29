@@ -110,7 +110,9 @@ class ImageProcessor:
     async def process_image(self, request: ImageProcessRequest) -> ProcessedImage:
         """處理圖片的主要方法"""
         if not PIL_AVAILABLE:
-            return ProcessedImage(success=False, error_message=f"PIL/Pillow 未安裝: {PIL_ERROR}")
+            return ProcessedImage(
+                success=False, error_message=f"PIL/Pillow 未安裝: {PIL_ERROR}"
+            )
 
         start_time = time.time()
 
@@ -189,7 +191,9 @@ class ImageProcessor:
             logger.error(f"❌ 應用操作失敗: {e}")
             return None
 
-    async def _resize_image(self, image: Image.Image, params: Dict[str, Any]) -> Image.Image:
+    async def _resize_image(
+        self, image: Image.Image, params: Dict[str, Any]
+    ) -> Image.Image:
         """調整圖片尺寸"""
         try:
             width = params.get("width", image.width)
@@ -208,7 +212,9 @@ class ImageProcessor:
             logger.error(f"❌ 調整尺寸失敗: {e}")
             return image
 
-    async def _apply_effect(self, image: Image.Image, params: Dict[str, Any]) -> Image.Image:
+    async def _apply_effect(
+        self, image: Image.Image, params: Dict[str, Any]
+    ) -> Image.Image:
         """應用圖片特效"""
         try:
             effect_type = params.get("effect_type", ImageEffect.VINTAGE)
@@ -354,7 +360,9 @@ class ImageProcessor:
             image.save(output, format="PNG")
             return output.getvalue()
 
-    async def batch_process(self, requests: List[ImageProcessRequest]) -> List[ProcessedImage]:
+    async def batch_process(
+        self, requests: List[ImageProcessRequest]
+    ) -> List[ProcessedImage]:
         """批量處理圖片"""
         try:
             tasks = []
@@ -368,7 +376,9 @@ class ImageProcessor:
             for i, result in enumerate(results):
                 if isinstance(result, Exception):
                     processed_results.append(
-                        ProcessedImage(success=False, error_message=f"批量處理錯誤: {str(result)}")
+                        ProcessedImage(
+                            success=False, error_message=f"批量處理錯誤: {str(result)}"
+                        )
                     )
                 else:
                     processed_results.append(result)
@@ -377,7 +387,9 @@ class ImageProcessor:
 
         except Exception as e:
             logger.error(f"❌ 批量處理失敗: {e}")
-            return [ProcessedImage(success=False, error_message=f"批量處理失敗: {str(e)}")]
+            return [
+                ProcessedImage(success=False, error_message=f"批量處理失敗: {str(e)}")
+            ]
 
 
 # 全域實例

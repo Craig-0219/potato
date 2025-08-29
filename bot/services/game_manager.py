@@ -42,7 +42,9 @@ class GameManager:
             self.active_games[game_id] = session_data
 
             # 快取會話數據
-            await cache_manager.set(f"game_session:{game_id}", session_data, 1800)  # 30分鐘
+            await cache_manager.set(
+                f"game_session:{game_id}", session_data, 1800
+            )  # 30分鐘
 
             return game_id
 
@@ -76,7 +78,9 @@ class GameManager:
                 self.active_games[game_id].update(update_data)
 
                 # 更新快取
-                await cache_manager.set(f"game_session:{game_id}", self.active_games[game_id], 1800)
+                await cache_manager.set(
+                    f"game_session:{game_id}", self.active_games[game_id], 1800
+                )
 
         except Exception as e:
             logger.error(f"❌ 更新遊戲會話失敗: {e}")
@@ -219,7 +223,14 @@ class GameManager:
 
                     leaderboard = []
                     for i, row in enumerate(results, 1):
-                        (player_id, total_games, total_wins, avg_score, best_score, win_rate) = row
+                        (
+                            player_id,
+                            total_games,
+                            total_wins,
+                            avg_score,
+                            best_score,
+                            win_rate,
+                        ) = row
 
                         leaderboard.append(
                             {
@@ -251,7 +262,9 @@ class GameManager:
             for game_id, session in self.active_games.items():
                 start_time = session.get("start_time")
                 if isinstance(start_time, str):
-                    start_time = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
+                    start_time = datetime.fromisoformat(
+                        start_time.replace("Z", "+00:00")
+                    )
 
                 # 超過30分鐘視為過期
                 if (current_time - start_time).total_seconds() > 1800:
@@ -380,7 +393,26 @@ class GameManager:
         result_number = random.randint(0, 36)
 
         # 定義紅色數字
-        red_numbers = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]
+        red_numbers = [
+            1,
+            3,
+            5,
+            7,
+            9,
+            12,
+            14,
+            16,
+            18,
+            19,
+            21,
+            23,
+            25,
+            27,
+            30,
+            32,
+            34,
+            36,
+        ]
 
         # 判斷屬性
         is_red = result_number in red_numbers
@@ -452,7 +484,11 @@ class GameManager:
                             "total_games": total_games or 0,
                             "unique_players": unique_players or 0,
                             "total_wins": total_wins or 0,
-                            "win_rate": (total_wins / total_games * 100) if total_games > 0 else 0,
+                            "win_rate": (
+                                (total_wins / total_games * 100)
+                                if total_games > 0
+                                else 0
+                            ),
                             "avg_score": float(avg_score) if avg_score else 0,
                         }
 

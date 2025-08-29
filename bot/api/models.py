@@ -66,7 +66,9 @@ class TicketBase(BaseModel):
     """票券基礎模型"""
 
     type: str = Field(..., description="票券類型")
-    priority: TicketPriority = Field(default=TicketPriority.MEDIUM, description="優先級")
+    priority: TicketPriority = Field(
+        default=TicketPriority.MEDIUM, description="優先級"
+    )
     title: Optional[str] = Field(None, description="票券標題")
     description: Optional[str] = Field(None, description="票券描述")
 
@@ -135,7 +137,9 @@ class TicketStatistics(BaseModel):
     high_priority: int = Field(..., description="高優先級票券數")
     medium_priority: int = Field(..., description="中優先級票券數")
     low_priority: int = Field(..., description="低優先級票券數")
-    avg_resolution_time: Optional[float] = Field(None, description="平均解決時間（小時）")
+    avg_resolution_time: Optional[float] = Field(
+        None, description="平均解決時間（小時）"
+    )
     avg_rating: Optional[float] = Field(None, description="平均評分")
     period_start: datetime = Field(..., description="統計期間開始")
     period_end: datetime = Field(..., description="統計期間結束")
@@ -148,7 +152,9 @@ class StaffPerformance(BaseModel):
     username: str = Field(..., description="客服用戶名")
     total_assigned: int = Field(..., description="總指派票券數")
     total_completed: int = Field(..., description="已完成票券數")
-    avg_completion_time: Optional[float] = Field(None, description="平均完成時間（小時）")
+    avg_completion_time: Optional[float] = Field(
+        None, description="平均完成時間（小時）"
+    )
     avg_rating: Optional[float] = Field(None, description="平均評分")
     current_workload: int = Field(..., description="當前工作量")
     efficiency_score: Optional[float] = Field(None, description="效率評分")

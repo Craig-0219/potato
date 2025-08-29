@@ -177,7 +177,9 @@ class MultiLevelCacheManager:
                     socket_timeout=5,
                 )
             elif REDIS_TYPE == "redis-py":
-                self.redis = await aioredis.from_url(self.redis_url, decode_responses=True)
+                self.redis = await aioredis.from_url(
+                    self.redis_url, decode_responses=True
+                )
 
             # 測試連接
             await self.redis.ping()
@@ -391,7 +393,10 @@ class MultiLevelCacheManager:
                 "misses": self.stats.l2_misses,
                 "hit_rate": f"{self.stats.l2_hit_rate():.2%}",
             },
-            "operations": {"sets": self.stats.total_sets, "deletes": self.stats.total_deletes},
+            "operations": {
+                "sets": self.stats.total_sets,
+                "deletes": self.stats.total_deletes,
+            },
         }
 
         # 添加 Redis 詳細資訊
@@ -437,11 +442,16 @@ class MultiLevelCacheManager:
 
             return entry.value
 
-    async def _set_to_l1(self, key: str, value: Any, ttl: int, dirty: bool = False) -> bool:
+    async def _set_to_l1(
+        self, key: str, value: Any, ttl: int, dirty: bool = False
+    ) -> bool:
         """寫入 L1 快取"""
         async with self._global_lock:
             # 檢查容量限制
-            if len(self._l1_cache) >= self.config.l1_max_size and key not in self._l1_cache:
+            if (
+                len(self._l1_cache) >= self.config.l1_max_size
+                and key not in self._l1_cache
+            ):
                 # LRU 淘汰
                 if self._l1_access_order:
                     oldest_key = self._l1_access_order.pop(0)
@@ -555,7 +565,9 @@ class MultiLevelCacheManager:
                     await self._delete_from_l1(key)
 
                 if expired_keys:
-                    logger.debug(f"🧹 L1 快取清理完成，移除 {len(expired_keys)} 個過期條目")
+                    logger.debug(
+                        f"🧹 L1 快取清理完成，移除 {len(expired_keys)} 個過期條目"
+                    )
 
             except Exception as e:
                 logger.error(f"❌ L1 快取清理失敗: {e}")
@@ -583,7 +595,12 @@ class MultiLevelCacheManager:
 
         try:
             message = json.dumps(
-                {"key": key, "action": action, "timestamp": time.time(), "source": "cache_manager"}
+                {
+                    "key": key,
+                    "action": action,
+                    "timestamp": time.time(),
+                    "source": "cache_manager",
+                }
             )
 
             await self.redis.publish("cache:invalidation", message)
@@ -666,7 +683,9 @@ async def get_cache_manager() -> MultiLevelCacheManager:
 
 # 便捷的快取裝飾器
 def cached(
-    key_prefix: str = "", ttl: int = 300, strategy: CacheStrategy = CacheStrategy.WRITE_THROUGH
+    key_prefix: str = "",
+    ttl: int = 300,
+    strategy: CacheStrategy = CacheStrategy.WRITE_THROUGH,
 ):
     """快取裝飾器"""
 
@@ -682,7 +701,9 @@ def cached(
                 key_parts.extend(f"{k}={v}" for k, v in list(kwargs.items())[:3])
 
             cache_key = ":".join(filter(None, key_parts))
-            cache_key = hashlib.sha256(cache_key.encode()).hexdigest()[:16]  # 使用 SHA256 代替 MD5
+            cache_key = hashlib.sha256(cache_key.encode()).hexdigest()[
+                :16
+            ]  # 使用 SHA256 代替 MD5
 
             # 嘗試從快取讀取
             result = await cache_manager.get(cache_key)

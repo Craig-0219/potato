@@ -240,7 +240,9 @@ class ConversationManager:
             ),
         }
 
-        logger.info(f"✅ 對話流程初始化完成，支援 {len(self.conversation_flows)} 種流程")
+        logger.info(
+            f"✅ 對話流程初始化完成，支援 {len(self.conversation_flows)} 種流程"
+        )
 
     async def start_conversation(
         self,
@@ -339,7 +341,9 @@ class ConversationManager:
 
             # 更新對話歷史
             if response:
-                session.context.history.append({"role": "assistant", "content": response})
+                session.context.history.append(
+                    {"role": "assistant", "content": response}
+                )
 
             session.state = ConversationState.ACTIVE
             return response
@@ -349,7 +353,9 @@ class ConversationManager:
             session.state = ConversationState.ERROR
             return "抱歉，我遇到了一些問題。請稍後再試或聯繫管理員協助。"
 
-    async def _process_flow_message(self, session: ConversationSession, message: str) -> str:
+    async def _process_flow_message(
+        self, session: ConversationSession, message: str
+    ) -> str:
         """處理流程化對話訊息"""
         flow_config = self.conversation_flows[session.flow]
 
@@ -380,7 +386,9 @@ class ConversationManager:
                 next_step = flow_config[next_step_id]
 
                 # 格式化訊息（替換變數）
-                formatted_message = self._format_message(next_step.message, session.collected_data)
+                formatted_message = self._format_message(
+                    next_step.message, session.collected_data
+                )
                 return formatted_message
             else:
                 # 流程結束
@@ -389,7 +397,9 @@ class ConversationManager:
             # 輸入無效，重新提示
             return f"輸入格式不正確，請重新輸入。\n\n{current_step.message}"
 
-    async def _process_free_conversation(self, session: ConversationSession, message: str) -> str:
+    async def _process_free_conversation(
+        self, session: ConversationSession, message: str
+    ) -> str:
         """處理自由對話"""
         # 識別意圖
         intent_result = await self.intent_recognizer.recognize_intent(
@@ -438,7 +448,11 @@ class ConversationManager:
         elif step.expected_input == "confirmation":
             return message_lower in ["是", "否", "yes", "no", "y", "n", "確認", "取消"]
 
-        elif step.expected_input in ["detailed_description", "vote_title", "welcome_message"]:
+        elif step.expected_input in [
+            "detailed_description",
+            "vote_title",
+            "welcome_message",
+        ]:
             return len(message.strip()) >= 10  # 至少10個字符
 
         elif step.expected_input == "vote_options":
@@ -460,7 +474,9 @@ class ConversationManager:
         except KeyError:
             return message  # 如果格式化失敗，返回原訊息
 
-    async def _complete_flow(self, session: ConversationSession, final_input: str) -> str:
+    async def _complete_flow(
+        self, session: ConversationSession, final_input: str
+    ) -> str:
         """完成對話流程"""
         try:
             if session.flow == ConversationFlow.TICKET_CREATION:
@@ -510,7 +526,9 @@ class ConversationManager:
         else:
             return "❌ 票券創建已取消。如需協助，請隨時再次聯繫我們！"
 
-    async def _complete_vote_creation(self, session: ConversationSession, confirmation: str) -> str:
+    async def _complete_vote_creation(
+        self, session: ConversationSession, confirmation: str
+    ) -> str:
         """完成投票創建"""
         if confirmation.lower().strip() in ["是", "yes", "y", "確認"]:
             # 這裡應該調用投票系統創建投票
@@ -526,7 +544,9 @@ class ConversationManager:
         else:
             return "❌ 投票創建已取消。如需重新建立，請告訴我！"
 
-    async def _complete_welcome_setup(self, session: ConversationSession, confirmation: str) -> str:
+    async def _complete_welcome_setup(
+        self, session: ConversationSession, confirmation: str
+    ) -> str:
         """完成歡迎系統設定"""
         if confirmation.lower().strip() in ["是", "yes", "y", "確認"]:
             # 這裡應該調用歡迎系統配置

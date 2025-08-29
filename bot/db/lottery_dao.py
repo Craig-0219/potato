@@ -126,9 +126,13 @@ class LotteryDAO(BaseDAO):
                         if result["prize_data"]:
                             result["prize_data"] = json.loads(result["prize_data"])
                         if result["required_roles"]:
-                            result["required_roles"] = json.loads(result["required_roles"])
+                            result["required_roles"] = json.loads(
+                                result["required_roles"]
+                            )
                         if result["excluded_roles"]:
-                            result["excluded_roles"] = json.loads(result["excluded_roles"])
+                            result["excluded_roles"] = json.loads(
+                                result["excluded_roles"]
+                            )
 
                     return result
 
@@ -154,9 +158,13 @@ class LotteryDAO(BaseDAO):
                         if result["prize_data"]:
                             result["prize_data"] = json.loads(result["prize_data"])
                         if result["required_roles"]:
-                            result["required_roles"] = json.loads(result["required_roles"])
+                            result["required_roles"] = json.loads(
+                                result["required_roles"]
+                            )
                         if result["excluded_roles"]:
-                            result["excluded_roles"] = json.loads(result["excluded_roles"])
+                            result["excluded_roles"] = json.loads(
+                                result["excluded_roles"]
+                            )
 
                     return results
 
@@ -165,7 +173,11 @@ class LotteryDAO(BaseDAO):
             return []
 
     async def add_entry(
-        self, lottery_id: int, user_id: int, username: str, entry_method: str = "reaction"
+        self,
+        lottery_id: int,
+        user_id: int,
+        username: str,
+        entry_method: str = "reaction",
     ) -> bool:
         """添加參與者"""
         try:
@@ -177,7 +189,9 @@ class LotteryDAO(BaseDAO):
                     ON DUPLICATE KEY UPDATE entry_time = CURRENT_TIMESTAMP
                     """
 
-                    await cursor.execute(query, (lottery_id, user_id, username, entry_method))
+                    await cursor.execute(
+                        query, (lottery_id, user_id, username, entry_method)
+                    )
                     await conn.commit()
 
                     return True
@@ -218,7 +232,9 @@ class LotteryDAO(BaseDAO):
             logger.error(f"獲取抽獎參與者失敗: {e}")
             return []
 
-    async def select_winners(self, lottery_id: int, winners: List[Tuple[int, str, int]]) -> bool:
+    async def select_winners(
+        self, lottery_id: int, winners: List[Tuple[int, str, int]]
+    ) -> bool:
         """選出中獎者"""
         try:
             async with self.db.connection() as conn:
@@ -241,7 +257,8 @@ class LotteryDAO(BaseDAO):
 
                     for user_id, username, position in winners:
                         await cursor.execute(
-                            winners_query, (lottery_id, user_id, username, prize_data, position)
+                            winners_query,
+                            (lottery_id, user_id, username, prize_data, position),
                         )
 
                     # 更新抽獎狀態
@@ -331,7 +348,9 @@ class LotteryDAO(BaseDAO):
             logger.error(f"獲取抽獎設定失敗: {e}")
             return {}
 
-    async def update_lottery_settings(self, guild_id: int, settings: Dict[str, Any]) -> bool:
+    async def update_lottery_settings(
+        self, guild_id: int, settings: Dict[str, Any]
+    ) -> bool:
         """更新抽獎設定"""
         try:
             async with self.db.connection() as conn:
@@ -401,7 +420,9 @@ class LotteryDAO(BaseDAO):
             logger.error(f"清理過期抽獎失敗: {e}")
             return 0
 
-    async def get_lottery_statistics(self, guild_id: int, days: int = 30) -> Dict[str, Any]:
+    async def get_lottery_statistics(
+        self, guild_id: int, days: int = 30
+    ) -> Dict[str, Any]:
         """獲取抽獎統計資料"""
         try:
             async with self.db.connection() as conn:
@@ -475,8 +496,14 @@ class LotteryDAO(BaseDAO):
                         "daily_lotteries": basic_stats["daily_lotteries"] or 0,
                         "weekly_lotteries": basic_stats["weekly_lotteries"] or 0,
                         "monthly_lotteries": basic_stats["monthly_lotteries"] or 0,
-                        "total_participations": participation_stats["total_participations"] or 0,
-                        "unique_participants": participation_stats["unique_participants"] or 0,
+                        "total_participations": participation_stats[
+                            "total_participations"
+                        ]
+                        or 0,
+                        "unique_participants": participation_stats[
+                            "unique_participants"
+                        ]
+                        or 0,
                         "total_wins": winner_stats["total_wins"] or 0,
                         "unique_winners": winner_stats["unique_winners"] or 0,
                         "avg_participants": float(avg_result["avg_participants"] or 0),

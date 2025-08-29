@@ -93,7 +93,8 @@ class CrossPlatformEconomyCore(commands.Cog):
                     )
                 else:
                     embed = EmbedBuilder.create_error_embed(
-                        "❌ 設定失敗", "無法啟用跨平台同步，請檢查 API 端點和金鑰是否正確。"
+                        "❌ 設定失敗",
+                        "無法啟用跨平台同步，請檢查 API 端點和金鑰是否正確。",
                     )
             else:
                 # 停用同步
@@ -136,7 +137,9 @@ class CrossPlatformEconomyCore(commands.Cog):
 
             await interaction.response.defer()
 
-            settings = await self.economy_manager.get_economy_settings(interaction.guild.id)
+            settings = await self.economy_manager.get_economy_settings(
+                interaction.guild.id
+            )
 
             # 如果有參數，則更新設定
             updates = {}
@@ -147,7 +150,9 @@ class CrossPlatformEconomyCore(commands.Cog):
             if message_coins is not None:
                 updates["message_coins"] = max(1, min(20, message_coins))
             if inflation_threshold is not None:
-                updates["inflation_threshold"] = max(0.01, min(0.1, inflation_threshold))
+                updates["inflation_threshold"] = max(
+                    0.01, min(0.1, inflation_threshold)
+                )
 
             if updates:
                 settings = await self.economy_manager.update_economy_settings(
@@ -160,7 +165,9 @@ class CrossPlatformEconomyCore(commands.Cog):
                 color = "info"
 
             embed = EmbedBuilder.build(
-                title=title, description=f"{interaction.guild.name} 的經濟系統設定", color=color
+                title=title,
+                description=f"{interaction.guild.name} 的經濟系統設定",
+                color=color,
             )
 
             # 基本設定
@@ -221,11 +228,15 @@ class CrossPlatformEconomyCore(commands.Cog):
             await interaction.response.defer()
 
             # 獲取傳統經濟統計
-            traditional_stats = await self.economy_manager.get_economy_stats(interaction.guild.id)
+            traditional_stats = await self.economy_manager.get_economy_stats(
+                interaction.guild.id
+            )
 
             # 獲取跨平台統計
-            cross_platform_stats = await self.economy_manager.get_cross_platform_statistics(
-                interaction.guild.id
+            cross_platform_stats = (
+                await self.economy_manager.get_cross_platform_statistics(
+                    interaction.guild.id
+                )
             )
 
             embed = EmbedBuilder.create_info_embed(
@@ -284,13 +295,17 @@ class CrossPlatformEconomyCore(commands.Cog):
 
             # 通膨指標
             try:
-                inflation_result = await self.economy_manager.perform_anti_inflation_adjustment(
-                    interaction.guild.id
+                inflation_result = (
+                    await self.economy_manager.perform_anti_inflation_adjustment(
+                        interaction.guild.id
+                    )
                 )
                 if inflation_result:
                     inflation_rate = inflation_result.get("inflation_rate", 0)
                     status_emoji = (
-                        "📈" if inflation_rate > 0 else "📉" if inflation_rate < 0 else "📊"
+                        "📈"
+                        if inflation_rate > 0
+                        else "📉" if inflation_rate < 0 else "📊"
                     )
 
                     embed.add_field(
@@ -326,19 +341,25 @@ class CrossPlatformEconomyCore(commands.Cog):
 
             await interaction.response.defer()
 
-            settings = await self.economy_manager.get_economy_settings(interaction.guild.id)
+            settings = await self.economy_manager.get_economy_settings(
+                interaction.guild.id
+            )
 
             if not settings.sync_enabled:
                 await interaction.followup.send(
-                    "❌ 跨平台同步未啟用。請先使用 `/setup_cross_platform` 設定。", ephemeral=True
+                    "❌ 跨平台同步未啟用。請先使用 `/setup_cross_platform` 設定。",
+                    ephemeral=True,
                 )
                 return
 
             # 執行同步
-            await self.economy_manager.trigger_cross_platform_sync(user.id, interaction.guild.id)
+            await self.economy_manager.trigger_cross_platform_sync(
+                user.id, interaction.guild.id
+            )
 
             embed = EmbedBuilder.create_success_embed(
-                "🔄 強制同步已觸發", f"正在同步 {user.mention} 的經濟數據到 Minecraft 伺服器..."
+                "🔄 強制同步已觸發",
+                f"正在同步 {user.mention} 的經濟數據到 Minecraft 伺服器...",
             )
 
             await interaction.followup.send(embed=embed)
@@ -401,9 +422,13 @@ class CrossPlatformEconomyCore(commands.Cog):
                     color = "success"
                     description = "目前經濟指標在正常範圍內，無需調整。"
 
-                embed = EmbedBuilder.build(title=title, description=description, color=color)
+                embed = EmbedBuilder.build(
+                    title=title, description=description, color=color
+                )
 
-                status_emoji = "📈" if inflation_rate > 0 else "📉" if inflation_rate < 0 else "📊"
+                status_emoji = (
+                    "📈" if inflation_rate > 0 else "📉" if inflation_rate < 0 else "📊"
+                )
 
                 embed.add_field(
                     name="📊 經濟指標",
@@ -491,7 +516,9 @@ class CrossPlatformEconomyCore(commands.Cog):
             )
 
             # 跨平台狀態
-            settings = await self.economy_manager.get_economy_settings(interaction.guild.id)
+            settings = await self.economy_manager.get_economy_settings(
+                interaction.guild.id
+            )
             sync_status = "🌉 已啟用" if settings.sync_enabled else "🔌 未啟用"
 
             embed.add_field(
@@ -505,7 +532,9 @@ class CrossPlatformEconomyCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ 查看用戶經濟狀況失敗: {e}")
-            await interaction.followup.send("❌ 獲取經濟資料時發生錯誤。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 獲取經濟資料時發生錯誤。", ephemeral=True
+            )
 
     # ========== Zientis 整合命令 ==========
 
@@ -519,7 +548,9 @@ class CrossPlatformEconomyCore(commands.Cog):
     ):
         """設定 Zientis Minecraft 伺服器整合"""
         if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("❌ 此命令需要管理員權限。", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 此命令需要管理員權限。", ephemeral=True
+            )
             return
 
         try:
@@ -532,12 +563,14 @@ class CrossPlatformEconomyCore(commands.Cog):
 
             if success:
                 embed = EmbedBuilder.create_success_embed(
-                    "✅ Zientis 整合設置成功", "跨平台經濟系統已成功連接到 Zientis Minecraft 伺服器"
+                    "✅ Zientis 整合設置成功",
+                    "跨平台經濟系統已成功連接到 Zientis Minecraft 伺服器",
                 )
 
                 embed.add_field(
                     name="🔗 連接資訊",
-                    value=f"**API 端點**: {api_endpoint}\n" f"**狀態**: 已啟用跨平台同步",
+                    value=f"**API 端點**: {api_endpoint}\n"
+                    f"**狀態**: 已啟用跨平台同步",
                     inline=False,
                 )
 
@@ -575,23 +608,30 @@ class CrossPlatformEconomyCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ 設置 Zientis 整合失敗: {e}")
-            await interaction.followup.send("❌ 設置 Zientis 整合時發生錯誤。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 設置 Zientis 整合時發生錯誤。", ephemeral=True
+            )
 
     # @app_commands.command(name="test_zientis_connection", description="測試與 Zientis 伺服器的連接")  # 已移除以節省指令空間
     async def test_zientis_connection(self, interaction: discord.Interaction):
         """測試與 Zientis 伺服器的連接"""
         if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("❌ 此命令需要管理員權限。", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 此命令需要管理員權限。", ephemeral=True
+            )
             return
 
         try:
             await interaction.response.defer(ephemeral=True)
 
-            settings = await self.economy_manager.get_economy_settings(interaction.guild.id)
+            settings = await self.economy_manager.get_economy_settings(
+                interaction.guild.id
+            )
 
             if not settings.sync_enabled or not settings.minecraft_api_endpoint:
                 await interaction.followup.send(
-                    "❌ 尚未設置 Zientis 整合。請先使用 `/setup_zientis` 命令。", ephemeral=True
+                    "❌ 尚未設置 Zientis 整合。請先使用 `/setup_zientis` 命令。",
+                    ephemeral=True,
                 )
                 return
 
@@ -609,7 +649,8 @@ class CrossPlatformEconomyCore(commands.Cog):
                         result = await response.json()
 
                         embed = EmbedBuilder.create_success_embed(
-                            "✅ Zientis 連接測試成功", "與 Zientis Minecraft 伺服器的連接正常"
+                            "✅ Zientis 連接測試成功",
+                            "與 Zientis Minecraft 伺服器的連接正常",
                         )
 
                         embed.add_field(
@@ -635,7 +676,9 @@ class CrossPlatformEconomyCore(commands.Cog):
 
                         error_text = await response.text()
                         embed.add_field(
-                            name="❌ 錯誤詳情", value=f"```{error_text[:500]}```", inline=False
+                            name="❌ 錯誤詳情",
+                            value=f"```{error_text[:500]}```",
+                            inline=False,
                         )
 
             await interaction.followup.send(embed=embed)
@@ -643,7 +686,9 @@ class CrossPlatformEconomyCore(commands.Cog):
         except Exception as e:
             logger.error(f"❌ 測試 Zientis 連接失敗: {e}")
 
-            embed = EmbedBuilder.create_error_embed("❌ 連接測試失敗", "無法連接到 Zientis 伺服器")
+            embed = EmbedBuilder.create_error_embed(
+                "❌ 連接測試失敗", "無法連接到 Zientis 伺服器"
+            )
 
             embed.add_field(
                 name="🔍 可能原因",
@@ -654,7 +699,9 @@ class CrossPlatformEconomyCore(commands.Cog):
                 inline=False,
             )
 
-            embed.add_field(name="❌ 錯誤詳情", value=f"```{str(e)[:500]}```", inline=False)
+            embed.add_field(
+                name="❌ 錯誤詳情", value=f"```{str(e)[:500]}```", inline=False
+            )
 
             await interaction.followup.send(embed=embed)
 
@@ -664,10 +711,14 @@ class CrossPlatformEconomyCore(commands.Cog):
         try:
             await interaction.response.defer(ephemeral=True)
 
-            settings = await self.economy_manager.get_economy_settings(interaction.guild.id)
+            settings = await self.economy_manager.get_economy_settings(
+                interaction.guild.id
+            )
 
             if not settings.sync_enabled:
-                await interaction.followup.send("❌ 伺服器尚未啟用 Zientis 整合。", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ 伺服器尚未啟用 Zientis 整合。", ephemeral=True
+                )
                 return
 
             # 生成驗證碼 (這裡需要實際的實現)
@@ -679,7 +730,9 @@ class CrossPlatformEconomyCore(commands.Cog):
                 "🔗 Minecraft 帳戶綁定", "請在 Minecraft 中使用以下驗證碼綁定您的帳戶"
             )
 
-            embed.add_field(name="🔢 驗證碼", value=f"```{verification_code}```", inline=False)
+            embed.add_field(
+                name="🔢 驗證碼", value=f"```{verification_code}```", inline=False
+            )
 
             embed.add_field(
                 name="📋 綁定步驟",

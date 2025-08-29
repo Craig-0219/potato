@@ -32,7 +32,9 @@ class LotteryCore(commands.Cog):
         try:
             # 檢查基本權限 (查看需要)
             if not interaction.user.guild_permissions.send_messages:
-                await interaction.response.send_message("❌ 您沒有權限使用此功能", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 您沒有權限使用此功能", ephemeral=True
+                )
                 return
 
             view = LotteryManagementView()
@@ -49,13 +51,19 @@ class LotteryCore(commands.Cog):
             embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/🎲.png")
             embed.set_footer(text="點擊按鈕開始使用抽獎系統")
 
-            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, view=view, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"打開抽獎管理面板失敗: {e}")
-            await interaction.response.send_message("❌ 打開管理面板時發生錯誤", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 打開管理面板時發生錯誤", ephemeral=True
+            )
 
-    @app_commands.command(name="create_lottery_quick", description="快速創建抽獎 (使用互動式表單)")
+    @app_commands.command(
+        name="create_lottery_quick", description="快速創建抽獎 (使用互動式表單)"
+    )
     async def create_lottery_quick(self, interaction: discord.Interaction):
         """快速創建抽獎"""
         try:
@@ -77,11 +85,15 @@ class LotteryCore(commands.Cog):
                         "❌ 打開創建表單時發生錯誤", ephemeral=True
                     )
                 else:
-                    await interaction.followup.send("❌ 打開創建表單時發生錯誤", ephemeral=True)
+                    await interaction.followup.send(
+                        "❌ 打開創建表單時發生錯誤", ephemeral=True
+                    )
             except Exception as followup_error:
                 logger.error(f"發送錯誤訊息失敗: {followup_error}")
 
-    @app_commands.command(name="create_lottery", description="創建新的抽獎活動 (傳統指令)")
+    @app_commands.command(
+        name="create_lottery", description="創建新的抽獎活動 (傳統指令)"
+    )
     @app_commands.describe(
         name="抽獎名稱",
         description="抽獎描述",
@@ -151,11 +163,15 @@ class LotteryCore(commands.Cog):
             if success and lottery_id:
                 # 立即開始抽獎
                 start_success, start_message, lottery_message = (
-                    await self.lottery_manager.start_lottery(lottery_id, interaction.channel)
+                    await self.lottery_manager.start_lottery(
+                        lottery_id, interaction.channel
+                    )
                 )
 
                 if start_success:
-                    await interaction.followup.send(f"✅ {message}\n抽獎已開始！", ephemeral=True)
+                    await interaction.followup.send(
+                        f"✅ {message}\n抽獎已開始！", ephemeral=True
+                    )
                 else:
                     await interaction.followup.send(
                         f"✅ 抽獎創建成功，但啟動失敗：{start_message}", ephemeral=True
@@ -166,7 +182,9 @@ class LotteryCore(commands.Cog):
         except Exception as e:
             logger.error(f"創建抽獎指令錯誤: {e}")
             if not interaction.response.is_done():
-                await interaction.response.send_message("❌ 創建抽獎時發生錯誤", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 創建抽獎時發生錯誤", ephemeral=True
+                )
             else:
                 await interaction.followup.send("❌ 創建抽獎時發生錯誤", ephemeral=True)
 
@@ -186,7 +204,9 @@ class LotteryCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"參與抽獎指令錯誤: {e}")
-            await interaction.response.send_message("❌ 參與抽獎時發生錯誤", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 參與抽獎時發生錯誤", ephemeral=True
+            )
 
     @app_commands.command(name="leave_lottery", description="退出抽獎")
     @app_commands.describe(lottery_id="抽獎ID")
@@ -204,7 +224,9 @@ class LotteryCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"退出抽獎指令錯誤: {e}")
-            await interaction.response.send_message("❌ 退出抽獎時發生錯誤", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 退出抽獎時發生錯誤", ephemeral=True
+            )
 
     @app_commands.command(name="lottery_info", description="查看抽獎資訊")
     @app_commands.describe(lottery_id="抽獎ID")
@@ -214,7 +236,9 @@ class LotteryCore(commands.Cog):
             lottery = await self.lottery_manager.get_lottery_info(lottery_id)
 
             if not lottery:
-                await interaction.response.send_message("❌ 找不到指定的抽獎", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 找不到指定的抽獎", ephemeral=True
+                )
                 return
 
             # 創建資訊嵌入
@@ -227,9 +251,13 @@ class LotteryCore(commands.Cog):
             # 基本資訊
             embed.add_field(name="📊 狀態", value=lottery["status"], inline=True)
             embed.add_field(
-                name="👥 參與人數", value=str(lottery.get("participant_count", 0)), inline=True
+                name="👥 參與人數",
+                value=str(lottery.get("participant_count", 0)),
+                inline=True,
             )
-            embed.add_field(name="🏆 中獎人數", value=str(lottery["winner_count"]), inline=True)
+            embed.add_field(
+                name="🏆 中獎人數", value=str(lottery["winner_count"]), inline=True
+            )
 
             # 時間資訊
             if lottery["start_time"]:
@@ -269,7 +297,9 @@ class LotteryCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"查看抽獎資訊錯誤: {e}")
-            await interaction.response.send_message("❌ 查看抽獎資訊時發生錯誤", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 查看抽獎資訊時發生錯誤", ephemeral=True
+            )
 
     @app_commands.command(name="end_lottery", description="提前結束抽獎")
     @app_commands.describe(lottery_id="抽獎ID")
@@ -297,7 +327,9 @@ class LotteryCore(commands.Cog):
         except Exception as e:
             logger.error(f"結束抽獎指令錯誤: {e}")
             if not interaction.response.is_done():
-                await interaction.response.send_message("❌ 結束抽獎時發生錯誤", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 結束抽獎時發生錯誤", ephemeral=True
+                )
             else:
                 await interaction.followup.send("❌ 結束抽獎時發生錯誤", ephemeral=True)
 
@@ -312,7 +344,9 @@ class LotteryCore(commands.Cog):
             lotteries = await dao.get_active_lotteries(interaction.guild.id)
 
             if not lotteries:
-                await interaction.response.send_message("📋 目前沒有進行中的抽獎", ephemeral=True)
+                await interaction.response.send_message(
+                    "📋 目前沒有進行中的抽獎", ephemeral=True
+                )
                 return
 
             embed = EmbedBuilder.build(title="🎲 進行中的抽獎", color="info")
@@ -338,7 +372,9 @@ class LotteryCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"查看抽獎列表錯誤: {e}")
-            await interaction.response.send_message("❌ 查看抽獎列表時發生錯誤", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 查看抽獎列表時發生錯誤", ephemeral=True
+            )
 
     @app_commands.command(name="lottery_stats", description="查看抽獎統計")
     @app_commands.describe(days="統計天數（預設30天）")
@@ -353,16 +389,22 @@ class LotteryCore(commands.Cog):
 
             await interaction.response.defer()
 
-            stats = await self.lottery_manager.get_lottery_statistics(interaction.guild.id, days)
+            stats = await self.lottery_manager.get_lottery_statistics(
+                interaction.guild.id, days
+            )
 
             if not stats or stats.get("basic_stats", {}).get("total_lotteries", 0) == 0:
-                await interaction.followup.send(f"📊 最近 {days} 天沒有抽獎活動", ephemeral=True)
+                await interaction.followup.send(
+                    f"📊 最近 {days} 天沒有抽獎活動", ephemeral=True
+                )
                 return
 
             basic_stats = stats.get("basic_stats", {})
             participation_stats = stats.get("participation_stats", {})
 
-            embed = EmbedBuilder.build(title=f"📊 抽獎統計 - 最近 {days} 天", color="info")
+            embed = EmbedBuilder.build(
+                title=f"📊 抽獎統計 - 最近 {days} 天", color="info"
+            )
 
             # 基本統計
             embed.add_field(
@@ -385,7 +427,9 @@ class LotteryCore(commands.Cog):
 
             # 平均中獎數
             avg_winners = basic_stats.get("avg_winners_per_lottery", 0)
-            embed.add_field(name="🏆 中獎情況", value=f"平均中獎數: {avg_winners:.1f}", inline=True)
+            embed.add_field(
+                name="🏆 中獎情況", value=f"平均中獎數: {avg_winners:.1f}", inline=True
+            )
 
             embed.set_footer(text=f"統計期間: {stats.get('period', f'最近 {days} 天')}")
 
@@ -394,9 +438,13 @@ class LotteryCore(commands.Cog):
         except Exception as e:
             logger.error(f"查看抽獎統計錯誤: {e}")
             if not interaction.response.is_done():
-                await interaction.response.send_message("❌ 查看抽獎統計時發生錯誤", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 查看抽獎統計時發生錯誤", ephemeral=True
+                )
             else:
-                await interaction.followup.send("❌ 查看抽獎統計時發生錯誤", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ 查看抽獎統計時發生錯誤", ephemeral=True
+                )
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
@@ -490,7 +538,9 @@ class LotteryCore(commands.Cog):
             from bot.views.lottery_dashboard_views import UserLotteryHistoryView
 
             # 創建用戶歷史視圖
-            history_view = UserLotteryHistoryView(interaction.guild.id, interaction.user.id)
+            history_view = UserLotteryHistoryView(
+                interaction.guild.id, interaction.user.id
+            )
 
             # 獲取初始歷史數據
             history = await self.lottery_manager.dao.get_user_lottery_history(
@@ -505,14 +555,18 @@ class LotteryCore(commands.Cog):
                 return
 
             # 創建歷史嵌入
-            embed = EmbedBuilder.create_info_embed(f"📋 <@{interaction.user.id}> 的抽獎歷史")
+            embed = EmbedBuilder.create_info_embed(
+                f"📋 <@{interaction.user.id}> 的抽獎歷史"
+            )
 
             for record in history:
                 status_emoji = {"active": "🟢", "ended": "✅", "cancelled": "❌"}
 
                 win_text = "🏆 中獎" if record.get("is_winner") else "📝 參與"
                 position_text = (
-                    f" (第{record.get('win_position')}名)" if record.get("win_position") else ""
+                    f" (第{record.get('win_position')}名)"
+                    if record.get("win_position")
+                    else ""
                 )
 
                 embed.add_field(
@@ -524,14 +578,20 @@ class LotteryCore(commands.Cog):
 
             embed.set_footer(text=f"第 1 頁 • 共 {len(history)} 條記錄")
 
-            await interaction.followup.send(embed=embed, view=history_view, ephemeral=True)
+            await interaction.followup.send(
+                embed=embed, view=history_view, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"查看抽獎歷史失敗: {e}")
             if not interaction.response.is_done():
-                await interaction.response.send_message("❌ 查看抽獎歷史時發生錯誤", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 查看抽獎歷史時發生錯誤", ephemeral=True
+                )
             else:
-                await interaction.followup.send("❌ 查看抽獎歷史時發生錯誤", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ 查看抽獎歷史時發生錯誤", ephemeral=True
+                )
 
 
 async def setup(bot):

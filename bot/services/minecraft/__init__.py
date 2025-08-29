@@ -8,9 +8,4 @@ from .rcon_manager import RCONManager
 from .player_manager import PlayerManager
 from .chat_bridge import ChatBridge
 
-__all__ = [
-    'MinecraftServerAPI',
-    'RCONManager', 
-    'PlayerManager',
-    'ChatBridge'
-]
+__all__ = ["MinecraftServerAPI", "RCONManager", "PlayerManager", "ChatBridge"]

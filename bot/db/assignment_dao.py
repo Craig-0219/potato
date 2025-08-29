@@ -48,7 +48,9 @@ class AssignmentDAO:
 
     # ========== 工作量管理 ==========
 
-    async def get_staff_workload(self, guild_id: int, staff_id: int) -> Optional[Dict[str, Any]]:
+    async def get_staff_workload(
+        self, guild_id: int, staff_id: int
+    ) -> Optional[Dict[str, Any]]:
         """取得客服人員工作量資訊"""
         await self._ensure_initialized()
         try:
@@ -124,7 +126,9 @@ class AssignmentDAO:
 
                     if increment_completed:
                         updates.append("total_completed = total_completed + 1")
-                        updates.append("current_tickets = GREATEST(0, current_tickets - 1)")
+                        updates.append(
+                            "current_tickets = GREATEST(0, current_tickets - 1)"
+                        )
 
                     if completion_time_minutes is not None:
                         # 更新平均完成時間 (使用移動平均)
@@ -136,7 +140,9 @@ class AssignmentDAO:
                             END
                         """
                         )
-                        params.extend([completion_time_minutes, completion_time_minutes])
+                        params.extend(
+                            [completion_time_minutes, completion_time_minutes]
+                        )
 
                     if updates:
                         updates.append("updated_at = NOW()")
@@ -221,7 +227,14 @@ class AssignmentDAO:
                         (ticket_id, assigned_from, assigned_to, assigned_by, assignment_reason, assignment_method)
                         VALUES (%s, %s, %s, %s, %s, %s)
                     """,
-                        (ticket_id, assigned_from, assigned_to, assigned_by, reason, method),
+                        (
+                            ticket_id,
+                            assigned_from,
+                            assigned_to,
+                            assigned_by,
+                            reason,
+                            method,
+                        ),
                     )
 
                     await conn.commit()
@@ -258,7 +271,11 @@ class AssignmentDAO:
     # ========== 專精系統管理 ==========
 
     async def add_staff_specialty(
-        self, guild_id: int, staff_id: int, specialty_type: str, skill_level: str = "intermediate"
+        self,
+        guild_id: int,
+        staff_id: int,
+        specialty_type: str,
+        skill_level: str = "intermediate",
     ) -> bool:
         """添加客服專精"""
         await self._ensure_initialized()
@@ -285,7 +302,9 @@ class AssignmentDAO:
             logger.error(f"添加客服專精錯誤：{e}")
             return False
 
-    async def get_staff_specialties(self, guild_id: int, staff_id: int) -> List[Dict[str, Any]]:
+    async def get_staff_specialties(
+        self, guild_id: int, staff_id: int
+    ) -> List[Dict[str, Any]]:
         """取得客服專精列表"""
         await self._ensure_initialized()
         try:
@@ -365,7 +384,10 @@ class AssignmentDAO:
     # ========== 指派規則管理 ==========
 
     async def get_assignment_rule(
-        self, guild_id: int, ticket_type: Optional[str] = None, priority_level: Optional[str] = None
+        self,
+        guild_id: int,
+        ticket_type: Optional[str] = None,
+        priority_level: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
         """取得適用的指派規則"""
         await self._ensure_initialized()
@@ -445,7 +467,9 @@ class AssignmentDAO:
 
     # ========== 統計查詢 ==========
 
-    async def get_assignment_statistics(self, guild_id: int, days: int = 30) -> Dict[str, Any]:
+    async def get_assignment_statistics(
+        self, guild_id: int, days: int = 30
+    ) -> Dict[str, Any]:
         """取得指派統計資料"""
         await self._ensure_initialized()
         try:
@@ -526,7 +550,9 @@ class AssignmentDAO:
             logger.error(f"取得指派統計錯誤：{e}")
             return {"assignment_methods": [], "staff_workload": []}
 
-    async def get_staff_performance(self, guild_id: int, days: int = 30) -> List[Dict[str, Any]]:
+    async def get_staff_performance(
+        self, guild_id: int, days: int = 30
+    ) -> List[Dict[str, Any]]:
         """取得工作人員表現數據"""
         await self._ensure_initialized()
         try:
@@ -585,9 +611,13 @@ class AssignmentDAO:
                         if completion_rate > 0:
                             efficiency_score = completion_rate
                             if avg_time > 0 and avg_time < 1440:  # 24小時內
-                                efficiency_score += (1440 - avg_time) / 1440 * 20  # 最多加20分
+                                efficiency_score += (
+                                    (1440 - avg_time) / 1440 * 20
+                                )  # 最多加20分
                             if recent_completed > 0:
-                                efficiency_score += min(recent_completed * 5, 30)  # 最多加30分
+                                efficiency_score += min(
+                                    recent_completed * 5, 30
+                                )  # 最多加30分
 
                         data["efficiency_score"] = round(efficiency_score, 2)
                         performance_data.append(data)

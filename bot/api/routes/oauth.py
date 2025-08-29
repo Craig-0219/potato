@@ -27,7 +27,9 @@ DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI")
 DISCORD_GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 
 # 驗證必要的環境變數
-if not all([DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI, DISCORD_GUILD_ID]):
+if not all(
+    [DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI, DISCORD_GUILD_ID]
+):
     missing = [
         name
         for name, value in [
@@ -95,7 +97,9 @@ async def discord_callback(
         if error:
             logger.error(f"Discord OAuth 錯誤: {error}")
             # 重定向到前端錯誤頁面
-            return RedirectResponse(url=f"http://36.50.249.118:3000/auth/error?error={error}")
+            return RedirectResponse(
+                url=f"http://36.50.249.118:3000/auth/error?error={error}"
+            )
 
         if not code:
             raise HTTPException(status_code=400, detail="缺少授權碼")
@@ -111,7 +115,9 @@ async def discord_callback(
             raise HTTPException(status_code=400, detail="無法獲取用戶資訊")
 
         # 檢查用戶權限
-        user_permissions = await check_user_permissions(token_data["access_token"], user_info["id"])
+        user_permissions = await check_user_permissions(
+            token_data["access_token"], user_info["id"]
+        )
 
         # 生成 JWT token
         jwt_token = generate_jwt_token(user_info, user_permissions)
@@ -122,7 +128,9 @@ async def discord_callback(
 
     except Exception as e:
         logger.error(f"Discord OAuth 回調錯誤: {e}")
-        return RedirectResponse(url=f"http://36.50.249.118:3000/auth/error?error=callback_failed")
+        return RedirectResponse(
+            url=f"http://36.50.249.118:3000/auth/error?error=callback_failed"
+        )
 
 
 async def exchange_code_for_token(code: str) -> Optional[dict]:
@@ -148,7 +156,9 @@ async def exchange_code_for_token(code: str) -> Optional[dict]:
             if response.status_code == 200:
                 return response.json()
             else:
-                logger.error(f"Token 交換失敗: {response.status_code} - {response.text}")
+                logger.error(
+                    f"Token 交換失敗: {response.status_code} - {response.text}"
+                )
                 return None
 
     except Exception as e:
@@ -163,7 +173,8 @@ async def get_discord_user_info(access_token: str) -> Optional[dict]:
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{DISCORD_API_BASE}/users/@me", headers={"Authorization": f"Bearer {access_token}"}
+                f"{DISCORD_API_BASE}/users/@me",
+                headers={"Authorization": f"Bearer {access_token}"},
             )
 
             if response.status_code == 200:
@@ -232,8 +243,12 @@ async def check_user_permissions(access_token: str, user_id: str) -> dict:
                 )
 
                 # 清理空字串
-                admin_role_ids = [role_id.strip() for role_id in admin_role_ids if role_id.strip()]
-                staff_role_ids = [role_id.strip() for role_id in staff_role_ids if role_id.strip()]
+                admin_role_ids = [
+                    role_id.strip() for role_id in admin_role_ids if role_id.strip()
+                ]
+                staff_role_ids = [
+                    role_id.strip() for role_id in staff_role_ids if role_id.strip()
+                ]
 
                 # 檢查是否有管理員角色
                 if any(role_id in admin_role_ids for role_id in roles):
@@ -285,7 +300,9 @@ async def get_guild_owner_id(client: httpx.AsyncClient) -> Optional[str]:
             logger.info(f"🏛️ 伺服器 {DISCORD_GUILD_ID} 的擁有者 ID: {owner_id}")
             return owner_id
         else:
-            logger.error(f"獲取伺服器資訊失敗: {response.status_code} - {response.text}")
+            logger.error(
+                f"獲取伺服器資訊失敗: {response.status_code} - {response.text}"
+            )
             return None
 
     except Exception as e:

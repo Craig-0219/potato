@@ -65,8 +65,12 @@ class SecureTicketDAO:
 
         try:
             # 驗證用戶對該伺服器的存取權限
-            if user_id and not await self.security.validate_guild_access(user_id, guild_id):
-                raise TenantIsolationViolation(f"用戶 {user_id} 無權存取伺服器 {guild_id} 的票券")
+            if user_id and not await self.security.validate_guild_access(
+                user_id, guild_id
+            ):
+                raise TenantIsolationViolation(
+                    f"用戶 {user_id} 無權存取伺服器 {guild_id} 的票券"
+                )
 
             # 建構安全查詢
             query, params = self.query_builder.build_select(
@@ -110,7 +114,9 @@ class SecureTicketDAO:
         try:
             # 驗證權限
             if not await self.security.validate_guild_access(user_id, guild_id):
-                raise TenantIsolationViolation(f"用戶 {user_id} 無權存取伺服器 {guild_id} 的票券")
+                raise TenantIsolationViolation(
+                    f"用戶 {user_id} 無權存取伺服器 {guild_id} 的票券"
+                )
 
             # 建構查詢條件
             additional_where = {}
@@ -177,7 +183,9 @@ class SecureTicketDAO:
         try:
             # 驗證權限
             if not await self.security.validate_guild_access(user_id, guild_id):
-                raise TenantIsolationViolation(f"用戶 {user_id} 無權在伺服器 {guild_id} 建立票券")
+                raise TenantIsolationViolation(
+                    f"用戶 {user_id} 無權在伺服器 {guild_id} 建立票券"
+                )
 
             # 準備安全資料
             safe_data = {
@@ -204,7 +212,11 @@ class SecureTicketDAO:
 
                     # 記錄建立日誌
                     await self.add_ticket_log(
-                        ticket_id, guild_id, "created", f"票券由用戶 {user_id} 建立", user_id
+                        ticket_id,
+                        guild_id,
+                        "created",
+                        f"票券由用戶 {user_id} 建立",
+                        user_id,
                     )
 
                     # 記錄存取日誌
@@ -217,7 +229,9 @@ class SecureTicketDAO:
 
         except Exception as e:
             logger.error(f"❌ 安全建立票券失敗: {e}")
-            await self._log_data_access(user_id, guild_id, "create", "tickets", None, False, str(e))
+            await self._log_data_access(
+                user_id, guild_id, "create", "tickets", None, False, str(e)
+            )
             raise
 
     @enforce_isolation("tickets")
@@ -230,7 +244,9 @@ class SecureTicketDAO:
         try:
             # 驗證權限
             if not await self.security.validate_guild_access(user_id, guild_id):
-                raise TenantIsolationViolation(f"用戶 {user_id} 無權更新伺服器 {guild_id} 的票券")
+                raise TenantIsolationViolation(
+                    f"用戶 {user_id} 無權更新伺服器 {guild_id} 的票券"
+                )
 
             # 過濾安全更新欄位
             allowed_fields = [
@@ -316,14 +332,18 @@ class SecureTicketDAO:
             # 這裡我們需要驗證 ticket_id 確實屬於指定的 guild_id
             ticket = await self.get_ticket_by_id(ticket_id, guild_id, user_id)
             if not ticket:
-                raise TenantIsolationViolation(f"票券 {ticket_id} 不屬於伺服器 {guild_id}")
+                raise TenantIsolationViolation(
+                    f"票券 {ticket_id} 不屬於伺服器 {guild_id}"
+                )
 
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     # 直接插入，因為已驗證票券所屬權
                     columns = ", ".join(log_data.keys())
                     placeholders = ", ".join(["%s"] * len(log_data))
-                    query = f"INSERT INTO ticket_logs ({columns}) VALUES ({placeholders})"
+                    query = (
+                        f"INSERT INTO ticket_logs ({columns}) VALUES ({placeholders})"
+                    )
 
                     await cursor.execute(query, list(log_data.values()))
                     await conn.commit()
@@ -339,7 +359,9 @@ class SecureTicketDAO:
         try:
             # 驗證權限
             if not await self.security.validate_guild_access(user_id, guild_id):
-                raise TenantIsolationViolation(f"用戶 {user_id} 無權存取伺服器 {guild_id} 設定")
+                raise TenantIsolationViolation(
+                    f"用戶 {user_id} 無權存取伺服器 {guild_id} 設定"
+                )
 
             query, params = self.query_builder.build_select(
                 table="ticket_settings", guild_id=guild_id
@@ -360,7 +382,9 @@ class SecureTicketDAO:
             logger.error(f"❌ 取得伺服器設定失敗: {e}")
             raise
 
-    async def create_default_settings(self, guild_id: int, user_id: int) -> Dict[str, Any]:
+    async def create_default_settings(
+        self, guild_id: int, user_id: int
+    ) -> Dict[str, Any]:
         """建立預設伺服器設定"""
         try:
             default_settings = {

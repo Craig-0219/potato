@@ -56,7 +56,9 @@ class EmbedBuilder:
                 color = EmbedBuilder.COLORS[color]
 
             # 建立 Embed
-            embed = discord.Embed(title=title, description=description, color=color, **kwargs)
+            embed = discord.Embed(
+                title=title, description=description, color=color, **kwargs
+            )
 
             # 添加時間戳
             if timestamp:
@@ -68,7 +70,9 @@ class EmbedBuilder:
             logger.error(f"建立 Embed 失敗：{e}")
             # 返回基本 Embed 作為後備
             return discord.Embed(
-                title="系統錯誤", description="建立訊息時發生錯誤", color=discord.Color.red()
+                title="系統錯誤",
+                description="建立訊息時發生錯誤",
+                color=discord.Color.red(),
             )
 
     @staticmethod
@@ -102,7 +106,9 @@ class EmbedBuilder:
     @staticmethod
     def loading(title: str = "處理中", description: str = "請稍候...") -> discord.Embed:
         """建立載入中嵌入"""
-        return EmbedBuilder.build(title=f"⏳ {title}", description=description, color="secondary")
+        return EmbedBuilder.build(
+            title=f"⏳ {title}", description=description, color="secondary"
+        )
 
     @staticmethod
     def ticket_embed(ticket_info: Dict[str, Any], **kwargs) -> discord.Embed:
@@ -154,7 +160,9 @@ class EmbedBuilder:
         """建立投票專用嵌入"""
         try:
             embed = EmbedBuilder.build(
-                title=f"🗳️ 投票：{vote_info.get('title', '未知投票')}", color="primary", **kwargs
+                title=f"🗳️ 投票：{vote_info.get('title', '未知投票')}",
+                color="primary",
+                **kwargs,
             )
 
             # 投票資訊
@@ -175,7 +183,9 @@ class EmbedBuilder:
                 end_time = vote_info["end_time"]
                 if isinstance(end_time, datetime):
                     embed.add_field(
-                        name="⏰ 結束時間", value=f"<t:{int(end_time.timestamp())}:R>", inline=True
+                        name="⏰ 結束時間",
+                        value=f"<t:{int(end_time.timestamp())}:R>",
+                        inline=True,
                     )
 
             return embed
@@ -185,14 +195,18 @@ class EmbedBuilder:
             return EmbedBuilder.error("投票資訊載入失敗", "無法顯示投票詳細資訊")
 
     @staticmethod
-    def stats_embed(stats: Dict[str, Any], title: str = "📊 統計資訊", **kwargs) -> discord.Embed:
+    def stats_embed(
+        stats: Dict[str, Any], title: str = "📊 統計資訊", **kwargs
+    ) -> discord.Embed:
         """建立統計嵌入"""
         try:
             embed = EmbedBuilder.build(title=title, color="info", **kwargs)
 
             # 基本統計
             if "total" in stats:
-                embed.add_field(name="📈 總計", value=f"**總數：** {stats['total']:,}", inline=True)
+                embed.add_field(
+                    name="📈 總計", value=f"**總數：** {stats['total']:,}", inline=True
+                )
 
             # 處理其他統計數據
             for key, value in stats.items():
@@ -269,7 +283,9 @@ class EmbedBuilder:
                         embed.add_field(**formatted)
                     else:
                         embed.add_field(
-                            name=f"項目 {items.index(item) + 1}", value=str(formatted), inline=False
+                            name=f"項目 {items.index(item) + 1}",
+                            value=str(formatted),
+                            inline=False,
                         )
             else:
                 # 預設格式化
@@ -341,7 +357,9 @@ class EmbedBuilder:
             )
 
             embed.add_field(
-                name="📈 整體狀態", value=f"{status_emoji} {overall_status.title()}", inline=True
+                name="📈 整體狀態",
+                value=f"{status_emoji} {overall_status.title()}",
+                inline=True,
             )
 
             # 其他狀態資訊
@@ -368,19 +386,25 @@ class EmbedBuilder:
             return EmbedBuilder.error("狀態載入失敗", "無法顯示系統狀態")
 
     @staticmethod
-    def create_field_list(items: List[str], max_per_field: int = 10) -> List[Dict[str, Any]]:
+    def create_field_list(
+        items: List[str], max_per_field: int = 10
+    ) -> List[Dict[str, Any]]:
         """將長列表分割為多個欄位"""
         fields = []
         for i in range(0, len(items), max_per_field):
             chunk = items[i : i + max_per_field]
             field_num = (i // max_per_field) + 1
 
-            fields.append({"name": f"項目 {field_num}", "value": "\n".join(chunk), "inline": True})
+            fields.append(
+                {"name": f"項目 {field_num}", "value": "\n".join(chunk), "inline": True}
+            )
 
         return fields
 
     @staticmethod
-    def safe_add_field(embed: discord.Embed, name: str, value: str, inline: bool = False):
+    def safe_add_field(
+        embed: discord.Embed, name: str, value: str, inline: bool = False
+    ):
         """安全添加欄位（避免超過 Discord 限制）"""
         try:
             # Discord 限制
@@ -427,13 +451,18 @@ def embed_from_dict(data: Dict[str, Any]) -> discord.Embed:
     """從字典建立嵌入"""
     try:
         embed = EmbedBuilder.build(
-            title=data.get("title"), description=data.get("description"), color=data.get("color")
+            title=data.get("title"),
+            description=data.get("description"),
+            color=data.get("color"),
         )
 
         # 添加欄位
         for field in data.get("fields", []):
             EmbedBuilder.safe_add_field(
-                embed, field.get("name", ""), field.get("value", ""), field.get("inline", False)
+                embed,
+                field.get("name", ""),
+                field.get("value", ""),
+                field.get("inline", False),
             )
 
         # 設定其他屬性

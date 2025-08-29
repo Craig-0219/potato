@@ -91,7 +91,11 @@ class TagManager:
         try:
             # 驗證標籤名稱
             if not self._validate_tag_name(name):
-                return False, "標籤名稱只能包含字母、數字、底線和連字符，長度 2-50 字元", None
+                return (
+                    False,
+                    "標籤名稱只能包含字母、數字、底線和連字符，長度 2-50 字元",
+                    None,
+                )
 
             # 驗證顏色格式
             if color and not self._validate_color(color):
@@ -104,14 +108,23 @@ class TagManager:
 
             # 設定預設值
             if not color:
-                color = self.default_categories.get(category, {}).get("color", "#808080")
+                color = self.default_categories.get(category, {}).get(
+                    "color", "#808080"
+                )
 
             if not emoji and category in self.default_categories:
                 emoji = self.default_categories[category]["emoji"]
 
             # 創建標籤
             tag_id = await self.tag_dao.create_tag(
-                guild_id, name, display_name, color, emoji, description, category, created_by
+                guild_id,
+                name,
+                display_name,
+                color,
+                emoji,
+                description,
+                category,
+                created_by,
             )
 
             if tag_id:
@@ -142,7 +155,9 @@ class TagManager:
                 return False, "沒有有效的更新欄位"
 
             # 驗證顏色格式
-            if "color" in filtered_kwargs and not self._validate_color(filtered_kwargs["color"]):
+            if "color" in filtered_kwargs and not self._validate_color(
+                filtered_kwargs["color"]
+            ):
                 return False, "顏色格式無效，請使用 HEX 格式"
 
             success = await self.tag_dao.update_tag(tag_id, **filtered_kwargs)
@@ -200,7 +215,9 @@ class TagManager:
             logger.error(f"添加標籤錯誤：{e}")
             return False, f"添加過程中發生錯誤：{str(e)}"
 
-    async def remove_tag_from_ticket(self, ticket_id: int, tag_id: int) -> Tuple[bool, str]:
+    async def remove_tag_from_ticket(
+        self, ticket_id: int, tag_id: int
+    ) -> Tuple[bool, str]:
         """從票券移除標籤"""
         try:
             # 檢查標籤是否存在
@@ -248,7 +265,9 @@ class TagManager:
 
             if applied_tags:
                 tag_names = [tag["display_name"] for tag in applied_tags]
-                logger.info(f"自動應用標籤: 票券 #{ticket_id} -> {', '.join(tag_names)}")
+                logger.info(
+                    f"自動應用標籤: 票券 #{ticket_id} -> {', '.join(tag_names)}"
+                )
 
             return applied_tags
 
@@ -271,7 +290,11 @@ class TagManager:
             # 驗證觸發類型
             valid_trigger_types = ["keyword", "ticket_type", "user_role", "channel"]
             if trigger_type not in valid_trigger_types:
-                return False, f"無效的觸發類型，支援：{', '.join(valid_trigger_types)}", None
+                return (
+                    False,
+                    f"無效的觸發類型，支援：{', '.join(valid_trigger_types)}",
+                    None,
+                )
 
             # 檢查標籤是否存在
             tag = await self.tag_dao.get_tag_by_id(tag_id)
@@ -279,7 +302,13 @@ class TagManager:
                 return False, "指定的標籤不存在", None
 
             rule_id = await self.tag_dao.create_auto_rule(
-                guild_id, rule_name, tag_id, trigger_type, trigger_value, created_by, priority
+                guild_id,
+                rule_name,
+                tag_id,
+                trigger_type,
+                trigger_value,
+                created_by,
+                priority,
             )
 
             if rule_id:
@@ -293,7 +322,9 @@ class TagManager:
 
     # ========== 搜索與統計 ==========
 
-    async def search_tags(self, guild_id: int, query: str, limit: int = 20) -> List[Dict[str, Any]]:
+    async def search_tags(
+        self, guild_id: int, query: str, limit: int = 20
+    ) -> List[Dict[str, Any]]:
         """搜索標籤"""
         try:
             if len(query.strip()) < 2:
@@ -315,7 +346,9 @@ class TagManager:
             # 計算總體統計
             total_tags = len(usage_stats)
             total_usage = sum(tag["usage_count"] or 0 for tag in usage_stats)
-            active_tags = len([tag for tag in usage_stats if (tag["usage_count"] or 0) > 0])
+            active_tags = len(
+                [tag for tag in usage_stats if (tag["usage_count"] or 0) > 0]
+            )
 
             # 分類統計
             category_stats = {}
@@ -327,9 +360,9 @@ class TagManager:
                 category_stats[category]["usage"] += tag["usage_count"] or 0
 
             # 熱門標籤
-            popular_tags = sorted(usage_stats, key=lambda x: (x["usage_count"] or 0), reverse=True)[
-                :10
-            ]
+            popular_tags = sorted(
+                usage_stats, key=lambda x: (x["usage_count"] or 0), reverse=True
+            )[:10]
 
             return {
                 "total_tags": total_tags,
@@ -372,7 +405,9 @@ class TagManager:
                 if tag_id:
                     created_count += 1
 
-            logger.info(f"初始化預設標籤完成: 伺服器 {guild_id}，創建 {created_count} 個標籤")
+            logger.info(
+                f"初始化預設標籤完成: 伺服器 {guild_id}，創建 {created_count} 個標籤"
+            )
             return True, f"成功初始化 {created_count} 個預設標籤", created_count
 
         except Exception as e:
@@ -399,7 +434,9 @@ class TagManager:
         pattern = r"^#[0-9A-Fa-f]{6}$"
         return bool(re.match(pattern, color))
 
-    def format_tag_display(self, tag: Dict[str, Any], include_usage: bool = False) -> str:
+    def format_tag_display(
+        self, tag: Dict[str, Any], include_usage: bool = False
+    ) -> str:
         """格式化標籤顯示"""
         emoji = tag.get("emoji", "")
         display_name = tag.get("display_name", tag.get("name", ""))

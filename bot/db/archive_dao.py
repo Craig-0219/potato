@@ -79,10 +79,14 @@ class ArchiveDAO(BaseDAO):
                             "rating": ticket["rating"],
                             "rating_feedback": ticket["rating_feedback"],
                             "created_at": (
-                                ticket["created_at"].isoformat() if ticket["created_at"] else None
+                                ticket["created_at"].isoformat()
+                                if ticket["created_at"]
+                                else None
                             ),
                             "closed_at": (
-                                ticket["closed_at"].isoformat() if ticket["closed_at"] else None
+                                ticket["closed_at"].isoformat()
+                                if ticket["closed_at"]
+                                else None
                             ),
                             "closed_by": ticket["closed_by"],
                             "close_reason": ticket["close_reason"],
@@ -90,7 +94,9 @@ class ArchiveDAO(BaseDAO):
                         }
 
                         messages_data = {
-                            "messages": ticket["messages"] if ticket["messages"] else "",
+                            "messages": (
+                                ticket["messages"] if ticket["messages"] else ""
+                            ),
                             "message_count": ticket["message_count"],
                         }
 
@@ -188,22 +194,32 @@ class ArchiveDAO(BaseDAO):
                             "multiple_choice": vote["multiple_choice"],
                             "anonymous": vote["anonymous"],
                             "created_at": (
-                                vote["created_at"].isoformat() if vote["created_at"] else None
+                                vote["created_at"].isoformat()
+                                if vote["created_at"]
+                                else None
                             ),
-                            "end_time": vote["end_time"].isoformat() if vote["end_time"] else None,
+                            "end_time": (
+                                vote["end_time"].isoformat()
+                                if vote["end_time"]
+                                else None
+                            ),
                             "status": vote["status"],
                             "total_voters": vote["total_voters"],
                         }
 
                         options_data = (
-                            json.loads(vote["options_data"]) if vote["options_data"] else []
+                            json.loads(vote["options_data"])
+                            if vote["options_data"]
+                            else []
                         )
                         responses_data = [
                             {
                                 "user_id": str(r["user_id"]),
                                 "username": r["username"],
                                 "selected_option": r["selected_option"],
-                                "voted_at": r["voted_at"].isoformat() if r["voted_at"] else None,
+                                "voted_at": (
+                                    r["voted_at"].isoformat() if r["voted_at"] else None
+                                ),
                             }
                             for r in responses
                         ]
@@ -253,7 +269,9 @@ class ArchiveDAO(BaseDAO):
             logger.error(f"歸檔舊投票失敗: {e}")
             return {"error": str(e)}
 
-    async def archive_user_activity(self, guild_id: int, period: str = "monthly") -> Dict[str, int]:
+    async def archive_user_activity(
+        self, guild_id: int, period: str = "monthly"
+    ) -> Dict[str, int]:
         """歸檔用戶活動資料"""
         try:
             async with self.db.connection() as conn:
@@ -289,7 +307,9 @@ class ArchiveDAO(BaseDAO):
                     HAVING tickets_count > 0 OR votes_count > 0
                     """
 
-                    await cursor.execute(activity_query, (guild_id, guild_id, start_date, end_date))
+                    await cursor.execute(
+                        activity_query, (guild_id, guild_id, start_date, end_date)
+                    )
                     user_activities = await cursor.fetchall()
 
                     archived_count = 0
@@ -350,7 +370,11 @@ class ArchiveDAO(BaseDAO):
             return {"error": str(e)}
 
     async def cleanup_old_data(
-        self, guild_id: int, data_type: str, days_old: int = 90, delete_after_archive: bool = True
+        self,
+        guild_id: int,
+        data_type: str,
+        days_old: int = 90,
+        delete_after_archive: bool = True,
     ) -> Dict[str, int]:
         """清理舊資料"""
         try:
@@ -407,7 +431,9 @@ class ArchiveDAO(BaseDAO):
                                 DELETE FROM {table}
                                 WHERE guild_id = %s AND created_at <= %s
                                 """
-                                await cursor.execute(clean_query, (guild_id, cutoff_date))
+                                await cursor.execute(
+                                    clean_query, (guild_id, cutoff_date)
+                                )
                                 deleted_count += cursor.rowcount
                             except Exception:
                                 continue  # 如果表不存在就跳過
@@ -424,7 +450,9 @@ class ArchiveDAO(BaseDAO):
                     )
                     await conn.commit()
 
-                    logger.info(f"清理 {data_type} 資料完成: 刪除了 {deleted_count} 筆記錄")
+                    logger.info(
+                        f"清理 {data_type} 資料完成: 刪除了 {deleted_count} 筆記錄"
+                    )
                     return {
                         "deleted": deleted_count,
                         "data_type": data_type,
@@ -460,7 +488,9 @@ class ArchiveDAO(BaseDAO):
             logger.error(f"獲取清理排程失敗: {e}")
             return []
 
-    async def create_cleanup_schedule(self, guild_id: int, schedule_config: Dict[str, Any]) -> int:
+    async def create_cleanup_schedule(
+        self, guild_id: int, schedule_config: Dict[str, Any]
+    ) -> int:
         """創建清理排程"""
         try:
             async with self.db.connection() as conn:
@@ -474,7 +504,9 @@ class ArchiveDAO(BaseDAO):
                     elif schedule_config["schedule_type"] == "monthly":
                         next_run = now + timedelta(days=30)
                     else:
-                        next_run = now + timedelta(days=schedule_config.get("custom_days", 7))
+                        next_run = now + timedelta(
+                            days=schedule_config.get("custom_days", 7)
+                        )
 
                     query = """
                     INSERT INTO cleanup_schedules (

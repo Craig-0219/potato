@@ -116,7 +116,11 @@ class MaintenanceScheduler:
                 description="執行完整的系統清理和優化",
                 frequency=TaskFrequency.WEEKLY,
                 handler=self._weekly_cleanup_task,
-                config={"run_day": "sunday", "run_time": "03:00", "optimize_database": True},
+                config={
+                    "run_day": "sunday",
+                    "run_time": "03:00",
+                    "optimize_database": True,
+                },
             )
         )
 
@@ -148,7 +152,11 @@ class MaintenanceScheduler:
                 config={
                     "check_database": True,
                     "check_disk_space": True,
-                    "alert_thresholds": {"cpu_usage": 80, "memory_usage": 85, "disk_usage": 90},
+                    "alert_thresholds": {
+                        "cpu_usage": 80,
+                        "memory_usage": 85,
+                        "disk_usage": 90,
+                    },
                 },
             )
         )
@@ -229,7 +237,9 @@ class MaintenanceScheduler:
         self._setup_schedules()
 
         # 啟動排程執行緒
-        self.scheduler_thread = threading.Thread(target=self._run_scheduler, daemon=True)
+        self.scheduler_thread = threading.Thread(
+            target=self._run_scheduler, daemon=True
+        )
         self.scheduler_thread.start()
 
         logger.info("✅ 維護排程器啟動完成")
@@ -262,7 +272,9 @@ class MaintenanceScheduler:
 
             elif task.frequency == TaskFrequency.DAILY:
                 run_time = config.get("run_time", "02:00")
-                schedule.every().day.at(run_time).do(self._schedule_task_wrapper, task.task_id)
+                schedule.every().day.at(run_time).do(
+                    self._schedule_task_wrapper, task.task_id
+                )
 
             elif task.frequency == TaskFrequency.WEEKLY:
                 run_day = config.get("run_day", "sunday")
@@ -280,7 +292,9 @@ class MaintenanceScheduler:
                     self._check_monthly_task, task.task_id, run_day
                 )
 
-        logger.info(f"📅 設定了 {len([t for t in self.tasks.values() if t.enabled])} 個排程任務")
+        logger.info(
+            f"📅 設定了 {len([t for t in self.tasks.values() if t.enabled])} 個排程任務"
+        )
 
     def _run_scheduler(self):
         """執行排程器主循環"""
@@ -352,9 +366,13 @@ class MaintenanceScheduler:
             execution.end_time = datetime.now()
             execution.status = TaskStatus.COMPLETED
             execution.result = result
-            execution.duration_seconds = (execution.end_time - start_time).total_seconds()
+            execution.duration_seconds = (
+                execution.end_time - start_time
+            ).total_seconds()
 
-            logger.info(f"✅ 任務執行完成: {task.name} (耗時 {execution.duration_seconds:.2f}s)")
+            logger.info(
+                f"✅ 任務執行完成: {task.name} (耗時 {execution.duration_seconds:.2f}s)"
+            )
 
         except asyncio.TimeoutError:
             error_msg = f"任務執行超時 ({task.timeout_seconds}s)"
@@ -376,7 +394,9 @@ class MaintenanceScheduler:
         execution.end_time = datetime.now()
         execution.status = TaskStatus.FAILED
         execution.error_message = error_message
-        execution.duration_seconds = (execution.end_time - execution.start_time).total_seconds()
+        execution.duration_seconds = (
+            execution.end_time - execution.start_time
+        ).total_seconds()
 
         logger.error(f"❌ {error_message} - {task.name}")
 
@@ -435,7 +455,9 @@ class MaintenanceScheduler:
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     """
 
-                    result_json = json.dumps(execution.result) if execution.result else None
+                    result_json = (
+                        json.dumps(execution.result) if execution.result else None
+                    )
 
                     await cursor.execute(
                         insert_query,
@@ -472,7 +494,9 @@ class MaintenanceScheduler:
                 if hasattr(result, "deleted_count")
             )
             successful_operations = sum(
-                1 for result in results.values() if hasattr(result, "success") and result.success
+                1
+                for result in results.values()
+                if hasattr(result, "success") and result.success
             )
 
             return {
@@ -552,7 +576,9 @@ class MaintenanceScheduler:
                     )
 
                     # 執行備份匯出
-                    export_result = await self.export_manager.export_data(export_request)
+                    export_result = await self.export_manager.export_data(
+                        export_request
+                    )
 
                     results[backup_type] = {
                         "success": export_result.success,
@@ -566,7 +592,9 @@ class MaintenanceScheduler:
                     results[backup_type] = {"success": False, "error": str(e)}
 
             successful_backups = sum(1 for r in results.values() if r["success"])
-            total_size = sum(r.get("file_size", 0) for r in results.values() if r["success"])
+            total_size = sum(
+                r.get("file_size", 0) for r in results.values() if r["success"]
+            )
 
             return {
                 "operation": "daily_backup",
@@ -604,7 +632,9 @@ class MaintenanceScheduler:
                 cpu_usage = psutil.cpu_percent(interval=1)
                 memory_usage = psutil.virtual_memory().percent
                 disk_usage = (
-                    psutil.disk_usage("/").percent if hasattr(psutil.disk_usage, "/") else 0
+                    psutil.disk_usage("/").percent
+                    if hasattr(psutil.disk_usage, "/")
+                    else 0
                 )
 
                 thresholds = config.get("alert_thresholds", {})
@@ -629,7 +659,9 @@ class MaintenanceScheduler:
 
             # 整體健康狀態
             overall_health = (
-                "healthy" if not alerts else "warning" if len(alerts) <= 2 else "critical"
+                "healthy"
+                if not alerts
+                else "warning" if len(alerts) <= 2 else "critical"
             )
 
             return {
@@ -644,7 +676,9 @@ class MaintenanceScheduler:
             logger.error(f"健康檢查任務失敗: {e}")
             raise
 
-    async def _weekly_statistics_report_task(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    async def _weekly_statistics_report_task(
+        self, config: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """每週統計報告任務"""
         try:
             logger.info("📊 開始生成每週統計報告...")
@@ -664,7 +698,9 @@ class MaintenanceScheduler:
                         requester_id=0,  # 系統報告
                     )
 
-                    export_result = await self.export_manager.export_data(export_request)
+                    export_result = await self.export_manager.export_data(
+                        export_request
+                    )
 
                     key = f"{export_type}_{format_type}"
                     results[key] = {
@@ -687,7 +723,9 @@ class MaintenanceScheduler:
             logger.error(f"每週統計報告任務失敗: {e}")
             raise
 
-    async def _monthly_optimization_task(self, config: Dict[str, Any]) -> Dict[str, Any]:
+    async def _monthly_optimization_task(
+        self, config: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """每月系統優化任務"""
         try:
             logger.info("⚡ 開始執行每月系統優化...")
@@ -700,14 +738,23 @@ class MaintenanceScheduler:
                     async with self.db.get_connection() as conn:
                         async with conn.cursor() as cursor:
                             # 獲取主要表格
-                            main_tables = ["tickets", "votes", "ticket_logs", "security_events"]
+                            main_tables = [
+                                "tickets",
+                                "votes",
+                                "ticket_logs",
+                                "security_events",
+                            ]
 
                             for table in main_tables:
                                 try:
                                     await cursor.execute(f"OPTIMIZE TABLE {table}")
-                                    optimization_results[f"optimize_{table}"] = "success"
+                                    optimization_results[f"optimize_{table}"] = (
+                                        "success"
+                                    )
                                 except Exception as e:
-                                    optimization_results[f"optimize_{table}"] = f"failed: {e}"
+                                    optimization_results[f"optimize_{table}"] = (
+                                        f"failed: {e}"
+                                    )
 
                 except Exception as e:
                     optimization_results["index_rebuild"] = f"failed: {e}"
@@ -761,7 +808,9 @@ class MaintenanceScheduler:
             return None
 
         task = self.tasks[task_id]
-        recent_executions = [e for e in self.executions if e.task_id == task_id][-5:]  # 最近5次執行
+        recent_executions = [e for e in self.executions if e.task_id == task_id][
+            -5:
+        ]  # 最近5次執行
 
         return {
             "task_id": task.task_id,

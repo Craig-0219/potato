@@ -90,7 +90,9 @@ class MusicSession:
 class MusicQuizQuestion:
     """音樂問答題目"""
 
-    def __init__(self, track: Track, question_type: str, options: List[str], correct_answer: str):
+    def __init__(
+        self, track: Track, question_type: str, options: List[str], correct_answer: str
+    ):
         self.track = track
         self.question_type = question_type  # "artist", "title", "year", "genre"
         self.options = options
@@ -188,7 +190,9 @@ class MusicPlayer:
                                 artist=item["snippet"]["channelTitle"],
                                 duration=0,  # 需要額外API調用獲取時長
                                 url=f"https://www.youtube.com/watch?v={item['id']['videoId']}",
-                                thumbnail=item["snippet"]["thumbnails"]["default"]["url"],
+                                thumbnail=item["snippet"]["thumbnails"]["default"][
+                                    "url"
+                                ],
                                 source=MusicSource.YOUTUBE,
                                 requested_by=0,
                                 search_query=query,
@@ -439,7 +443,9 @@ class MusicPlayer:
 
     # ========== 音樂問答 ==========
 
-    async def generate_music_quiz(self, difficulty: str = "medium") -> Optional[MusicQuizQuestion]:
+    async def generate_music_quiz(
+        self, difficulty: str = "medium"
+    ) -> Optional[MusicQuizQuestion]:
         """生成音樂問答題目"""
         try:
             # 從預設曲目中隨機選擇
@@ -527,7 +533,9 @@ La la la la la
                 return {}
 
             return {
-                "current_track": session.current_track.title if session.current_track else None,
+                "current_track": (
+                    session.current_track.title if session.current_track else None
+                ),
                 "queue_length": len(session.queue),
                 "state": session.state.value,
                 "repeat_mode": session.repeat_mode.value,

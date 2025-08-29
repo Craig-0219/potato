@@ -123,7 +123,8 @@ class WebhookManager:
         try:
             # 創建HTTP會話
             self.session = aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=60), connector=aiohttp.TCPConnector(limit=100)
+                timeout=aiohttp.ClientTimeout(total=60),
+                connector=aiohttp.TCPConnector(limit=100),
             )
 
             # 從資料庫載入Webhook配置
@@ -151,7 +152,11 @@ class WebhookManager:
         try:
             # 生成Webhook ID和密鑰
             webhook_id = secrets.token_urlsafe(16)
-            secret = secrets.token_urlsafe(32) if config_data.get("use_secret", True) else None
+            secret = (
+                secrets.token_urlsafe(32)
+                if config_data.get("use_secret", True)
+                else None
+            )
 
             # 創建配置
             config = WebhookConfig(
@@ -245,7 +250,9 @@ class WebhookManager:
 
     # ========== 事件觸發 ==========
 
-    async def trigger_webhook_event(self, event: WebhookEvent, guild_id: int, data: Dict[str, Any]):
+    async def trigger_webhook_event(
+        self, event: WebhookEvent, guild_id: int, data: Dict[str, Any]
+    ):
         """觸發Webhook事件"""
         try:
             # 找到匹配的Webhook
@@ -261,7 +268,9 @@ class WebhookManager:
                     matching_webhooks.append(config)
 
             if not matching_webhooks:
-                logger.debug(f"沒有匹配的Webhook用於事件: {event.value} (伺服器: {guild_id})")
+                logger.debug(
+                    f"沒有匹配的Webhook用於事件: {event.value} (伺服器: {guild_id})"
+                )
                 return
 
             # 併發發送到所有匹配的Webhook
@@ -305,8 +314,12 @@ class WebhookManager:
 
             # 驗證簽名
             if config.secret and signature:
-                expected_signature = self._generate_signature(json.dumps(payload), config.secret)
-                if not hmac.compare_digest(signature.replace("sha256=", ""), expected_signature):
+                expected_signature = self._generate_signature(
+                    json.dumps(payload), config.secret
+                )
+                if not hmac.compare_digest(
+                    signature.replace("sha256=", ""), expected_signature
+                ):
                     raise ValueError("簽名驗證失敗")
 
             # 處理事件
@@ -357,7 +370,9 @@ class WebhookManager:
 
     def _generate_signature(self, payload: str, secret: str) -> str:
         """生成Webhook簽名"""
-        return hmac.new(secret.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+        return hmac.new(
+            secret.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256
+        ).hexdigest()
 
     def _register_webhook_events(self, config: WebhookConfig):
         """註冊Webhook事件處理器"""
@@ -425,7 +440,9 @@ class WebhookManager:
                         "success_count": config.success_count,
                         "failure_count": config.failure_count,
                         "last_triggered": (
-                            config.last_triggered.isoformat() if config.last_triggered else None
+                            config.last_triggered.isoformat()
+                            if config.last_triggered
+                            else None
                         ),
                         "created_at": config.created_at.isoformat(),
                     }
@@ -436,7 +453,9 @@ class WebhookManager:
     def get_webhook_statistics(self) -> Dict[str, Any]:
         """獲取Webhook統計信息"""
         active_webhooks = sum(
-            1 for config in self.webhooks.values() if config.status == WebhookStatus.ACTIVE
+            1
+            for config in self.webhooks.values()
+            if config.status == WebhookStatus.ACTIVE
         )
 
         return {
@@ -449,7 +468,9 @@ class WebhookManager:
             "success_rate": (
                 self.execution_stats["success_count"]
                 / max(
-                    self.execution_stats["total_sent"] + self.execution_stats["total_received"], 1
+                    self.execution_stats["total_sent"]
+                    + self.execution_stats["total_received"],
+                    1,
                 )
             )
             * 100,

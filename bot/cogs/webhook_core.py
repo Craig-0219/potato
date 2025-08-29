@@ -43,7 +43,9 @@ class WebhookCore(commands.Cog):
     # ========== Webhook管理指令 ==========
 
     # @app_commands.command(name="webhook_create", description="創庺新的Webhook")  # 移至管理選單
-    @app_commands.describe(name="Webhook名稱", url="目標URL", webhook_type="Webhook類型")
+    @app_commands.describe(
+        name="Webhook名稱", url="目標URL", webhook_type="Webhook類型"
+    )
     @app_commands.choices(
         webhook_type=[
             app_commands.Choice(name="發送 (Outgoing)", value="outgoing"),
@@ -52,7 +54,11 @@ class WebhookCore(commands.Cog):
         ]
     )
     async def create_webhook(
-        self, interaction: discord.Interaction, name: str, url: str, webhook_type: str = "outgoing"
+        self,
+        interaction: discord.Interaction,
+        name: str,
+        url: str,
+        webhook_type: str = "outgoing",
     ):
         """創建Webhook"""
         try:
@@ -106,19 +112,24 @@ class WebhookCore(commands.Cog):
             if webhook_info.secret:
                 embed.add_field(
                     name="🔐 安全資訊",
-                    value=f"密鑰: `{webhook_info.secret[:16]}...`\n" f"簽名驗證: 已啟用",
+                    value=f"密鑰: `{webhook_info.secret[:16]}...`\n"
+                    f"簽名驗證: 已啟用",
                     inline=False,
                 )
 
             embed.add_field(
-                name="🛠️ 下一步", value="使用 `/webhook_config` 配置事件和其他設定", inline=False
+                name="🛠️ 下一步",
+                value="使用 `/webhook_config` 配置事件和其他設定",
+                inline=False,
             )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"創建Webhook失敗: {e}")
-            await interaction.followup.send(f"❌ 創建Webhook失敗: {str(e)}", ephemeral=True)
+            await interaction.followup.send(
+                f"❌ 創建Webhook失敗: {str(e)}", ephemeral=True
+            )
 
     # @app_commands.command(name="webhook_list", description="查看Webhook列表")  # 移至管理選單
     @app_commands.describe(status="篩選Webhook狀態")
@@ -131,12 +142,16 @@ class WebhookCore(commands.Cog):
             app_commands.Choice(name="錯誤", value="error"),
         ]
     )
-    async def list_webhooks(self, interaction: discord.Interaction, status: str = "all"):
+    async def list_webhooks(
+        self, interaction: discord.Interaction, status: str = "all"
+    ):
         """查看Webhook列表"""
         try:
             # 檢查權限
             if not interaction.user.guild_permissions.manage_guild:
-                await interaction.response.send_message("❌ 需要管理伺服器權限", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 需要管理伺服器權限", ephemeral=True
+                )
                 return
 
             webhooks = self.webhook_manager.get_webhooks(guild_id=interaction.guild.id)
@@ -146,19 +161,26 @@ class WebhookCore(commands.Cog):
 
             if not webhooks:
                 embed = EmbedBuilder.build(
-                    title="📋 Webhook列表", description="目前沒有Webhook", color=0x95A5A6
+                    title="📋 Webhook列表",
+                    description="目前沒有Webhook",
+                    color=0x95A5A6,
                 )
                 await interaction.response.send_message(embed=embed, ephemeral=True)
                 return
 
             embed = EmbedBuilder.build(
-                title="📋 Webhook列表", description=f"共 {len(webhooks)} 個Webhook", color=0x3498DB
+                title="📋 Webhook列表",
+                description=f"共 {len(webhooks)} 個Webhook",
+                color=0x3498DB,
             )
 
             for webhook in webhooks[:10]:  # 最多顯示10個
-                status_emoji = {"active": "✅", "inactive": "⏸️", "paused": "⏸️", "error": "❌"}.get(
-                    webhook["status"], "❓"
-                )
+                status_emoji = {
+                    "active": "✅",
+                    "inactive": "⏸️",
+                    "paused": "⏸️",
+                    "error": "❌",
+                }.get(webhook["status"], "❓")
 
                 type_emoji = {"outgoing": "📤", "incoming": "📥", "both": "🔄"}.get(
                     webhook["type"], "🔧"
@@ -174,17 +196,23 @@ class WebhookCore(commands.Cog):
 
             if len(webhooks) > 10:
                 embed.add_field(
-                    name="📄 更多", value=f"還有 {len(webhooks) - 10} 個Webhook...", inline=False
+                    name="📄 更多",
+                    value=f"還有 {len(webhooks) - 10} 個Webhook...",
+                    inline=False,
                 )
 
             # 添加管理界面
             view = WebhookManagerView(interaction.user.id, interaction.guild.id)
 
-            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, view=view, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"獲取Webhook列表失敗: {e}")
-            await interaction.response.send_message(f"❌ 獲取列表失敗: {str(e)}", ephemeral=True)
+            await interaction.response.send_message(
+                f"❌ 獲取列表失敗: {str(e)}", ephemeral=True
+            )
 
     # @app_commands.command(name="webhook_config", description="配置Webhook設定")  # 移至管理選單
     @app_commands.describe(webhook_name="Webhook名稱")
@@ -219,7 +247,9 @@ class WebhookCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"配置Webhook失敗: {e}")
-            await interaction.response.send_message(f"❌ 配置失敗: {str(e)}", ephemeral=True)
+            await interaction.response.send_message(
+                f"❌ 配置失敗: {str(e)}", ephemeral=True
+            )
 
     # @app_commands.command(name="webhook_test", description="測試Webhook")  # 已移除以節省指令空間
     @app_commands.describe(webhook_name="Webhook名稱")
@@ -228,7 +258,9 @@ class WebhookCore(commands.Cog):
         try:
             # 檢查權限
             if not interaction.user.guild_permissions.manage_guild:
-                await interaction.response.send_message("❌ 需要管理伺服器權限", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 需要管理伺服器權限", ephemeral=True
+                )
                 return
 
             await interaction.response.defer(ephemeral=True)
@@ -243,7 +275,9 @@ class WebhookCore(commands.Cog):
                     break
 
             if not target_webhook:
-                await interaction.followup.send(f"❌ 找不到Webhook: {webhook_name}", ephemeral=True)
+                await interaction.followup.send(
+                    f"❌ 找不到Webhook: {webhook_name}", ephemeral=True
+                )
                 return
 
             # 發送測試事件
@@ -273,7 +307,9 @@ class WebhookCore(commands.Cog):
                 inline=False,
             )
 
-            embed.add_field(name="ℹ️ 說明", value="請檢查目標端點是否收到測試數據", inline=False)
+            embed.add_field(
+                name="ℹ️ 說明", value="請檢查目標端點是否收到測試數據", inline=False
+            )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -283,17 +319,23 @@ class WebhookCore(commands.Cog):
 
     # @app_commands.command(name="webhook_stats", description="查看Webhook統計")  # 移至管理選單
     @app_commands.describe(webhook_name="Webhook名稱 (可選)")
-    async def webhook_stats(self, interaction: discord.Interaction, webhook_name: str = None):
+    async def webhook_stats(
+        self, interaction: discord.Interaction, webhook_name: str = None
+    ):
         """查看Webhook統計"""
         try:
             # 檢查權限
             if not interaction.user.guild_permissions.manage_guild:
-                await interaction.response.send_message("❌ 需要管理伺服器權限", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 需要管理伺服器權限", ephemeral=True
+                )
                 return
 
             if webhook_name:
                 # 顯示特定Webhook統計
-                webhooks = self.webhook_manager.get_webhooks(guild_id=interaction.guild.id)
+                webhooks = self.webhook_manager.get_webhooks(
+                    guild_id=interaction.guild.id
+                )
                 target_webhook = None
 
                 for webhook in webhooks:
@@ -368,16 +410,22 @@ class WebhookCore(commands.Cog):
                 # 事件分佈
                 if system_stats["event_distribution"]:
                     event_info = []
-                    for event, count in list(system_stats["event_distribution"].items())[:5]:
+                    for event, count in list(
+                        system_stats["event_distribution"].items()
+                    )[:5]:
                         event_info.append(f"• {event}: {count}")
 
-                    embed.add_field(name="🎯 熱門事件", value="\n".join(event_info), inline=False)
+                    embed.add_field(
+                        name="🎯 熱門事件", value="\n".join(event_info), inline=False
+                    )
 
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"獲取Webhook統計失敗: {e}")
-            await interaction.response.send_message(f"❌ 獲取統計失敗: {str(e)}", ephemeral=True)
+            await interaction.response.send_message(
+                f"❌ 獲取統計失敗: {str(e)}", ephemeral=True
+            )
 
     # @app_commands.command(name="webhook_delete", description="刪除Webhook")  # 移至管理選單
     @app_commands.describe(webhook_name="要刪除的Webhook名稱")
@@ -440,7 +488,9 @@ class WebhookCore(commands.Cog):
                         )
                     else:
                         embed = EmbedBuilder.build(
-                            title="❌ 刪除失敗", description="刪除Webhook時發生錯誤", color=0xE74C3C
+                            title="❌ 刪除失敗",
+                            description="刪除Webhook時發生錯誤",
+                            color=0xE74C3C,
                         )
 
                     await interaction.response.edit_message(embed=embed, view=None)
@@ -450,16 +500,22 @@ class WebhookCore(commands.Cog):
                     self, interaction: discord.Interaction, button: discord.ui.Button
                 ):
                     embed = EmbedBuilder.build(
-                        title="❌ 已取消", description="Webhook刪除已取消", color=0x95A5A6
+                        title="❌ 已取消",
+                        description="Webhook刪除已取消",
+                        color=0x95A5A6,
                     )
                     await interaction.response.edit_message(embed=embed, view=None)
 
             view = ConfirmDeleteView(target_webhook["id"], target_webhook["name"])
-            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, view=view, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"刪除Webhook失敗: {e}")
-            await interaction.response.send_message(f"❌ 刪除失敗: {str(e)}", ephemeral=True)
+            await interaction.response.send_message(
+                f"❌ 刪除失敗: {str(e)}", ephemeral=True
+            )
 
     # ========== 事件監聽器 ==========
 
@@ -481,7 +537,9 @@ class WebhookCore(commands.Cog):
                 "❌ 指令執行時發生錯誤，請稍後再試", ephemeral=True
             )
         else:
-            await interaction.followup.send("❌ 操作失敗，請檢查系統狀態", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 操作失敗，請檢查系統狀態", ephemeral=True
+            )
 
 
 async def setup(bot):

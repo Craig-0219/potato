@@ -177,10 +177,18 @@ class MariaDBPool:
             # 修復：添加連線池狀態檢查
             pool_info = {
                 "size": getattr(self.pool, "_size", getattr(self.pool, "size", 0)),
-                "used": getattr(self.pool, "_used_size", getattr(self.pool, "used_size", 0)),
-                "free": getattr(self.pool, "_free_size", getattr(self.pool, "free_size", 0)),
-                "minsize": getattr(self.pool, "_minsize", getattr(self.pool, "minsize", 0)),
-                "maxsize": getattr(self.pool, "_maxsize", getattr(self.pool, "maxsize", 0)),
+                "used": getattr(
+                    self.pool, "_used_size", getattr(self.pool, "used_size", 0)
+                ),
+                "free": getattr(
+                    self.pool, "_free_size", getattr(self.pool, "free_size", 0)
+                ),
+                "minsize": getattr(
+                    self.pool, "_minsize", getattr(self.pool, "minsize", 0)
+                ),
+                "maxsize": getattr(
+                    self.pool, "_maxsize", getattr(self.pool, "maxsize", 0)
+                ),
             }
 
             # 快速測試查詢
@@ -210,7 +218,12 @@ class MariaDBPool:
 
         except Exception as e:
             logger.error(f"健康檢查失敗：{e}")
-            return {"status": "unhealthy", "error": str(e), "latency": "N/A", "pool_status": "N/A"}
+            return {
+                "status": "unhealthy",
+                "error": str(e),
+                "latency": "N/A",
+                "pool_status": "N/A",
+            }
 
     async def close(self):
         """關閉連線池（修復Task warnings）"""

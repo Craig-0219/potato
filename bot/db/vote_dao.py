@@ -51,7 +51,8 @@ class VoteDAO:
                     for row in rows:
                         # 取得選項數量
                         await cursor.execute(
-                            "SELECT COUNT(*) FROM vote_options WHERE vote_id = %s", (row[0],)
+                            "SELECT COUNT(*) FROM vote_options WHERE vote_id = %s",
+                            (row[0],),
                         )
                         options_count = (await cursor.fetchone())[0]
 
@@ -65,7 +66,8 @@ class VoteDAO:
                             "end_time": row[6],
                             "ended_at": (
                                 row[6]
-                                if row[6] and row[6] < datetime.now().replace(tzinfo=None)
+                                if row[6]
+                                and row[6] < datetime.now().replace(tzinfo=None)
                                 else None
                             ),
                             "channel_id": row[7],
@@ -300,13 +302,17 @@ async def get_active_votes(guild_id: int = None):
 
                     # 處理 JSON 欄位
                     try:
-                        row["allowed_roles"] = json.loads(row.get("allowed_roles", "[]"))
+                        row["allowed_roles"] = json.loads(
+                            row.get("allowed_roles", "[]")
+                        )
                     except:
                         row["allowed_roles"] = []
 
                     # 時區處理
                     if row["start_time"] and row["start_time"].tzinfo is None:
-                        row["start_time"] = row["start_time"].replace(tzinfo=timezone.utc)
+                        row["start_time"] = row["start_time"].replace(
+                            tzinfo=timezone.utc
+                        )
                     if row["end_time"] and row["end_time"].tzinfo is None:
                         row["end_time"] = row["end_time"].replace(tzinfo=timezone.utc)
 
@@ -354,13 +360,17 @@ async def get_expired_votes_to_announce():
 
                     # 處理 JSON 欄位
                     try:
-                        row["allowed_roles"] = json.loads(row.get("allowed_roles", "[]"))
+                        row["allowed_roles"] = json.loads(
+                            row.get("allowed_roles", "[]")
+                        )
                     except:
                         row["allowed_roles"] = []
 
                     # 確保時間有時區資訊
                     if row["start_time"] and row["start_time"].tzinfo is None:
-                        row["start_time"] = row["start_time"].replace(tzinfo=timezone.utc)
+                        row["start_time"] = row["start_time"].replace(
+                            tzinfo=timezone.utc
+                        )
                     if row["end_time"] and row["end_time"].tzinfo is None:
                         row["end_time"] = row["end_time"].replace(tzinfo=timezone.utc)
 
@@ -449,13 +459,17 @@ async def get_vote_history(page: int = 1, status: str = "all", per_page: int = 1
 
                     # 處理 JSON 欄位
                     try:
-                        row["allowed_roles"] = json.loads(row.get("allowed_roles", "[]"))
+                        row["allowed_roles"] = json.loads(
+                            row.get("allowed_roles", "[]")
+                        )
                     except:
                         row["allowed_roles"] = []
 
                     # 時區處理
                     if row["start_time"] and row["start_time"].tzinfo is None:
-                        row["start_time"] = row["start_time"].replace(tzinfo=timezone.utc)
+                        row["start_time"] = row["start_time"].replace(
+                            tzinfo=timezone.utc
+                        )
                     if row["end_time"] and row["end_time"].tzinfo is None:
                         row["end_time"] = row["end_time"].replace(tzinfo=timezone.utc)
 
@@ -570,7 +584,9 @@ async def search_votes(keyword: str, limit: int = 20):
                 async for row in cur:
                     # 時區處理
                     if row["start_time"] and row["start_time"].tzinfo is None:
-                        row["start_time"] = row["start_time"].replace(tzinfo=timezone.utc)
+                        row["start_time"] = row["start_time"].replace(
+                            tzinfo=timezone.utc
+                        )
                     if row["end_time"] and row["end_time"].tzinfo is None:
                         row["end_time"] = row["end_time"].replace(tzinfo=timezone.utc)
 
@@ -716,7 +732,9 @@ async def set_announcement_channel(guild_id: int, channel_id: int):
                 )
 
                 await conn.commit()
-                logger.info(f"投票結果公告頻道已設定: {channel_id} (guild_id: {guild_id})")
+                logger.info(
+                    f"投票結果公告頻道已設定: {channel_id} (guild_id: {guild_id})"
+                )
                 return True
 
     except Exception as e:
@@ -747,7 +765,9 @@ async def get_total_vote_count(guild_id: int = None):
         async with db_pool.connection() as conn:
             async with conn.cursor() as cur:
                 if guild_id:
-                    await cur.execute("SELECT COUNT(*) FROM votes WHERE guild_id = %s", (guild_id,))
+                    await cur.execute(
+                        "SELECT COUNT(*) FROM votes WHERE guild_id = %s", (guild_id,)
+                    )
                 else:
                     await cur.execute("SELECT COUNT(*) FROM votes")
 
@@ -793,7 +813,9 @@ async def get_recent_votes(limit: int = 5, guild_id: int = None):
                     row["anonymous"] = bool(row["anonymous"])
 
                     if row["start_time"] and row["start_time"].tzinfo is None:
-                        row["start_time"] = row["start_time"].replace(tzinfo=timezone.utc)
+                        row["start_time"] = row["start_time"].replace(
+                            tzinfo=timezone.utc
+                        )
                     if row["end_time"] and row["end_time"].tzinfo is None:
                         row["end_time"] = row["end_time"].replace(tzinfo=timezone.utc)
 
@@ -912,10 +934,15 @@ async def get_guild_vote_stats(guild_id: int, days: int = 30):
                     "total_votes": basic_stats[0] if basic_stats else 0,
                     "active_votes": basic_stats[1] if basic_stats else 0,
                     "finished_votes": basic_stats[2] if basic_stats else 0,
-                    "unique_participants": participation_stats[0] if participation_stats else 0,
-                    "total_responses": participation_stats[1] if participation_stats else 0,
+                    "unique_participants": (
+                        participation_stats[0] if participation_stats else 0
+                    ),
+                    "total_responses": (
+                        participation_stats[1] if participation_stats else 0
+                    ),
                     "top_creators": [
-                        {"user_id": row[0], "votes_created": row[1]} for row in top_creators
+                        {"user_id": row[0], "votes_created": row[1]}
+                        for row in top_creators
                     ],
                     "days_range": days,
                 }
@@ -933,7 +960,9 @@ async def get_guild_vote_stats(guild_id: int, days: int = 30):
         }
 
 
-async def get_user_vote_history_detailed(user_id: int, guild_id: int = None, limit: int = 10):
+async def get_user_vote_history_detailed(
+    user_id: int, guild_id: int = None, limit: int = 10
+):
     """獲取使用者詳細投票歷史（包含創建和參與的投票）"""
     try:
         async with db_pool.connection() as conn:
@@ -1000,9 +1029,13 @@ async def get_user_vote_history_detailed(user_id: int, guild_id: int = None, lim
                 for votes in [created_votes, participated_votes]:
                     for vote in votes:
                         if vote["start_time"] and vote["start_time"].tzinfo is None:
-                            vote["start_time"] = vote["start_time"].replace(tzinfo=timezone.utc)
+                            vote["start_time"] = vote["start_time"].replace(
+                                tzinfo=timezone.utc
+                            )
                         if vote["end_time"] and vote["end_time"].tzinfo is None:
-                            vote["end_time"] = vote["end_time"].replace(tzinfo=timezone.utc)
+                            vote["end_time"] = vote["end_time"].replace(
+                                tzinfo=timezone.utc
+                            )
 
                 return {
                     "created_votes": list(created_votes),

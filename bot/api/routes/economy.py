@@ -38,8 +38,12 @@ class SyncResponse(BaseModel):
     status: str = Field(..., description="同步狀態")
     message: str = Field(..., description="回應訊息")
     timestamp: str = Field(..., description="回應時間戳")
-    adjusted_balances: Optional[Dict[str, int]] = Field(None, description="調整後的餘額")
-    minecraft_adjustments: Optional[Dict[str, Any]] = Field(None, description="Minecraft 端調整")
+    adjusted_balances: Optional[Dict[str, int]] = Field(
+        None, description="調整後的餘額"
+    )
+    minecraft_adjustments: Optional[Dict[str, Any]] = Field(
+        None, description="Minecraft 端調整"
+    )
 
 
 class WebhookRequest(BaseModel):
@@ -78,7 +82,9 @@ class EconomyStatsResponse(BaseModel):
 # ========== 認證函數 ==========
 
 
-async def verify_server_key(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+async def verify_server_key(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> str:
     """驗證 Minecraft 伺服器金鑰"""
     try:
         # 這裡應該實現真正的金鑰驗證邏輯
@@ -111,7 +117,9 @@ async def sync_economy_data(
             raise HTTPException(status_code=400, detail="請求數據不完整")
 
         # 獲取當前用戶經濟數據
-        current_economy = await economy_manager.get_user_economy(request.user_id, request.guild_id)
+        current_economy = await economy_manager.get_user_economy(
+            request.user_id, request.guild_id
+        )
 
         # 準備回應數據
         response_data = {
@@ -160,11 +168,16 @@ async def sync_economy_data(
 
         # 如果有 Minecraft 端的特殊調整（如服務器獎勵加成）
         settings = await economy_manager.get_economy_settings(request.guild_id)
-        if hasattr(settings, "minecraft_bonus_enabled") and settings.minecraft_bonus_enabled:
+        if (
+            hasattr(settings, "minecraft_bonus_enabled")
+            and settings.minecraft_bonus_enabled
+        ):
             # 計算 Minecraft 端獎勵加成
             bonus_coins = sum(request.balances.values()) // 100  # 1% 獎勵加成
             if bonus_coins > 0:
-                await economy_manager.add_coins(request.user_id, request.guild_id, bonus_coins)
+                await economy_manager.add_coins(
+                    request.user_id, request.guild_id, bonus_coins
+                )
                 minecraft_adjustments = {
                     "reason": "Minecraft 伺服器獎勵加成",
                     "bonus_coins": bonus_coins,
@@ -176,10 +189,15 @@ async def sync_economy_data(
 
         # 背景任務：觸發反向同步和統計更新
         background_tasks.add_task(
-            _update_sync_statistics, request.guild_id, request.sync_type, len(adjustments)
+            _update_sync_statistics,
+            request.guild_id,
+            request.sync_type,
+            len(adjustments),
         )
 
-        logger.info(f"✅ 同步完成：用戶 {request.user_id} 調整了 {len(adjustments)} 項餘額")
+        logger.info(
+            f"✅ 同步完成：用戶 {request.user_id} 調整了 {len(adjustments)} 項餘額"
+        )
 
         return SyncResponse(**response_data)
 
@@ -198,7 +216,9 @@ async def handle_minecraft_webhook(
 ):
     """處理來自 Minecraft 的 Webhook 事件"""
     try:
-        logger.info(f"📨 收到 Minecraft Webhook：{request.event_type} 用戶 {request.user_id}")
+        logger.info(
+            f"📨 收到 Minecraft Webhook：{request.event_type} 用戶 {request.user_id}"
+        )
 
         # 轉換為經濟管理器可處理的格式
         webhook_data = {
@@ -216,7 +236,9 @@ async def handle_minecraft_webhook(
         if success:
             # 背景任務：觸發跨平台同步
             background_tasks.add_task(
-                economy_manager.trigger_cross_platform_sync, request.user_id, request.guild_id
+                economy_manager.trigger_cross_platform_sync,
+                request.user_id,
+                request.guild_id,
             )
 
             return {
@@ -244,7 +266,9 @@ async def get_player_economy(
         economy_data = await economy_manager.get_user_economy(user_id, guild_id)
 
         # 獲取等級資訊
-        level_info = await economy_manager.calculate_level(economy_data.get("experience", 0))
+        level_info = await economy_manager.calculate_level(
+            economy_data.get("experience", 0)
+        )
 
         # 獲取同步狀態
         settings = await economy_manager.get_economy_settings(guild_id)
@@ -279,14 +303,18 @@ async def get_player_economy(
 
 
 @router.get("/stats/{guild_id}", response_model=EconomyStatsResponse)
-async def get_economy_stats(guild_id: int, server_key: str = Depends(verify_server_key)):
+async def get_economy_stats(
+    guild_id: int, server_key: str = Depends(verify_server_key)
+):
     """獲取伺服器經濟統計"""
     try:
         # 獲取傳統經濟統計
         traditional_stats = await economy_manager.get_economy_stats(guild_id)
 
         # 獲取跨平台統計
-        cross_platform_stats = await economy_manager.get_cross_platform_statistics(guild_id)
+        cross_platform_stats = await economy_manager.get_cross_platform_statistics(
+            guild_id
+        )
 
         # 獲取設定資訊
         settings = await economy_manager.get_economy_settings(guild_id)
@@ -361,7 +389,9 @@ async def admin_economy_adjust(
                     await economy_manager.trigger_cross_platform_sync(user_id, guild_id)
                     sync_results.append({"user_id": user_id, "status": "triggered"})
                 except Exception as e:
-                    sync_results.append({"user_id": user_id, "status": "failed", "error": str(e)})
+                    sync_results.append(
+                        {"user_id": user_id, "status": "failed", "error": str(e)}
+                    )
 
             result = {"sync_results": sync_results}
 
@@ -422,11 +452,15 @@ async def health_check():
 # ========== 輔助函數 ==========
 
 
-async def _update_sync_statistics(guild_id: int, sync_type: str, adjustments_count: int):
+async def _update_sync_statistics(
+    guild_id: int, sync_type: str, adjustments_count: int
+):
     """更新同步統計（背景任務）"""
     try:
         # 這裡可以實現更詳細的同步統計記錄
-        logger.info(f"📊 同步統計更新：伺服器 {guild_id} {sync_type} 調整 {adjustments_count} 項")
+        logger.info(
+            f"📊 同步統計更新：伺服器 {guild_id} {sync_type} 調整 {adjustments_count} 項"
+        )
 
     except Exception as e:
         logger.error(f"❌ 更新同步統計失敗: {e}")

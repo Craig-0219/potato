@@ -31,7 +31,9 @@ class SecurityView(discord.ui.View):
         return True
 
     @discord.ui.button(label="📊 詳細統計", style=discord.ButtonStyle.primary, row=1)
-    async def detailed_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def detailed_stats(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """查看詳細統計"""
         embed = discord.Embed(
             title="📊 安全統計詳情", description="系統安全狀態詳細分析", color=0x3498DB
@@ -72,21 +74,27 @@ class SecurityView(discord.ui.View):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @discord.ui.button(label="🚨 活躍警報", style=discord.ButtonStyle.danger, row=1)
-    async def active_alerts(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def active_alerts(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """查看活躍警報"""
         await interaction.response.send_message(
             "請使用 `/security_alerts` 指令查看詳細的活躍警報資訊", ephemeral=True
         )
 
     @discord.ui.button(label="📋 生成報告", style=discord.ButtonStyle.secondary, row=1)
-    async def generate_report(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def generate_report(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """生成安全報告"""
         await interaction.response.send_message(
             "請使用 `/compliance_report` 指令生成詳細的合規報告", ephemeral=True
         )
 
     @discord.ui.button(label="🔄 刷新數據", style=discord.ButtonStyle.secondary, row=1)
-    async def refresh_data(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def refresh_data(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """刷新數據"""
         await interaction.response.send_message(
             "請重新使用 `/security_dashboard` 指令獲取最新數據", ephemeral=True
@@ -115,13 +123,17 @@ class AlertView(discord.ui.View):
         return True
 
     @discord.ui.button(label="🔍 篩選警報", style=discord.ButtonStyle.secondary, row=2)
-    async def filter_alerts(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def filter_alerts(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """篩選警報"""
         modal = AlertFilterModal()
         await interaction.response.send_modal(modal)
 
     @discord.ui.button(label="📊 警報統計", style=discord.ButtonStyle.primary, row=2)
-    async def alert_statistics(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def alert_statistics(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """查看警報統計"""
         if not self.alerts:
             await interaction.response.send_message("❌ 沒有警報數據", ephemeral=True)
@@ -149,9 +161,13 @@ class AlertView(discord.ui.View):
         for sev, count in severity_counts.items():
             emoji = severity_emojis.get(sev, "⚪")
             percentage = (count / len(self.alerts)) * 100
-            severity_text.append(f"{emoji} {sev.capitalize()}: {count} ({percentage:.1f}%)")
+            severity_text.append(
+                f"{emoji} {sev.capitalize()}: {count} ({percentage:.1f}%)"
+            )
 
-        embed.add_field(name="🎯 嚴重程度分佈", value="\n".join(severity_text), inline=True)
+        embed.add_field(
+            name="🎯 嚴重程度分佈", value="\n".join(severity_text), inline=True
+        )
 
         # 狀態分佈
         status_text = []
@@ -168,12 +184,16 @@ class AlertView(discord.ui.View):
                 f"{emoji} {status.replace('_', ' ').title()}: {count} ({percentage:.1f}%)"
             )
 
-        embed.add_field(name="📋 處理狀態分佈", value="\n".join(status_text), inline=True)
+        embed.add_field(
+            name="📋 處理狀態分佈", value="\n".join(status_text), inline=True
+        )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @discord.ui.button(label="🔄 刷新列表", style=discord.ButtonStyle.secondary, row=2)
-    async def refresh_alerts(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def refresh_alerts(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """刷新警報列表"""
         await interaction.response.send_message(
             "請重新使用 `/security_alerts` 指令獲取最新警報", ephemeral=True
@@ -187,9 +207,12 @@ class AlertSelectDropdown(discord.ui.Select):
         options = []
 
         for alert in alerts[:25]:
-            severity_emoji = {"low": "🟢", "medium": "🟡", "high": "🟠", "critical": "🔴"}.get(
-                alert["severity"], "⚪"
-            )
+            severity_emoji = {
+                "low": "🟢",
+                "medium": "🟡",
+                "high": "🟠",
+                "critical": "🔴",
+            }.get(alert["severity"], "⚪")
 
             status_emoji = {"open": "🔓", "investigating": "🔍", "resolved": "✅"}.get(
                 alert["status"], "❓"
@@ -205,7 +228,10 @@ class AlertSelectDropdown(discord.ui.Select):
             )
 
         super().__init__(
-            placeholder="選擇要操作的警報...", min_values=1, max_values=1, options=options
+            placeholder="選擇要操作的警報...",
+            min_values=1,
+            max_values=1,
+            options=options,
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -220,7 +246,9 @@ class AlertSelectDropdown(discord.ui.Select):
                 title="🚨 警報操作", description=f"請選擇對警報的操作", color=0xE74C3C
             )
 
-            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, view=view, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"處理警報選擇失敗: {e}")
@@ -238,15 +266,21 @@ class AlertDetailView(discord.ui.View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         """檢查互動權限"""
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message("❌ 只有指令執行者可以操作", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 只有指令執行者可以操作", ephemeral=True
+            )
             return False
         return True
 
     @discord.ui.button(label="📋 查看詳情", style=discord.ButtonStyle.secondary)
-    async def view_details(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def view_details(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """查看警報詳情"""
         embed = discord.Embed(
-            title="📋 警報詳細資訊", description=f"警報ID: {self.alert_id}", color=0x3498DB
+            title="📋 警報詳細資訊",
+            description=f"警報ID: {self.alert_id}",
+            color=0x3498DB,
         )
 
         embed.add_field(
@@ -263,12 +297,15 @@ class AlertDetailView(discord.ui.View):
     ):
         """開始調查警報"""
         await interaction.response.send_message(
-            f"✅ 警報 {self.alert_id[:8]}... 已標記為「調查中」\n" f"請記錄調查過程並及時更新狀態",
+            f"✅ 警報 {self.alert_id[:8]}... 已標記為「調查中」\n"
+            f"請記錄調查過程並及時更新狀態",
             ephemeral=True,
         )
 
     @discord.ui.button(label="✅ 標記已解決", style=discord.ButtonStyle.success)
-    async def mark_resolved(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def mark_resolved(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """標記警報已解決"""
         modal = AlertResolutionModal(self.alert_id)
         await interaction.response.send_modal(modal)
@@ -332,7 +369,9 @@ class AlertFilterModal(discord.ui.Modal):
             )
 
             if filters:
-                embed.add_field(name="📋 篩選設定", value="\n".join(filters), inline=False)
+                embed.add_field(
+                    name="📋 篩選設定", value="\n".join(filters), inline=False
+                )
 
                 embed.add_field(
                     name="⚡ 下一步",
@@ -341,7 +380,9 @@ class AlertFilterModal(discord.ui.Modal):
                 )
             else:
                 embed.add_field(
-                    name="ℹ️ 提示", value="未設定任何篩選條件，將顯示所有警報", inline=False
+                    name="ℹ️ 提示",
+                    value="未設定任何篩選條件，將顯示所有警報",
+                    inline=False,
                 )
 
             await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -436,7 +477,9 @@ class ComplianceReportView(discord.ui.View):
         return True
 
     @discord.ui.button(label="📋 完整報告", style=discord.ButtonStyle.primary, row=1)
-    async def full_report(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def full_report(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """查看完整報告"""
         embed = discord.Embed(
             title=f"📋 {self.report.standard.value.upper()} 完整合規報告",
@@ -480,13 +523,18 @@ class ComplianceReportView(discord.ui.View):
         if self.report.violations:
             violations_text = []
             for violation in self.report.violations:
-                sev_emoji = {"low": "🟢", "medium": "🟡", "high": "🟠", "critical": "🔴"}.get(
-                    violation["severity"], "⚪"
-                )
+                sev_emoji = {
+                    "low": "🟢",
+                    "medium": "🟡",
+                    "high": "🟠",
+                    "critical": "🔴",
+                }.get(violation["severity"], "⚪")
                 violations_text.append(f"{sev_emoji} {violation['description']}")
 
             embed.add_field(
-                name="⚠️ 發現的違規", value="\n".join(violations_text[:10]), inline=False  # 限制10個
+                name="⚠️ 發現的違規",
+                value="\n".join(violations_text[:10]),
+                inline=False,  # 限制10個
             )
 
         # 改善建議
@@ -495,7 +543,9 @@ class ComplianceReportView(discord.ui.View):
             for i, rec in enumerate(self.report.recommendations[:8], 1):  # 限制8個
                 recommendations_text.append(f"{i}. {rec}")
 
-            embed.add_field(name="💡 改善建議", value="\n".join(recommendations_text), inline=False)
+            embed.add_field(
+                name="💡 改善建議", value="\n".join(recommendations_text), inline=False
+            )
 
         embed.set_footer(
             text=f"生成時間: {self.report.generated_at.strftime('%Y-%m-%d %H:%M:%S')} UTC"
@@ -504,7 +554,9 @@ class ComplianceReportView(discord.ui.View):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @discord.ui.button(label="📈 趨勢分析", style=discord.ButtonStyle.secondary, row=1)
-    async def trend_analysis(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def trend_analysis(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """趨勢分析"""
         embed = discord.Embed(
             title="📈 合規趨勢分析",
@@ -526,7 +578,9 @@ class ComplianceReportView(discord.ui.View):
             activity_level = "🟢 低活動"
             activity_desc = "系統活動較少"
 
-        embed.add_field(name="📊 活動水平", value=f"{activity_level}\n{activity_desc}", inline=True)
+        embed.add_field(
+            name="📊 活動水平", value=f"{activity_level}\n{activity_desc}", inline=True
+        )
 
         # 合規健康度
         violations_count = len(self.report.violations)
@@ -541,7 +595,9 @@ class ComplianceReportView(discord.ui.View):
             health_desc = f"發現 {violations_count} 個違規，需要立即處理"
 
         embed.add_field(
-            name="🛡️ 合規健康度", value=f"{compliance_health}\n{health_desc}", inline=True
+            name="🛡️ 合規健康度",
+            value=f"{compliance_health}\n{health_desc}",
+            inline=True,
         )
 
         # 改善進度
@@ -558,7 +614,9 @@ class ComplianceReportView(discord.ui.View):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @discord.ui.button(label="📤 匯出報告", style=discord.ButtonStyle.success, row=1)
-    async def export_report(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def export_report(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """匯出報告"""
         # 創建報告摘要
         report_summary = {
@@ -571,7 +629,9 @@ class ComplianceReportView(discord.ui.View):
             "recommendations_count": len(self.report.recommendations),
         }
 
-        embed = discord.Embed(title="📤 報告匯出", description="合規報告匯出資訊", color=0x2ECC71)
+        embed = discord.Embed(
+            title="📤 報告匯出", description="合規報告匯出資訊", color=0x2ECC71
+        )
 
         embed.add_field(
             name="📋 報告摘要",
@@ -593,12 +653,16 @@ class ComplianceReportView(discord.ui.View):
         if len(json_preview) >= 1500:
             json_preview += "\n... (截斷)"
 
-        embed.add_field(name="🔍 JSON預覽", value=f"```json\n{json_preview}\n```", inline=False)
+        embed.add_field(
+            name="🔍 JSON預覽", value=f"```json\n{json_preview}\n```", inline=False
+        )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @discord.ui.button(label="🔄 重新生成", style=discord.ButtonStyle.secondary, row=2)
-    async def regenerate_report(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def regenerate_report(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """重新生成報告"""
         await interaction.response.send_message(
             f"📋 重新生成 {self.report.standard.value.upper()} 合規報告\n\n"
@@ -608,7 +672,9 @@ class ComplianceReportView(discord.ui.View):
         )
 
     @discord.ui.button(label="📚 查看歷史", style=discord.ButtonStyle.secondary, row=2)
-    async def view_history(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def view_history(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """查看報告歷史"""
         await interaction.response.send_message(
             f"📚 查看 {self.report.standard.value.upper()} 合規報告歷史\n\n"
