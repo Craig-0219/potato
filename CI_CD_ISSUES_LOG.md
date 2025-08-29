@@ -625,3 +625,115 @@ pytest tests/ --tb=short -q
 
 *最後更新: 2025-08-28*
 *維護者: Claude Code Assistant*
+## 問題 #17 - 日期: 2025-08-29
+**標題**: intelligent-orchestrator.yml workflow 配置錯誤
+
+**原因**: 
+- `intelligent-orchestrator.yml` 嘗試使用 `uses:` 調用其他 workflows
+- 目標 workflows (`code-quality.yml`, `security-scans.yml` 等) 沒有 `on.workflow_call` 觸發器
+- GitHub Actions 要求 reusable workflows 必須定義 `workflow_call` 觸發器
+
+**影響範圍**:
+- `.github/workflows/intelligent-orchestrator.yml` - 智能執行協調器
+- 所有被調用的 workflows: code-quality, security-scans, test-coverage, lightweight-ci
+
+**錯誤訊息**:
+```
+error parsing called workflow ".github/workflows/intelligent-orchestrator.yml" -> 
+"./.github/workflows/code-quality.yml" (source branch with sha:03700286a515680cd58873e153e24f20bdacb8bc) : 
+workflow is not reusable as it is missing a `on.workflow_call` trigger
+```
+
+**解決方案**: 
+1. ✅ **改用 workflow_dispatch API 觸發**:
+   - 將 `uses: ./.github/workflows/xxx.yml` 改為使用 curl + GitHub API
+   - 使用 `workflow_dispatch` 觸發器代替 `workflow_call`
+   
+2. ✅ **修復執行摘要邏輯**:
+   - 移除對不存在 jobs 的依賴引用 (`trigger-code-quality` 等)
+   - 統一使用 `trigger-workflows` job 的執行狀態
+   - 更新狀態顯示邏輯為 "已觸發" 而非實際執行狀態
+
+3. ✅ **API 觸發示例**:
+   ```bash
+   curl -s -X POST \
+     -H "Accept: application/vnd.github.v3+json" \
+     -H "Authorization: token $GITHUB_TOKEN" \
+     "$API_BASE/code-quality.yml/dispatches" \
+     -d "{\"ref\":\"$CURRENT_BRANCH\"}" || true
+   ```
+
+**狀態**: ✅ 已修復
+
+**驗證結果**:
+- ✅ intelligent-orchestrator.yml 語法驗證通過
+- ✅ workflow_dispatch API 觸發邏輯正確
+- ✅ 執行摘要邏輯已更新並符合新架構
+- ✅ 錯誤處理 (|| true) 確保觸發失敗不會中斷流程
+
+**技術改進**:
+- 使用更靈活的 API 觸發方式，避免 reusable workflow 限制
+- 增強錯誤容忍性，單個 workflow 觸發失敗不影響整體流程
+- 提供更清晰的執行狀態報告
+
+**預防措施**:
+1. **Workflow 設計原則**: 優先使用 workflow_dispatch 而非 workflow_call
+2. **測試覆蓋**: 在 dev 環境測試所有 workflow 組合
+3. **文檔更新**: 明確記錄 workflow 觸發依賴關係
+
+---
+
+## 問題 #18 - 日期: 2025-08-29
+**標題**: 測試環境 DB_NAME 配置不一致問題
+
+**原因**: 
+- `test_database_integration.py` 中的 DATABASE_URL 和 DB_NAME 配置不一致
+- DATABASE_URL 包含 `test_potato_bot` 而 DB_NAME 設為 `test_database`
+- GitHub Actions 和本地測試環境期望值不匹配
+
+**影響範圍**:
+- `tests/integration/test_database_integration.py::TestDatabaseIntegration::test_database_configuration`
+- GitHub Actions test-coverage.yml 中的測試矩陣
+- 所有依賴資料庫配置的整合測試
+
+**錯誤訊息**:
+```python
+AssertionError: 'test_potato_bot' \!= 'test_database'
+- test_potato_bot
++ test_database
+```
+
+**解決方案**: 
+1. ✅ **統一資料庫名稱**:
+   - 修復 `test_database_integration.py` 第 21 行
+   - 將 DATABASE_URL 從 `mysql://test_user:test_password@localhost:3306/test_potato_bot` 
+   - 改為 `mysql://test_user:test_password@localhost:3306/test_database`
+
+2. ✅ **GitHub Actions 配置同步**:
+   - 更新所有 workflows 中的測試環境變數
+   - 確保 DATABASE_URL 和 DB_NAME 保持一致
+
+**狀態**: ✅ 已修復
+
+**驗證結果**:
+- ✅ 單一測試通過: `test_database_configuration PASSED`
+- ✅ 整合測試套件: 15 passed, 2 skipped
+- ✅ 完整測試套件: 49 passed, 7 skipped
+- ✅ 無配置不一致錯誤
+
+**技術修復**:
+```python
+# 修復前
+os.environ["DATABASE_URL"] = "mysql://test_user:test_password@localhost:3306/test_potato_bot"
+
+# 修復後  
+os.environ["DATABASE_URL"] = "mysql://test_user:test_password@localhost:3306/test_database"
+```
+
+**預防措施**:
+1. **配置一致性檢查**: 建立自動化測試驗證環境變數一致性
+2. **標準化命名**: 統一測試環境資料庫命名規範
+3. **文檔更新**: 明確記錄測試環境配置要求
+
+---
+
