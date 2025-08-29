@@ -1,0 +1,273 @@
+name: 🧠 Intelligent Caching Strategy
+
+on:
+  workflow_run:
+    workflows: ["🧠 Smart Change Detection"]
+    branches: [dev, main]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      cache_level:
+        description: '快取策略等級'
+        required: false
+        default: 'selective'
+        type: choice
+        options:
+          - refresh    # 刷新所有快取
+          - selective  # 選擇性快取
+          - preserve   # 保留所有快取
+          - standard   # 標準快取
+
+env:
+  CACHE_VERSION: v2.0.0
+
+jobs:
+  analyze-cache-strategy:
+    name: 🔍 分析快取策略
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    
+    outputs:
+      cache_strategy: ${{ steps.determine.outputs.cache_strategy }}
+      pip_cache_key: ${{ steps.determine.outputs.pip_cache_key }}
+      deps_cache_key: ${{ steps.determine.outputs.deps_cache_key }}
+      test_cache_key: ${{ steps.determine.outputs.test_cache_key }}
+      should_refresh: ${{ steps.determine.outputs.should_refresh }}
+    
+    steps:
+    - name: 📥 檢出代碼
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 2
+
+    - name: 🧠 智能快取策略決策
+      id: determine
+      run: |
+        # 檢查變更的檔案類型
+        CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+        echo "變更的檔案:"
+        echo "$CHANGED_FILES"
+        
+        # 分析變更影響
+        CACHE_STRATEGY="standard"
+        SHOULD_REFRESH="false"
+        
+        # L1 快取: 依賴套件快取鍵
+        REQUIREMENTS_HASH=$(sha256sum requirements.txt 2>/dev/null | cut -d' ' -f1 || echo "no-requirements")
+        PIP_CACHE_KEY="pip-${{ runner.os }}-python-${{ env.CACHE_VERSION }}-${REQUIREMENTS_HASH}"
+        
+        # L2 快取: 依賴和工具配置快取鍵  
+        CONFIG_FILES="requirements.txt pyproject.toml pytest.ini .bandit .coveragerc"
+        CONFIG_HASH=""
+        for file in $CONFIG_FILES; do
+          if [ -f "$file" ]; then
+            CONFIG_HASH="${CONFIG_HASH}$(sha256sum $file | cut -d' ' -f1)"
+          fi
+        done
+        CONFIG_HASH=$(echo "$CONFIG_HASH" | sha256sum | cut -d' ' -f1)
+        DEPS_CACHE_KEY="deps-${{ runner.os }}-${{ env.CACHE_VERSION }}-${CONFIG_HASH}"
+        
+        # L3 快取: 測試結果和分析快取鍵
+        SOURCE_HASH=$(find bot/ shared/ -name "*.py" -type f -exec sha256sum {} \; | sha256sum | cut -d' ' -f1 2>/dev/null || echo "no-source")
+        TEST_CACHE_KEY="tests-${{ runner.os }}-${{ env.CACHE_VERSION }}-${SOURCE_HASH}"
+        
+        # 根據變更類型決定快取策略
+        if echo "$CHANGED_FILES" | grep -q "requirements.txt\|pyproject.toml\|setup.py"; then
+          CACHE_STRATEGY="refresh"
+          SHOULD_REFRESH="true"
+          echo "🔄 檢測到依賴變更，刷新所有快取"
+        elif echo "$CHANGED_FILES" | grep -q "\.github/workflows/"; then
+          CACHE_STRATEGY="selective"
+          echo "⚡ 檢測到 CI 配置變更，使用選擇性快取"
+        elif echo "$CHANGED_FILES" | grep -q "\.py$"; then
+          CACHE_STRATEGY="selective"
+          echo "🐍 檢測到 Python 代碼變更，使用選擇性快取"
+        elif echo "$CHANGED_FILES" | grep -q "\.md$\|docs/"; then
+          CACHE_STRATEGY="preserve"
+          echo "📚 檢測到文檔變更，保留所有快取"
+        else
+          CACHE_STRATEGY="standard"
+          echo "🔧 其他變更，使用標準快取策略"
+        fi
+        
+        # 手動觸發時的處理
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          CACHE_STRATEGY="${{ inputs.cache_level }}"
+          if [ "$CACHE_STRATEGY" = "refresh" ]; then
+            SHOULD_REFRESH="true"
+          fi
+        fi
+        
+        # 輸出結果
+        echo "cache_strategy=$CACHE_STRATEGY" >> $GITHUB_OUTPUT
+        echo "pip_cache_key=$PIP_CACHE_KEY" >> $GITHUB_OUTPUT
+        echo "deps_cache_key=$DEPS_CACHE_KEY" >> $GITHUB_OUTPUT
+        echo "test_cache_key=$TEST_CACHE_KEY" >> $GITHUB_OUTPUT
+        echo "should_refresh=$SHOULD_REFRESH" >> $GITHUB_OUTPUT
+        
+        echo ""
+        echo "🧠 智能快取策略分析結果:"
+        echo "  • 快取策略: $CACHE_STRATEGY"
+        echo "  • 是否刷新: $SHOULD_REFRESH"
+        echo "  • L1 快取鍵: $PIP_CACHE_KEY"
+        echo "  • L2 快取鍵: $DEPS_CACHE_KEY"
+        echo "  • L3 快取鍵: $TEST_CACHE_KEY"
+
+  setup-intelligent-cache:
+    name: 🚀 建立智能快取
+    needs: analyze-cache-strategy
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+    - name: 📥 檢出代碼
+      uses: actions/checkout@v4
+
+    - name: 🐍 設置 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    # L1 快取: Python 套件快取
+    - name: 💾 L1 快取 - Python 套件
+      uses: actions/cache@v4
+      id: pip-cache
+      with:
+        path: ~/.cache/pip
+        key: ${{ needs.analyze-cache-strategy.outputs.pip_cache_key }}
+        restore-keys: |
+          pip-${{ runner.os }}-python-${{ env.CACHE_VERSION }}-
+
+    # L2 快取: 已安裝依賴和工具配置
+    - name: 💾 L2 快取 - 依賴和工具配置
+      uses: actions/cache@v4
+      id: deps-cache
+      with:
+        path: |
+          ~/.local/lib/python3.10/site-packages
+          ~/.local/bin
+        key: ${{ needs.analyze-cache-strategy.outputs.deps_cache_key }}
+        restore-keys: |
+          deps-${{ runner.os }}-${{ env.CACHE_VERSION }}-
+
+    # L3 快取: 測試結果和分析結果
+    - name: 💾 L3 快取 - 測試和分析結果
+      uses: actions/cache@v4
+      id: test-cache
+      if: needs.analyze-cache-strategy.outputs.cache_strategy != 'refresh'
+      with:
+        path: |
+          .pytest_cache
+          .mypy_cache
+          .coverage
+          bandit-report.json
+        key: ${{ needs.analyze-cache-strategy.outputs.test_cache_key }}
+        restore-keys: |
+          tests-${{ runner.os }}-${{ env.CACHE_VERSION }}-
+
+    # 智能依賴安裝
+    - name: 📦 智能依賴安裝
+      run: |
+        CACHE_STRATEGY="${{ needs.analyze-cache-strategy.outputs.cache_strategy }}"
+        
+        echo "🧠 執行智能依賴安裝 (策略: $CACHE_STRATEGY)"
+        
+        if [ "${{ steps.pip-cache.outputs.cache-hit }}" = "true" ] && [ "$CACHE_STRATEGY" != "refresh" ]; then
+          echo "✅ L1 快取命中 - 跳過 pip 升級"
+        else
+          echo "📦 L1 快取未命中 - 升級 pip"
+          python -m pip install --upgrade pip
+        fi
+        
+        if [ "${{ steps.deps-cache.outputs.cache-hit }}" = "true" ] && [ "$CACHE_STRATEGY" != "refresh" ]; then
+          echo "✅ L2 快取命中 - 跳過依賴安裝"
+        else
+          echo "📦 L2 快取未命中 - 安裝依賴"
+          pip install --user -r requirements.txt
+          
+          # 安裝開發和測試依賴
+          pip install --user pytest pytest-cov mypy bandit safety black isort flake8
+        fi
+        
+        # 驗證安裝
+        echo "🔍 驗證關鍵依賴:"
+        python -c "import discord; print(f'Discord.py: {discord.__version__}')"
+        python -c "import fastapi; print(f'FastAPI: {fastapi.__version__}')"
+
+    - name: 📊 快取效果統計
+      run: |
+        echo "📊 多層快取效果統計:"
+        echo "========================"
+        echo "快取策略: ${{ needs.analyze-cache-strategy.outputs.cache_strategy }}"
+        echo ""
+        
+        # L1 快取統計
+        if [ "${{ steps.pip-cache.outputs.cache-hit }}" = "true" ]; then
+          echo "✅ L1 (pip) 快取: 命中 - 節省 pip 安裝時間"
+        else
+          echo "❌ L1 (pip) 快取: 未命中 - 執行完整 pip 安裝"
+        fi
+        
+        # L2 快取統計
+        if [ "${{ steps.deps-cache.outputs.cache-hit }}" = "true" ]; then
+          echo "✅ L2 (依賴) 快取: 命中 - 節省依賴安裝時間"
+        else
+          echo "❌ L2 (依賴) 快取: 未命中 - 執行完整依賴安裝"
+        fi
+        
+        # L3 快取統計
+        if [ "${{ steps.test-cache.outputs.cache-hit }}" = "true" ]; then
+          echo "✅ L3 (測試) 快取: 命中 - 可重用測試和分析結果"
+        else
+          echo "❌ L3 (測試) 快取: 未命中 - 需要完整測試和分析"
+        fi
+        
+        echo ""
+        echo "💡 快取優化建議:"
+        
+        CACHE_STRATEGY="${{ needs.analyze-cache-strategy.outputs.cache_strategy }}"
+        case "$CACHE_STRATEGY" in
+          "preserve")
+            echo "  • 文檔變更: 所有快取都應該命中，大幅節省時間"
+            ;;
+          "selective")
+            echo "  • 選擇性快取: 根據變更智能選擇快取策略"
+            ;;
+          "refresh")
+            echo "  • 刷新策略: 依賴變更需要重建所有快取"
+            ;;
+          *)
+            echo "  • 標準策略: 使用預設快取行為"
+            ;;
+        esac
+
+    - name: 🎯 快取策略驗證
+      run: |
+        echo "🎯 驗證智能快取策略執行結果"
+        echo "======================================"
+        
+        # 計算預估節省時間
+        CACHE_HIT_COUNT=0
+        TOTAL_CACHE_LAYERS=3
+        
+        [ "${{ steps.pip-cache.outputs.cache-hit }}" = "true" ] && ((CACHE_HIT_COUNT++))
+        [ "${{ steps.deps-cache.outputs.cache-hit }}" = "true" ] && ((CACHE_HIT_COUNT++))  
+        [ "${{ steps.test-cache.outputs.cache-hit }}" = "true" ] && ((CACHE_HIT_COUNT++))
+        
+        CACHE_HIT_RATE=$((CACHE_HIT_COUNT * 100 / TOTAL_CACHE_LAYERS))
+        ESTIMATED_SAVINGS=$((CACHE_HIT_COUNT * 2))  # 每層快取約節省 2 分鐘
+        
+        echo "📊 快取效能指標:"
+        echo "  • 快取命中率: ${CACHE_HIT_RATE}% (${CACHE_HIT_COUNT}/${TOTAL_CACHE_LAYERS})"
+        echo "  • 預估節省時間: ${ESTIMATED_SAVINGS} 分鐘"
+        echo "  • 快取策略: ${{ needs.analyze-cache-strategy.outputs.cache_strategy }}"
+        
+        # 成功標準
+        if [ $CACHE_HIT_RATE -ge 50 ]; then
+          echo "✅ 快取效果良好 (命中率 ≥ 50%)"
+        else
+          echo "⚠️  快取效果需要改善 (命中率 < 50%)"
+        fi
+        
+        echo ""
+        echo "🚀 智能快取系統已就緒，後續 workflows 可使用優化的快取！"

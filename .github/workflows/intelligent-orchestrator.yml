@@ -1,0 +1,422 @@
+name: 🎭 Intelligent Execution Orchestrator
+
+on:
+  push:
+    branches: [dev]
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:
+    inputs:
+      execution_mode:
+        description: '執行模式'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+          - auto      # 自動智能決策
+          - full      # 完整執行所有檢查
+          - quick     # 快速檢查
+          - targeted  # 針對性檢查
+      force_execution:
+        description: '強制執行所有 workflows'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  ORCHESTRATOR_VERSION: v2.0.0
+
+jobs:
+  # 第一階段：智能分析和決策
+  intelligent-analysis:
+    name: 🧠 智能分析與決策
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    outputs:
+      execution_plan: ${{ steps.analysis.outputs.execution_plan }}
+      change_type: ${{ steps.analysis.outputs.change_type }}
+      impact_level: ${{ steps.analysis.outputs.impact_level }}
+      test_strategy: ${{ steps.analysis.outputs.test_strategy }}
+      cache_strategy: ${{ steps.analysis.outputs.cache_strategy }}
+      estimated_time: ${{ steps.analysis.outputs.estimated_time }}
+      workflows_to_run: ${{ steps.analysis.outputs.workflows_to_run }}
+      workflows_to_skip: ${{ steps.analysis.outputs.workflows_to_skip }}
+    
+    steps:
+    - name: 📥 檢出代碼
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: 🧠 執行智能分析
+      id: analysis
+      run: |
+        cat << 'EOF' > intelligent_analysis.py
+        import os
+        import re
+        import json
+        from typing import Dict, List, Any
+        
+        def analyze_changes() -> Dict[str, Any]:
+            """執行智能變更分析和執行策略決策"""
+            
+            # 獲取變更的檔案
+            if os.environ.get('GITHUB_EVENT_NAME') == 'pull_request':
+                # PR 模式
+                changed_files_cmd = f"git diff --name-only origin/{os.environ.get('GITHUB_BASE_REF', 'main')}...HEAD"
+            else:
+                # Push 模式
+                changed_files_cmd = "git diff --name-only HEAD~1 HEAD"
+            
+            import subprocess
+            result = subprocess.run(changed_files_cmd, shell=True, capture_output=True, text=True)
+            changed_files = [f for f in result.stdout.strip().split('\n') if f.strip()]
+            
+            if not changed_files:
+                return {
+                    'execution_plan': 'minimal',
+                    'change_type': 'none',
+                    'impact_level': 'none',
+                    'test_strategy': 'skip',
+                    'cache_strategy': 'preserve',
+                    'estimated_time': 2,
+                    'workflows_to_run': [],
+                    'workflows_to_skip': ['all']
+                }
+            
+            print(f"📊 分析 {len(changed_files)} 個變更檔案:")
+            for f in changed_files[:10]:  # 只顯示前10個
+                print(f"  • {f}")
+            if len(changed_files) > 10:
+                print(f"  • ... 以及其他 {len(changed_files) - 10} 個檔案")
+            
+            # 檔案分類規則
+            categories = {
+                'critical': [
+                    r'^bot/main\.py$',
+                    r'^shared/config\.py$',
+                    r'^requirements.*\.txt$',
+                    r'^\.github/workflows/.*\.yml$'
+                ],
+                'core_logic': [
+                    r'^bot/cogs/.*\.py$',
+                    r'^bot/services/.*\.py$',
+                    r'^bot/db/.*\.py$',
+                    r'^shared/.*\.py$'
+                ],
+                'api': [
+                    r'^bot/api/.*\.py$',
+                    r'^bot/views/.*\.py$'
+                ],
+                'tests': [
+                    r'^tests/.*\.py$'
+                ],
+                'docs': [
+                    r'.*\.md$',
+                    r'^docs/.*',
+                    r'README.*',
+                    r'CHANGELOG.*'
+                ],
+                'config': [
+                    r'^\\..*rc$',
+                    r'^\\..*\\.yaml$',
+                    r'^\\..*\\.yml$',
+                    r'^pyproject\\.toml$',
+                    r'^pytest\\.ini$'
+                ]
+            }
+            
+            # 分析檔案類別
+            file_categories = {}
+            for file_path in changed_files:
+                file_categories[file_path] = []
+                for category, patterns in categories.items():
+                    for pattern in patterns:
+                        if re.match(pattern, file_path):
+                            file_categories[file_path].append(category)
+                            break
+                
+                if not file_categories[file_path]:
+                    file_categories[file_path] = ['other']
+            
+            # 統計各類別檔案數量
+            category_counts = {}
+            for categories_list in file_categories.values():
+                for cat in categories_list:
+                    category_counts[cat] = category_counts.get(cat, 0) + 1
+            
+            print(f"\\n📈 變更檔案分類統計:")
+            for cat, count in category_counts.items():
+                print(f"  • {cat}: {count} 個檔案")
+            
+            # 智能決策邏輯
+            execution_plan = 'standard'
+            change_type = 'minor'
+            impact_level = 'low'
+            estimated_time = 8
+            
+            # 決定變更類型和影響等級
+            if category_counts.get('critical', 0) > 0:
+                change_type = 'critical'
+                impact_level = 'high'
+                execution_plan = 'comprehensive'
+                estimated_time = 15
+            elif category_counts.get('core_logic', 0) > 0:
+                change_type = 'code'
+                impact_level = 'medium'
+                execution_plan = 'targeted'
+                estimated_time = 10
+            elif category_counts.get('api', 0) > 0:
+                change_type = 'api'
+                impact_level = 'medium'
+                execution_plan = 'api_focused'
+                estimated_time = 8
+            elif category_counts.get('tests', 0) > 0:
+                change_type = 'test'
+                impact_level = 'low'
+                execution_plan = 'test_focused'
+                estimated_time = 6
+            elif category_counts.get('docs', 0) > 0 and len(category_counts) == 1:
+                change_type = 'docs'
+                impact_level = 'none'
+                execution_plan = 'minimal'
+                estimated_time = 3
+            elif category_counts.get('config', 0) > 0:
+                change_type = 'config'
+                impact_level = 'medium'
+                execution_plan = 'config_focused'
+                estimated_time = 7
+            
+            # 決定測試策略
+            test_strategies = {
+                'critical': 'full',
+                'code': 'targeted', 
+                'api': 'api_focused',
+                'test': 'test_validation',
+                'docs': 'skip',
+                'config': 'basic',
+                'minor': 'quick'
+            }
+            test_strategy = test_strategies.get(change_type, 'quick')
+            
+            # 決定快取策略
+            cache_strategies = {
+                'critical': 'refresh',
+                'code': 'selective',
+                'api': 'selective',
+                'docs': 'preserve',
+                'config': 'refresh',
+                'minor': 'standard'
+            }
+            cache_strategy = cache_strategies.get(change_type, 'standard')
+            
+            # 決定要執行和跳過的 workflows
+            workflow_plans = {
+                'comprehensive': {
+                    'run': ['code-quality', 'security-scans', 'test-coverage', 'lightweight-ci'],
+                    'skip': []
+                },
+                'targeted': {
+                    'run': ['code-quality', 'lightweight-ci', 'test-coverage'],
+                    'skip': ['security-scans']
+                },
+                'api_focused': {
+                    'run': ['code-quality', 'lightweight-ci'],
+                    'skip': ['security-scans', 'test-coverage']
+                },
+                'test_focused': {
+                    'run': ['test-coverage', 'lightweight-ci'],
+                    'skip': ['code-quality', 'security-scans']
+                },
+                'config_focused': {
+                    'run': ['code-quality', 'lightweight-ci'],
+                    'skip': ['security-scans', 'test-coverage']
+                },
+                'minimal': {
+                    'run': ['lightweight-ci'],
+                    'skip': ['code-quality', 'security-scans', 'test-coverage']
+                }
+            }
+            
+            plan = workflow_plans.get(execution_plan, workflow_plans['targeted'])
+            workflows_to_run = plan['run']
+            workflows_to_skip = plan['skip']
+            
+            # 處理手動觸發的情況
+            execution_mode = os.environ.get('EXECUTION_MODE', 'auto')
+            force_execution = os.environ.get('FORCE_EXECUTION', 'false') == 'true'
+            
+            if force_execution or execution_mode == 'full':
+                workflows_to_run = ['code-quality', 'security-scans', 'test-coverage', 'lightweight-ci']
+                workflows_to_skip = []
+                estimated_time = 15
+                execution_plan = 'comprehensive'
+            elif execution_mode == 'quick':
+                workflows_to_run = ['lightweight-ci']
+                workflows_to_skip = ['code-quality', 'security-scans', 'test-coverage']
+                estimated_time = 5
+                execution_plan = 'minimal'
+            
+            result = {
+                'execution_plan': execution_plan,
+                'change_type': change_type,
+                'impact_level': impact_level,
+                'test_strategy': test_strategy,
+                'cache_strategy': cache_strategy,
+                'estimated_time': estimated_time,
+                'workflows_to_run': ','.join(workflows_to_run),
+                'workflows_to_skip': ','.join(workflows_to_skip)
+            }
+            
+            print(f"\\n🎯 智能分析結果:")
+            print(f"  • 執行計劃: {execution_plan}")
+            print(f"  • 變更類型: {change_type}")
+            print(f"  • 影響等級: {impact_level}")
+            print(f"  • 測試策略: {test_strategy}")
+            print(f"  • 快取策略: {cache_strategy}")
+            print(f"  • 預估時間: {estimated_time} 分鐘")
+            print(f"  • 執行 workflows: {workflows_to_run}")
+            print(f"  • 跳過 workflows: {workflows_to_skip}")
+            
+            return result
+        
+        # 主執行邏輯
+        if __name__ == '__main__':
+            import os
+            result = analyze_changes()
+            
+            # 輸出到 GitHub Actions
+            for key, value in result.items():
+                print(f"{key}={value}", file=open(os.environ['GITHUB_OUTPUT'], 'a'))
+        EOF
+        
+        # 設置環境變數
+        export EXECUTION_MODE="${{ inputs.execution_mode }}"
+        export FORCE_EXECUTION="${{ inputs.force_execution }}"
+        
+        # 執行分析
+        python intelligent_analysis.py
+
+  # 第二階段：條件觸發 workflows
+  trigger-code-quality:
+    name: 🔍 觸發代碼品質檢查
+    needs: intelligent-analysis
+    if: contains(needs.intelligent-analysis.outputs.workflows_to_run, 'code-quality')
+    uses: ./.github/workflows/code-quality.yml
+    secrets: inherit
+
+  trigger-security-scans:
+    name: 🔒 觸發安全掃描
+    needs: intelligent-analysis
+    if: contains(needs.intelligent-analysis.outputs.workflows_to_run, 'security-scans')
+    uses: ./.github/workflows/security-scans.yml
+    secrets: inherit
+
+  trigger-test-coverage:
+    name: 🧪 觸發測試覆蓋率
+    needs: intelligent-analysis
+    if: contains(needs.intelligent-analysis.outputs.workflows_to_run, 'test-coverage')
+    uses: ./.github/workflows/test-coverage.yml
+    secrets: inherit
+
+  trigger-lightweight-ci:
+    name: 🚀 觸發輕量級 CI
+    needs: intelligent-analysis
+    if: contains(needs.intelligent-analysis.outputs.workflows_to_run, 'lightweight-ci')
+    uses: ./.github/workflows/lightweight-ci.yml
+    secrets: inherit
+
+  # 第三階段：執行總結和報告
+  execution-summary:
+    name: 📋 執行總結報告
+    needs: [intelligent-analysis, trigger-code-quality, trigger-security-scans, trigger-test-coverage, trigger-lightweight-ci]
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    if: always()
+    
+    steps:
+    - name: 📊 智能執行總結
+      run: |
+        echo "🎭 智能執行協調器 - 執行總結報告"
+        echo "=============================================="
+        echo ""
+        
+        echo "🧠 智能分析結果:"
+        echo "  • 執行計劃: ${{ needs.intelligent-analysis.outputs.execution_plan }}"
+        echo "  • 變更類型: ${{ needs.intelligent-analysis.outputs.change_type }}"
+        echo "  • 影響等級: ${{ needs.intelligent-analysis.outputs.impact_level }}"
+        echo "  • 測試策略: ${{ needs.intelligent-analysis.outputs.test_strategy }}"
+        echo "  • 快取策略: ${{ needs.intelligent-analysis.outputs.cache_strategy }}"
+        echo "  • 預估時間: ${{ needs.intelligent-analysis.outputs.estimated_time }} 分鐘"
+        echo ""
+        
+        echo "🎯 執行的 Workflows:"
+        IFS=',' read -ra WORKFLOWS <<< "${{ needs.intelligent-analysis.outputs.workflows_to_run }}"
+        for workflow in "${WORKFLOWS[@]}"; do
+          case "$workflow" in
+            "code-quality")
+              STATUS="${{ needs.trigger-code-quality.result }}"
+              echo "  • 🔍 Code Quality: $STATUS"
+              ;;
+            "security-scans")
+              STATUS="${{ needs.trigger-security-scans.result }}"
+              echo "  • 🔒 Security Scans: $STATUS"
+              ;;
+            "test-coverage")
+              STATUS="${{ needs.trigger-test-coverage.result }}"
+              echo "  • 🧪 Test Coverage: $STATUS"
+              ;;
+            "lightweight-ci")
+              STATUS="${{ needs.trigger-lightweight-ci.result }}"
+              echo "  • 🚀 Lightweight CI: $STATUS"
+              ;;
+          esac
+        done
+        
+        echo ""
+        echo "⏭️  跳過的 Workflows:"
+        IFS=',' read -ra SKIPPED <<< "${{ needs.intelligent-analysis.outputs.workflows_to_skip }}"
+        for workflow in "${SKIPPED[@]}"; do
+          case "$workflow" in
+            "code-quality")
+              echo "  • 🔍 Code Quality - 跳過 (非代碼品質相關變更)"
+              ;;
+            "security-scans")
+              echo "  • 🔒 Security Scans - 跳過 (低風險變更)"
+              ;;
+            "test-coverage")
+              echo "  • 🧪 Test Coverage - 跳過 (無測試需求)"
+              ;;
+            "lightweight-ci")
+              echo "  • 🚀 Lightweight CI - 跳過 (文檔變更)"
+              ;;
+          esac
+        done
+        
+        echo ""
+        echo "📈 智能優化效果:"
+        
+        # 計算節省的時間
+        TOTAL_WORKFLOWS=4
+        IFS=',' read -ra EXECUTED <<< "${{ needs.intelligent-analysis.outputs.workflows_to_run }}"
+        EXECUTED_COUNT=${#EXECUTED[@]}
+        SKIPPED_COUNT=$((TOTAL_WORKFLOWS - EXECUTED_COUNT))
+        
+        ESTIMATED_SAVINGS=$((SKIPPED_COUNT * 3))  # 每個 workflow 平均節省 3 分鐘
+        SKIP_PERCENTAGE=$((SKIPPED_COUNT * 100 / TOTAL_WORKFLOWS))
+        
+        echo "  • 執行 workflows: $EXECUTED_COUNT / $TOTAL_WORKFLOWS"
+        echo "  • 智能跳過率: ${SKIP_PERCENTAGE}%"
+        echo "  • 預估節省時間: $ESTIMATED_SAVINGS 分鐘"
+        echo "  • 實際執行時間: ${{ needs.intelligent-analysis.outputs.estimated_time }} 分鐘"
+        
+        echo ""
+        if [ $SKIP_PERCENTAGE -ge 25 ]; then
+          echo "✅ 智能優化效果顯著！跳過了 ${SKIP_PERCENTAGE}% 的不必要檢查"
+        else
+          echo "📊 標準執行模式，確保完整的代碼品質檢查"
+        fi
+        
+        echo ""
+        echo "🎯 Stage 2.2 智能執行策略已成功實施！"
