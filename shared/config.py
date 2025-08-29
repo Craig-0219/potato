@@ -98,6 +98,9 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
 OPENAI_MAX_TOKENS = int(os.getenv("OPENAI_MAX_TOKENS", 1000))
 AI_DAILY_FREE_QUOTA = int(os.getenv("AI_DAILY_FREE_QUOTA", 10))
 
+# JWT Configuration
+JWT_SECRET = os.getenv("JWT_SECRET", "default_jwt_secret_for_development_only")
+
 # Image Processing Configuration
 IMAGE_DAILY_FREE_QUOTA = int(os.getenv("IMAGE_DAILY_FREE_QUOTA", 5))
 IMAGE_MAX_SIZE_MB = int(os.getenv("IMAGE_MAX_SIZE_MB", 10))

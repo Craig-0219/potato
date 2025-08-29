@@ -220,10 +220,12 @@ jobs:
                       from shared.config import DISCORD_TOKEN, DB_HOST
                       config_time = time.time() - start
                       benchmarks['config_load_time'] = config_time
+                      config_time_fmt = str(round(config_time, 2))
+                      config_time_fmt_precise = str(round(config_time, 3))
                       if config_time > 2.0:
-                          self.results['warnings'].append(f"配置載入時間較慢: {config_time:.2f}s")
+                          self.results['warnings'].append(f"配置載入時間較慢: {config_time_fmt}s")
                       else:
-                          self.results['passed_checks'].append(f"✅ 配置載入速度良好: {config_time:.3f}s")
+                          self.results['passed_checks'].append(f"✅ 配置載入速度良好: {config_time_fmt_precise}s")
                   except Exception as e:
                       self.results['critical_issues'].append(f"配置載入效能測試失敗: {str(e)}")
                   
@@ -233,11 +235,12 @@ jobs:
                   gc.collect()
                   memory_usage = psutil.Process().memory_info().rss / 1024 / 1024  # MB
                   benchmarks['memory_usage_mb'] = memory_usage
+                  memory_usage_fmt = str(round(memory_usage, 1))
                   
                   if memory_usage > 500:
-                      self.results['warnings'].append(f"記憶體使用較高: {memory_usage:.1f}MB")
+                      self.results['warnings'].append(f"記憶體使用較高: {memory_usage_fmt}MB")
                   else:
-                      self.results['passed_checks'].append(f"✅ 記憶體使用合理: {memory_usage:.1f}MB")
+                      self.results['passed_checks'].append(f"✅ 記憶體使用合理: {memory_usage_fmt}MB")
                   
                   self.results['performance_metrics'] = benchmarks
               
@@ -530,11 +533,16 @@ jobs:
                   # 計算統計數據
                   self.calculate_statistics()
                   
+                  # 預先格式化數值以避免YAML解析問題
+                  success_rate_fmt = str(round(self.results['success_rate'], 1))
+                  avg_time_fmt = str(round(self.results['avg_execution_time'], 3))
+                  throughput_fmt = str(round(self.results['throughput'], 1))
+                  
                   print(f"✅ 壓力測試完成")
                   print(f"📊 總執行: {self.results['total_runs']} 次")
-                  print(f"🎯 成功率: {self.results['success_rate']:.1f}%")
-                  print(f"⚡ 平均執行時間: {self.results['avg_execution_time']:.3f}s")
-                  print(f"🚀 吞吐量: {self.results['throughput']:.1f} jobs/min")
+                  print(f"🎯 成功率: {success_rate_fmt}%")
+                  print(f"⚡ 平均執行時間: {avg_time_fmt}s")
+                  print(f"🚀 吞吐量: {throughput_fmt} jobs/min")
               
               def calculate_statistics(self):
                   """計算統計數據"""
@@ -1078,68 +1086,106 @@ jobs:
                   """生成 Markdown 格式報告"""
                   print("📄 生成 Markdown 報告...")
                   
-                  markdown_report = f"""# {self.report['title']}
+                  # 避免 YAML 解析問題，將變數單獨提取
+                  title = self.report.get('title', '')
+                  timestamp = self.report.get('timestamp', '')
+                  validation_scope = self.report.get('validation_scope', '')
+                  target_environment = self.report.get('target_environment', '')
+                  overall_status = self.report.get('overall_status', '').upper()
+                  readiness_score = self.report.get('readiness_score', 0)
+                  deployment_approval = self.report.get('deployment_approval', False)
+                  
+                  # 預先格式化數值以避免YAML解析問題
+                  readiness_score_formatted = str(round(readiness_score, 1))
+                  
+                  # 健康檢查數據
+                  health_check = self.report.get('summary', {}).get('health_check', {})
+                  hc_status = health_check.get('status', '').upper()
+                  hc_score = health_check.get('score', 0)
+                  hc_passed = health_check.get('passed_checks', 0)
+                  hc_warnings = health_check.get('warnings', 0)
+                  hc_critical = health_check.get('critical_issues', 0)
+                  
+                  deployment_msg = '✅ 系統已準備好進行生產部署' if deployment_approval else '❌ 系統尚未準備好生產部署'
+                  
+                  markdown_report = f"""# {title}
 
-**生成時間**: {self.report['timestamp']}  
-**驗證範圍**: {self.report['validation_scope']}  
-**目標環境**: {self.report['target_environment']}  
-**整體狀態**: {self.report['overall_status'].upper()}  
-**準備度得分**: {self.report['readiness_score']:.1f}/100  
+生成時間: {timestamp}  
+驗證範圍: {validation_scope}  
+目標環境: {target_environment}  
+整體狀態: {overall_status}  
+準備度得分: {readiness_score_formatted}/100  
 
 ## 🎯 執行摘要
 
-{'✅ **系統已準備好進行生產部署**' if self.report['deployment_approval'] else '❌ **系統尚未準備好生產部署**'}
+{deployment_msg}
 
 ### 📊 驗證結果總覽
 
 #### 🔍 系統健康檢查
-- **狀態**: {self.report['summary']['health_check']['status'].upper()}
-- **得分**: {self.report['summary']['health_check']['score']}/100
-- **通過檢查**: {self.report['summary']['health_check']['passed_checks']}
-- **警告**: {self.report['summary']['health_check']['warnings']}
-- **關鍵問題**: {self.report['summary']['health_check']['critical_issues']}
+- 狀態: {hc_status}
+- 得分: {hc_score}/100
+- 通過檢查: {hc_passed}
+- 警告: {hc_warnings}
+- 關鍵問題: {hc_critical}
 
 """
                   
                   # 壓力測試部分
-                  if 'stress_testing' in self.report['summary'] and self.report['summary']['stress_testing'].get('tests_count', 0) > 0:
-                      stress_summary = self.report['summary']['stress_testing']
+                  report_summary = self.report.get('summary', {})
+                  if 'stress_testing' in report_summary and report_summary.get('stress_testing', {}).get('tests_count', 0) > 0:
+                      stress_summary = report_summary.get('stress_testing', {})
+                      stress_avg_score = stress_summary.get('average_score', 0)
+                      stress_tests_count = stress_summary.get('tests_count', 0)
+                      stress_best = stress_summary.get('best_performance', {})
+                      stress_worst = stress_summary.get('worst_performance', {})
+                      stress_best_scenario = stress_best.get('scenario', 'N/A') if stress_best else 'N/A'
+                      stress_worst_scenario = stress_worst.get('scenario', 'N/A') if stress_worst else 'N/A'
+                      stress_avg_score_formatted = str(round(stress_avg_score, 1))
+                      
                       markdown_report += f"""#### 🚀 壓力測試
-- **平均得分**: {stress_summary['average_score']:.1f}/100
-- **測試數量**: {stress_summary['tests_count']}
-- **最佳表現**: {stress_summary['best_performance']['scenario'] if stress_summary['best_performance'] else 'N/A'}
-- **最差表現**: {stress_summary['worst_performance']['scenario'] if stress_summary['worst_performance'] else 'N/A'}
+- 平均得分: {stress_avg_score_formatted}/100
+- 測試數量: {stress_tests_count}
+- 最佳表現: {stress_best_scenario}
+- 最差表現: {stress_worst_scenario}
 
 """
                   
                   # 回滾驗證部分
-                  rollback_summary = self.report['summary']['rollback_validation']
+                  rollback_summary = report_summary.get('rollback_validation', {})
+                  rb_status = rollback_summary.get('status', '').upper()
+                  rb_score = rollback_summary.get('score', 0)
+                  rb_tests_passed = rollback_summary.get('tests_passed', 0)
+                  rb_total_tests = rollback_summary.get('total_tests', 0)
+                  
                   markdown_report += f"""#### 🔄 回滾機制驗證
-- **狀態**: {rollback_summary['status'].upper()}
-- **得分**: {rollback_summary['score']}/100
-- **通過測試**: {rollback_summary['tests_passed']}/{rollback_summary['total_tests']}
+- 狀態: {rb_status}
+- 得分: {rb_score}/100
+- 通過測試: {rb_tests_passed}/{rb_total_tests}
 
 ## 💡 建議事項
 
 """
-                  for rec in self.report['recommendations']:
+                  recommendations = self.report.get('recommendations', [])
+                  for rec in recommendations:
                       markdown_report += f"- {rec}\n"
                   
                   markdown_report += f"""
 ## 🚀 下階段步驟
 
 """
-                  for step in self.report['next_steps']:
+                  next_steps = self.report.get('next_steps', [])
+                  for step in next_steps:
                       markdown_report += f"- {step}\n"
                   
                   markdown_report += f"""
 ## 📋 詳細驗證數據
 
 ### Stage 3 CI/CD 優化成果驗證
-- **並行執行優化**: {'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
-- **智能跳過策略**: {'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
-- **動態矩陣調度**: {'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
-- **效能監控系統**: {'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
+- 並行執行優化: {'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
+- 智能跳過策略: {'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
+- 動態矩陣調度: {'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
+- 效能監控系統: {'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
 
 ---
 
@@ -1166,8 +1212,9 @@ jobs:
                   with open('final_validation_data.json', 'w') as f:
                       json.dump(self.report, f, indent=2, default=str)
                   
+                  readiness_score_display = str(round(self.report['readiness_score'], 1))
                   print("✅ 最終驗證報告生成完成")
-                  print(f"🎯 整體準備度得分: {self.report['readiness_score']:.1f}/100")
+                  print(f"🎯 整體準備度得分: {readiness_score_display}/100")
                   print(f"📋 部署批准狀態: {'✅ 批准' if self.report['deployment_approval'] else '❌ 未批准'}")
                   
                   return self.report
@@ -1176,11 +1223,12 @@ jobs:
               generator = FinalReportGenerator()
               final_report = generator.run_full_analysis()
               
+              final_readiness_score_display = str(round(final_report['readiness_score'], 1))
               print("\n" + "="*60)
               print("🎯 FINAL INTEGRATION VALIDATION SUMMARY")
               print("="*60)
               print(f"整體狀態: {final_report['overall_status'].upper()}")
-              print(f"準備度得分: {final_report['readiness_score']:.1f}/100")
+              print(f"準備度得分: {final_readiness_score_display}/100")
               print(f"部署批准: {'✅ YES' if final_report['deployment_approval'] else '❌ NO'}")
               print("="*60)
               
