@@ -18,9 +18,7 @@ class TestDatabaseIntegration(unittest.TestCase):
     def setUp(self):
         """測試設置"""
         os.environ["TESTING"] = "true"
-        os.environ["DATABASE_URL"] = (
-            "mysql://test_user:test_password@localhost:3306/test_potato_bot"
-        )
+        os.environ["DATABASE_URL"] = "mysql://test_user:test_password@localhost:3306/test_database"
         os.environ["DB_HOST"] = "localhost"
         os.environ["DB_USER"] = "test_user"
         os.environ["DB_PASSWORD"] = "test_password"
