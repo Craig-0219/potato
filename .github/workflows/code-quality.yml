@@ -36,7 +36,7 @@ jobs:
     - name: 📦 安裝格式化工具
       run: |
         python -m pip install --upgrade pip
-        pip install black>=24.8.0 isort>=5.13.2 flake8>=7.1.1 mypy>=1.11.2 autoflake>=2.0.0
+        pip install black>=24.8.0 "isort[colors]>=5.13.2" flake8>=7.1.1 mypy>=1.11.2 autoflake>=2.0.0
         pip install -r requirements.txt
 
     - name: 🧹 檢查未使用的導入
@@ -110,7 +110,7 @@ jobs:
 
     - name: 📦 安裝工具
       run: |
-        pip install black isort autoflake
+        pip install black "isort[colors]" autoflake
 
     - name: 🔧 自動修復格式問題
       run: |

@@ -186,7 +186,7 @@ jobs:
           pip install --user -r requirements.txt
           
           # 安裝開發和測試依賴
-          pip install --user pytest pytest-cov mypy bandit safety black isort flake8
+          pip install black "isort[colors]" flake8 mypy autoflake bandit safety
         fi
         
         # 驗證安裝
