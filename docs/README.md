@@ -37,6 +37,7 @@
 
 - **[開發路線圖](plans/development-roadmap.md)** - 整合的開發計劃和路線圖
 - **[優先級矩陣](plans/PRIORITY_MATRIX.md)** - 專案優先級和時程確認
+- **[後續開發階段](plans/next-development-phase.md)** - Week 9-16 詳細執行計劃
 - **[遊戲社群路線圖](plans/gaming-community-roadmap.md)** - 遊戲社群功能規劃
 
 ### 📦 依賴管理 (`requirements/`)
