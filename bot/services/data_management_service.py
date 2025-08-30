@@ -17,7 +17,6 @@ from bot.services.guild_permission_manager import (
     GuildPermission,
     guild_permission_manager,
 )
-from bot.utils.multi_tenant_security import secure_query_builder
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +62,6 @@ class DataManagementService:
 
     def __init__(self):
         self.db = db_pool
-        self.query_builder = secure_query_builder
         self.permission_manager = guild_permission_manager
 
         # 定義數據表分類和保留政策

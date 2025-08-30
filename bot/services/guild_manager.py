@@ -17,7 +17,6 @@ from bot.services.guild_permission_manager import (
     GuildRole,
     guild_permission_manager,
 )
-from bot.utils.multi_tenant_security import multi_tenant_security, secure_query_builder
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +27,6 @@ class GuildManager:
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.db = db_pool
-        self.security = multi_tenant_security
-        self.query_builder = secure_query_builder
         self.permission_manager = guild_permission_manager
         self._initialization_lock = asyncio.Lock()
 
@@ -521,15 +518,22 @@ class GuildManager:
                 "last_activity": datetime.now(),
             }
 
-            query, params = self.query_builder.build_update(
-                table="guild_info",
-                data=update_data,
-                where_conditions={"guild_id": guild.id},
-            )
-
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute(query, params)
+                    await cursor.execute(
+                        """
+                        UPDATE guild_info 
+                        SET name = %s, member_count = %s, features = %s, last_activity = %s
+                        WHERE guild_id = %s
+                        """,
+                        (
+                            update_data["name"],
+                            update_data["member_count"],
+                            update_data["features"],
+                            update_data["last_activity"],
+                            guild.id,
+                        ),
+                    )
                     await conn.commit()
 
         except Exception as e:
