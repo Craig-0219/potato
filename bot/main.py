@@ -103,7 +103,6 @@ except ImportError as e:
     api_app = None
 from bot.db.pool import close_database, db_pool, get_db_health, init_database
 from bot.services.guild_manager import GuildManager
-from bot.utils.multi_tenant_security import multi_tenant_security
 
 # Views現在由各個Cog自行註冊，不需要集中註冊
 
@@ -171,7 +170,6 @@ class PotatoBot(commands.Bot):
 
         # 多租戶管理
         self.guild_manager = None
-        self.multi_tenant_security = multi_tenant_security
 
     async def setup_hook(self):
         """Bot 設定鉤子（修復版 + 離線模式支援）"""
@@ -195,8 +193,8 @@ class PotatoBot(commands.Bot):
             # 3. 載入擴展
             await self._load_extensions()
 
-            # 4. 初始化多租戶安全系統
-            await self._init_multi_tenant_security()
+            # 4. 初始化伺服器管理服務
+            await self._init_guild_services()
 
             # 5. 註冊 Persistent Views
             await self._register_views_delayed()
@@ -297,9 +295,9 @@ class PotatoBot(commands.Bot):
                     logger.error(f"❌ 資料庫初始化最終失敗：{e}")
                     raise
 
-    async def _init_multi_tenant_security(self):
-        """初始化多租戶安全系統"""
-        logger.info("🔐 初始化多租戶安全系統...")
+    async def _init_guild_services(self):
+        """初始化伺服器管理服務"""
+        logger.info("🏰 初始化伺服器管理服務...")
 
         try:
             # 初始化伺服器管理表格
@@ -318,11 +316,10 @@ class PotatoBot(commands.Bot):
             await backup_service.start_backup_scheduler()
             logger.info("✅ 自動備份服務已啟動")
 
-            # 初始化現有伺服器（在 ready 事件後執行）
-            logger.info("✅ 多租戶安全系統框架初始化完成")
+            logger.info("✅ 伺服器管理服務初始化完成")
 
         except Exception as e:
-            logger.error(f"❌ 多租戶安全系統初始化失敗: {e}")
+            logger.error(f"❌ 伺服器管理服務初始化失敗: {e}")
             # 不拋出異常，允許 bot 繼續運行
 
     async def _load_extensions(self):

@@ -12,7 +12,6 @@ from typing import Any, Dict, List, Optional
 
 from bot.db.pool import db_pool
 from bot.services.data_management_service import data_management_service
-from bot.utils.multi_tenant_security import secure_query_builder
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +21,6 @@ class BackupService:
 
     def __init__(self):
         self.db = db_pool
-        self.query_builder = secure_query_builder
         self.data_service = data_management_service
         self.backup_path = Path("backups")
         self.backup_path.mkdir(exist_ok=True)

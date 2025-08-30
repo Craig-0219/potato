@@ -13,7 +13,6 @@ import aiomysql
 import discord
 
 from bot.db.pool import db_pool
-from bot.utils.multi_tenant_security import multi_tenant_security, secure_query_builder
 
 logger = logging.getLogger(__name__)
 
@@ -94,8 +93,6 @@ class GuildPermissionManager:
 
     def __init__(self):
         self.db = db_pool
-        self.security = multi_tenant_security
-        self.query_builder = secure_query_builder
         self._permission_cache: Dict[str, GuildUserPermissions] = {}
         self._role_permissions: Dict[GuildRole, Set[GuildPermission]] = {}
         self._initialize_role_permissions()
@@ -157,7 +154,7 @@ class GuildPermissionManager:
                 "features": guild.features,
             }
 
-            await self.security.register_tenant(guild.id, guild_info)
+# Register tenant functionality removed with multi-tenant security framework
 
             # 初始化擁有者權限
             if guild.owner_id:
@@ -249,15 +246,15 @@ class GuildPermissionManager:
         """從資料庫載入用戶權限"""
         try:
             # 查詢用戶在該伺服器的角色
-            query, params = self.query_builder.build_select(
-                table="guild_user_permissions",
-                guild_id=guild_id,
-                additional_where={"user_id": user_id, "is_active": True},
-            )
-
             async with self.db.connection() as conn:
                 async with conn.cursor(aiomysql.DictCursor) as cursor:
-                    await cursor.execute(query, params)
+                    await cursor.execute(
+                        """
+                        SELECT * FROM guild_user_permissions 
+                        WHERE guild_id = %s AND user_id = %s AND is_active = %s
+                        """,
+                        (guild_id, user_id, True),
+                    )
                     result = await cursor.fetchone()
 
                     if result:
@@ -426,16 +423,16 @@ class GuildPermissionManager:
                 # 更新資料庫
                 role_data = json.dumps([r.value for r in new_roles])
 
-                query, params = self.query_builder.build_update(
-                    table="guild_user_permissions",
-                    data={"roles": role_data, "updated_at": datetime.now()},
-                    where_conditions={"user_id": user_id},
-                    guild_id=guild_id,
-                )
-
                 async with self.db.connection() as conn:
                     async with conn.cursor() as cursor:
-                        await cursor.execute(query, params)
+                        await cursor.execute(
+                            """
+                            UPDATE guild_user_permissions 
+                            SET roles = %s, updated_at = %s 
+                            WHERE user_id = %s AND guild_id = %s
+                            """,
+                            (role_data, datetime.now(), user_id, guild_id),
+                        )
                         await conn.commit()
 
                 # 清除快取
@@ -482,7 +479,13 @@ class GuildPermissionManager:
     async def _get_guild_info(self, guild_id: int) -> Optional[Dict[str, Any]]:
         """獲取伺服器資訊"""
         try:
-            return self.security.tenant_configs.get(guild_id)
+            async with self.db.connection() as conn:
+                async with conn.cursor(aiomysql.DictCursor) as cursor:
+                    await cursor.execute(
+                        "SELECT * FROM guild_info WHERE guild_id = %s", (guild_id,)
+                    )
+                    result = await cursor.fetchone()
+                    return dict(result) if result else None
         except Exception as e:
             logger.error(f"❌ 獲取伺服器資訊失敗: {e}")
             return None

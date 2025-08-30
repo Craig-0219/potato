@@ -9,7 +9,6 @@ from enum import Enum
 from typing import Any, Dict, List
 
 from bot.db.pool import db_pool
-from bot.utils.multi_tenant_security import secure_query_builder
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +64,6 @@ class GuildAnalyticsService:
 
     def __init__(self):
         self.db = db_pool
-        self.query_builder = secure_query_builder
         self._metric_cache: Dict[str, List[MetricData]] = {}
         self._alert_rules: Dict[int, List[AlertRule]] = {}
         self._active_alerts: Dict[str, datetime] = {}
