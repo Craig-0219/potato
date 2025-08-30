@@ -180,7 +180,7 @@ jobs:
       DB_USER: test_user_${{ matrix.job_index }}
       DB_PASSWORD: test_password_secure_parallel_environment_only  # pragma: allowlist secret
       DB_NAME: test_database_${{ matrix.job_index }}_${{ matrix.test_type }}
-      DB_PORT: ${{ fromJSON('[3306, 3307, 3308, 3309, 3310, 3311]')[matrix.job_index - 1] }}
+      DB_PORT: ${{ fromJSON('[3306, 3307, 3308, 3309, 3310, 3311]')[matrix.job_index-1] }}
       JWT_SECRET: test_jwt_secret_parallel_${{ matrix.job_index }}_automated_testing_purposes_only  # pragma: allowlist secret
       REDIS_URL: redis://127.0.0.1:6379/${{ matrix.job_index }}
     
