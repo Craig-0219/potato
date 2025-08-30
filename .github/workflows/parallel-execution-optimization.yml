@@ -287,7 +287,7 @@ jobs:
                 --maxfail=3 \
                 -n auto \
                 --dist=worksteal \
-                --timeout=300 \
+                --timeout 300 \
                 --junit-xml=junit-${{ matrix.job_index }}-${{ matrix.test_type }}.xml
               ;;
             "dynamic")

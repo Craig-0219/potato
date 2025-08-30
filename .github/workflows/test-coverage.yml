@@ -250,7 +250,7 @@ jobs:
           --junit-xml=junit-e2e.xml \
           --maxfail=1 \
           -s \
-          --timeout=300
+          --timeout 300
 
     - name: 📤 上傳 E2E 報告
       if: always()

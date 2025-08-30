@@ -3,7 +3,7 @@
 ## Issue 概要
 **Issue ID**: PYTEST-TIMEOUT-001  
 **創建時間**: 2024-12-XX  
-**狀態**: ✅ 已解決  
+**狀態**: ✅ 已解決 (最後更新: 2025-08-30)  
 **優先級**: 🟡 中優先級  
 **類型**: 🧪 測試框架修復  
 
@@ -167,6 +167,34 @@ timeout 300 pytest tests/
 
 ### 根本原因確認
 確認問題源於 `test-coverage.yml` 第 253 行使用了 `--timeout=300` 參數，但環境中缺少 `pytest-timeout` 插件。
+
+## 🔧 最終修復 (2025-08-30)
+
+### 進一步問題確認
+檢查發現問題除了缺少插件外，參數格式也有問題：
+- `--timeout=300` (錯誤格式)
+- `--timeout 300` (正確格式)
+
+### 最終修復動作
+1. **修復 test-coverage.yml**: 第 253 行
+   ```diff
+   - --timeout=300
+   + --timeout 300
+   ```
+
+2. **修復 parallel-execution-optimization.yml**: 第 290 行  
+   ```diff
+   - --timeout=300 \
+   + --timeout 300 \
+   ```
+
+3. **確認 pyproject.toml 依賴**: pytest-timeout>=2.3.1 已正確配置
+
+### 修復結果
+- ✅ pytest timeout 參數格式已更正
+- ✅ pytest-timeout 插件已在 pyproject.toml 中配置  
+- ✅ 所有相關工作流程已更新
+- ✅ 問題完全解決
 
 ### 修復實施
 **修改檔案**: `pyproject.toml`
