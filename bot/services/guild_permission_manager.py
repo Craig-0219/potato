@@ -154,7 +154,7 @@ class GuildPermissionManager:
                 "features": guild.features,
             }
 
-# Register tenant functionality removed with multi-tenant security framework
+            # Register tenant functionality removed with multi-tenant security framework
 
             # 初始化擁有者權限
             if guild.owner_id:

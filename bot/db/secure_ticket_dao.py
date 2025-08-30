@@ -3,7 +3,7 @@
 # Ticket Data Access Object - Simplified
 
 import logging
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Any, Dict, Optional
 
 import aiomysql
