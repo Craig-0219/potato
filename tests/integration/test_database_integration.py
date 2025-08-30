@@ -58,11 +58,9 @@ class TestDatabaseIntegration(unittest.TestCase):
             self.skipTest(f"DAO 類別導入失敗: {e}")
 
     @patch("aiomysql.connect")
-    @patch("redis.Redis")
-    def test_cached_dao_integration(self, mock_redis, mock_connect):
+    def test_cached_dao_integration(self, mock_connect):
         """測試快取 DAO 整合"""
         mock_connect.return_value = AsyncMock()
-        mock_redis.return_value = MagicMock()
 
         try:
             from bot.db.cached_ticket_dao import CachedTicketDAO
@@ -96,12 +94,8 @@ class TestCacheIntegration(unittest.TestCase):
         os.environ["TESTING"] = "true"
         os.environ["REDIS_URL"] = "redis://127.0.0.1:6379/0"
 
-    @patch("redis.Redis")
-    def test_multi_level_cache_integration(self, mock_redis):
+    def test_multi_level_cache_integration(self):
         """測試多層級快取整合"""
-        mock_redis_instance = MagicMock()
-        mock_redis.return_value = mock_redis_instance
-        mock_redis_instance.ping.return_value = True
 
         try:
             from shared.cache_manager import MultiLevelCacheManager

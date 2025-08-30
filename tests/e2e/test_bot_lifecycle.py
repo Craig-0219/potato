@@ -36,8 +36,7 @@ class TestBotLifecycle(unittest.IsolatedAsyncioTestCase):
     @patch("discord.ext.commands.Bot")
     @patch("discord.Intents")
     @patch("aiomysql.connect")
-    @patch("redis.Redis")
-    async def test_bot_initialization_flow(self, mock_redis, mock_connect, mock_intents, mock_bot):
+    async def test_bot_initialization_flow(self, mock_connect, mock_intents, mock_bot):
         """測試 Bot 完整初始化流程"""
         # 設置模擬對象
         mock_bot_instance = MagicMock()
@@ -48,7 +47,6 @@ class TestBotLifecycle(unittest.IsolatedAsyncioTestCase):
 
         mock_intents.default.return_value = MagicMock()
         mock_connect.return_value = AsyncMock()
-        mock_redis.return_value = MagicMock()
 
         try:
             # 測試 Bot 類別可以載入和初始化
@@ -165,8 +163,7 @@ class TestSystemIntegration(unittest.IsolatedAsyncioTestCase):
 
     @patch("discord.ext.commands.Bot")
     @patch("aiomysql.connect")
-    @patch("redis.Redis")
-    async def test_full_system_integration(self, mock_redis, mock_connect, mock_bot):
+    async def test_full_system_integration(self, mock_connect, mock_bot):
         """測試完整系統整合"""
         # 設置所有模擬對象
         mock_bot_instance = MagicMock()
@@ -176,7 +173,6 @@ class TestSystemIntegration(unittest.IsolatedAsyncioTestCase):
         mock_bot.return_value = mock_bot_instance
 
         mock_connect.return_value = AsyncMock()
-        mock_redis.return_value = MagicMock()
 
         try:
             # 測試整個系統的主要組件可以協同工作
@@ -226,11 +222,9 @@ class TestDataFlowEndToEnd(unittest.IsolatedAsyncioTestCase):
         os.environ["E2E_TESTING"] = "true"
 
     @patch("aiomysql.connect")
-    @patch("redis.Redis")
-    async def test_dao_cache_flow(self, mock_redis, mock_connect):
+    async def test_dao_cache_flow(self, mock_connect):
         """測試 DAO-快取資料流"""
         mock_connect.return_value = AsyncMock()
-        mock_redis.return_value = MagicMock()
 
         try:
             # 測試 DAO 和快取層

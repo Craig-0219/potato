@@ -78,12 +78,8 @@ class TestSystemHealth(unittest.IsolatedAsyncioTestCase):
         except Exception as e:
             self.fail(f"資料庫系統健康檢查失敗: {e}")
 
-    @patch("redis.Redis")
-    async def test_cache_health(self, mock_redis):
+    async def test_cache_health(self):
         """測試快取系統健康檢查"""
-        mock_redis_instance = MagicMock()
-        mock_redis.return_value = mock_redis_instance
-        mock_redis_instance.ping.return_value = True
 
         try:
             from shared.cache_manager import MultiLevelCacheManager

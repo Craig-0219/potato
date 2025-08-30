@@ -64,12 +64,8 @@ class TestAPIIntegration(unittest.TestCase):
         except ImportError as e:
             self.fail(f"資料庫管理器導入失敗: {e}")
 
-    @patch("redis.Redis")
-    def test_redis_connection_interface(self, mock_redis):
+    def test_redis_connection_interface(self):
         """測試 Redis 連接介面"""
-        mock_redis_instance = MagicMock()
-        mock_redis.return_value = mock_redis_instance
-        mock_redis_instance.ping.return_value = True
 
         try:
             from shared.cache_manager import MultiLevelCacheManager
