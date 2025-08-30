@@ -89,10 +89,16 @@ except ImportError as e:
 
 import threading
 
-import uvicorn
-
-# API Server 整合
-from bot.api.app import app as api_app
+# API Server 整合 - 可選依賴
+try:
+    import uvicorn
+    from bot.api.app import app as api_app
+    API_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"API 服務器依賴不可用: {e}")
+    API_AVAILABLE = False
+    uvicorn = None
+    api_app = None
 from bot.db.pool import close_database, db_pool, get_db_health, init_database
 from bot.services.guild_manager import GuildManager
 from bot.utils.multi_tenant_security import multi_tenant_security
@@ -428,6 +434,10 @@ class PotatoBot(commands.Bot):
 
     async def _start_integrated_api_server(self):
         """啟動整合的 API 伺服器"""
+        if not API_AVAILABLE:
+            logger.warning("⚠️ API 服務器依賴不可用，跳過 API 服務器啟動")
+            return
+            
         try:
             # 取得 API 設定
             api_host = os.getenv("API_HOST", "0.0.0.0")
