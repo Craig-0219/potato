@@ -1108,29 +1108,23 @@ jobs:
                   
                   deployment_msg = '✅ 系統已準備好進行生產部署' if deployment_approval else '❌ 系統尚未準備好生產部署'
                   
-                  colon = ': '
-                  markdown_report = f"""# {title}
+                  # Build markdown report using string concatenation to avoid YAML parsing issues
+                  markdown_report = f"# {title}\n\n"
+                  markdown_report += f"生成時間: {timestamp}\n"
+                  markdown_report += f"驗證範圍: {validation_scope}\n"
+                  markdown_report += f"目標環境: {target_environment}\n"
+                  markdown_report += f"整體狀態: {overall_status}\n"
+                  markdown_report += f"準備度得分: {readiness_score_formatted}/100\n\n"
+                  markdown_report += "## 🎯 執行摘要\n\n"
+                  markdown_report += f"{deployment_msg}\n"
 
-生成時間{colon}{timestamp}  
-驗證範圍{colon}{validation_scope}  
-目標環境{colon}{target_environment}  
-整體狀態{colon}{overall_status}  
-準備度得分{colon}{readiness_score_formatted}/100  
-
-## 🎯 執行摘要
-
-{deployment_msg}
-
-### 📊 驗證結果總覽
-
-#### 🔍 系統健康檢查
-- 狀態{colon}{hc_status}
-- 得分{colon}{hc_score}/100
-- 通過檢查{colon}{hc_passed}
-- 警告{colon}{hc_warnings}
-- 關鍵問題{colon}{hc_critical}
-
-"""
+                  markdown_report += "\n### 📊 驗證結果總覽\n\n"
+                  markdown_report += "#### 🔍 系統健康檢查\n"
+                  markdown_report += f"- 狀態: {hc_status}\n"
+                  markdown_report += f"- 得分: {hc_score}/100\n"
+                  markdown_report += f"- 通過檢查: {hc_passed}\n"
+                  markdown_report += f"- 警告: {hc_warnings}\n"
+                  markdown_report += f"- 關鍵問題: {hc_critical}\n\n"
                   
                   # 壓力測試部分
                   report_summary = self.report.get('summary', {})
@@ -1144,13 +1138,11 @@ jobs:
                       stress_worst_scenario = stress_worst.get('scenario', 'N/A') if stress_worst else 'N/A'
                       stress_avg_score_formatted = str(round(stress_avg_score, 1))
                       
-                      markdown_report += f"""#### 🚀 壓力測試
-- 平均得分{colon}{stress_avg_score_formatted}/100
-- 測試數量{colon}{stress_tests_count}
-- 最佳表現{colon}{stress_best_scenario}
-- 最差表現{colon}{stress_worst_scenario}
-
-"""
+                      markdown_report += "#### 🚀 壓力測試\n"
+                      markdown_report += f"- 平均得分: {stress_avg_score_formatted}/100\n"
+                      markdown_report += f"- 測試數量: {stress_tests_count}\n"
+                      markdown_report += f"- 最佳表現: {stress_best_scenario}\n"
+                      markdown_report += f"- 最差表現: {stress_worst_scenario}\n\n"
                   
                   # 回滾驗證部分
                   rollback_summary = report_summary.get('rollback_validation', {})
@@ -1159,40 +1151,30 @@ jobs:
                   rb_tests_passed = rollback_summary.get('tests_passed', 0)
                   rb_total_tests = rollback_summary.get('total_tests', 0)
                   
-                  markdown_report += f"""#### 🔄 回滾機制驗證
-- 狀態{colon}{rb_status}
-- 得分{colon}{rb_score}/100
-- 通過測試{colon}{rb_tests_passed}/{rb_total_tests}
-
-## 💡 建議事項
-
-"""
+                  markdown_report += "#### 🔄 回滾機制驗證\n"
+                  markdown_report += f"- 狀態: {rb_status}\n"
+                  markdown_report += f"- 得分: {rb_score}/100\n"
+                  markdown_report += f"- 通過測試: {rb_tests_passed}/{rb_total_tests}\n\n"
+                  markdown_report += "## 💡 建議事項\n\n"
                   recommendations = self.report.get('recommendations', [])
                   for rec in recommendations:
                       markdown_report += f"- {rec}\n"
                   
-                  markdown_report += f"""
-## 🚀 下階段步驟
-
-"""
+                  markdown_report += "\n## 🚀 下階段步驟\n\n"
                   next_steps = self.report.get('next_steps', [])
                   for step in next_steps:
                       markdown_report += f"- {step}\n"
                   
-                  markdown_report += f"""
-## 📋 詳細驗證數據
-
-### Stage 3 CI/CD 優化成果驗證
-- 並行執行優化{colon}{'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
-- 智能跳過策略{colon}{'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
-- 動態矩陣調度{colon}{'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
-- 效能監控系統{colon}{'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
-
----
-
-*此報告由 Final Integration Validation 系統自動生成*  
-*版本{colon}{self.report.get('validation_version', 'v4.0.0')}*
-"""
+                  markdown_report += "\n## 📋 詳細驗證數據\n\n"
+                  markdown_report += "### Stage 3 CI/CD 優化成果驗證\n"
+                  status_icon = '✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'
+                  markdown_report += f"- 並行執行優化: {status_icon}\n"
+                  markdown_report += f"- 智能跳過策略: {status_icon}\n"
+                  markdown_report += f"- 動態矩陣調度: {status_icon}\n"
+                  markdown_report += f"- 效能監控系統: {status_icon}\n\n"
+                  markdown_report += "---\n\n"
+                  markdown_report += "*此報告由 Final Integration Validation 系統自動生成*\n"
+                  markdown_report += f"*版本: {self.report.get('validation_version', 'v4.0.0')}*\n"
                   
                   with open('final_validation_report.md', 'w', encoding='utf-8') as f:
                       f.write(markdown_report)
