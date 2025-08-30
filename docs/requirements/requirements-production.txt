@@ -1,5 +1,6 @@
 # Potato Bot 生產環境依賴清單
-# 版本: v3.0.0 - 生產環境精確版本
+# 版本: v3.0.0
+# 使用精確版本以確保生產環境穩定性
 
 # 核心依賴
 discord.py==2.5.2
@@ -26,7 +27,7 @@ PyNaCl==1.5.0
 pandas==2.1.4
 openpyxl==3.1.2
 
-# AI 功能
+# AI 功能 - Phase 5 擴展
 openai==1.12.0
 anthropic==0.18.1
 google-generativeai==0.4.0
@@ -49,7 +50,7 @@ aiofiles==23.2.0
 # 系統監控
 psutil==5.9.8
 
-# Minecraft 整合
+# Minecraft 整合 - Gaming Community BOT
 minecraft-launcher-lib==6.4
 mcrcon==0.7.0
 mcstatus==10.0.3
