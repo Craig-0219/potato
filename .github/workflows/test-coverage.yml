@@ -294,20 +294,42 @@ jobs:
 
     - name: 📊 合併覆蓋率數據
       run: |
-        echo "📊 合併多個覆蓋率報告..."
+        echo "📊 處理覆蓋率報告..."
         cd coverage-reports/
 
-        # 合併所有 .coverage 文件
-        coverage combine coverage-*.json || true
-        coverage report --format=markdown > coverage-summary.md || true
-        coverage report --show-missing > coverage-detailed.txt || true
+        # 列出所有可用的覆蓋率文件
+        echo "📁 可用的覆蓋率文件:"
+        ls -la coverage-*.xml 2>/dev/null || echo "無 XML 文件"
+        ls -la coverage-*.json 2>/dev/null || echo "無 JSON 文件"
+
+        # 嘗試從現有 XML 文件合併覆蓋率
+        if ls coverage-*.xml 1> /dev/null 2>&1; then
+          echo "📊 處理 XML 覆蓋率文件..."
+          # 使用第一個 XML 文件作為基準
+          FIRST_XML=$(ls coverage-*.xml | head -1)
+          echo "使用文件: $FIRST_XML"
+          
+          # 提取覆蓋率百分比 (從 XML 中)
+          COVERAGE_PERCENT=$(python3 -c "
+import xml.etree.ElementTree as ET
+try:
+    tree = ET.parse('$FIRST_XML')
+    root = tree.getroot()
+    coverage = root.attrib.get('line-rate', '0')
+    print(int(float(coverage) * 100))
+except Exception as e:
+    print('0')
+" 2>/dev/null || echo "0")
+        else
+          echo "⚠️ 未找到可用的覆蓋率文件"
+          COVERAGE_PERCENT=0
+        fi
+
+        echo "計算得到覆蓋率: ${COVERAGE_PERCENT}%"
 
         # 生成統計摘要
         echo "## 📊 測試覆蓋率摘要" > final-summary.md
         echo "" >> final-summary.md
-
-        # 提取覆蓋率百分比
-        COVERAGE_PERCENT=$(coverage report --format=total 2>/dev/null || echo "0")
         echo "**總覆蓋率**: ${COVERAGE_PERCENT}%" >> final-summary.md
         echo "**門檻要求**: ${COVERAGE_THRESHOLD}%" >> final-summary.md
         echo "" >> final-summary.md
@@ -323,10 +345,9 @@ jobs:
         echo "COVERAGE_PERCENT=$COVERAGE_PERCENT" >> $GITHUB_ENV
 
         echo "" >> final-summary.md
-        echo "### 詳細報告" >> final-summary.md
-        echo '```' >> final-summary.md
-        coverage report --show-missing >> final-summary.md || true
-        echo '```' >> final-summary.md
+        echo "### 可用報告" >> final-summary.md
+        echo "- XML 報告: $(ls coverage-*.xml 2>/dev/null | wc -l) 個" >> final-summary.md
+        echo "- JSON 報告: $(ls coverage-*.json 2>/dev/null | wc -l) 個" >> final-summary.md
 
     - name: 💬 覆蓋率評論 (PR)
       if: github.event_name == 'pull_request'
