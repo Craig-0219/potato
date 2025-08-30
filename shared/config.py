@@ -45,6 +45,9 @@ DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 REDIS_URL = os.getenv("REDIS_URL")  # 可選的 Redis 連接
 
+# 開發工具配置
+SYNC_COMMANDS = os.getenv("SYNC_COMMANDS", "true").lower() == "true"
+
 # 票券系統配置
 TICKET_AUTO_ASSIGNMENT = os.getenv("TICKET_AUTO_ASSIGNMENT", "true").lower() == "true"
 TICKET_SLA_MONITORING = os.getenv("TICKET_SLA_MONITORING", "true").lower() == "true"

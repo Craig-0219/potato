@@ -62,6 +62,7 @@ try:
         DB_PORT,
         DB_USER,
         DISCORD_TOKEN,
+        SYNC_COMMANDS,
     )
 except ImportError:
     logger.error("❌ shared/config.py 不存在或設定不齊全")
@@ -391,10 +392,8 @@ class PotatoBot(commands.Bot):
             existing_commands = self.tree.get_commands()
             logger.info(f"🔍 發現 {len(existing_commands)} 個本地命令等待同步")
 
-            # 檢查是否啟用命令同步（環境變數控制）
-            import os
-
-            sync_enabled = os.getenv("SYNC_COMMANDS", "true").lower() == "true"
+            # 檢查是否啟用命令同步（配置控制）
+            sync_enabled = SYNC_COMMANDS
 
             if not sync_enabled:
                 logger.info("🚫 命令同步已停用（SYNC_COMMANDS=false）")
