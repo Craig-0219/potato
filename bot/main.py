@@ -92,7 +92,9 @@ import threading
 # API Server 整合 - 可選依賴
 try:
     import uvicorn
+
     from bot.api.app import app as api_app
+
     API_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"API 服務器依賴不可用: {e}")
@@ -437,7 +439,7 @@ class PotatoBot(commands.Bot):
         if not API_AVAILABLE:
             logger.warning("⚠️ API 服務器依賴不可用，跳過 API 服務器啟動")
             return
-            
+
         try:
             # 取得 API 設定
             api_host = os.getenv("API_HOST", "0.0.0.0")
