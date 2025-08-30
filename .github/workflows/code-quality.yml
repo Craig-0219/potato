@@ -14,6 +14,11 @@ on:
       - 'pyproject.toml'
       - 'requirements*.txt'
 
+permissions:
+  contents: write  # 需要寫入權限來推送修復
+  checks: write
+  pull-requests: write
+
 env:
   PYTHON_VERSION: '3.10'
 
@@ -26,6 +31,8 @@ jobs:
     steps:
     - name: 📥 檢出代碼
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: 🐍 設置 Python ${{ env.PYTHON_VERSION }}
       uses: actions/setup-python@v4
@@ -102,6 +109,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
+        fetch-depth: 0
 
     - name: 🐍 設置 Python
       uses: actions/setup-python@v4
