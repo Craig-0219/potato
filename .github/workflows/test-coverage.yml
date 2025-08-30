@@ -310,16 +310,7 @@ jobs:
           echo "使用文件: $FIRST_XML"
           
           # 提取覆蓋率百分比 (從 XML 中)
-          COVERAGE_PERCENT=$(python3 -c "
-import xml.etree.ElementTree as ET
-try:
-    tree = ET.parse('$FIRST_XML')
-    root = tree.getroot()
-    coverage = root.attrib.get('line-rate', '0')
-    print(int(float(coverage) * 100))
-except Exception as e:
-    print('0')
-" 2>/dev/null || echo "0")
+          COVERAGE_PERCENT=$(python3 -c "import xml.etree.ElementTree as ET; tree = ET.parse('$FIRST_XML'); root = tree.getroot(); coverage = root.attrib.get('line-rate', '0'); print(int(float(coverage) * 100))" 2>/dev/null || echo "0")
         else
           echo "⚠️ 未找到可用的覆蓋率文件"
           COVERAGE_PERCENT=0
