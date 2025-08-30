@@ -4,16 +4,17 @@ Minecraft RCON 管理器
 """
 
 import asyncio
-from typing import Dict, Any, List, Optional
-from mcrcon import MCRcon
 import socket
+from typing import Any, Dict, List, Optional
 
-from shared.logger import logger
+from mcrcon import MCRcon
+
 from shared.config import (
     MINECRAFT_RCON_HOST,
-    MINECRAFT_RCON_PORT,
     MINECRAFT_RCON_PASSWORD,
+    MINECRAFT_RCON_PORT,
 )
+from shared.logger import logger
 
 
 class RCONManager:
@@ -128,15 +129,11 @@ class RCONManager:
         """從白名單移除玩家"""
         return await self.execute_command(f"whitelist remove {player}")
 
-    async def kick_player(
-        self, player: str, reason: str = "已被管理員踢出"
-    ) -> Dict[str, Any]:
+    async def kick_player(self, player: str, reason: str = "已被管理員踢出") -> Dict[str, Any]:
         """踢出玩家"""
         return await self.execute_command(f"kick {player} {reason}")
 
-    async def ban_player(
-        self, player: str, reason: str = "已被管理員封禁"
-    ) -> Dict[str, Any]:
+    async def ban_player(self, player: str, reason: str = "已被管理員封禁") -> Dict[str, Any]:
         """封禁玩家"""
         return await self.execute_command(f"ban {player} {reason}")
 
@@ -148,9 +145,7 @@ class RCONManager:
         """伺服器廣播訊息"""
         return await self.execute_command(f"say {message}")
 
-    async def teleport_player(
-        self, player: str, x: int, y: int, z: int
-    ) -> Dict[str, Any]:
+    async def teleport_player(self, player: str, x: int, y: int, z: int) -> Dict[str, Any]:
         """傳送玩家"""
         return await self.execute_command(f"tp {player} {x} {y} {z}")
 

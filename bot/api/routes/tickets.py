@@ -123,9 +123,7 @@ async def get_tickets(
         if status and status != "all":
             filtered_tickets = [t for t in filtered_tickets if t["status"] == status]
         if discord_id:
-            filtered_tickets = [
-                t for t in filtered_tickets if t["discord_id"] == str(discord_id)
-            ]
+            filtered_tickets = [t for t in filtered_tickets if t["discord_id"] == str(discord_id)]
 
         # 分頁
         total = len(filtered_tickets)
@@ -267,9 +265,7 @@ async def update_ticket(
 
 @router.delete("/{ticket_id}", response_model=BaseResponse, summary="刪除票券")
 # @limiter.limit("10/minute")
-async def delete_ticket(
-    ticket_id: int, user: APIUser = Depends(require_write_permission)
-):
+async def delete_ticket(ticket_id: int, user: APIUser = Depends(require_write_permission)):
     """刪除票券（標記為已刪除）"""
     try:
         ticket_dao = get_ticket_dao()
@@ -381,9 +377,7 @@ async def rate_ticket(
         raise HTTPException(status_code=500, detail="保存評分失敗")
 
 
-@router.get(
-    "/statistics/overview", response_model=TicketStatistics, summary="獲取票券統計概覽"
-)
+@router.get("/statistics/overview", response_model=TicketStatistics, summary="獲取票券統計概覽")
 # @limiter.limit("10/minute")
 async def get_ticket_statistics(
     guild_id: Optional[int] = Query(None, description="伺服器 ID 篩選"),
@@ -439,9 +433,7 @@ async def get_public_ticket_statistics(
                 "period_end": datetime.now().isoformat(),
                 "daily_stats": [
                     {
-                        "date": (datetime.now() - timedelta(days=i)).strftime(
-                            "%Y-%m-%d"
-                        ),
+                        "date": (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d"),
                         "created": 5 + (i % 3),
                         "resolved": 4 + (i % 2),
                     }

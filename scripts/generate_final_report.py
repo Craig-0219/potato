@@ -4,9 +4,9 @@ Final Integration Validation Report Generator
 Extracted from GitHub Actions workflow to avoid YAML parsing issues
 """
 
+import glob
 import json
 import os
-import glob
 from datetime import datetime
 
 
@@ -35,9 +35,7 @@ class FinalReportGenerator:
             with open("health_check_results.json", "r") as f:
                 health_data = json.load(f)
                 self.report["summary"]["health_check"] = health_data
-                print(
-                    f"✅ 健康檢查數據: {len(health_data.get('passed_checks', []))} 項通過"
-                )
+                print(f"✅ 健康檢查數據: {len(health_data.get('passed_checks', []))} 項通過")
 
         # 收集壓力測試結果
         stress_files = glob.glob("stress_test_*.json")
@@ -53,12 +51,8 @@ class FinalReportGenerator:
                     "tests_count": len(stress_results),
                     "average_score": sum(r.get("score", 0) for r in stress_results)
                     / len(stress_results),
-                    "best_performance": max(
-                        stress_results, key=lambda x: x.get("score", 0)
-                    ),
-                    "worst_performance": min(
-                        stress_results, key=lambda x: x.get("score", 0)
-                    ),
+                    "best_performance": max(stress_results, key=lambda x: x.get("score", 0)),
+                    "worst_performance": min(stress_results, key=lambda x: x.get("score", 0)),
                 }
                 print(f"✅ 壓力測試數據: {len(stress_results)} 個測試完成")
 
@@ -194,9 +188,7 @@ class FinalReportGenerator:
         deployment_approval = self.report.get("deployment_approval", False)
 
         deployment_msg = (
-            "✅ 系統已準備好進行生產部署"
-            if deployment_approval
-            else "❌ 系統尚未準備好生產部署"
+            "✅ 系統已準備好進行生產部署" if deployment_approval else "❌ 系統尚未準備好生產部署"
         )
 
         # 健康檢查數據
@@ -210,11 +202,11 @@ class FinalReportGenerator:
 
         markdown_report = f"""# {title}
 
-生成時間: {timestamp}  
-驗證範圍: {validation_scope}  
-目標環境: {target_environment}  
-整體狀態: {overall_status}  
-準備度得分: {readiness_score_formatted}/100  
+生成時間: {timestamp}
+驗證範圍: {validation_scope}
+目標環境: {target_environment}
+整體狀態: {overall_status}
+準備度得分: {readiness_score_formatted}/100
 
 ## 🎯 執行摘要
 
@@ -241,12 +233,8 @@ class FinalReportGenerator:
             stress_tests_count = stress_summary.get("tests_count", 0)
             stress_best = stress_summary.get("best_performance", {})
             stress_worst = stress_summary.get("worst_performance", {})
-            stress_best_scenario = (
-                stress_best.get("scenario", "N/A") if stress_best else "N/A"
-            )
-            stress_worst_scenario = (
-                stress_worst.get("scenario", "N/A") if stress_worst else "N/A"
-            )
+            stress_best_scenario = stress_best.get("scenario", "N/A") if stress_best else "N/A"
+            stress_worst_scenario = stress_worst.get("scenario", "N/A") if stress_worst else "N/A"
 
             markdown_report += f"""#### 🚀 壓力測試
 - 平均得分: {stress_avg_score}/100
@@ -299,7 +287,7 @@ class FinalReportGenerator:
 
 ---
 
-*此報告由 Final Integration Validation 系統自動生成*  
+*此報告由 Final Integration Validation 系統自動生成*
 *版本: {validation_version}*
 """
 
@@ -316,7 +304,7 @@ class FinalReportGenerator:
         self.calculate_readiness_score()
         self.generate_recommendations()
         self.generate_next_steps()
-        report_content = self.generate_markdown_report()
+        self.generate_markdown_report()
 
         # 儲存完整報告數據
         with open("final_validation_data.json", "w") as f:

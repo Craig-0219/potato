@@ -48,9 +48,7 @@ class CachedTicketCore(commands.Cog):
 
         # 服務層
         self.manager = TicketManager(self.cached_dao.ticket_dao)  # 傳入原始 DAO
-        self.assignment_manager = AssignmentManager(
-            self.assignment_dao, self.cached_dao.ticket_dao
-        )
+        self.assignment_manager = AssignmentManager(self.assignment_dao, self.cached_dao.ticket_dao)
         self.tag_manager = TagManager(self.tag_dao)
         self.statistics_manager = StatisticsManager()
         self.language_manager = LanguageManager()
@@ -186,9 +184,7 @@ class CachedTicketCore(commands.Cog):
 
             embed = EmbedBuilder.build(
                 title="🎫 客服中心",
-                description=settings.get(
-                    "welcome_message", "請選擇問題類型來建立支援票券"
-                ),
+                description=settings.get("welcome_message", "請選擇問題類型來建立支援票券"),
                 color=TicketConstants.COLORS["primary"],
             )
 
@@ -244,9 +240,7 @@ class CachedTicketCore(commands.Cog):
                 self.cached_dao.get_performance_metrics(interaction.guild.id),
             ]
 
-            ticket_stats, cache_health, performance_metrics = await asyncio.gather(
-                *stats_tasks
-            )
+            ticket_stats, cache_health, performance_metrics = await asyncio.gather(*stats_tasks)
 
             embed = EmbedBuilder.build(
                 title="📊 票券系統統計", color=TicketConstants.COLORS["info"]
@@ -498,9 +492,7 @@ class CachedTicketCore(commands.Cog):
 
             stats_after = await cache_manager.get_statistics()
 
-            logger.info(
-                f"🔧 快取維護完成 - 請求總數: {stats_after['requests']['total']}"
-            )
+            logger.info(f"🔧 快取維護完成 - 請求總數: {stats_after['requests']['total']}")
 
         except Exception as e:
             logger.error(f"❌ 快取維護失敗: {e}")
@@ -543,9 +535,7 @@ class CachedTicketCore(commands.Cog):
             guilds = [guild.id for guild in self.bot.guilds]
 
             # 並行預熱多個伺服器的快取
-            tasks = [
-                self.cached_dao.warm_cache(guild_id) for guild_id in guilds[:5]
-            ]  # 限制並發數
+            tasks = [self.cached_dao.warm_cache(guild_id) for guild_id in guilds[:5]]  # 限制並發數
             await asyncio.gather(*tasks, return_exceptions=True)
 
             logger.info(f"🔥 全域快取預熱完成: {len(guilds)} 個伺服器")

@@ -85,9 +85,7 @@ class GlobalErrorHandler:
                 await ctx.send(embed=embed)
 
             elif isinstance(error, commands.BadArgument):
-                embed = self._create_error_embed(
-                    "參數錯誤", f"❌ 參數格式錯誤：{str(error)}"
-                )
+                embed = self._create_error_embed("參數錯誤", f"❌ 參數格式錯誤：{str(error)}")
                 await ctx.send(embed=embed)
 
             elif isinstance(error, commands.CommandOnCooldown):
@@ -105,9 +103,7 @@ class GlobalErrorHandler:
                 await ctx.send(embed=embed)
 
             elif isinstance(error, commands.NotOwner):
-                embed = self._create_error_embed(
-                    "權限不足", "❌ 此命令只有機器人擁有者可以使用"
-                )
+                embed = self._create_error_embed("權限不足", "❌ 此命令只有機器人擁有者可以使用")
                 await ctx.send(embed=embed)
 
             else:
@@ -170,9 +166,7 @@ class GlobalErrorHandler:
                 await send_func(embed=embed, ephemeral=True)
 
             elif isinstance(error, discord.app_commands.TransformerError):
-                embed = self._create_error_embed(
-                    "參數錯誤", f"❌ 參數格式錯誤：{str(error)}"
-                )
+                embed = self._create_error_embed("參數錯誤", f"❌ 參數格式錯誤：{str(error)}")
                 await send_func(embed=embed, ephemeral=True)
 
             else:
@@ -300,9 +294,7 @@ class GlobalErrorHandler:
         else:
             ctx_info = "Unknown context"
 
-        logger.error(
-            f"錯誤類型: {error_type} | 上下文: {ctx_info} | 錯誤: {str(error)}"
-        )
+        logger.error(f"錯誤類型: {error_type} | 上下文: {ctx_info} | 錯誤: {str(error)}")
 
     def get_error_stats(self) -> Dict[str, Any]:
         """取得錯誤統計"""
@@ -313,9 +305,7 @@ class GlobalErrorHandler:
                 sorted(self.error_counts.items(), key=lambda x: x[1], reverse=True)
             ),
             "top_errors": dict(
-                list(
-                    sorted(self.error_counts.items(), key=lambda x: x[1], reverse=True)
-                )[:5]
+                list(sorted(self.error_counts.items(), key=lambda x: x[1], reverse=True))[:5]
             ),
         }
 
@@ -449,9 +439,7 @@ class ErrorRecovery:
                     raise e
 
                 delay = base_delay * (2**attempt)
-                logger.warning(
-                    f"操作失敗，{delay}秒後重試 ({attempt + 1}/{max_retries}): {e}"
-                )
+                logger.warning(f"操作失敗，{delay}秒後重試 ({attempt + 1}/{max_retries}): {e}")
                 await asyncio.sleep(delay)
 
     @staticmethod

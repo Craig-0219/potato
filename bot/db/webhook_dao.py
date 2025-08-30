@@ -329,9 +329,7 @@ class WebhookDAO(BaseDAO):
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute(
-                        "DELETE FROM webhooks WHERE id = %s", (webhook_id,)
-                    )
+                    await cursor.execute("DELETE FROM webhooks WHERE id = %s", (webhook_id,))
                     await conn.commit()
 
                     return cursor.rowcount > 0
@@ -506,9 +504,7 @@ class WebhookDAO(BaseDAO):
         except Exception as e:
             logger.error(f"更新Webhook統計失敗: {e}")
 
-    async def get_webhook_statistics(
-        self, webhook_id: str, days: int = 30
-    ) -> Dict[str, Any]:
+    async def get_webhook_statistics(self, webhook_id: str, days: int = 30) -> Dict[str, Any]:
         """獲取Webhook統計"""
         try:
             end_date = datetime.now(timezone.utc).date()
@@ -537,9 +533,7 @@ class WebhookDAO(BaseDAO):
                         "total_requests": result[0] or 0,
                         "successful_requests": result[1] or 0,
                         "failed_requests": result[2] or 0,
-                        "success_rate": (
-                            (result[1] / result[0] * 100) if result[0] else 0
-                        ),
+                        "success_rate": ((result[1] / result[0] * 100) if result[0] else 0),
                         "avg_response_time": float(result[3]) if result[3] else 0.0,
                     }
 

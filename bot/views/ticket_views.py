@@ -24,9 +24,7 @@ class TicketPanelView(View):
     def __init__(self, settings: Optional[Dict[str, Any]] = None, timeout=None):
         super().__init__(timeout=timeout)
         self.settings = settings or {}  # 防呆
-        ticket_types = self.settings.get(
-            "ticket_types", TicketConstants.DEFAULT_TICKET_TYPES
-        )
+        ticket_types = self.settings.get("ticket_types", TicketConstants.DEFAULT_TICKET_TYPES)
         self.add_item(TicketTypeSelect(ticket_types))
 
 
@@ -90,9 +88,7 @@ class TicketTypeSelect(Select):
             )
 
             view = PrioritySelectView(ticket_type, interaction.user.id)
-            await interaction.response.send_message(
-                embed=embed, view=view, ephemeral=True
-            )
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
         except Exception as e:
             logger.error(f"票券建立流程錯誤: {e}")
@@ -160,12 +156,8 @@ class PrioritySelect(Select):
                 return
 
             priority = self.values[0]
-            priority_name = {"high": "高", "medium": "中", "low": "低"}.get(
-                priority, priority
-            )
-            priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(
-                priority, "🟡"
-            )
+            priority_name = {"high": "高", "medium": "中", "low": "低"}.get(priority, priority)
+            priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(priority, "🟡")
 
             await interaction.response.send_message(
                 f"📝 正在建立 {priority_emoji} **{priority_name}優先級** {self.ticket_type} 票券...",
@@ -181,9 +173,7 @@ class PrioritySelect(Select):
 
             # 確保是在 Guild 中且用戶是 Member
             if not interaction.guild:
-                await interaction.followup.send(
-                    "❌ 只能在伺服器中建立票券。", ephemeral=True
-                )
+                await interaction.followup.send("❌ 只能在伺服器中建立票券。", ephemeral=True)
                 return
 
             # 確保 interaction.user 是 Member
@@ -242,21 +232,15 @@ class PrioritySelect(Select):
                         from bot.services.assignment_manager import AssignmentManager
 
                         assignment_dao = AssignmentDAO()
-                        assignment_manager = AssignmentManager(
-                            assignment_dao, ticket_dao
-                        )
+                        assignment_manager = AssignmentManager(assignment_dao, ticket_dao)
 
                         # 嘗試自動指派高優先級票券
                         auto_success, auto_message, assigned_to = (
-                            await assignment_manager.auto_assign_ticket(
-                                ticket_id, user.id
-                            )
+                            await assignment_manager.auto_assign_ticket(ticket_id, user.id)
                         )
 
                         if auto_success and assigned_to:
-                            logger.info(
-                                f"高優先級票券 #{ticket_id} 自動指派給 {assigned_to}"
-                            )
+                            logger.info(f"高優先級票券 #{ticket_id} 自動指派給 {assigned_to}")
 
                     except Exception as auto_assign_error:
                         logger.error(f"高優先級票券自動指派失敗: {auto_assign_error}")
@@ -345,9 +329,7 @@ class PriorityStatusButton(Button):
 
     async def callback(self, interaction: discord.Interaction):
         # 這個按鈕不應該被點擊，但以防萬一
-        await interaction.response.send_message(
-            "此按鈕僅用於顯示優先級狀態。", ephemeral=True
-        )
+        await interaction.response.send_message("此按鈕僅用於顯示優先級狀態。", ephemeral=True)
 
 
 class TicketCloseButton(Button):
@@ -363,23 +345,17 @@ class TicketCloseButton(Button):
         """處理關閉票券按鈕點擊"""
         try:
             # 先回應用戶，避免超時
-            await interaction.response.send_message(
-                "🔄 請稍候，正在關閉票券...", ephemeral=True
-            )
+            await interaction.response.send_message("🔄 請稍候，正在關閉票券...", ephemeral=True)
 
             # 獲取票券核心處理器
             ticket_core = interaction.client.get_cog("TicketCore")
             if not ticket_core:
-                await interaction.followup.send(
-                    "❌ 系統錯誤：找不到票券處理模組", ephemeral=True
-                )
+                await interaction.followup.send("❌ 系統錯誤：找不到票券處理模組", ephemeral=True)
                 return
 
             # 檢查是否為票券頻道
             if not await ticket_core._is_ticket_channel(interaction.channel):
-                await interaction.followup.send(
-                    "❌ 此按鈕只能在票券頻道中使用", ephemeral=True
-                )
+                await interaction.followup.send("❌ 此按鈕只能在票券頻道中使用", ephemeral=True)
                 return
 
             # 獲取票券資訊
@@ -414,9 +390,7 @@ class TicketCloseButton(Button):
                 message_count = await transcript_manager.batch_record_channel_history(
                     ticket["id"], interaction.channel, limit=None
                 )
-                logger.info(
-                    f"📝 票券 #{ticket['id']:04d} 已匯入 {message_count} 條歷史訊息"
-                )
+                logger.info(f"📝 票券 #{ticket['id']:04d} 已匯入 {message_count} 條歷史訊息")
 
             except Exception as transcript_error:
                 logger.error(f"❌ 匯入聊天歷史失敗: {transcript_error}")
@@ -429,9 +403,7 @@ class TicketCloseButton(Button):
             if success:
                 # 更新指派統計（如果票券有指派）
                 if ticket.get("assigned_to"):
-                    await ticket_core.assignment_manager.update_ticket_completion(
-                        ticket["id"]
-                    )
+                    await ticket_core.assignment_manager.update_ticket_completion(ticket["id"])
 
                 # 發送成功消息
                 from bot.utils.embed_builder import EmbedBuilder
@@ -443,16 +415,12 @@ class TicketCloseButton(Button):
                     color=TicketConstants.COLORS["success"],
                 )
                 embed.add_field(name="關閉原因", value="按鈕關閉", inline=False)
-                embed.add_field(
-                    name="關閉者", value=interaction.user.mention, inline=False
-                )
+                embed.add_field(name="關閉者", value=interaction.user.mention, inline=False)
 
                 await interaction.followup.send(embed=embed)
 
                 # 顯示評分界面
-                await ticket_core._show_rating_interface(
-                    interaction.channel, ticket["id"]
-                )
+                await ticket_core._show_rating_interface(interaction.channel, ticket["id"])
 
                 # 30秒後刪除頻道
                 await ticket_core._schedule_channel_deletion(interaction.channel, 30)
@@ -465,9 +433,7 @@ class TicketCloseButton(Button):
 
             logger.error(f"關閉票券按鈕錯誤: {e}")
             try:
-                await interaction.followup.send(
-                    "❌ 處理關閉票券請求時發生錯誤", ephemeral=True
-                )
+                await interaction.followup.send("❌ 處理關閉票券請求時發生錯誤", ephemeral=True)
             except:
                 pass
 
@@ -542,15 +508,11 @@ class RatingView(View):
     async def rate_3(self, interaction: discord.Interaction, button: Button):
         await self.send_rating(interaction, 3)
 
-    @button(
-        label="4 星", style=discord.ButtonStyle.success, emoji="4️⃣", custom_id="rating_4"
-    )
+    @button(label="4 星", style=discord.ButtonStyle.success, emoji="4️⃣", custom_id="rating_4")
     async def rate_4(self, interaction: discord.Interaction, button: Button):
         await self.send_rating(interaction, 4)
 
-    @button(
-        label="5 星", style=discord.ButtonStyle.success, emoji="5️⃣", custom_id="rating_5"
-    )
+    @button(label="5 星", style=discord.ButtonStyle.success, emoji="5️⃣", custom_id="rating_5")
     async def rate_5(self, interaction: discord.Interaction, button: Button):
         await self.send_rating(interaction, 5)
 
@@ -578,9 +540,7 @@ class RatingView(View):
             from shared.logger import logger
 
             logger.error(f"保存評分時發生錯誤: {e}")
-            await interaction.response.send_message(
-                f"❌ 評分保存失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.response.send_message(f"❌ 評分保存失敗: {str(e)}", ephemeral=True)
 
 
 # ============ 票券分頁/列表瀏覽 ============
@@ -591,9 +551,7 @@ class TicketListView(View):
     票券列表分頁 View
     """
 
-    def __init__(
-        self, tickets: List[Dict], page: int, total_pages: int, **query_params
-    ):
+    def __init__(self, tickets: List[Dict], page: int, total_pages: int, **query_params):
         super().__init__(timeout=300)
         self.tickets = tickets
         self.page = page
@@ -609,30 +567,22 @@ class TicketListView(View):
 
 class PrevPageButton(Button):
     def __init__(self, parent: TicketListView):
-        super().__init__(
-            label="上一頁", style=discord.ButtonStyle.secondary, custom_id="list_prev"
-        )
+        super().__init__(label="上一頁", style=discord.ButtonStyle.secondary, custom_id="list_prev")
         self.parent = parent
 
     async def callback(self, interaction: discord.Interaction):
         # 這裡應該呼叫 parent.page - 1 查詢刷新
-        await interaction.response.send_message(
-            "⬅️ 上一頁（待接資料查詢刷新）", ephemeral=True
-        )
+        await interaction.response.send_message("⬅️ 上一頁（待接資料查詢刷新）", ephemeral=True)
 
 
 class NextPageButton(Button):
     def __init__(self, parent: TicketListView):
-        super().__init__(
-            label="下一頁", style=discord.ButtonStyle.secondary, custom_id="list_next"
-        )
+        super().__init__(label="下一頁", style=discord.ButtonStyle.secondary, custom_id="list_next")
         self.parent = parent
 
     async def callback(self, interaction: discord.Interaction):
         # 這裡應該呼叫 parent.page + 1 查詢刷新
-        await interaction.response.send_message(
-            "➡️ 下一頁（待接資料查詢刷新）", ephemeral=True
-        )
+        await interaction.response.send_message("➡️ 下一頁（待接資料查詢刷新）", ephemeral=True)
 
 
 # ============ Persistent View 統一註冊 ============

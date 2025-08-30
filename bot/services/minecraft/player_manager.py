@@ -3,13 +3,11 @@ Minecraft 玩家管理器
 處理玩家綁定、活動追蹤、統計等功能
 """
 
-import asyncio
-from typing import Dict, Any, List, Optional, Tuple
-from datetime import datetime, timedelta
-import discord
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 
-from shared.logger import logger
 from bot.db.database_manager import DatabaseManager
+from shared.logger import logger
 
 
 class PlayerManager:
@@ -256,15 +254,11 @@ class PlayerManager:
                 (minecraft_uuid,),
             )
 
-            activity_summary = {
-                row["activity_type"]: row["count"] for row in recent_activity
-            }
+            activity_summary = {row["activity_type"]: row["count"] for row in recent_activity}
 
             result = dict(stats)
             result["recent_activity"] = activity_summary
-            result["playtime_formatted"] = self._format_playtime(
-                stats["total_playtime"]
-            )
+            result["playtime_formatted"] = self._format_playtime(stats["total_playtime"])
 
             return result
 
@@ -272,9 +266,7 @@ class PlayerManager:
             logger.error(f"獲取玩家統計失敗 ({minecraft_uuid}): {e}")
             return {}
 
-    async def update_player_stats(
-        self, minecraft_uuid: str, stats_data: Dict[str, Any]
-    ):
+    async def update_player_stats(self, minecraft_uuid: str, stats_data: Dict[str, Any]):
         """更新玩家統計資料"""
         try:
             # 建構更新語句

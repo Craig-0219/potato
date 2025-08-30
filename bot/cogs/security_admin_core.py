@@ -58,9 +58,7 @@ class SecurityAdminCore(commands.Cog):
             user_id = interaction.user.id
             guild_id = interaction.guild.id if interaction.guild else 0
 
-            if not await rbac_manager.check_permission(
-                user_id, guild_id, Permission.SYSTEM_ADMIN
-            ):
+            if not await rbac_manager.check_permission(user_id, guild_id, Permission.SYSTEM_ADMIN):
                 await SafeInteractionHandler.safe_followup(
                     interaction, "❌ 您沒有存取安全儀表板的權限", ephemeral=True
                 )
@@ -202,9 +200,7 @@ class SecurityAdminCore(commands.Cog):
             embed = discord.Embed(
                 title="🔐 多因素認證狀態",
                 color=(
-                    discord.Color.green()
-                    if mfa_status["mfa_enabled"]
-                    else discord.Color.orange()
+                    discord.Color.green() if mfa_status["mfa_enabled"] else discord.Color.orange()
                 ),
             )
 
@@ -225,9 +221,7 @@ class SecurityAdminCore(commands.Cog):
                 methods_status.append(f"{icon} {method.upper()}: {setup_date}")
 
             if methods_status:
-                embed.add_field(
-                    name="🔧 認證方法", value="\n".join(methods_status), inline=True
-                )
+                embed.add_field(name="🔧 認證方法", value="\n".join(methods_status), inline=True)
 
             # 備用代碼
             embed.add_field(
@@ -240,15 +234,11 @@ class SecurityAdminCore(commands.Cog):
             if mfa_status["recommendations"]:
                 embed.add_field(
                     name="💡 安全建議",
-                    value="\n".join(
-                        f"• {rec}" for rec in mfa_status["recommendations"]
-                    ),
+                    value="\n".join(f"• {rec}" for rec in mfa_status["recommendations"]),
                     inline=False,
                 )
 
-            await SafeInteractionHandler.safe_followup(
-                interaction, embed=embed, ephemeral=True
-            )
+            await SafeInteractionHandler.safe_followup(interaction, embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"❌ MFA 狀態查詢錯誤: {e}")
@@ -272,9 +262,7 @@ class SecurityAdminCore(commands.Cog):
             guild_id = interaction.guild.id if interaction.guild else 0
 
             # 檢查權限
-            if not await rbac_manager.check_permission(
-                user_id, guild_id, Permission.USER_MANAGE
-            ):
+            if not await rbac_manager.check_permission(user_id, guild_id, Permission.USER_MANAGE):
                 await SafeInteractionHandler.safe_followup(
                     interaction, "❌ 您沒有管理角色的權限", ephemeral=True
                 )
@@ -307,9 +295,7 @@ class SecurityAdminCore(commands.Cog):
             )
 
             # 最近角色變更
-            embed.add_field(
-                name="📋 最近變更", value="點擊下方按鈕查看詳細資訊", inline=True
-            )
+            embed.add_field(name="📋 最近變更", value="點擊下方按鈕查看詳細資訊", inline=True)
 
             await SafeInteractionHandler.safe_followup(
                 interaction, embed=embed, view=view, ephemeral=True
@@ -377,9 +363,7 @@ class SecurityAdminCore(commands.Cog):
             )
 
             if success:
-                embed = discord.Embed(
-                    title="✅ 角色分配成功", color=discord.Color.green()
-                )
+                embed = discord.Embed(title="✅ 角色分配成功", color=discord.Color.green())
 
                 embed.add_field(name="👤 用戶", value=user.mention, inline=True)
 
@@ -387,17 +371,11 @@ class SecurityAdminCore(commands.Cog):
 
                 embed.add_field(
                     name="⏰ 過期時間",
-                    value=(
-                        expires_at.strftime("%Y-%m-%d %H:%M")
-                        if expires_at
-                        else "永不過期"
-                    ),
+                    value=(expires_at.strftime("%Y-%m-%d %H:%M") if expires_at else "永不過期"),
                     inline=True,
                 )
 
-                await SafeInteractionHandler.safe_followup(
-                    interaction, embed=embed, ephemeral=True
-                )
+                await SafeInteractionHandler.safe_followup(interaction, embed=embed, ephemeral=True)
             else:
                 await SafeInteractionHandler.safe_followup(
                     interaction, "❌ 角色分配失敗", ephemeral=True
@@ -425,9 +403,7 @@ class SecurityAdminCore(commands.Cog):
             guild_id = interaction.guild.id if interaction.guild else 0
 
             # 檢查權限
-            if not await rbac_manager.check_permission(
-                user_id, guild_id, Permission.SYSTEM_ADMIN
-            ):
+            if not await rbac_manager.check_permission(user_id, guild_id, Permission.SYSTEM_ADMIN):
                 await SafeInteractionHandler.safe_followup(
                     interaction, "❌ 您沒有存取安全審計的權限", ephemeral=True
                 )
@@ -499,9 +475,7 @@ class SecurityAdminCore(commands.Cog):
             guild_id = interaction.guild.id if interaction.guild else 0
 
             # 檢查權限
-            if not await rbac_manager.check_permission(
-                user_id, guild_id, Permission.SYSTEM_ADMIN
-            ):
+            if not await rbac_manager.check_permission(user_id, guild_id, Permission.SYSTEM_ADMIN):
                 await SafeInteractionHandler.safe_followup(
                     interaction, "❌ 您沒有生成合規報告的權限", ephemeral=True
                 )
@@ -545,13 +519,13 @@ class SecurityAdminCore(commands.Cog):
                 )
 
                 # 詳細報告 (JSON 格式)
-                report_json = json.dumps(
-                    report, indent=2, ensure_ascii=False, default=str
-                )
+                report_json = json.dumps(report, indent=2, ensure_ascii=False, default=str)
 
                 if len(report_json) > 1900:
                     # 如果報告太長，保存為文件
-                    filename = f"compliance_report_{standard}_{datetime.now().strftime('%Y%m%d')}.json"
+                    filename = (
+                        f"compliance_report_{standard}_{datetime.now().strftime('%Y%m%d')}.json"
+                    )
                     with open(filename, "w", encoding="utf-8") as f:
                         f.write(report_json)
 
@@ -602,9 +576,7 @@ class SecurityAdminCore(commands.Cog):
             guild_id = interaction.guild.id if interaction.guild else 0
 
             # 檢查權限
-            if not await rbac_manager.check_permission(
-                user_id, guild_id, Permission.API_ADMIN
-            ):
+            if not await rbac_manager.check_permission(user_id, guild_id, Permission.API_ADMIN):
                 await SafeInteractionHandler.safe_followup(
                     interaction, "❌ 您沒有管理 API 密鑰的權限", ephemeral=True
                 )

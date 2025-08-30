@@ -365,9 +365,7 @@ class AIDAO:
 
     # ========== AI 統計 ==========
 
-    async def update_daily_statistics(
-        self, guild_id: int, stat_date: str = None
-    ) -> bool:
+    async def update_daily_statistics(self, guild_id: int, stat_date: str = None) -> bool:
         """更新每日統計"""
         await self._ensure_initialized()
         try:
@@ -402,8 +400,7 @@ class AIDAO:
                     total_suggestions = sum(row[0] for row in results)
                     total_accepted = sum(row[1] for row in results)
                     avg_confidence = (
-                        sum(row[2] * row[0] for row in results if row[2])
-                        / total_suggestions
+                        sum(row[2] * row[0] for row in results if row[2]) / total_suggestions
                         if total_suggestions > 0
                         else 0.0
                     )
@@ -421,9 +418,7 @@ class AIDAO:
                     # 計算性能指標
                     performance_metrics = {
                         "acceptance_rate": (
-                            total_accepted / total_suggestions
-                            if total_suggestions > 0
-                            else 0.0
+                            total_accepted / total_suggestions if total_suggestions > 0 else 0.0
                         ),
                         "avg_confidence": float(avg_confidence),
                         "total_suggestions": total_suggestions,
@@ -500,13 +495,9 @@ class AIDAO:
                     total_accepted = sum(row[2] for row in rows)
 
                     # 計算平均置信度（加權平均）
-                    weighted_confidence = sum(
-                        row[3] * row[1] for row in rows if row[3] and row[1]
-                    )
+                    weighted_confidence = sum(row[3] * row[1] for row in rows if row[3] and row[1])
                     avg_confidence = (
-                        weighted_confidence / total_suggestions
-                        if total_suggestions > 0
-                        else 0.0
+                        weighted_confidence / total_suggestions if total_suggestions > 0 else 0.0
                     )
 
                     # 合併分類統計
@@ -521,9 +512,7 @@ class AIDAO:
                                         "accepted": 0,
                                     }
                                 combined_categories[category]["total"] += stats["total"]
-                                combined_categories[category]["accepted"] += stats[
-                                    "accepted"
-                                ]
+                                combined_categories[category]["accepted"] += stats["accepted"]
 
                     # 生成最終統計
                     statistics = {
@@ -531,9 +520,7 @@ class AIDAO:
                         "total_suggestions": total_suggestions,
                         "total_accepted": total_accepted,
                         "acceptance_rate": (
-                            total_accepted / total_suggestions
-                            if total_suggestions > 0
-                            else 0.0
+                            total_accepted / total_suggestions if total_suggestions > 0 else 0.0
                         ),
                         "avg_confidence": round(avg_confidence, 3),
                         "daily_average": round(total_suggestions / days, 1),

@@ -370,9 +370,7 @@ class PotatoBot(commands.Bot):
                     view_info = {
                         "type": type(view).__name__,
                         "timeout": getattr(view, "timeout", None),
-                        "children_count": (
-                            len(view.children) if hasattr(view, "children") else 0
-                        ),
+                        "children_count": (len(view.children) if hasattr(view, "children") else 0),
                     }
                     validation_results["view_details"].append(view_info)
 
@@ -405,13 +403,9 @@ class PotatoBot(commands.Bot):
 
             # 先檢查現有的 Discord 命令
             try:
-                discord_commands = await self.http.get_global_commands(
-                    self.application_id
-                )
+                discord_commands = await self.http.get_global_commands(self.application_id)
                 if discord_commands and len(discord_commands) > 0:
-                    logger.info(
-                        f"✅ Discord 已有 {len(discord_commands)} 個註冊命令，跳過同步"
-                    )
+                    logger.info(f"✅ Discord 已有 {len(discord_commands)} 個註冊命令，跳過同步")
                     return
             except Exception:
                 pass  # 如果檢查失敗，繼續嘗試同步
@@ -423,9 +417,7 @@ class PotatoBot(commands.Bot):
         except discord.HTTPException as e:
             if "429" in str(e) or "Too Many Requests" in str(e):
                 logger.warning("⚠️ 遇到速率限制，停用自動同步")
-                logger.info(
-                    "💡 請等待 24 小時後重試，或設定 SYNC_COMMANDS=false 停用同步"
-                )
+                logger.info("💡 請等待 24 小時後重試，或設定 SYNC_COMMANDS=false 停用同步")
                 # 設定環境變數停用後續同步嘗試
                 import os
 
@@ -670,11 +662,7 @@ async def database_status(ctx):
 
         embed = discord.Embed(
             title="📊 資料庫狀態",
-            color=(
-                discord.Color.green()
-                if status.get("healthy")
-                else discord.Color.orange()
-            ),
+            color=(discord.Color.green() if status.get("healthy") else discord.Color.orange()),
         )
 
         # 基本資訊
@@ -721,8 +709,7 @@ async def bot_status(ctx):
                     "伺服器數量": len(ctx.bot.guilds),
                     "延遲": (
                         f"{round(ctx.bot.latency * 1000)}ms"
-                        if ctx.bot.latency is not None
-                        and not (ctx.bot.latency != ctx.bot.latency)
+                        if ctx.bot.latency is not None and not (ctx.bot.latency != ctx.bot.latency)
                         else "N/A"
                     ),
                     "運行時間": ctx.bot.get_uptime(),
@@ -733,9 +720,7 @@ async def bot_status(ctx):
                 },
                 "擴展": {
                     "已載入": len(ctx.bot.extensions),
-                    "列表": ", ".join(
-                        [ext.split(".")[-1] for ext in ctx.bot.extensions]
-                    ),
+                    "列表": ", ".join([ext.split(".")[-1] for ext in ctx.bot.extensions]),
                 },
             }
         )

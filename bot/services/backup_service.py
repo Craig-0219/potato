@@ -83,9 +83,7 @@ class BackupService:
             guild_ids = await self._get_active_guilds()
 
             # 執行備份
-            backup_result = await self._backup_guild_data(
-                guild_ids, backup_name, "daily"
-            )
+            backup_result = await self._backup_guild_data(guild_ids, backup_name, "daily")
 
             # 記錄備份結果
             await self._log_backup_event(backup_name, "daily", backup_result)
@@ -104,9 +102,7 @@ class BackupService:
             backup_name = f"weekly_backup_{backup_time.strftime('%Y_W%U')}"
 
             guild_ids = await self._get_active_guilds()
-            backup_result = await self._backup_guild_data(
-                guild_ids, backup_name, "weekly"
-            )
+            backup_result = await self._backup_guild_data(guild_ids, backup_name, "weekly")
 
             await self._log_backup_event(backup_name, "weekly", backup_result)
 
@@ -124,9 +120,7 @@ class BackupService:
             backup_name = f"monthly_backup_{backup_time.strftime('%Y_%m')}"
 
             guild_ids = await self._get_active_guilds()
-            backup_result = await self._backup_guild_data(
-                guild_ids, backup_name, "monthly"
-            )
+            backup_result = await self._backup_guild_data(guild_ids, backup_name, "monthly")
 
             await self._log_backup_event(backup_name, "monthly", backup_result)
 
@@ -251,9 +245,7 @@ class BackupService:
                                 continue
 
                             # 檢查是否有 guild_id 欄位
-                            await cursor.execute(
-                                f"SHOW COLUMNS FROM {table} LIKE 'guild_id'"
-                            )
+                            await cursor.execute(f"SHOW COLUMNS FROM {table} LIKE 'guild_id'")
                             has_guild_id = await cursor.fetchone() is not None
 
                             if has_guild_id:
@@ -270,9 +262,7 @@ class BackupService:
                             if results:
                                 # 轉換為字典格式
                                 columns = [desc[0] for desc in cursor.description]
-                                table_data = [
-                                    dict(zip(columns, row)) for row in results
-                                ]
+                                table_data = [dict(zip(columns, row)) for row in results]
 
                                 guild_data["tables"][table] = table_data
                                 guild_data["record_count"] += len(table_data)
@@ -308,14 +298,10 @@ class BackupService:
                         if file_age.days > self.backup_config["daily_backups_retain"]:
                             should_delete = True
                     elif "weekly_backup" in backup_file.name:
-                        if file_age.days > (
-                            self.backup_config["weekly_backups_retain"] * 7
-                        ):
+                        if file_age.days > (self.backup_config["weekly_backups_retain"] * 7):
                             should_delete = True
                     elif "monthly_backup" in backup_file.name:
-                        if file_age.days > (
-                            self.backup_config["monthly_backups_retain"] * 30
-                        ):
+                        if file_age.days > (self.backup_config["monthly_backups_retain"] * 30):
                             should_delete = True
 
                     if should_delete:
@@ -391,9 +377,7 @@ class BackupService:
                     backup_data = json.load(f)
 
             # 還原指定伺服器或所有伺服器
-            guilds_to_restore = (
-                [str(guild_id)] if guild_id else backup_data["guilds"].keys()
-            )
+            guilds_to_restore = [str(guild_id)] if guild_id else backup_data["guilds"].keys()
 
             for guild_id_str in guilds_to_restore:
                 if guild_id_str in backup_data["guilds"]:
@@ -441,9 +425,7 @@ class BackupService:
                                     list(record.values()),
                                 )
 
-                            logger.info(
-                                f"✅ 還原表格 {table_name}: {len(records)} 筆記錄"
-                            )
+                            logger.info(f"✅ 還原表格 {table_name}: {len(records)} 筆記錄")
 
                         except Exception as e:
                             logger.error(f"❌ 還原表格 {table_name} 失敗: {e}")

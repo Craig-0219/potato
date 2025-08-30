@@ -137,9 +137,7 @@ app.add_middleware(
     allow_origin_regex=r"https?://localhost:\d+",  # 允許任何 localhost 端口
 )
 
-app.add_middleware(
-    TrustedHostMiddleware, allowed_hosts=["*"]
-)  # 生產環境應該限制具體主機
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])  # 生產環境應該限制具體主機
 
 # 添加限流中間件 (如果可用)
 if HAS_SLOWAPI:
@@ -222,9 +220,7 @@ async def health_check(request: Request):
         }
     except Exception as e:
         logger.error(f"健康檢查失敗: {e}")
-        raise HTTPException(
-            status_code=503, detail="Service Unavailable - Health check failed"
-        )
+        raise HTTPException(status_code=503, detail="Service Unavailable - Health check failed")
 
 
 # 路由模組已啟用，提供完整 API 功能
@@ -322,9 +318,7 @@ async def verify_api_key(request: Request):
             if len(key_id) >= 8 and len(key_secret) >= 16:
                 # 模擬驗證成功
                 is_admin = "admin" in key_id.lower() or "管理" in key_id.lower()
-                is_staff = (
-                    is_admin or "staff" in key_id.lower() or "客服" in key_id.lower()
-                )
+                is_staff = is_admin or "staff" in key_id.lower() or "客服" in key_id.lower()
 
                 return {
                     "success": True,
@@ -391,17 +385,13 @@ except Exception as e:
     logger.warning(f"⚠️ System 路由啟用失敗: {e}")
 
 try:
-    app.include_router(
-        tickets.router, prefix=f"{API_BASE_PATH}/tickets", tags=["tickets"]
-    )
+    app.include_router(tickets.router, prefix=f"{API_BASE_PATH}/tickets", tags=["tickets"])
     logger.info("✅ Tickets 路由已啟用")
 except Exception as e:
     logger.warning(f"⚠️ Tickets 路由啟用失敗: {e}")
 
 try:
-    app.include_router(
-        analytics.router, prefix=f"{API_BASE_PATH}/analytics", tags=["analytics"]
-    )
+    app.include_router(analytics.router, prefix=f"{API_BASE_PATH}/analytics", tags=["analytics"])
     logger.info("✅ Analytics 路由已啟用")
 except Exception as e:
     logger.warning(f"⚠️ Analytics 路由啟用失敗: {e}")
@@ -416,9 +406,7 @@ except Exception as e:
     logger.warning(f"⚠️ OAuth 路由啟用失敗: {e}")
 
 try:
-    app.include_router(
-        automation.router, prefix=f"{API_BASE_PATH}/automation", tags=["automation"]
-    )
+    app.include_router(automation.router, prefix=f"{API_BASE_PATH}/automation", tags=["automation"])
     logger.info("✅ Automation 路由已啟用")
 except Exception as e:
     logger.warning(f"⚠️ Automation 路由啟用失敗: {e}")
@@ -737,9 +725,7 @@ async def start_api_server():
         logger.info(f"📚 API 文檔位址: http://{host}:{port}{API_BASE_PATH}/docs")
 
         # 使用 uvicorn 啟動伺服器
-        config = uvicorn.Config(
-            app, host=host, port=port, log_level="info", access_log=True
-        )
+        config = uvicorn.Config(app, host=host, port=port, log_level="info", access_log=True)
         server = uvicorn.Server(config)
         await server.serve()
 

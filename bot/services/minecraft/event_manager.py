@@ -4,11 +4,11 @@ Minecraft 活動管理系統
 """
 
 import json
-from typing import Dict, Any, List, Optional
 from enum import Enum
+from typing import Any, Dict, List, Optional
 
-from shared.logger import logger
 from bot.db.database_manager import DatabaseManager
+from shared.logger import logger
 
 
 class EventType(Enum):
@@ -316,9 +316,7 @@ class MinecraftEventManager:
             logger.error(f"開始活動失敗 ({event_id}): {e}")
             return False
 
-    async def complete_event(
-        self, event_id: int, results: List[Dict[str, Any]] = None
-    ) -> bool:
+    async def complete_event(self, event_id: int, results: List[Dict[str, Any]] = None) -> bool:
         """完成活動並記錄結果"""
         try:
             # 更新活動狀態

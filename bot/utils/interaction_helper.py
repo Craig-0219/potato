@@ -52,9 +52,7 @@ class SafeInteractionHandler:
                 logger.error(f"Followup 失敗: {followup_error}")
                 return False
         except Exception as e:
-            if "Interaction has already been acknowledged" in str(e) or "40060" in str(
-                e
-            ):
+            if "Interaction has already been acknowledged" in str(e) or "40060" in str(e):
                 logger.debug("互動已被確認，忽略錯誤")
                 return False
             logger.error(f"安全回應互動失敗: {e}")
@@ -84,9 +82,7 @@ class SafeInteractionHandler:
             return False
 
     @staticmethod
-    async def safe_defer(
-        interaction: discord.Interaction, ephemeral: bool = True
-    ) -> bool:
+    async def safe_defer(interaction: discord.Interaction, ephemeral: bool = True) -> bool:
         """安全延遲互動回應"""
         try:
             if not interaction or not hasattr(interaction, "response"):
@@ -159,9 +155,7 @@ class InteractionContext:
         """進入上下文管理器"""
         try:
             if SafeInteractionHandler.is_interaction_valid(self.interaction):
-                self.deferred = await SafeInteractionHandler.safe_defer(
-                    self.interaction
-                )
+                self.deferred = await SafeInteractionHandler.safe_defer(self.interaction)
             return self
         except Exception as e:
             logger.error(f"進入互動上下文失敗: {e}")
@@ -242,11 +236,7 @@ class SafeView(discord.ui.View):
             return False
         return True
 
-    async def on_error(
-        self, interaction: discord.Interaction, error: Exception, item
-    ) -> None:
+    async def on_error(self, interaction: discord.Interaction, error: Exception, item) -> None:
         """處理 View 錯誤"""
         logger.error(f"View 組件錯誤: {error}")
-        await SafeInteractionHandler.handle_interaction_error(
-            interaction, error, "面板操作"
-        )
+        await SafeInteractionHandler.handle_interaction_error(interaction, error, "面板操作")

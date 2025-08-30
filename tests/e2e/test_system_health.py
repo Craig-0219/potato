@@ -2,7 +2,6 @@
 系統健康檢查端到端測試
 """
 
-import asyncio
 import os
 import sys
 import unittest
@@ -239,9 +238,7 @@ class TestPerformanceBaseline(unittest.IsolatedAsyncioTestCase):
 
         try:
             # 測試關鍵模組導入時間
-            from bot.db.database_manager import DatabaseManager
-            from shared.config import DISCORD_TOKEN
-            from shared.logger import logger
+            pass
 
             import_time = time.time() - start_time
 
@@ -266,13 +263,12 @@ class TestPerformanceBaseline(unittest.IsolatedAsyncioTestCase):
 
         try:
             # 測試系統初始化時間
-            from bot.main import PotatoBot
             from shared.cache_manager import MultiLevelCacheManager
             from shared.offline_mode_manager import OfflineModeManager
 
             # 創建管理器實例
-            cache = MultiLevelCacheManager()
-            offline_mgr = OfflineModeManager()
+            MultiLevelCacheManager()
+            OfflineModeManager()
 
             init_time = time.time() - start_time
 

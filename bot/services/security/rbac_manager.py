@@ -369,9 +369,7 @@ class RBACManager:
                     )
 
                     if await cursor.fetchone():
-                        logger.warning(
-                            f"⚠️ 用戶已有此角色: user_id={user_id}, role_id={role_id}"
-                        )
+                        logger.warning(f"⚠️ 用戶已有此角色: user_id={user_id}, role_id={role_id}")
                         return False
 
                     # 分配角色
@@ -418,9 +416,7 @@ class RBACManager:
             logger.error(f"❌ 角色分配失敗: {e}")
             return False
 
-    async def revoke_role(
-        self, user_id: int, guild_id: int, role_id: int, revoked_by: int
-    ) -> bool:
+    async def revoke_role(self, user_id: int, guild_id: int, role_id: int, revoked_by: int) -> bool:
         """
         撤銷用戶角色
 
@@ -450,9 +446,7 @@ class RBACManager:
                     await conn.commit()
 
             if affected_rows == 0:
-                logger.warning(
-                    f"⚠️ 未找到要撤銷的角色: user_id={user_id}, role_id={role_id}"
-                )
+                logger.warning(f"⚠️ 未找到要撤銷的角色: user_id={user_id}, role_id={role_id}")
                 return False
 
             # 清除快取
@@ -475,9 +469,7 @@ class RBACManager:
             logger.error(f"❌ 角色撤銷失敗: {e}")
             return False
 
-    async def check_permission(
-        self, user_id: int, guild_id: int, permission: Permission
-    ) -> bool:
+    async def check_permission(self, user_id: int, guild_id: int, permission: Permission) -> bool:
         """
         檢查用戶是否有特定權限
 
@@ -497,9 +489,7 @@ class RBACManager:
             logger.error(f"❌ 權限檢查失敗: {e}")
             return False
 
-    async def get_user_permissions(
-        self, user_id: int, guild_id: int
-    ) -> Set[Permission]:
+    async def get_user_permissions(self, user_id: int, guild_id: int) -> Set[Permission]:
         """
         獲取用戶所有權限
 
@@ -663,9 +653,7 @@ class RBACManager:
             async with db_pool.connection() as conn:
                 async with conn.cursor() as cursor:
                     if include_inactive:
-                        await cursor.execute(
-                            "SELECT id FROM rbac_roles ORDER BY level DESC, name"
-                        )
+                        await cursor.execute("SELECT id FROM rbac_roles ORDER BY level DESC, name")
                     else:
                         await cursor.execute(
                             "SELECT id FROM rbac_roles WHERE is_active = TRUE ORDER BY level DESC, name"
@@ -686,9 +674,7 @@ class RBACManager:
             logger.error(f"❌ 列出角色失敗: {e}")
             return []
 
-    async def get_user_role_assignments(
-        self, user_id: int, guild_id: int
-    ) -> List[Dict[str, Any]]:
+    async def get_user_role_assignments(self, user_id: int, guild_id: int) -> List[Dict[str, Any]]:
         """
         獲取用戶角色分配詳情
 

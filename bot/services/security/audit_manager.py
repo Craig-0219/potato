@@ -174,9 +174,9 @@ class AuditManager:
                 self._user_activity_cache[event.user_id].append(event.timestamp)
                 # 保持快取大小
                 if len(self._user_activity_cache[event.user_id]) > 100:
-                    self._user_activity_cache[event.user_id] = (
-                        self._user_activity_cache[event.user_id][-50:]
-                    )
+                    self._user_activity_cache[event.user_id] = self._user_activity_cache[
+                        event.user_id
+                    ][-50:]
 
             if event.ip_address:
                 self._ip_activity_cache[event.ip_address] += 1
@@ -481,9 +481,7 @@ class AuditManager:
                         )
 
                     # 計算合規分數
-                    compliance_score = await self._calculate_compliance_score(
-                        event_stats, standard
-                    )
+                    compliance_score = await self._calculate_compliance_score(event_stats, standard)
                     report["compliance_score"] = compliance_score
 
                     if compliance_score >= 90:
@@ -566,9 +564,7 @@ class AuditManager:
                                 }
                             )
 
-            integrity_percentage = (
-                (verified_count / total_count * 100) if total_count > 0 else 0
-            )
+            integrity_percentage = (verified_count / total_count * 100) if total_count > 0 else 0
 
             result = {
                 "verification_period": {
@@ -637,8 +633,7 @@ class AuditManager:
                 # 檢測私有 IP 範圍外的可疑存取
                 if (
                     not ip.is_private
-                    and self._ip_activity_cache[event.ip_address]
-                    > self.suspicious_ip_threshold
+                    and self._ip_activity_cache[event.ip_address] > self.suspicious_ip_threshold
                 ):
                     return True
             except ValueError:

@@ -161,17 +161,13 @@ class AIEngineManager:
 
         try:
             # 選擇最佳 AI 提供商
-            provider = await self._select_best_provider(
-                prompt, context, preferred_provider
-            )
+            provider = await self._select_best_provider(prompt, context, preferred_provider)
 
             # 建構完整提示詞
             full_prompt = await self._build_full_prompt(prompt, context)
 
             # 生成回應
-            response = await self._call_ai_provider(
-                provider, full_prompt, max_tokens, temperature
-            )
+            response = await self._call_ai_provider(provider, full_prompt, max_tokens, temperature)
 
             # 記錄使用統計
             await self._update_usage_stats(provider, response)
@@ -233,9 +229,7 @@ class AIEngineManager:
 
         return available_providers[0][0]
 
-    async def _build_full_prompt(
-        self, user_prompt: str, context: ConversationContext
-    ) -> str:
+    async def _build_full_prompt(self, user_prompt: str, context: ConversationContext) -> str:
         """建構完整的提示詞"""
 
         system_prompt = f"""你是 Potato Bot 的 AI 智能助手，專門協助用戶管理 Discord 伺服器。
@@ -298,13 +292,9 @@ class AIEngineManager:
 
         try:
             if provider in [AIProvider.OPENAI_GPT4, AIProvider.OPENAI_GPT35]:
-                return await self._call_openai(
-                    provider_config, prompt, max_tokens, temperature
-                )
+                return await self._call_openai(provider_config, prompt, max_tokens, temperature)
             elif provider in [AIProvider.CLAUDE_3_OPUS, AIProvider.CLAUDE_3_SONNET]:
-                return await self._call_claude(
-                    provider_config, prompt, max_tokens, temperature
-                )
+                return await self._call_claude(provider_config, prompt, max_tokens, temperature)
             else:
                 raise ValueError(f"不支援的 AI 提供商: {provider}")
 
@@ -356,8 +346,7 @@ class AIEngineManager:
 
             return {
                 "content": response.content[0].text,
-                "tokens_used": response.usage.input_tokens
-                + response.usage.output_tokens,
+                "tokens_used": response.usage.input_tokens + response.usage.output_tokens,
                 "confidence": 0.85,  # Claude 不提供信心分數，設為固定值
                 "metadata": {
                     "model": config["model"],
@@ -369,9 +358,7 @@ class AIEngineManager:
             logger.error(f"❌ Claude API 調用失敗: {e}")
             raise
 
-    async def _analyze_prompt_complexity(
-        self, prompt: str, context: ConversationContext
-    ) -> float:
+    async def _analyze_prompt_complexity(self, prompt: str, context: ConversationContext) -> float:
         """分析提示詞複雜度"""
 
         complexity_score = 0.0
@@ -399,9 +386,7 @@ class AIEngineManager:
             "自動化",
         ]
 
-        technical_count = sum(
-            1 for keyword in technical_keywords if keyword in prompt.lower()
-        )
+        technical_count = sum(1 for keyword in technical_keywords if keyword in prompt.lower())
         complexity_score += min(technical_count * 0.1, 0.3)
 
         # 對話歷史複雜度
@@ -519,9 +504,7 @@ class AIEngineManager:
             "total_requests": sum(
                 stats.get("total_requests", 0) for stats in self.usage_stats.values()
             ),
-            "total_cost": sum(
-                stats.get("total_cost", 0.0) for stats in self.usage_stats.values()
-            ),
+            "total_cost": sum(stats.get("total_cost", 0.0) for stats in self.usage_stats.values()),
         }
 
     async def health_check(self) -> Dict[str, Any]:

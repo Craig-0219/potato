@@ -130,9 +130,7 @@ class DataManagementService:
             },
         }
 
-    async def export_guild_data(
-        self, export_request: DataExportRequest
-    ) -> Dict[str, Any]:
+    async def export_guild_data(self, export_request: DataExportRequest) -> Dict[str, Any]:
         """導出伺服器數據 (GDPR Article 20)"""
         try:
             # 驗證權限
@@ -205,16 +203,11 @@ class DataManagementService:
                     )
 
             # 個人數據過濾
-            if (
-                not export_request.include_personal_data
-                and self._is_personal_data_table(table)
-            ):
+            if not export_request.include_personal_data and self._is_personal_data_table(table):
                 return []
 
             # 系統日誌過濾
-            if not export_request.include_system_logs and self._is_system_log_table(
-                table
-            ):
+            if not export_request.include_system_logs and self._is_system_log_table(table):
                 return []
 
             # 建構安全查詢
@@ -232,9 +225,7 @@ class DataManagementService:
                     processed_results = []
                     for row in results:
                         processed_row = dict(row)
-                        processed_row = await self._anonymize_if_needed(
-                            processed_row, table
-                        )
+                        processed_row = await self._anonymize_if_needed(processed_row, table)
                         processed_results.append(processed_row)
 
                     return processed_results
@@ -281,12 +272,8 @@ class DataManagementService:
                         try:
                             if hard_delete or data_type == "personal_data":
                                 # 硬刪除
-                                deleted_count = await self._hard_delete_table_data(
-                                    table, guild_id
-                                )
-                                deletion_summary["deleted_records"][
-                                    table
-                                ] = deleted_count
+                                deleted_count = await self._hard_delete_table_data(table, guild_id)
+                                deletion_summary["deleted_records"][table] = deleted_count
                             else:
                                 # 軟刪除或匿名化
                                 if policy["auto_anonymize"]:
@@ -297,9 +284,7 @@ class DataManagementService:
                                         table
                                     ] = f"{anonymized_count} 筆已匿名化"
                                 else:
-                                    archived_count = await self._archive_table_data(
-                                        table, guild_id
-                                    )
+                                    archived_count = await self._archive_table_data(table, guild_id)
                                     deletion_summary["retained_records"][
                                         table
                                     ] = f"{archived_count} 筆已歸檔"
@@ -451,15 +436,11 @@ class DataManagementService:
                     DataRetentionPolicy.LONG_TERM: 365,
                 }
 
-                cutoff_date = current_time - timedelta(
-                    days=retention_days[policy["retention"]]
-                )
+                cutoff_date = current_time - timedelta(days=retention_days[policy["retention"]])
 
                 for table in policy["tables"]:
                     try:
-                        cleaned_count = await self._cleanup_expired_data(
-                            table, cutoff_date
-                        )
+                        cleaned_count = await self._cleanup_expired_data(table, cutoff_date)
                         if cleaned_count > 0:
                             cleanup_summary[table] = cleaned_count
 

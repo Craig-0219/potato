@@ -270,9 +270,7 @@ def require_permission(required_level: PermissionLevel):
         required_level_value = permission_hierarchy.get(required_level, 999)
 
         if user_level < required_level_value:
-            raise HTTPException(
-                status_code=403, detail=f"需要 {required_level} 或更高權限"
-            )
+            raise HTTPException(status_code=403, detail=f"需要 {required_level} 或更高權限")
 
         return user
 

@@ -108,9 +108,7 @@ class GuildManager:
             if before.owner_id != after.owner_id:
                 changes.append(f"擁有者: {before.owner_id} -> {after.owner_id}")
                 # 更新權限系統
-                await self._handle_owner_change(
-                    after.id, before.owner_id, after.owner_id
-                )
+                await self._handle_owner_change(after.id, before.owner_id, after.owner_id)
 
             if changes:
                 logger.info(f"🔄 伺服器更新: {after.name} - {', '.join(changes)}")
@@ -180,9 +178,7 @@ class GuildManager:
                 ),
                 "verification_level": guild.verification_level.name,
                 "mfa_level": (
-                    guild.mfa_level.name
-                    if guild.mfa_level.name == "none"
-                    else "elevated"
+                    guild.mfa_level.name if guild.mfa_level.name == "none" else "elevated"
                 ),
                 "explicit_content_filter": guild.explicit_content_filter.name,
                 "status": "active",
@@ -218,9 +214,7 @@ class GuildManager:
                 "language": "zh-TW",
                 "timezone": "Asia/Taipei",
                 "currency": "TWD",
-                "modules_enabled": json.dumps(
-                    ["ticket", "vote", "welcome", "workflow"]
-                ),
+                "modules_enabled": json.dumps(["ticket", "vote", "welcome", "workflow"]),
                 "features_disabled": json.dumps([]),
                 "notification_channels": json.dumps({}),
                 "alert_settings": json.dumps(
@@ -541,9 +535,7 @@ class GuildManager:
         except Exception as e:
             logger.error(f"❌ 更新伺服器資訊失敗: {e}")
 
-    async def _handle_owner_change(
-        self, guild_id: int, old_owner_id: int, new_owner_id: int
-    ):
+    async def _handle_owner_change(self, guild_id: int, old_owner_id: int, new_owner_id: int):
         """處理伺服器擁有者變更"""
         try:
             # 移除舊擁有者的擁有者角色，改為管理員
@@ -560,9 +552,7 @@ class GuildManager:
                 new_owner_id, guild_id, GuildRole.OWNER, new_owner_id
             )
 
-            logger.info(
-                f"✅ 伺服器擁有者變更處理完成: {old_owner_id} -> {new_owner_id}"
-            )
+            logger.info(f"✅ 伺服器擁有者變更處理完成: {old_owner_id} -> {new_owner_id}")
 
         except Exception as e:
             logger.error(f"❌ 處理擁有者變更失敗: {e}")
@@ -638,9 +628,7 @@ class GuildManager:
                     guild_info = await cursor.fetchone()
 
                     # 權限統計
-                    permission_stats = await self.permission_manager.get_guild_stats(
-                        guild_id
-                    )
+                    permission_stats = await self.permission_manager.get_guild_stats(guild_id)
 
                     # 最近統計
                     await cursor.execute(

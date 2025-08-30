@@ -65,38 +65,28 @@ class SystemMonitor:
         try:
             # CPU 使用率
             cpu_percent = psutil.cpu_percent(interval=1)
-            await self._record_metric(
-                "system", "cpu_usage", cpu_percent, "percent", "system"
-            )
+            await self._record_metric("system", "cpu_usage", cpu_percent, "percent", "system")
 
             # 記憶體使用率
             memory = psutil.virtual_memory()
             memory_percent = memory.percent
             memory_mb = memory.used / 1024 / 1024
-            await self._record_metric(
-                "system", "memory_usage", memory_percent, "percent", "system"
-            )
+            await self._record_metric("system", "memory_usage", memory_percent, "percent", "system")
             await self._record_metric("system", "memory_mb", memory_mb, "mb", "system")
 
             # 磁碟使用率
             disk = psutil.disk_usage("/")
             disk_percent = (disk.used / disk.total) * 100
-            await self._record_metric(
-                "system", "disk_usage", disk_percent, "percent", "system"
-            )
+            await self._record_metric("system", "disk_usage", disk_percent, "percent", "system")
 
             # 系統運行時間
             uptime_seconds = (datetime.now() - self.start_time).total_seconds()
-            await self._record_metric(
-                "system", "uptime", uptime_seconds, "seconds", "system"
-            )
+            await self._record_metric("system", "uptime", uptime_seconds, "seconds", "system")
 
             # 負載平均
             if hasattr(psutil, "getloadavg"):
                 load_avg = psutil.getloadavg()[0]  # 1分鐘負載
-                await self._record_metric(
-                    "system", "load_average", load_avg, "ratio", "system"
-                )
+                await self._record_metric("system", "load_average", load_avg, "ratio", "system")
 
         except Exception as e:
             logger.error(f"收集系統指標失敗: {e}")
@@ -129,9 +119,7 @@ class SystemMonitor:
             for guild in self.bot.guilds:
                 guild_id = str(guild.id)
                 member_count = guild.member_count
-                await self._record_metric(
-                    guild_id, "member_count", member_count, "count", "guild"
-                )
+                await self._record_metric(guild_id, "member_count", member_count, "count", "guild")
 
                 # 在線成員數
                 online_members = len(
@@ -205,9 +193,7 @@ class SystemMonitor:
                     )
                     result = await cursor.fetchone()
                     avg_response = (
-                        result["avg_response"]
-                        if result and result["avg_response"]
-                        else 0
+                        result["avg_response"] if result and result["avg_response"] else 0
                     )
                     await self._record_metric(
                         "tickets",
@@ -228,9 +214,7 @@ class SystemMonitor:
                     )
                     result = await cursor.fetchone()
                     avg_resolution = (
-                        result["avg_resolution"]
-                        if result and result["avg_resolution"]
-                        else 0
+                        result["avg_resolution"] if result and result["avg_resolution"] else 0
                     )
                     await self._record_metric(
                         "tickets",
@@ -298,11 +282,7 @@ class SystemMonitor:
                         VALUES (%s, %s, %s, %s, %s, NOW())
                     """,
                         (
-                            (
-                                None
-                                if guild_id in ["system", "bot", "tickets"]
-                                else int(guild_id)
-                            ),
+                            (None if guild_id in ["system", "bot", "tickets"] else int(guild_id)),
                             metric_name,
                             value,
                             unit,
@@ -318,11 +298,7 @@ class SystemMonitor:
                         AND guild_id = %s AND metric_name = %s
                     """,
                         (
-                            (
-                                None
-                                if guild_id in ["system", "bot", "tickets"]
-                                else int(guild_id)
-                            ),
+                            (None if guild_id in ["system", "bot", "tickets"] else int(guild_id)),
                             metric_name,
                         ),
                     )
@@ -332,9 +308,7 @@ class SystemMonitor:
         except Exception as e:
             logger.error(f"記錄指標失敗 ({guild_id}:{metric_name}): {e}")
 
-    async def get_current_metrics(
-        self, guild_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+    async def get_current_metrics(self, guild_id: Optional[str] = None) -> Dict[str, Any]:
         """獲取當前系統指標"""
         try:
             metrics = {}
@@ -381,16 +355,8 @@ class SystemMonitor:
                         ORDER BY recorded_at ASC
                     """,
                         (
-                            (
-                                None
-                                if guild_id in ["system", "bot", "tickets"]
-                                else guild_id
-                            ),
-                            (
-                                None
-                                if guild_id in ["system", "bot", "tickets"]
-                                else int(guild_id)
-                            ),
+                            (None if guild_id in ["system", "bot", "tickets"] else guild_id),
+                            (None if guild_id in ["system", "bot", "tickets"] else int(guild_id)),
                             metric_name,
                             hours,
                         ),
@@ -513,9 +479,7 @@ class SystemMonitor:
                             "up"
                             if len(values) > 1 and values[-1] > values[0]
                             else (
-                                "down"
-                                if len(values) > 1 and values[-1] < values[0]
-                                else "stable"
+                                "down" if len(values) > 1 and values[-1] < values[0] else "stable"
                             )
                         ),
                     }

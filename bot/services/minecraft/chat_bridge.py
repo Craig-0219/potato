@@ -3,13 +3,13 @@ Discord ↔ Minecraft 聊天橋接系統
 實現雙向聊天同步功能
 """
 
-import asyncio
 import re
-from typing import Optional, Dict, Any, List
-from datetime import datetime
+from typing import Any, Dict, List
+
 import discord
 
 from shared.logger import logger
+
 from .rcon_manager import RCONManager
 
 
@@ -80,9 +80,7 @@ class ChatBridge:
                 logger.debug(f"Discord → Minecraft: {clean_message}")
                 return True
             else:
-                logger.error(
-                    f"發送到 Minecraft 失敗: {result.get('error', 'Unknown error')}"
-                )
+                logger.error(f"發送到 Minecraft 失敗: {result.get('error', 'Unknown error')}")
                 return False
 
         except Exception as e:
@@ -141,9 +139,7 @@ class ChatBridge:
                 return False
 
             # 發送到 Minecraft
-            return await self.send_to_minecraft(
-                message.content, message.author.display_name
-            )
+            return await self.send_to_minecraft(message.content, message.author.display_name)
 
         except Exception as e:
             logger.error(f"處理 Discord 訊息錯誤: {e}")

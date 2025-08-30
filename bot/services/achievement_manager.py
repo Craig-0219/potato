@@ -279,9 +279,7 @@ class AchievementManager:
 
             for achievement_id, required_streak in daily_achievements:
                 if streak_days >= required_streak:
-                    if not await self._user_has_achievement(
-                        user_id, guild_id, achievement_id
-                    ):
+                    if not await self._user_has_achievement(user_id, guild_id, achievement_id):
                         achievement = await self._grant_achievement(
                             user_id, guild_id, achievement_id
                         )
@@ -309,42 +307,28 @@ class AchievementManager:
 
             # 檢查基礎遊戲成就
             if user_economy.get("total_games", 0) >= 1:
-                if not await self._user_has_achievement(
-                    user_id, guild_id, "first_game"
-                ):
-                    achievement = await self._grant_achievement(
-                        user_id, guild_id, "first_game"
-                    )
+                if not await self._user_has_achievement(user_id, guild_id, "first_game"):
+                    achievement = await self._grant_achievement(user_id, guild_id, "first_game")
                     if achievement:
                         achievements_earned.append(achievement)
 
             if user_economy.get("total_wins", 0) >= 1 and won:
                 if not await self._user_has_achievement(user_id, guild_id, "first_win"):
-                    achievement = await self._grant_achievement(
-                        user_id, guild_id, "first_win"
-                    )
+                    achievement = await self._grant_achievement(user_id, guild_id, "first_win")
                     if achievement:
                         achievements_earned.append(achievement)
 
             # 檢查遊戲次數成就
             if user_economy.get("total_games", 0) >= 100:
-                if not await self._user_has_achievement(
-                    user_id, guild_id, "game_addict"
-                ):
-                    achievement = await self._grant_achievement(
-                        user_id, guild_id, "game_addict"
-                    )
+                if not await self._user_has_achievement(user_id, guild_id, "game_addict"):
+                    achievement = await self._grant_achievement(user_id, guild_id, "game_addict")
                     if achievement:
                         achievements_earned.append(achievement)
 
             # 檢查特殊遊戲成就
             if game_type == "guess_number" and won and score == 1:  # 一次猜中
-                if not await self._user_has_achievement(
-                    user_id, guild_id, "guess_master"
-                ):
-                    achievement = await self._grant_achievement(
-                        user_id, guild_id, "guess_master"
-                    )
+                if not await self._user_has_achievement(user_id, guild_id, "guess_master"):
+                    achievement = await self._grant_achievement(user_id, guild_id, "guess_master")
                     if achievement:
                         achievements_earned.append(achievement)
 
@@ -352,18 +336,14 @@ class AchievementManager:
             daily_wins = user_economy.get("daily_wins", 0)
             if daily_wins >= 10:
                 if not await self._user_has_achievement(user_id, guild_id, "lucky_day"):
-                    achievement = await self._grant_achievement(
-                        user_id, guild_id, "lucky_day"
-                    )
+                    achievement = await self._grant_achievement(user_id, guild_id, "lucky_day")
                     if achievement:
                         achievements_earned.append(achievement)
 
             # 檢查深夜玩家成就
             current_hour = datetime.now(timezone.utc).hour
             if 2 <= current_hour <= 4:
-                if not await self._user_has_achievement(
-                    user_id, guild_id, "late_night_gamer"
-                ):
+                if not await self._user_has_achievement(user_id, guild_id, "late_night_gamer"):
                     achievement = await self._grant_achievement(
                         user_id, guild_id, "late_night_gamer"
                     )
@@ -376,9 +356,7 @@ class AchievementManager:
             logger.error(f"❌ 檢查遊戲成就失敗: {e}")
             return []
 
-    async def check_economy_achievements(
-        self, user_id: int, guild_id: int
-    ) -> List[Dict[str, Any]]:
+    async def check_economy_achievements(self, user_id: int, guild_id: int) -> List[Dict[str, Any]]:
         """檢查經濟相關成就"""
         achievements_earned = []
 
@@ -387,9 +365,7 @@ class AchievementManager:
 
             economy_manager = EconomyManager()
             user_economy = await economy_manager.get_user_economy(user_id, guild_id)
-            level_info = await economy_manager.calculate_level(
-                user_economy.get("experience", 0)
-            )
+            level_info = await economy_manager.calculate_level(user_economy.get("experience", 0))
 
             # 檢查金幣成就
             coins = user_economy.get("coins", 0)
@@ -401,9 +377,7 @@ class AchievementManager:
 
             for achievement_id, required_coins in coin_achievements:
                 if coins >= required_coins:
-                    if not await self._user_has_achievement(
-                        user_id, guild_id, achievement_id
-                    ):
+                    if not await self._user_has_achievement(user_id, guild_id, achievement_id):
                         achievement = await self._grant_achievement(
                             user_id, guild_id, achievement_id
                         )
@@ -416,9 +390,7 @@ class AchievementManager:
 
             for achievement_id, required_level in level_achievements:
                 if level >= required_level:
-                    if not await self._user_has_achievement(
-                        user_id, guild_id, achievement_id
-                    ):
+                    if not await self._user_has_achievement(user_id, guild_id, achievement_id):
                         achievement = await self._grant_achievement(
                             user_id, guild_id, achievement_id
                         )
@@ -433,9 +405,7 @@ class AchievementManager:
 
     # ========== 成就管理功能 ==========
 
-    async def _user_has_achievement(
-        self, user_id: int, guild_id: int, achievement_id: str
-    ) -> bool:
+    async def _user_has_achievement(self, user_id: int, guild_id: int, achievement_id: str) -> bool:
         """檢查用戶是否已有該成就"""
         try:
             # 先從快取檢查
@@ -458,9 +428,7 @@ class AchievementManager:
                     has_achievement = result is not None
 
                     # 快取結果
-                    await cache_manager.set(
-                        cache_key, has_achievement, 600
-                    )  # 10分鐘快取
+                    await cache_manager.set(cache_key, has_achievement, 600)  # 10分鐘快取
 
                     return has_achievement
 
@@ -505,22 +473,14 @@ class AchievementManager:
                         await conn.commit()
 
                         # 發放獎勵
-                        await self._grant_achievement_rewards(
-                            user_id, guild_id, achievement_def
-                        )
+                        await self._grant_achievement_rewards(user_id, guild_id, achievement_def)
 
                         # 清理相關快取
-                        cache_key = (
-                            f"user_achievement:{user_id}:{guild_id}:{achievement_id}"
-                        )
+                        cache_key = f"user_achievement:{user_id}:{guild_id}:{achievement_id}"
                         await cache_manager.set(cache_key, True, 600)
-                        await cache_manager.delete(
-                            f"user_achievements:{user_id}:{guild_id}"
-                        )
+                        await cache_manager.delete(f"user_achievements:{user_id}:{guild_id}")
 
-                        logger.info(
-                            f"🏆 用戶 {user_id} 獲得成就: {achievement_def.name}"
-                        )
+                        logger.info(f"🏆 用戶 {user_id} 獲得成就: {achievement_def.name}")
 
                         return {
                             "id": achievement_id,
@@ -548,15 +508,11 @@ class AchievementManager:
 
             # 發放金幣
             if achievement.rewards.get("coins", 0) > 0:
-                await economy_manager.add_coins(
-                    user_id, guild_id, achievement.rewards["coins"]
-                )
+                await economy_manager.add_coins(user_id, guild_id, achievement.rewards["coins"])
 
             # 發放寶石
             if achievement.rewards.get("gems", 0) > 0:
-                await economy_manager.add_gems(
-                    user_id, guild_id, achievement.rewards["gems"]
-                )
+                await economy_manager.add_gems(user_id, guild_id, achievement.rewards["gems"])
 
             # 發放經驗值
             if achievement.rewards.get("experience", 0) > 0:
@@ -569,9 +525,7 @@ class AchievementManager:
 
     # ========== 查詢功能 ==========
 
-    async def get_user_achievements(
-        self, user_id: int, guild_id: int
-    ) -> List[Dict[str, Any]]:
+    async def get_user_achievements(self, user_id: int, guild_id: int) -> List[Dict[str, Any]]:
         """獲取用戶成就列表"""
         try:
             cache_key = f"user_achievements:{user_id}:{guild_id}"
@@ -607,9 +561,7 @@ class AchievementManager:
                                     "type": achievement_def.type.value,
                                     "unlocked_at": unlocked_at,
                                     "progress": (
-                                        json.loads(progress_json)
-                                        if progress_json
-                                        else {}
+                                        json.loads(progress_json) if progress_json else {}
                                     ),
                                 }
                             )
@@ -772,9 +724,7 @@ class AchievementManager:
             logger.error(f"❌ 獲取成就統計失敗: {e}")
             return {}
 
-    async def get_rarest_achievements(
-        self, guild_id: int, limit: int = 5
-    ) -> List[Dict[str, Any]]:
+    async def get_rarest_achievements(self, guild_id: int, limit: int = 5) -> List[Dict[str, Any]]:
         """獲取最稀有的成就"""
         try:
             async with db_pool.connection() as conn:

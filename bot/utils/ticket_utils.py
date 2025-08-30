@@ -30,9 +30,7 @@ class TicketPermissionChecker:
         """檢查是否為管理員"""
         if not user:
             return False
-        return (
-            user.guild_permissions.manage_guild or user.guild_permissions.administrator
-        )
+        return user.guild_permissions.manage_guild or user.guild_permissions.administrator
 
     @staticmethod
     def is_support_staff(user: discord.Member, support_roles: List[int]) -> bool:
@@ -68,9 +66,7 @@ class TicketPermissionChecker:
         user: discord.Member, ticket_info: Dict[str, Any], support_roles: List[int]
     ) -> bool:
         """檢查是否可以關閉票券"""
-        return TicketPermissionChecker.can_manage_ticket(
-            user, ticket_info, support_roles
-        )
+        return TicketPermissionChecker.can_manage_ticket(user, ticket_info, support_roles)
 
     @staticmethod
     def can_rate_ticket(user: discord.Member, ticket_info: Dict[str, Any]) -> bool:
@@ -258,9 +254,7 @@ def parse_role_mention(role_input: str, guild: discord.Guild) -> Optional[discor
 # ===== Embed 建構器 =====
 
 
-def build_ticket_embed(
-    ticket_info: Dict[str, Any], include_stats: bool = False
-) -> discord.Embed:
+def build_ticket_embed(ticket_info: Dict[str, Any], include_stats: bool = False) -> discord.Embed:
     """建立票券資訊嵌入"""
     priority = ticket_info.get("priority", "medium")
     status = ticket_info.get("status", "open")
@@ -298,9 +292,7 @@ def build_ticket_embed(
         closed_time = get_time_ago_chinese(ticket_info["closed_at"])
         duration = ticket_info["closed_at"] - ticket_info["created_at"]
         time_info += f"\n**關閉時間：** {closed_time}"
-        time_info += (
-            f"\n**持續時間：** {format_duration_chinese(int(duration.total_seconds()))}"
-        )
+        time_info += f"\n**持續時間：** {format_duration_chinese(int(duration.total_seconds()))}"
 
     embed.add_field(name="⏰ 時間資訊", value=time_info, inline=False)
 
@@ -459,9 +451,7 @@ def build_staff_performance_embed(
     period_names = {"today": "今日", "week": "本週", "month": "本月"}
     period_name = period_names.get(period, period)
 
-    embed = discord.Embed(
-        title=f"👥 客服團隊表現 - {period_name}", color=discord.Color.green()
-    )
+    embed = discord.Embed(title=f"👥 客服團隊表現 - {period_name}", color=discord.Color.green())
 
     if not staff_stats:
         embed.description = "📊 此期間尚無客服活動記錄。"
@@ -515,9 +505,7 @@ def build_user_tickets_embed(
     total_pages: int = 1,
 ) -> discord.Embed:
     """建立用戶票券列表嵌入"""
-    embed = discord.Embed(
-        title=f"🎫 {user.display_name} 的票券", color=discord.Color.blue()
-    )
+    embed = discord.Embed(title=f"🎫 {user.display_name} 的票券", color=discord.Color.blue())
 
     if not tickets:
         embed.description = "📭 沒有找到票券記錄。"
@@ -536,9 +524,7 @@ def build_user_tickets_embed(
             if created_at.tzinfo is None:
                 created_at = created_at.replace(tzinfo=timezone.utc)
             open_duration = datetime.now(timezone.utc) - created_at
-            status_text += (
-                f" ({format_duration_chinese(int(open_duration.total_seconds()))})"
-            )
+            status_text += f" ({format_duration_chinese(int(open_duration.total_seconds()))})"
 
         field_value = f"**狀態：** {status_text}\n"
         field_value += f"**優先級：** {priority_emoji} {ticket.get('priority', 'medium').upper()}\n"
@@ -639,9 +625,7 @@ async def get_best_auto_reply(
 # ===== 格式化工具 =====
 
 
-def format_settings_value(
-    field_name: str, value: Any, guild: discord.Guild = None
-) -> str:
+def format_settings_value(field_name: str, value: Any, guild: discord.Guild = None) -> str:
     """格式化設定值顯示"""
     if value is None:
         return "未設定"
@@ -810,9 +794,7 @@ class TicketCache:
             return True
 
         last_access = self.access_times[key]
-        return (
-            datetime.now(timezone.utc) - last_access
-        ).total_seconds() > self.timeout_seconds
+        return (datetime.now(timezone.utc) - last_access).total_seconds() > self.timeout_seconds
 
     async def _expire_key(self, key: str, timeout: int) -> None:
         """延遲刪除快取鍵"""
@@ -967,18 +949,14 @@ def calculate_ticket_metrics(tickets: List[Dict[str, Any]]) -> Dict[str, Any]:
             if created_at.tzinfo is None:
                 created_at = created_at.replace(tzinfo=timezone.utc)
             resolution_time = closed_at - created_at
-            resolution_times.append(
-                resolution_time.total_seconds() / 3600
-            )  # 轉換為小時
+            resolution_times.append(resolution_time.total_seconds() / 3600)  # 轉換為小時
 
         # 收集評分
         if ticket.get("rating"):
             ratings.append(ticket["rating"])
 
     # 計算平均解決時間
-    avg_resolution_time = (
-        sum(resolution_times) / len(resolution_times) if resolution_times else 0
-    )
+    avg_resolution_time = sum(resolution_times) / len(resolution_times) if resolution_times else 0
 
     # 計算滿意度（4星以上視為滿意）
     satisfied_count = sum(1 for rating in ratings if rating >= 4)

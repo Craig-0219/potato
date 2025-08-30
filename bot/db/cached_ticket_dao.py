@@ -100,9 +100,7 @@ class CachedTicketDAO:
                     await self.cache.set(cache_key, updated_ticket, self.DETAIL_TTL)
 
                     # 失效相關快取
-                    await self._invalidate_related_caches(
-                        updated_ticket.get("guild_id")
-                    )
+                    await self._invalidate_related_caches(updated_ticket.get("guild_id"))
 
             return success
 
@@ -168,9 +166,7 @@ class CachedTicketDAO:
     # ========== 快取優化的統計查詢 ==========
 
     @cached("ticket_stats", ttl=60)
-    async def get_ticket_statistics(
-        self, guild_id: int, period_days: int = 7
-    ) -> Dict[str, Any]:
+    async def get_ticket_statistics(self, guild_id: int, period_days: int = 7) -> Dict[str, Any]:
         """獲取票券統計（帶快取）"""
         try:
             stats = await self.ticket_dao.get_ticket_statistics(guild_id, period_days)
@@ -274,9 +270,7 @@ class CachedTicketDAO:
 
     # ========== 批量操作優化 ==========
 
-    async def get_tickets_batch(
-        self, ticket_ids: List[int]
-    ) -> Dict[int, Optional[Dict]]:
+    async def get_tickets_batch(self, ticket_ids: List[int]) -> Dict[int, Optional[Dict]]:
         """批量獲取票券（快取優化）"""
         results = {}
         cache_misses = []

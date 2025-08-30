@@ -98,18 +98,14 @@ class DashboardManager:
 
     # ========== 儀表板生成 ==========
 
-    async def generate_overview_dashboard(
-        self, guild_id: int, days: int = 30
-    ) -> DashboardData:
+    async def generate_overview_dashboard(self, guild_id: int, days: int = 30) -> DashboardData:
         """生成系統概覽儀表板"""
         cache_key = f"overview_{guild_id}_{days}"
 
         # 檢查快取
         if cache_key in self._dashboard_cache:
             cached = self._dashboard_cache[cache_key]
-            if (
-                datetime.now(timezone.utc) - cached.generated_at
-            ).seconds < self._cache_ttl:
+            if (datetime.now(timezone.utc) - cached.generated_at).seconds < self._cache_ttl:
                 return cached
 
         logger.info(f"生成系統概覽儀表板: guild_id={guild_id}, days={days}")
@@ -123,8 +119,8 @@ class DashboardManager:
                 self._get_system_performance_metrics(guild_id, days),
             ]
 
-            ticket_data, workflow_data, engagement_data, performance_data = (
-                await asyncio.gather(*tasks)
+            ticket_data, workflow_data, engagement_data, performance_data = await asyncio.gather(
+                *tasks
             )
 
             # 生成圖表
@@ -146,9 +142,7 @@ class DashboardManager:
             metrics = await self._generate_key_metrics(guild_id, days)
 
             # 生成智能洞察
-            insights = await self._generate_insights(
-                ticket_data, workflow_data, engagement_data
-            )
+            insights = await self._generate_insights(ticket_data, workflow_data, engagement_data)
 
             dashboard = DashboardData(
                 title=f"系統概覽儀表板 - 最近{days}天",
@@ -168,9 +162,7 @@ class DashboardManager:
             logger.error(f"❌ 生成系統概覽儀表板失敗: {e}")
             raise
 
-    async def generate_performance_dashboard(
-        self, guild_id: int, days: int = 30
-    ) -> DashboardData:
+    async def generate_performance_dashboard(self, guild_id: int, days: int = 30) -> DashboardData:
         """生成性能分析儀表板"""
         logger.info(f"生成性能分析儀表板: guild_id={guild_id}")
 
@@ -260,9 +252,7 @@ class DashboardManager:
 
         try:
             # 使用現有的統計管理器
-            stats = await self.stats_manager.generate_comprehensive_report(
-                guild_id, days
-            )
+            stats = await self.stats_manager.generate_comprehensive_report(guild_id, days)
 
             # 獲取詳細的每日數據
             daily_data = await self.ticket_dao.get_daily_ticket_stats(
@@ -283,9 +273,7 @@ class DashboardManager:
         """獲取工作流程分析數據"""
         try:
             # 獲取工作流程統計
-            workflow_stats = await self.workflow_dao.get_guild_workflow_statistics(
-                guild_id, days
-            )
+            workflow_stats = await self.workflow_dao.get_guild_workflow_statistics(guild_id, days)
 
             # 獲取執行趨勢
             executions, _ = await self.workflow_dao.get_executions(days=days)
@@ -293,25 +281,20 @@ class DashboardManager:
                 e
                 for e in executions
                 if self.workflow_dao.get_workflow(e["workflow_id"])
-                and self.workflow_dao.get_workflow(e["workflow_id"])["guild_id"]
-                == guild_id
+                and self.workflow_dao.get_workflow(e["workflow_id"])["guild_id"] == guild_id
             ]
 
             return {
                 "overall_stats": workflow_stats,
                 "executions": guild_executions,
-                "efficiency_metrics": await self._calculate_workflow_efficiency(
-                    guild_executions
-                ),
+                "efficiency_metrics": await self._calculate_workflow_efficiency(guild_executions),
             }
 
         except Exception as e:
             logger.error(f"獲取工作流程分析數據失敗: {e}")
             return {}
 
-    async def _get_user_engagement_analytics(
-        self, guild_id: int, days: int
-    ) -> Dict[str, Any]:
+    async def _get_user_engagement_analytics(self, guild_id: int, days: int) -> Dict[str, Any]:
         """獲取用戶參與度分析數據"""
         try:
             # 暫時使用模擬數據
@@ -330,9 +313,7 @@ class DashboardManager:
             logger.error(f"獲取用戶參與度數據失敗: {e}")
             return {}
 
-    async def _get_system_performance_metrics(
-        self, guild_id: int, days: int
-    ) -> Dict[str, Any]:
+    async def _get_system_performance_metrics(self, guild_id: int, days: int) -> Dict[str, Any]:
         """獲取系統性能指標"""
         try:
             # 這裡可以集成實際的系統監控數據
@@ -357,9 +338,7 @@ class DashboardManager:
 
     # ========== 圖表生成方法 ==========
 
-    async def _create_ticket_trend_chart(
-        self, ticket_data: Dict[str, Any]
-    ) -> ChartData:
+    async def _create_ticket_trend_chart(self, ticket_data: Dict[str, Any]) -> ChartData:
         """創建票券趨勢圖表"""
         daily_data = ticket_data.get("daily_data", [])
 
@@ -401,9 +380,7 @@ class DashboardManager:
             options={"responsive": True, "scales": {"y": {"beginAtZero": True}}},
         )
 
-    async def _create_response_time_chart(
-        self, performance_data: Dict[str, Any]
-    ) -> ChartData:
+    async def _create_response_time_chart(self, performance_data: Dict[str, Any]) -> ChartData:
         """創建回應時間趨勢圖表"""
         ticket_metrics = performance_data.get("ticket_metrics", {})
         performance_data.get("system_metrics", {})
@@ -455,9 +432,7 @@ class DashboardManager:
             datasets=datasets,
         )
 
-    async def _create_load_distribution_chart(
-        self, performance_data: Dict[str, Any]
-    ) -> ChartData:
+    async def _create_load_distribution_chart(self, performance_data: Dict[str, Any]) -> ChartData:
         """創建系統負載分佈圖表"""
         performance_data.get("ticket_metrics", {})
 
@@ -470,8 +445,7 @@ class DashboardManager:
                 "label": "系統負載 (%)",
                 "data": load_values,
                 "backgroundColor": [
-                    "#2ecc71" if v < 50 else "#f39c12" if v < 80 else "#e74c3c"
-                    for v in load_values
+                    "#2ecc71" if v < 50 else "#f39c12" if v < 80 else "#e74c3c" for v in load_values
                 ],
                 "borderColor": "#34495e",
                 "borderWidth": 1,
@@ -485,9 +459,7 @@ class DashboardManager:
             datasets=datasets,
         )
 
-    async def _create_sla_compliance_chart(
-        self, performance_data: Dict[str, Any]
-    ) -> ChartData:
+    async def _create_sla_compliance_chart(self, performance_data: Dict[str, Any]) -> ChartData:
         """創建SLA合規性圓餅圖"""
         ticket_metrics = performance_data.get("ticket_metrics", {})
         resolution_rate = ticket_metrics.get("resolution_rate", 75)
@@ -513,9 +485,7 @@ class DashboardManager:
             datasets=datasets,
         )
 
-    async def _create_workload_heatmap(
-        self, performance_data: Dict[str, Any]
-    ) -> ChartData:
+    async def _create_workload_heatmap(self, performance_data: Dict[str, Any]) -> ChartData:
         """創建客服工作量熱力圖"""
         # 模擬客服工作量數據 (7天 x 24小時)
         days = ["週一", "週二", "週三", "週四", "週五", "週六", "週日"]
@@ -555,9 +525,7 @@ class DashboardManager:
             datasets=datasets,
         )
 
-    async def _create_workflow_efficiency_chart(
-        self, workflow_data: Dict[str, Any]
-    ) -> ChartData:
+    async def _create_workflow_efficiency_chart(self, workflow_data: Dict[str, Any]) -> ChartData:
         """創建工作流程效率圖表"""
         workflow_data.get("overall_stats", {})
 
@@ -588,9 +556,7 @@ class DashboardManager:
             },
         )
 
-    async def _create_engagement_chart(
-        self, engagement_data: Dict[str, Any]
-    ) -> ChartData:
+    async def _create_engagement_chart(self, engagement_data: Dict[str, Any]) -> ChartData:
         """創建用戶參與度圖表"""
         # 模擬30天的參與度數據
         days = list(range(1, 31))
@@ -617,9 +583,7 @@ class DashboardManager:
             },
         )
 
-    async def _create_performance_heatmap(
-        self, performance_data: Dict[str, Any]
-    ) -> ChartData:
+    async def _create_performance_heatmap(self, performance_data: Dict[str, Any]) -> ChartData:
         """創建系統性能熱力圖"""
         # 模擬24小時x7天的性能數據
         hours = list(range(24))
@@ -669,9 +633,7 @@ class DashboardManager:
 
     # ========== 預測分析方法 ==========
 
-    async def _create_volume_prediction_chart(
-        self, historical_data: Dict[str, Any]
-    ) -> ChartData:
+    async def _create_volume_prediction_chart(self, historical_data: Dict[str, Any]) -> ChartData:
         """創建票券量預測圖表"""
         # 獲取歷史數據
         historical_volumes = historical_data.get("daily_volumes", [])
@@ -685,16 +647,13 @@ class DashboardManager:
             )
 
         # 簡單的線性預測模型
-        predicted_volumes = self._predict_linear_trend(
-            historical_volumes, self._prediction_window
-        )
+        predicted_volumes = self._predict_linear_trend(historical_volumes, self._prediction_window)
 
         # 準備圖表數據
         historical_dates = [
-            (
-                datetime.now(timezone.utc)
-                - timedelta(days=len(historical_volumes) - i - 1)
-            ).strftime("%m-%d")
+            (datetime.now(timezone.utc) - timedelta(days=len(historical_volumes) - i - 1)).strftime(
+                "%m-%d"
+            )
             for i in range(len(historical_volumes))
         ]
         prediction_dates = [
@@ -729,9 +688,7 @@ class DashboardManager:
             ],
         )
 
-    async def _create_workload_prediction_chart(
-        self, historical_data: Dict[str, Any]
-    ) -> ChartData:
+    async def _create_workload_prediction_chart(self, historical_data: Dict[str, Any]) -> ChartData:
         """創建工作負載預測圖表"""
         # 獲取歷史工作負載數據
         historical_workload = historical_data.get("daily_workload", [])
@@ -752,8 +709,7 @@ class DashboardManager:
         # 準備圖表數據
         historical_dates = [
             (
-                datetime.now(timezone.utc)
-                - timedelta(days=len(historical_workload) - i - 1)
+                datetime.now(timezone.utc) - timedelta(days=len(historical_workload) - i - 1)
             ).strftime("%m-%d")
             for i in range(len(historical_workload))
         ]
@@ -763,17 +719,11 @@ class DashboardManager:
         ]
 
         all_dates = historical_dates + prediction_dates
-        historical_data_extended = historical_workload + [None] * len(
-            predicted_workload
-        )
-        prediction_data_extended = [None] * len(
-            historical_workload
-        ) + predicted_workload
+        historical_data_extended = historical_workload + [None] * len(predicted_workload)
+        prediction_data_extended = [None] * len(historical_workload) + predicted_workload
 
         # 警告閾值線
-        warning_threshold = (
-            max(historical_workload) * 0.8 if historical_workload else 80
-        )
+        warning_threshold = max(historical_workload) * 0.8 if historical_workload else 80
         threshold_line = [warning_threshold] * len(all_dates)
 
         return ChartData(
@@ -810,9 +760,7 @@ class DashboardManager:
             ],
         )
 
-    async def _create_resource_prediction_chart(
-        self, historical_data: Dict[str, Any]
-    ) -> ChartData:
+    async def _create_resource_prediction_chart(self, historical_data: Dict[str, Any]) -> ChartData:
         """創建資源需求預測圖表"""
         # 模擬資源需求預測數據
         resource_types = [
@@ -857,9 +805,7 @@ class DashboardManager:
             ],
         )
 
-    async def _create_trend_analysis_chart(
-        self, historical_data: Dict[str, Any]
-    ) -> ChartData:
+    async def _create_trend_analysis_chart(self, historical_data: Dict[str, Any]) -> ChartData:
         """創建趨勢分析散點圖"""
         # 模擬趨勢分析數據 (票券創建時間 vs 解決時間)
         ticket_counts = []
@@ -906,9 +852,7 @@ class DashboardManager:
 
     # ========== 輔助方法 ==========
 
-    def _predict_linear_trend(
-        self, data: List[float], prediction_days: int
-    ) -> List[float]:
+    def _predict_linear_trend(self, data: List[float], prediction_days: int) -> List[float]:
         """簡單的線性趨勢預測"""
         if len(data) < 2:
             return [data[-1]] * prediction_days if data else [0] * prediction_days
@@ -947,28 +891,18 @@ class DashboardManager:
         else:
             return "#e74c3c"  # 紅色 - 需改善
 
-    async def _generate_key_metrics(
-        self, guild_id: int, days: int
-    ) -> Dict[str, MetricSummary]:
+    async def _generate_key_metrics(self, guild_id: int, days: int) -> Dict[str, MetricSummary]:
         """生成關鍵指標摘要"""
         try:
             # 獲取當前期間和前一期間的數據進行比較
-            current_stats = await self.stats_manager.generate_comprehensive_report(
-                guild_id, days
-            )
-            previous_stats = await self.stats_manager.generate_comprehensive_report(
-                guild_id, days
-            )
+            current_stats = await self.stats_manager.generate_comprehensive_report(guild_id, days)
+            previous_stats = await self.stats_manager.generate_comprehensive_report(guild_id, days)
 
             metrics = {}
 
             # 票券處理效率
-            current_tickets = current_stats.get("ticket_stats", {}).get(
-                "total_tickets", 0
-            )
-            previous_tickets = previous_stats.get("ticket_stats", {}).get(
-                "total_tickets", 0
-            )
+            current_tickets = current_stats.get("ticket_stats", {}).get("total_tickets", 0)
+            previous_tickets = previous_stats.get("ticket_stats", {}).get("total_tickets", 0)
 
             metrics["ticket_efficiency"] = MetricSummary(
                 current_value=current_tickets,
@@ -977,9 +911,7 @@ class DashboardManager:
                     current_tickets, previous_tickets
                 ),
                 trend=self._determine_trend(current_tickets, previous_tickets),
-                status=self._determine_status(
-                    "tickets", current_tickets, previous_tickets
-                ),
+                status=self._determine_status("tickets", current_tickets, previous_tickets),
             )
 
             # 平均回應時間 (模擬數據)
@@ -1008,9 +940,7 @@ class DashboardManager:
                 change_percentage=self._calculate_change_percentage(
                     current_satisfaction, previous_satisfaction
                 ),
-                trend=self._determine_trend(
-                    current_satisfaction, previous_satisfaction
-                ),
+                trend=self._determine_trend(current_satisfaction, previous_satisfaction),
                 status="good" if current_satisfaction >= 4.0 else "warning",
             )
 
@@ -1033,17 +963,13 @@ class DashboardManager:
             # 分析票券趨勢
             daily_data = ticket_data.get("daily_data", [])
             if daily_data:
-                recent_avg = (
-                    sum(day.get("created_count", 0) for day in daily_data[-7:]) / 7
+                recent_avg = sum(day.get("created_count", 0) for day in daily_data[-7:]) / 7
+                overall_avg = sum(day.get("created_count", 0) for day in daily_data) / len(
+                    daily_data
                 )
-                overall_avg = sum(
-                    day.get("created_count", 0) for day in daily_data
-                ) / len(daily_data)
 
                 if recent_avg > overall_avg * 1.2:
-                    insights.append(
-                        "📈 最近7天的票券量比平均水準高20%，建議增加客服人力"
-                    )
+                    insights.append("📈 最近7天的票券量比平均水準高20%，建議增加客服人力")
                 elif recent_avg < overall_avg * 0.8:
                     insights.append("📉 最近7天票券量下降，系統運行平穩或用戶問題減少")
 
@@ -1090,9 +1016,7 @@ class DashboardManager:
         else:
             return "stable"
 
-    def _determine_status(
-        self, metric_type: str, current: float, previous: float
-    ) -> str:
+    def _determine_status(self, metric_type: str, current: float, previous: float) -> str:
         """確定指標狀態"""
         change_rate = abs((current - previous) / previous) if previous > 0 else 0
 
@@ -1106,9 +1030,7 @@ class DashboardManager:
 
         return "good"  # 默認狀態
 
-    def _determine_performance_status(
-        self, metric_key: str, current_value: float
-    ) -> str:
+    def _determine_performance_status(self, metric_key: str, current_value: float) -> str:
         """根據性能指標確定狀態"""
         status_thresholds = {
             # 票券相關指標 (越低越好)
@@ -1161,13 +1083,9 @@ class DashboardManager:
         """計算用戶參與度分數"""
         try:
             # 基於歡迎和投票數據計算參與度
-            welcome_score = min(
-                welcome_stats.get("total_welcomes", 0) / 10, 50
-            )  # 最多50分
+            welcome_score = min(welcome_stats.get("total_welcomes", 0) / 10, 50)  # 最多50分
             vote_score = min(vote_stats.get("total_votes", 0) / 5, 30)  # 最多30分
-            participant_score = min(
-                vote_stats.get("participant_count", 0) / 20, 20
-            )  # 最多20分
+            participant_score = min(vote_stats.get("participant_count", 0) / 20, 20)  # 最多20分
 
             total_score = welcome_score + vote_score + participant_score
             return min(total_score, 100)  # 最多100分
@@ -1176,9 +1094,7 @@ class DashboardManager:
             logger.error(f"計算參與度分數失敗: {e}")
             return 75.0  # 默認分數
 
-    async def _calculate_trends(
-        self, daily_data: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+    async def _calculate_trends(self, daily_data: List[Dict[str, Any]]) -> Dict[str, Any]:
         """計算數據趨勢"""
         try:
             if len(daily_data) < 7:
@@ -1203,9 +1119,7 @@ class DashboardManager:
                 direction = "stable"
 
             change_rate = (
-                ((recent_avg - previous_avg) / previous_avg * 100)
-                if previous_avg > 0
-                else 0
+                ((recent_avg - previous_avg) / previous_avg * 100) if previous_avg > 0 else 0
             )
 
             return {
@@ -1232,9 +1146,7 @@ class DashboardManager:
                     "avg_execution_time": 0,
                 }
 
-            successful_executions = [
-                e for e in executions if e.get("status") == "completed"
-            ]
+            successful_executions = [e for e in executions if e.get("status") == "completed"]
             failed_executions = [e for e in executions if e.get("status") == "failed"]
 
             success_rate = (len(successful_executions) / len(executions)) * 100
@@ -1250,9 +1162,7 @@ class DashboardManager:
             )
 
             # 效率分數 (基於成功率和執行時間)
-            efficiency_score = (
-                success_rate * 0.7 + max(0, (100 - avg_execution_time)) * 0.3
-            )
+            efficiency_score = success_rate * 0.7 + max(0, (100 - avg_execution_time)) * 0.3
 
             return {
                 "efficiency_score": round(efficiency_score, 2),
@@ -1267,28 +1177,20 @@ class DashboardManager:
             logger.error(f"計算工作流程效率失敗: {e}")
             return {"efficiency_score": 0, "success_rate": 0, "avg_execution_time": 0}
 
-    async def _get_detailed_performance_data(
-        self, guild_id: int, days: int
-    ) -> Dict[str, Any]:
+    async def _get_detailed_performance_data(self, guild_id: int, days: int) -> Dict[str, Any]:
         """獲取詳細性能數據"""
         try:
             # 獲取票券性能指標
-            ticket_metrics = await self.ticket_dao.get_ticket_performance_metrics(
-                guild_id, days
-            )
+            ticket_metrics = await self.ticket_dao.get_ticket_performance_metrics(guild_id, days)
 
             # 獲取工作流程性能
-            workflow_stats = await self.workflow_dao.get_guild_workflow_statistics(
-                guild_id, days
-            )
+            workflow_stats = await self.workflow_dao.get_guild_workflow_statistics(guild_id, days)
 
             # 整合性能數據
             performance_data = {
                 "ticket_metrics": ticket_metrics,
                 "workflow_stats": workflow_stats,
-                "system_metrics": await self._get_system_performance_metrics(
-                    guild_id, days
-                ),
+                "system_metrics": await self._get_system_performance_metrics(guild_id, days),
             }
 
             return performance_data
@@ -1297,9 +1199,7 @@ class DashboardManager:
             logger.error(f"獲取詳細性能數據失敗: {e}")
             return {}
 
-    async def _get_historical_data_for_prediction(
-        self, guild_id: int
-    ) -> Dict[str, Any]:
+    async def _get_historical_data_for_prediction(self, guild_id: int) -> Dict[str, Any]:
         """獲取用於預測的歷史數據"""
         try:
             # 獲取60天的歷史數據用於預測
@@ -1350,13 +1250,9 @@ class DashboardManager:
 
             # 計算趨勢方向
             recent_avg = (
-                sum(daily_volumes[-7:]) / min(7, len(daily_volumes))
-                if daily_volumes
-                else 0
+                sum(daily_volumes[-7:]) / min(7, len(daily_volumes)) if daily_volumes else 0
             )
-            overall_avg = (
-                sum(daily_volumes) / len(daily_volumes) if daily_volumes else 0
-            )
+            overall_avg = sum(daily_volumes) / len(daily_volumes) if daily_volumes else 0
 
             if recent_avg > overall_avg * 1.15:
                 trend_direction = "up"
@@ -1429,9 +1325,7 @@ class DashboardManager:
                 ),
             }
 
-    async def _generate_predictive_insights(
-        self, historical_data: Dict[str, Any]
-    ) -> List[str]:
+    async def _generate_predictive_insights(self, historical_data: Dict[str, Any]) -> List[str]:
         """生成預測洞察"""
         try:
             insights = []
@@ -1453,9 +1347,7 @@ class DashboardManager:
                     "📈 強烈上升趨勢：最近一週的票券量比平均值高15%以上，建議增加人力配置"
                 )
             elif recent_avg > overall_avg * 1.05:
-                insights.append(
-                    "📊 輕微上升趨勢：票券量呈現溫和增長，請密切關注資源需求"
-                )
+                insights.append("📊 輕微上升趨勢：票券量呈現溫和增長，請密切關注資源需求")
             elif recent_avg < overall_avg * 0.85:
                 insights.append("📉 強烈下降趨勢：票券量顯著減少，可考慮調整服務策略")
             elif recent_avg < overall_avg * 0.95:
@@ -1537,9 +1429,7 @@ class DashboardManager:
                 "avg_resolution_time": ticket_metrics.get("avg_resolution_hours", 2.5),
                 "resolution_rate": ticket_metrics.get("resolution_rate", 85.0),
                 "customer_satisfaction": ticket_metrics.get("satisfaction_score", 4.2),
-                "first_response_time": ticket_metrics.get(
-                    "avg_first_response_minutes", 15.0
-                ),
+                "first_response_time": ticket_metrics.get("avg_first_response_minutes", 15.0),
                 # 系統性能指標
                 "system_uptime": system_metrics.get("uptime_percentage", 99.5),
                 "response_latency": system_metrics.get("avg_response_ms", 150.0),
@@ -1570,9 +1460,7 @@ class DashboardManager:
                 previous_value = previous_metrics.get(key, current_value)
 
                 # 計算變化百分比
-                change_percentage = self._calculate_change_percentage(
-                    current_value, previous_value
-                )
+                change_percentage = self._calculate_change_percentage(current_value, previous_value)
 
                 # 確定趨勢（對於某些指標，越低越好）
                 reverse_trend_metrics = {
@@ -1583,9 +1471,7 @@ class DashboardManager:
                     "avg_workflow_time",
                 }
                 if key in reverse_trend_metrics:
-                    trend = self._determine_trend(
-                        previous_value, current_value
-                    )  # 反向趨勢
+                    trend = self._determine_trend(previous_value, current_value)  # 反向趨勢
                 else:
                     trend = self._determine_trend(current_value, previous_value)
 
@@ -1645,9 +1531,7 @@ class DashboardManager:
                 "overall_performance_score": 0,
             }
 
-    async def _generate_performance_insights(
-        self, performance_data: Dict[str, Any]
-    ) -> List[str]:
+    async def _generate_performance_insights(self, performance_data: Dict[str, Any]) -> List[str]:
         """生成性能洞察建議"""
         try:
             insights = []

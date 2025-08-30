@@ -64,9 +64,7 @@ def build_vote_embed(
 
 
 # ✅ 建立投票結果 Embed（進度條樣式，加入投票編號）
-def build_result_embed(
-    title: str, stats: dict, total: int, vote_id: int = None
-) -> Embed:
+def build_result_embed(title: str, stats: dict, total: int, vote_id: int = None) -> Embed:
     # ✅ 在標題中加入投票編號
     embed_title = f"📢 投票結束：{title}"
     if vote_id is not None:
@@ -77,7 +75,5 @@ def build_result_embed(
     for opt, count in stats.items():
         percent = (count / total * 100) if total else 0
         bar = calculate_progress_bar(percent)
-        embed.add_field(
-            name=opt, value=f"{count} 票 ({percent:.1f}%)\n{bar}", inline=False
-        )
+        embed.add_field(name=opt, value=f"{count} 票 ({percent:.1f}%)\n{bar}", inline=False)
     return embed

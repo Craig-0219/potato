@@ -69,16 +69,12 @@ class WelcomeDAO(BaseDAO):
             logger.error(f"取得歡迎設定錯誤 (guild_id: {guild_id}): {e}")
             return None
 
-    async def upsert_welcome_settings(
-        self, guild_id: int, settings: Dict[str, Any]
-    ) -> bool:
+    async def upsert_welcome_settings(self, guild_id: int, settings: Dict[str, Any]) -> bool:
         """插入或更新歡迎設定"""
         try:
             # 處理auto_roles JSON序列化
             auto_roles_json = (
-                json.dumps(settings.get("auto_roles", []))
-                if settings.get("auto_roles")
-                else None
+                json.dumps(settings.get("auto_roles", [])) if settings.get("auto_roles") else None
             )
 
             async with self.db.connection() as conn:
@@ -134,9 +130,7 @@ class WelcomeDAO(BaseDAO):
             logger.error(f"更新歡迎設定錯誤 (guild_id: {guild_id}): {e}")
             return False
 
-    async def update_welcome_channel(
-        self, guild_id: int, channel_id: Optional[int]
-    ) -> bool:
+    async def update_welcome_channel(self, guild_id: int, channel_id: Optional[int]) -> bool:
         """更新歡迎頻道"""
         try:
             async with self.db.connection() as conn:
@@ -159,9 +153,7 @@ class WelcomeDAO(BaseDAO):
             logger.error(f"更新歡迎頻道錯誤 (guild_id: {guild_id}): {e}")
             return False
 
-    async def update_leave_channel(
-        self, guild_id: int, channel_id: Optional[int]
-    ) -> bool:
+    async def update_leave_channel(self, guild_id: int, channel_id: Optional[int]) -> bool:
         """更新離開頻道"""
         try:
             async with self.db.connection() as conn:
@@ -303,9 +295,7 @@ class WelcomeDAO(BaseDAO):
             logger.error(f"取得歡迎日誌錯誤 (guild_id: {guild_id}): {e}")
             return []
 
-    async def get_welcome_statistics(
-        self, guild_id: int, days: int = 30
-    ) -> Dict[str, Any]:
+    async def get_welcome_statistics(self, guild_id: int, days: int = 30) -> Dict[str, Any]:
         """取得歡迎統計"""
         try:
             end_date = datetime.now(timezone.utc)
@@ -381,22 +371,12 @@ class WelcomeDAO(BaseDAO):
                     result = await cursor.fetchone()
                     if result:
                         settings = {
-                            "general_settings": (
-                                json.loads(result[0]) if result[0] else {}
-                            ),
-                            "channel_settings": (
-                                json.loads(result[1]) if result[1] else {}
-                            ),
+                            "general_settings": (json.loads(result[0]) if result[0] else {}),
+                            "channel_settings": (json.loads(result[1]) if result[1] else {}),
                             "role_settings": json.loads(result[2]) if result[2] else {},
-                            "notification_settings": (
-                                json.loads(result[3]) if result[3] else {}
-                            ),
-                            "feature_toggles": (
-                                json.loads(result[4]) if result[4] else {}
-                            ),
-                            "custom_settings": (
-                                json.loads(result[5]) if result[5] else {}
-                            ),
+                            "notification_settings": (json.loads(result[3]) if result[3] else {}),
+                            "feature_toggles": (json.loads(result[4]) if result[4] else {}),
+                            "custom_settings": (json.loads(result[5]) if result[5] else {}),
                         }
                         return settings
 
@@ -441,9 +421,7 @@ class WelcomeDAO(BaseDAO):
                     return True
 
         except Exception as e:
-            logger.error(
-                f"更新系統設定錯誤 (guild_id: {guild_id}, type: {settings_type}): {e}"
-            )
+            logger.error(f"更新系統設定錯誤 (guild_id: {guild_id}, type: {settings_type}): {e}")
             return False
 
     # ========== 實用工具方法 ==========

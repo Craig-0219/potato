@@ -172,22 +172,16 @@ class GameEntertainment(commands.Cog):
                 "🎲 骰子遊戲 - 運氣大比拼",
             ]
 
-            embed.add_field(
-                name="🎯 可用遊戲", value="\n".join(games_list), inline=False
-            )
+            embed.add_field(name="🎯 可用遊戲", value="\n".join(games_list), inline=False)
 
             # 創建遊戲選單視圖
             view = GameMenuView(self, user_economy)
 
-            await interaction.response.send_message(
-                embed=embed, view=view, ephemeral=True
-            )
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
         except Exception as e:
             logger.error(f"❌ 遊戲選單錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 開啟遊戲選單時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 開啟遊戲選單時發生錯誤。", ephemeral=True)
 
     # ========== 經濟系統指令 ==========
 
@@ -199,9 +193,7 @@ class GameEntertainment(commands.Cog):
             guild_id = interaction.guild.id
 
             # 檢查是否已簽到
-            last_checkin = await self.economy_manager.get_last_checkin(
-                user_id, guild_id
-            )
+            last_checkin = await self.economy_manager.get_last_checkin(user_id, guild_id)
             today = datetime.now(timezone.utc).date()
 
             if last_checkin and last_checkin.date() >= today:
@@ -214,9 +206,7 @@ class GameEntertainment(commands.Cog):
                 return
 
             # 計算連續簽到天數
-            streak = await self.economy_manager.calculate_checkin_streak(
-                user_id, guild_id
-            )
+            streak = await self.economy_manager.calculate_checkin_streak(user_id, guild_id)
 
             # 計算獎勵
             base_coins = 100
@@ -264,12 +254,8 @@ class GameEntertainment(commands.Cog):
             )
 
             if achievements:
-                achievement_text = "\n".join(
-                    [f"🏆 {ach['name']}" for ach in achievements]
-                )
-                embed.add_field(
-                    name="🎊 獲得成就", value=achievement_text, inline=False
-                )
+                achievement_text = "\n".join([f"🏆 {ach['name']}" for ach in achievements])
+                embed.add_field(name="🎊 獲得成就", value=achievement_text, inline=False)
 
             await interaction.response.send_message(embed=embed)
 
@@ -285,9 +271,7 @@ class GameEntertainment(commands.Cog):
             )
 
     @app_commands.command(name="balance", description="查看錢包餘額")
-    async def check_balance(
-        self, interaction: discord.Interaction, user: discord.User = None
-    ):
+    async def check_balance(self, interaction: discord.Interaction, user: discord.User = None):
         """查看餘額"""
         try:
             target_user = user or interaction.user
@@ -298,12 +282,8 @@ class GameEntertainment(commands.Cog):
             economy = await self.economy_manager.get_user_economy(user_id, guild_id)
 
             # 獲取排名資訊
-            coin_rank = await self.economy_manager.get_user_rank(
-                user_id, guild_id, "coins"
-            )
-            level_info = await self.economy_manager.calculate_level(
-                economy.get("experience", 0)
-            )
+            coin_rank = await self.economy_manager.get_user_rank(user_id, guild_id, "coins")
+            level_info = await self.economy_manager.calculate_level(economy.get("experience", 0))
 
             embed = EmbedBuilder.build(
                 title=f"💰 {target_user.display_name} 的錢包", color=0xFFD700
@@ -360,9 +340,7 @@ class GameEntertainment(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ 查看餘額錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 查看餘額時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 查看餘額時發生錯誤。", ephemeral=True)
 
     @app_commands.command(name="leaderboard", description="查看排行榜")
     @app_commands.describe(category="排行榜類型")
@@ -374,9 +352,7 @@ class GameEntertainment(commands.Cog):
             app_commands.Choice(name="遊戲次數", value="games"),
         ]
     )
-    async def leaderboard(
-        self, interaction: discord.Interaction, category: str = "coins"
-    ):
+    async def leaderboard(self, interaction: discord.Interaction, category: str = "coins"):
         """排行榜"""
         try:
             guild_id = interaction.guild.id
@@ -477,16 +453,12 @@ class GameEntertainment(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ 排行榜錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 獲取排行榜時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 獲取排行榜時發生錯誤。", ephemeral=True)
 
     # ========== 成就系統指令 ==========
 
     @app_commands.command(name="achievements", description="查看成就列表")
-    async def view_achievements(
-        self, interaction: discord.Interaction, user: discord.User = None
-    ):
+    async def view_achievements(self, interaction: discord.Interaction, user: discord.User = None):
         """查看成就"""
         try:
             target_user = user or interaction.user
@@ -563,9 +535,7 @@ class GameEntertainment(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ 查看成就錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 查看成就時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 查看成就時發生錯誤。", ephemeral=True)
 
     @app_commands.command(name="achievement_progress", description="查看成就進度")
     @app_commands.describe(achievement_id="成就ID（可選）")
@@ -584,18 +554,12 @@ class GameEntertainment(commands.Cog):
                 )
 
                 if not progress:
-                    await interaction.response.send_message(
-                        "❌ 未找到該成就。", ephemeral=True
-                    )
+                    await interaction.response.send_message("❌ 未找到該成就。", ephemeral=True)
                     return
 
-                achievement_def = self.achievement_manager.achievements.get(
-                    achievement_id
-                )
+                achievement_def = self.achievement_manager.achievements.get(achievement_id)
                 if not achievement_def:
-                    await interaction.response.send_message(
-                        "❌ 成就定義不存在。", ephemeral=True
-                    )
+                    await interaction.response.send_message("❌ 成就定義不存在。", ephemeral=True)
                     return
 
                 embed = EmbedBuilder.build(
@@ -640,9 +604,7 @@ class GameEntertainment(commands.Cog):
                     if not progress.get("completed", False):
                         incomplete_count += 1
                         if incomplete_count <= 8:  # 只顯示前8個
-                            progress_bar = self._create_progress_bar(
-                                progress.get("progress", 0)
-                            )
+                            progress_bar = self._create_progress_bar(progress.get("progress", 0))
                             embed.add_field(
                                 name=f"{ach_def.icon} {ach_def.name}",
                                 value=f"{progress_bar} {progress.get('progress', 0):.0f}%",
@@ -650,9 +612,7 @@ class GameEntertainment(commands.Cog):
                             )
 
                 if incomplete_count == 0:
-                    embed.add_field(
-                        name="🎉 恭喜！", value="您已經完成所有成就！", inline=False
-                    )
+                    embed.add_field(name="🎉 恭喜！", value="您已經完成所有成就！", inline=False)
                 elif incomplete_count > 8:
                     embed.set_footer(text=f"還有 {incomplete_count - 8} 個成就未顯示")
 
@@ -660,9 +620,7 @@ class GameEntertainment(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ 查看成就進度錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 查看成就進度時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 查看成就進度時發生錯誤。", ephemeral=True)
 
     def _create_progress_bar(self, progress: float, length: int = 10) -> str:
         """創建進度條"""
@@ -672,9 +630,7 @@ class GameEntertainment(commands.Cog):
 
     # ========== 跨平台經濟系統 ==========
 
-    @app_commands.command(
-        name="link_minecraft", description="綁定Minecraft帳號以同步經濟數據"
-    )
+    @app_commands.command(name="link_minecraft", description="綁定Minecraft帳號以同步經濟數據")
     @app_commands.describe(minecraft_username="您的Minecraft用戶名")
     async def link_minecraft_account(
         self, interaction: discord.Interaction, minecraft_username: str
@@ -748,9 +704,7 @@ class GameEntertainment(commands.Cog):
     async def unlink_minecraft_account(self, interaction: discord.Interaction):
         """解除Minecraft帳號綁定"""
         try:
-            result = await cross_platform_economy.unlink_accounts(
-                discord_id=interaction.user.id
-            )
+            result = await cross_platform_economy.unlink_accounts(discord_id=interaction.user.id)
 
             if result["success"]:
                 embed = EmbedBuilder.build(
@@ -761,9 +715,7 @@ class GameEntertainment(commands.Cog):
 
                 embed.add_field(
                     name="⚠️ 注意事項",
-                    value="• 經濟數據將不再同步\n"
-                    "• 已同步的數據會保留\n"
-                    "• 可以隨時重新綁定",
+                    value="• 經濟數據將不再同步\n" "• 已同步的數據會保留\n" "• 可以隨時重新綁定",
                     inline=False,
                 )
             else:
@@ -781,9 +733,7 @@ class GameEntertainment(commands.Cog):
                 "❌ 解綁過程中發生錯誤，請稍後再試。", ephemeral=True
             )
 
-    @app_commands.command(
-        name="sync_economy", description="手動同步經濟數據到Minecraft"
-    )
+    @app_commands.command(name="sync_economy", description="手動同步經濟數據到Minecraft")
     @app_commands.describe(direction="同步方向")
     @app_commands.choices(
         direction=[
@@ -822,9 +772,7 @@ class GameEntertainment(commands.Cog):
                         inline=True,
                     )
 
-                embed.add_field(
-                    name="⏰ 同步時間", value=f"<t:{int(time.time())}:R>", inline=True
-                )
+                embed.add_field(name="⏰ 同步時間", value=f"<t:{int(time.time())}:R>", inline=True)
 
                 if result.get("cached"):
                     embed.add_field(
@@ -850,9 +798,7 @@ class GameEntertainment(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ 同步經濟數據錯誤: {e}")
-            await interaction.followup.send(
-                "❌ 同步過程中發生錯誤，請稍後再試。", ephemeral=True
-            )
+            await interaction.followup.send("❌ 同步過程中發生錯誤，請稍後再試。", ephemeral=True)
 
     @app_commands.command(name="cross_platform_status", description="查看跨平台狀態")
     async def cross_platform_status(self, interaction: discord.Interaction):
@@ -936,9 +882,7 @@ class GameEntertainment(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ 查看跨平台狀態錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 獲取狀態時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 獲取狀態時發生錯誤。", ephemeral=True)
 
     # ========== 具體遊戲實現 ==========
 
@@ -951,9 +895,7 @@ class GameEntertainment(commands.Cog):
             app_commands.Choice(name="困難 (1-200)", value="hard"),
         ]
     )
-    async def guess_number_game(
-        self, interaction: discord.Interaction, difficulty: str = "medium"
-    ):
+    async def guess_number_game(self, interaction: discord.Interaction, difficulty: str = "medium"):
         """猜數字遊戲"""
         try:
             # 檢查用戶是否已有活躍遊戲
@@ -1030,15 +972,11 @@ class GameEntertainment(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ 猜數字遊戲錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 開始遊戲時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 開始遊戲時發生錯誤。", ephemeral=True)
 
     # ========== 遊戲會話管理 ==========
 
-    async def _get_user_active_session(
-        self, user_id: int, guild_id: int
-    ) -> Optional[GameSession]:
+    async def _get_user_active_session(self, user_id: int, guild_id: int) -> Optional[GameSession]:
         """獲取用戶活躍會話"""
         for session in self.active_sessions.values():
             if (
@@ -1049,9 +987,7 @@ class GameEntertainment(commands.Cog):
                 return session
         return None
 
-    async def end_game_session(
-        self, session: GameSession, won: bool = False, score: int = 0
-    ):
+    async def end_game_session(self, session: GameSession, won: bool = False, score: int = 0):
         """結束遊戲會話"""
         try:
             session.end_time = datetime.now(timezone.utc)
@@ -1061,9 +997,7 @@ class GameEntertainment(commands.Cog):
             # 發放獎勵
             if won and session.data.get("reward", 0) > 0:
                 reward = session.data["reward"]
-                await self.economy_manager.add_coins(
-                    session.player_id, session.guild_id, reward
-                )
+                await self.economy_manager.add_coins(session.player_id, session.guild_id, reward)
 
                 # 增加經驗
                 exp_reward = reward // 2
@@ -1072,9 +1006,7 @@ class GameEntertainment(commands.Cog):
                 )
 
                 # 更新勝利統計
-                await self.economy_manager.increment_daily_wins(
-                    session.player_id, session.guild_id
-                )
+                await self.economy_manager.increment_daily_wins(session.player_id, session.guild_id)
 
             # 檢查成就
             await self.achievement_manager.check_game_achievements(

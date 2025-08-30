@@ -132,9 +132,7 @@ class APIManager:
             logger.error(f"撤銷 API 金鑰錯誤: {e}")
             return False
 
-    def validate_api_key(
-        self, key_id: str, signature: str, request_data: str
-    ) -> Optional[APIKey]:
+    def validate_api_key(self, key_id: str, signature: str, request_data: str) -> Optional[APIKey]:
         """驗證 API 金鑰和簽名"""
         try:
             if key_id not in self.api_keys:
@@ -152,9 +150,7 @@ class APIManager:
                 return None
 
             # 驗證簽名
-            expected_signature = self._generate_signature(
-                api_key.key_secret, request_data
-            )
+            expected_signature = self._generate_signature(api_key.key_secret, request_data)
             if not hmac.compare_digest(signature, expected_signature):
                 return None
 
@@ -307,9 +303,7 @@ class APIManager:
                 signature = request.headers.get("X-Signature", "")
                 request_data = json.dumps(request.parameters, sort_keys=True)
 
-                api_key = self.validate_api_key(
-                    request.api_key_id, signature, request_data
-                )
+                api_key = self.validate_api_key(request.api_key_id, signature, request_data)
                 if not api_key:
                     return APIResponse(
                         status_code=401,
@@ -320,9 +314,7 @@ class APIManager:
 
                 # 3. 檢查權限
                 required_permissions = endpoint_config.get("permissions", [])
-                if not self._check_permissions(
-                    api_key.permissions, required_permissions
-                ):
+                if not self._check_permissions(api_key.permissions, required_permissions):
                     return APIResponse(
                         status_code=403,
                         data=None,
@@ -384,9 +376,7 @@ class APIManager:
         days = request.parameters.get("days", 30)
         return await self.statistics_manager.get_system_overview(request.guild_id, days)
 
-    async def _handle_statistics_performance(
-        self, request: APIRequest
-    ) -> Dict[str, Any]:
+    async def _handle_statistics_performance(self, request: APIRequest) -> Dict[str, Any]:
         """處理性能報告請求"""
         request.parameters.get("days", 30)
         # 需要在 StatisticsManager 中實現 get_performance_report 方法
@@ -570,9 +560,7 @@ class APIManager:
             "permissions": api_key.permissions,
             "rate_limit": api_key.rate_limit,
             "created_at": api_key.created_at.isoformat(),
-            "expires_at": (
-                api_key.expires_at.isoformat() if api_key.expires_at else None
-            ),
+            "expires_at": (api_key.expires_at.isoformat() if api_key.expires_at else None),
             "is_active": api_key.is_active,
             "current_usage": self.rate_limits.get(key_id, {}).get("count", 0),
         }

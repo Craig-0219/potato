@@ -210,9 +210,7 @@ class EconomyManager:
                             "daily_claimed": False if should_reset else daily_claimed,
                             "last_checkin": last_checkin,
                             "win_rate": (
-                                (total_wins / total_games * 100)
-                                if total_games > 0
-                                else 0
+                                (total_wins / total_games * 100) if total_games > 0 else 0
                             ),
                         }
 
@@ -271,9 +269,7 @@ class EconomyManager:
             return True
 
         today = datetime.now(timezone.utc).date()
-        last_reset_date = (
-            last_reset.date() if isinstance(last_reset, datetime) else last_reset
-        )
+        last_reset_date = last_reset.date() if isinstance(last_reset, datetime) else last_reset
 
         return today > last_reset_date
 
@@ -391,9 +387,7 @@ class EconomyManager:
             logger.error(f"❌ 增加寶石失敗: {e}")
             return False
 
-    async def add_experience(
-        self, user_id: int, guild_id: int, amount: int
-    ) -> Dict[str, Any]:
+    async def add_experience(self, user_id: int, guild_id: int, amount: int) -> Dict[str, Any]:
         """增加經驗值並檢查升級"""
         try:
             # 獲取當前經驗
@@ -458,9 +452,7 @@ class EconomyManager:
             required_exp = 0
 
             while level < self.max_level:
-                level_exp_requirement = int(
-                    self.base_exp * (self.exp_multiplier ** (level - 1))
-                )
+                level_exp_requirement = int(self.base_exp * (self.exp_multiplier ** (level - 1)))
                 if required_exp + level_exp_requirement > experience:
                     break
                 required_exp += level_exp_requirement
@@ -991,9 +983,7 @@ class EconomyManager:
 
             # 生成請求簽名
             payload_str = json.dumps(sync_data, sort_keys=True)
-            signature = self._generate_request_signature(
-                payload_str, settings.minecraft_server_key
-            )
+            signature = self._generate_request_signature(payload_str, settings.minecraft_server_key)
             sync_data["signature"] = signature
 
             # 發送到 Zientis Discord API
@@ -1059,9 +1049,7 @@ class EconomyManager:
                         logger.warning(f"🧊 用戶 {user_id} Minecraft 帳戶已被凍結")
                     else:
                         error_text = await response.text()
-                        logger.error(
-                            f"❌ Zientis 同步 HTTP 錯誤：{response.status} - {error_text}"
-                        )
+                        logger.error(f"❌ Zientis 同步 HTTP 錯誤：{response.status} - {error_text}")
 
         except asyncio.CancelledError:
             logger.info(f"🔄 Zientis 跨平台同步已取消：用戶 {user_id}")
@@ -1090,9 +1078,7 @@ class EconomyManager:
                         if difference > 0:
                             await self.add_coins(user_id, guild_id, difference)
                         else:
-                            await self.subtract_coins(
-                                user_id, guild_id, abs(difference)
-                            )
+                            await self.subtract_coins(user_id, guild_id, abs(difference))
                     elif currency == "gems":
                         await self.add_gems(user_id, guild_id, difference)
                     elif currency == "experience":
@@ -1139,9 +1125,7 @@ class EconomyManager:
 
             # 限制交易記錄數量
             if len(self._cross_platform_transactions) > 1000:
-                self._cross_platform_transactions = self._cross_platform_transactions[
-                    -500:
-                ]
+                self._cross_platform_transactions = self._cross_platform_transactions[-500:]
 
         except Exception as e:
             logger.error(f"❌ 記錄同步交易失敗: {e}")
@@ -1217,24 +1201,15 @@ class EconomyManager:
                     [
                         t
                         for t in guild_transactions
-                        if (datetime.now(timezone.utc) - t.timestamp).total_seconds()
-                        < 86400
+                        if (datetime.now(timezone.utc) - t.timestamp).total_seconds() < 86400
                     ]
                 ),
                 "platform_distribution": {
                     "discord": len(
-                        [
-                            t
-                            for t in guild_transactions
-                            if "discord" in t.source_platform
-                        ]
+                        [t for t in guild_transactions if "discord" in t.source_platform]
                     ),
                     "minecraft": len(
-                        [
-                            t
-                            for t in guild_transactions
-                            if "minecraft" in t.source_platform
-                        ]
+                        [t for t in guild_transactions if "minecraft" in t.source_platform]
                     ),
                 },
             }
@@ -1259,9 +1234,7 @@ class EconomyManager:
             # 計算通膨指標（簡化）
             inflation_rate = 0.0
             if guild_id in self._inflation_data:
-                last_avg = self._inflation_data[guild_id].get(
-                    "last_avg_coins", avg_coins
-                )
+                last_avg = self._inflation_data[guild_id].get("last_avg_coins", avg_coins)
                 if last_avg > 0:
                     inflation_rate = (avg_coins - last_avg) / last_avg
 
@@ -1281,39 +1254,27 @@ class EconomyManager:
             if inflation_rate > settings.inflation_threshold:
                 # 通膨過高，降低獎勵
                 adjustment_factor = 0.9
-                settings.message_coins = max(
-                    1, int(settings.message_coins * adjustment_factor)
-                )
+                settings.message_coins = max(1, int(settings.message_coins * adjustment_factor))
                 settings.voice_coins_per_minute = max(
                     1, int(settings.voice_coins_per_minute * adjustment_factor)
                 )
 
-                logger.warning(
-                    f"⚠️ 伺服器 {guild_id} 通膨率 {inflation_rate:.2%}，調整獎勵倍率"
-                )
+                logger.warning(f"⚠️ 伺服器 {guild_id} 通膨率 {inflation_rate:.2%}，調整獎勵倍率")
 
-            elif (
-                settings.deflation_enabled
-                and inflation_rate < -settings.inflation_threshold
-            ):
+            elif settings.deflation_enabled and inflation_rate < -settings.inflation_threshold:
                 # 通縮過多，提高獎勵
                 adjustment_factor = 1.1
-                settings.message_coins = min(
-                    10, int(settings.message_coins * adjustment_factor)
-                )
+                settings.message_coins = min(10, int(settings.message_coins * adjustment_factor))
                 settings.voice_coins_per_minute = min(
                     20, int(settings.voice_coins_per_minute * adjustment_factor)
                 )
 
-                logger.info(
-                    f"📈 伺服器 {guild_id} 通縮率 {abs(inflation_rate):.2%}，提高獎勵倍率"
-                )
+                logger.info(f"📈 伺服器 {guild_id} 通縮率 {abs(inflation_rate):.2%}，提高獎勵倍率")
 
             return {
                 "inflation_rate": inflation_rate,
                 "avg_coins": avg_coins,
-                "adjustment_applied": abs(inflation_rate)
-                > settings.inflation_threshold,
+                "adjustment_applied": abs(inflation_rate) > settings.inflation_threshold,
             }
 
         except Exception as e:
@@ -1364,9 +1325,7 @@ class EconomyManager:
                     cache_key = f"user_economy:{user_id}:{guild_id}"
                     await cache_manager.delete(cache_key)
 
-                    logger.info(
-                        f"💰 從 Minecraft 更新用戶 {user_id} 金幣餘額: {amount}"
-                    )
+                    logger.info(f"💰 從 Minecraft 更新用戶 {user_id} 金幣餘額: {amount}")
 
         except Exception as e:
             logger.error(f"❌ 從 Minecraft 更新餘額失敗: {e}")
@@ -1406,9 +1365,7 @@ class EconomyManager:
             try:
                 if not db_pool._initialized:
                     logger.warning("⚠️ 資料庫連接池未初始化，跳過資料庫保存")
-                    logger.info(
-                        f"✅ Zientis 整合設置成功 (僅記憶體)：伺服器 {guild_id}"
-                    )
+                    logger.info(f"✅ Zientis 整合設置成功 (僅記憶體)：伺服器 {guild_id}")
                     return True
 
                 async with db_pool.connection() as conn:
@@ -1416,12 +1373,8 @@ class EconomyManager:
                         # 檢查表是否存在
                         await cursor.execute("SHOW TABLES LIKE 'economy_settings'")
                         if not await cursor.fetchone():
-                            logger.warning(
-                                "⚠️ economy_settings 表不存在，跳過資料庫保存"
-                            )
-                            logger.info(
-                                f"✅ Zientis 整合設置成功 (僅記憶體)：伺服器 {guild_id}"
-                            )
+                            logger.warning("⚠️ economy_settings 表不存在，跳過資料庫保存")
+                            logger.info(f"✅ Zientis 整合設置成功 (僅記憶體)：伺服器 {guild_id}")
                             return True
 
                         # 執行資料庫操作
@@ -1445,9 +1398,7 @@ class EconomyManager:
                         )
                         await conn.commit()
 
-                        logger.info(
-                            f"✅ Zientis 整合設置成功 (包含資料庫)：伺服器 {guild_id}"
-                        )
+                        logger.info(f"✅ Zientis 整合設置成功 (包含資料庫)：伺服器 {guild_id}")
 
             except Exception as db_error:
                 logger.error(f"⚠️ 資料庫保存失敗但設定已儲存至記憶體: {db_error}")

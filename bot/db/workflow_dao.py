@@ -289,12 +289,8 @@ class WorkflowDAO(BaseDAO):
                         "guild_id": result[3],
                         "status": result[4],
                         "trigger_type": result[5],
-                        "trigger_conditions": (
-                            json.loads(result[6]) if result[6] else []
-                        ),
-                        "trigger_parameters": (
-                            json.loads(result[7]) if result[7] else {}
-                        ),
+                        "trigger_conditions": (json.loads(result[6]) if result[6] else []),
+                        "trigger_parameters": (json.loads(result[7]) if result[7] else {}),
                         "actions": json.loads(result[8]) if result[8] else [],
                         "created_by": result[9],
                         "created_at": result[10],
@@ -391,14 +387,10 @@ class WorkflowDAO(BaseDAO):
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     # 記錄刪除歷史
-                    await self._log_workflow_history(
-                        workflow_id, 0, deleted_by, "deleted", {}
-                    )
+                    await self._log_workflow_history(workflow_id, 0, deleted_by, "deleted", {})
 
                     # 刪除工作流程（級聯刪除相關記錄）
-                    await cursor.execute(
-                        "DELETE FROM workflows WHERE id = %s", (workflow_id,)
-                    )
+                    await cursor.execute("DELETE FROM workflows WHERE id = %s", (workflow_id,))
                     await conn.commit()
 
                     return cursor.rowcount > 0
@@ -424,9 +416,7 @@ class WorkflowDAO(BaseDAO):
                             execution_data["id"],
                             execution_data["workflow_id"],
                             json.dumps(execution_data.get("trigger_data", {})),
-                            execution_data.get(
-                                "start_time", datetime.now(timezone.utc)
-                            ),
+                            execution_data.get("start_time", datetime.now(timezone.utc)),
                             execution_data.get("status", "running"),
                         ),
                     )
@@ -438,9 +428,7 @@ class WorkflowDAO(BaseDAO):
             logger.error(f"創建執行記錄失敗: {e}")
             raise
 
-    async def update_execution(
-        self, execution_id: str, updates: Dict[str, Any]
-    ) -> bool:
+    async def update_execution(self, execution_id: str, updates: Dict[str, Any]) -> bool:
         """更新執行記錄"""
         try:
             async with self.db.connection() as conn:
@@ -550,9 +538,7 @@ class WorkflowDAO(BaseDAO):
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     # 獲取總數
-                    count_sql = (
-                        f"SELECT COUNT(*) FROM workflow_executions {where_clause}"
-                    )
+                    count_sql = f"SELECT COUNT(*) FROM workflow_executions {where_clause}"
                     await cursor.execute(count_sql, params)
                     total_count = (await cursor.fetchone())[0]
 
@@ -647,9 +633,7 @@ class WorkflowDAO(BaseDAO):
         except Exception as e:
             logger.error(f"更新工作流程統計失敗: {e}")
 
-    async def get_workflow_statistics(
-        self, workflow_id: str, days: int = 30
-    ) -> Dict[str, Any]:
+    async def get_workflow_statistics(self, workflow_id: str, days: int = 30) -> Dict[str, Any]:
         """獲取工作流程統計"""
         try:
             end_date = datetime.now(timezone.utc).date()
@@ -698,9 +682,7 @@ class WorkflowDAO(BaseDAO):
                         "success_count": overall_stats[1] or 0,
                         "failure_count": overall_stats[2] or 0,
                         "success_rate": (
-                            (overall_stats[1] / overall_stats[0] * 100)
-                            if overall_stats[0]
-                            else 0
+                            (overall_stats[1] / overall_stats[0] * 100) if overall_stats[0] else 0
                         ),
                         "avg_execution_time": (
                             float(overall_stats[3]) if overall_stats[3] else 0.0
@@ -721,9 +703,7 @@ class WorkflowDAO(BaseDAO):
             logger.error(f"獲取工作流程統計失敗: {e}")
             return {}
 
-    async def get_guild_workflow_statistics(
-        self, guild_id: int, days: int = 30
-    ) -> Dict[str, Any]:
+    async def get_guild_workflow_statistics(self, guild_id: int, days: int = 30) -> Dict[str, Any]:
         """獲取伺服器工作流程統計"""
         try:
             end_date = datetime.now(timezone.utc).date()
@@ -788,9 +768,7 @@ class WorkflowDAO(BaseDAO):
                         "success_count": overall_stats[3] or 0,
                         "failure_count": overall_stats[4] or 0,
                         "success_rate": (
-                            (overall_stats[3] / overall_stats[2] * 100)
-                            if overall_stats[2]
-                            else 0
+                            (overall_stats[3] / overall_stats[2] * 100) if overall_stats[2] else 0
                         ),
                         "avg_execution_time": (
                             float(overall_stats[5]) if overall_stats[5] else 0.0
@@ -947,9 +925,7 @@ class WorkflowDAO(BaseDAO):
 
             if guild_id is not None:
                 # 通過工作流程表關聯獲取伺服器ID
-                conditions.append(
-                    "e.workflow_id IN (SELECT id FROM workflows WHERE guild_id = %s)"
-                )
+                conditions.append("e.workflow_id IN (SELECT id FROM workflows WHERE guild_id = %s)")
                 params.append(guild_id)
 
             if workflow_id:
@@ -991,9 +967,7 @@ class WorkflowDAO(BaseDAO):
             params = []
 
             if guild_id is not None:
-                conditions.append(
-                    "e.workflow_id IN (SELECT id FROM workflows WHERE guild_id = %s)"
-                )
+                conditions.append("e.workflow_id IN (SELECT id FROM workflows WHERE guild_id = %s)")
                 params.append(guild_id)
 
             where_clause = "WHERE " + " AND ".join(conditions)
@@ -1016,9 +990,7 @@ class WorkflowDAO(BaseDAO):
             logger.error(f"獲取執行中工作流程數量失敗: {e}")
             return 0
 
-    async def get_workflow_activity_summary(
-        self, guild_id: int, days: int = 7
-    ) -> Dict[str, Any]:
+    async def get_workflow_activity_summary(self, guild_id: int, days: int = 7) -> Dict[str, Any]:
         """獲取工作流程活動摘要"""
         try:
             start_date = datetime.now(timezone.utc) - timedelta(days=days)

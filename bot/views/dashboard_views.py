@@ -87,9 +87,7 @@ class ChartNavigationSelect(Select):
         # 創建圖表嵌入
         embed = await self._create_chart_embed(chart)
 
-        await interaction.response.send_message(
-            embed=embed, view=chart_view, ephemeral=True
-        )
+        await interaction.response.send_message(embed=embed, view=chart_view, ephemeral=True)
 
     async def _create_chart_embed(self, chart: ChartData) -> discord.Embed:
         """創建圖表顯示嵌入"""
@@ -108,9 +106,7 @@ class ChartNavigationSelect(Select):
                 dataset_info.append(f"• {label}: {data_points} 個數據點")
 
             if dataset_info:
-                embed.add_field(
-                    name="📊 數據集信息", value="\n".join(dataset_info), inline=False
-                )
+                embed.add_field(name="📊 數據集信息", value="\n".join(dataset_info), inline=False)
 
         # 添加圖表選項
         if chart.options:
@@ -120,9 +116,7 @@ class ChartNavigationSelect(Select):
                     options_text.append(f"• {key}: {'是' if value else '否'}")
 
             if options_text:
-                embed.add_field(
-                    name="⚙️ 圖表設定", value="\n".join(options_text[:3]), inline=True
-                )
+                embed.add_field(name="⚙️ 圖表設定", value="\n".join(options_text[:3]), inline=True)
 
         # 添加數據標籤資訊
         if chart.labels:
@@ -155,9 +149,7 @@ class ChartDisplayView(View):
         await interaction.response.send_modal(modal)
 
     @button(label="📈 數據趨勢", style=discord.ButtonStyle.secondary, row=0)
-    async def trend_analysis_button(
-        self, interaction: discord.Interaction, button: Button
-    ):
+    async def trend_analysis_button(self, interaction: discord.Interaction, button: Button):
         """分析數據趨勢"""
         trend_analysis = await self._analyze_chart_trends()
 
@@ -168,16 +160,12 @@ class ChartDisplayView(View):
         )
 
         for analysis in trend_analysis:
-            embed.add_field(
-                name=analysis["metric"], value=analysis["description"], inline=False
-            )
+            embed.add_field(name=analysis["metric"], value=analysis["description"], inline=False)
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @button(label="💾 導出數據", style=discord.ButtonStyle.success, row=0)
-    async def export_chart_button(
-        self, interaction: discord.Interaction, button: Button
-    ):
+    async def export_chart_button(self, interaction: discord.Interaction, button: Button):
         """導出圖表數據"""
         try:
             # 生成數據文件
@@ -205,15 +193,11 @@ class ChartDisplayView(View):
                 color=0x2ECC71,
             )
 
-            await interaction.response.send_message(
-                embed=embed, file=file, ephemeral=True
-            )
+            await interaction.response.send_message(embed=embed, file=file, ephemeral=True)
 
         except Exception as e:
             logger.error(f"導出圖表數據失敗: {e}")
-            await interaction.response.send_message(
-                "❌ 導出失敗，請稍後再試", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 導出失敗，請稍後再試", ephemeral=True)
 
     async def _analyze_chart_trends(self) -> List[Dict[str, str]]:
         """分析圖表趨勢"""
@@ -228,9 +212,7 @@ class ChartDisplayView(View):
                 label = dataset.get("label", "未知數據集")
 
                 # 計算基本統計
-                valid_data = [
-                    x for x in data if x is not None and isinstance(x, (int, float))
-                ]
+                valid_data = [x for x in data if x is not None and isinstance(x, (int, float))]
                 if len(valid_data) < 2:
                     continue
 
@@ -250,9 +232,7 @@ class ChartDisplayView(View):
 
                 # 計算變化率
                 if len(valid_data) >= 2:
-                    change_rate = (
-                        (valid_data[-1] - valid_data[0]) / valid_data[0]
-                    ) * 100
+                    change_rate = ((valid_data[-1] - valid_data[0]) / valid_data[0]) * 100
                     change_text = f"總體變化: {change_rate:+.1f}%"
                 else:
                     change_text = "無法計算變化率"
@@ -265,9 +245,7 @@ class ChartDisplayView(View):
                 )
 
             if not analyses:
-                analyses.append(
-                    {"metric": "📋 分析結果", "description": "無足夠數據進行趨勢分析"}
-                )
+                analyses.append({"metric": "📋 分析結果", "description": "無足夠數據進行趨勢分析"})
 
             return analyses
 
@@ -278,9 +256,7 @@ class ChartDisplayView(View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         """檢查互動權限"""
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message(
-                "❌ 只有指令使用者可以操作", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 只有指令使用者可以操作", ephemeral=True)
             return False
         return True
 
@@ -289,14 +265,10 @@ class RefreshDashboardButton(Button):
     """刷新儀表板按鈕"""
 
     def __init__(self):
-        super().__init__(
-            label="🔄 刷新數據", style=discord.ButtonStyle.secondary, row=1
-        )
+        super().__init__(label="🔄 刷新數據", style=discord.ButtonStyle.secondary, row=1)
 
     async def callback(self, interaction: discord.Interaction):
-        await interaction.response.send_message(
-            "🔄 正在刷新儀表板數據，請稍候...", ephemeral=True
-        )
+        await interaction.response.send_message("🔄 正在刷新儀表板數據，請稍候...", ephemeral=True)
 
         # 實際的刷新邏輯需要在這裡實現
         # 目前顯示刷新完成消息
@@ -320,9 +292,7 @@ class ViewAllChartsButton(Button):
     """查看所有圖表按鈕"""
 
     def __init__(self):
-        super().__init__(
-            label="📊 查看所有圖表", style=discord.ButtonStyle.primary, row=1
-        )
+        super().__init__(label="📊 查看所有圖表", style=discord.ButtonStyle.primary, row=1)
 
     async def callback(self, interaction: discord.Interaction):
         dashboard_data = self.view.dashboard_data
@@ -418,9 +388,7 @@ class ChartDataModal(Modal):
 
             # 添加數據集預覽
             if self.chart.datasets:
-                for i, dataset in enumerate(
-                    self.chart.datasets[:2]
-                ):  # 最多顯示2個數據集
+                for i, dataset in enumerate(self.chart.datasets[:2]):  # 最多顯示2個數據集
                     label = dataset.get("label", f"數據集 {i+1}")
                     data = dataset.get("data", [])
 
@@ -492,9 +460,7 @@ class ExportOptionsModal(Modal):
             include_charts = self.include_charts.value.lower() in ["yes", "y", "是"]
 
             if export_format not in ["json", "csv", "txt"]:
-                await interaction.response.send_message(
-                    "❌ 不支援的導出格式", ephemeral=True
-                )
+                await interaction.response.send_message("❌ 不支援的導出格式", ephemeral=True)
                 return
 
             # 模擬導出過程
@@ -524,6 +490,4 @@ class ExportOptionsModal(Modal):
 
         except Exception as e:
             logger.error(f"處理導出請求失敗: {e}")
-            await interaction.response.send_message(
-                "❌ 導出請求處理失敗", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 導出請求處理失敗", ephemeral=True)

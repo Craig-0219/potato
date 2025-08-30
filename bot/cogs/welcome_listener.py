@@ -27,9 +27,7 @@ class WelcomeListener(commands.Cog):
         self.recent_joins: Set[int] = set()
         self.recent_updates: Set[int] = set()
 
-    async def _handle_welcome_with_tracking(
-        self, member: discord.Member, event_type: str = "join"
-    ):
+    async def _handle_welcome_with_tracking(self, member: discord.Member, event_type: str = "join"):
         """處理歡迎事件並進行追蹤，避免重複處理"""
         member_id = member.id
         datetime.now(timezone.utc)
@@ -116,15 +114,9 @@ class WelcomeListener(commands.Cog):
 
             for guild in self.bot.guilds:
                 for member in guild.members:
-                    if (
-                        not member.bot
-                        and member.joined_at
-                        and member.joined_at > recent_threshold
-                    ):
+                    if not member.bot and member.joined_at and member.joined_at > recent_threshold:
 
-                        logger.info(
-                            f"🔍 檢查可能錯過的新成員: {member} in {guild.name}"
-                        )
+                        logger.info(f"🔍 檢查可能錯過的新成員: {member} in {guild.name}")
                         # 給一點延遲避免大量同時處理
                         import asyncio
 

@@ -22,9 +22,7 @@ class WebAuthCommands(commands.Cog):
         self.bot = bot
         self.web_auth_manager = auth_manager
 
-    @app_commands.command(
-        name="setup-web-password", description="設定 Web 介面登入密碼"
-    )
+    @app_commands.command(name="setup-web-password", description="設定 Web 介面登入密碼")
     @app_commands.describe(password="設定的密碼 (至少 6 個字元)")
     async def setup_web_password(self, interaction: discord.Interaction, password: str):
         """設定 Web 介面登入密碼"""
@@ -34,24 +32,18 @@ class WebAuthCommands(commands.Cog):
 
             # 驗證密碼長度
             if len(password) < 6:
-                await interaction.followup.send(
-                    "❌ 密碼長度至少需要 6 個字元", ephemeral=True
-                )
+                await interaction.followup.send("❌ 密碼長度至少需要 6 個字元", ephemeral=True)
                 return
 
             # 設定密碼邏輯
-            success = await auth_manager.set_user_password(
-                interaction.user.id, password
-            )
+            success = await auth_manager.set_user_password(interaction.user.id, password)
             if success:
                 await interaction.followup.send("✅ Web 密碼設定成功", ephemeral=True)
             else:
                 await interaction.followup.send("❌ Web 密碼設定失敗", ephemeral=True)
 
         except Exception as e:
-            await SafeInteractionHandler.handle_interaction_error(
-                interaction, e, "設定 Web 密碼"
-            )
+            await SafeInteractionHandler.handle_interaction_error(interaction, e, "設定 Web 密碼")
 
     @app_commands.command(name="create-api-key", description="創建 API 金鑰")
     @app_commands.describe(
@@ -67,9 +59,7 @@ class WebAuthCommands(commands.Cog):
 
             # 驗證金鑰名稱
             if not name or len(name.strip()) == 0:
-                await interaction.followup.send(
-                    "❌ API 金鑰名稱不能為空", ephemeral=True
-                )
+                await interaction.followup.send("❌ API 金鑰名稱不能為空", ephemeral=True)
                 return
 
             # 創建 API 金鑰
@@ -90,9 +80,7 @@ class WebAuthCommands(commands.Cog):
 
         except Exception as e:
             logger.error(f"創建 API 金鑰時發生錯誤: {e}")
-            await SafeInteractionHandler.handle_interaction_error(
-                interaction, e, "創建 API 金鑰"
-            )
+            await SafeInteractionHandler.handle_interaction_error(interaction, e, "創建 API 金鑰")
 
     @app_commands.command(name="list-api-keys", description="列出我的 API 金鑰")
     async def list_api_keys(self, interaction: discord.Interaction):
@@ -117,9 +105,7 @@ class WebAuthCommands(commands.Cog):
             for key_info in api_keys:
                 status = "🟢 有效" if key_info.get("is_active", True) else "🔴 已撤銷"
                 expires = key_info.get("expires_at")
-                expires_str = (
-                    expires.strftime("%Y-%m-%d %H:%M") if expires else "永不過期"
-                )
+                expires_str = expires.strftime("%Y-%m-%d %H:%M") if expires else "永不過期"
 
                 key_list.append(
                     f"**{key_info['name']}** (ID: `{key_info['id'][:8]}...`)\n"
@@ -138,9 +124,7 @@ class WebAuthCommands(commands.Cog):
 
         except Exception as e:
             logger.error(f"列出 API 金鑰時發生錯誤: {e}")
-            await SafeInteractionHandler.handle_interaction_error(
-                interaction, e, "列出 API 金鑰"
-            )
+            await SafeInteractionHandler.handle_interaction_error(interaction, e, "列出 API 金鑰")
 
     @app_commands.command(name="revoke-api-key", description="撤銷 API 金鑰")
     @app_commands.describe(key_id="要撤銷的 API 金鑰 ID")
@@ -152,9 +136,7 @@ class WebAuthCommands(commands.Cog):
 
             # 驗證金鑰 ID
             if not key_id or len(key_id.strip()) == 0:
-                await interaction.followup.send(
-                    "❌ API 金鑰 ID 不能為空", ephemeral=True
-                )
+                await interaction.followup.send("❌ API 金鑰 ID 不能為空", ephemeral=True)
                 return
 
             # 撤銷 API 金鑰
@@ -175,9 +157,7 @@ class WebAuthCommands(commands.Cog):
 
         except Exception as e:
             logger.error(f"撤銷 API 金鑰時發生錯誤: {e}")
-            await SafeInteractionHandler.handle_interaction_error(
-                interaction, e, "撤銷 API 金鑰"
-            )
+            await SafeInteractionHandler.handle_interaction_error(interaction, e, "撤銷 API 金鑰")
 
     @app_commands.command(name="web-login-info", description="顯示 Web 登入資訊")
     async def web_login_info(self, interaction: discord.Interaction):

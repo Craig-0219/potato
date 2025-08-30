@@ -32,9 +32,7 @@ class LocalizedCommand:
 
             # 從語言包獲取名稱和描述
             name = (
-                self.language_manager.get_string(
-                    f"commands.names.{name_key}", default_lang
-                )
+                self.language_manager.get_string(f"commands.names.{name_key}", default_lang)
                 or name_key
             )
             description = self.language_manager.get_string(
@@ -42,9 +40,7 @@ class LocalizedCommand:
             )
 
             # 創建 app_commands.command 裝飾器
-            command_decorator = app_commands.command(
-                name=name, description=description, **kwargs
-            )
+            command_decorator = app_commands.command(name=name, description=description, **kwargs)
 
             @wraps(func)
             async def wrapper(interaction: discord.Interaction, *args, **kwargs):
@@ -55,11 +51,7 @@ class LocalizedCommand:
                         guild_id=interaction.guild.id if interaction.guild else None,
                     )
 
-                    user_lang = (
-                        user_lang_info["language_code"]
-                        if user_lang_info
-                        else default_lang
-                    )
+                    user_lang = user_lang_info["language_code"] if user_lang_info else default_lang
 
                     # 將語言代碼添加到 interaction 中供指令使用
                     interaction.user_language = user_lang
@@ -84,9 +76,7 @@ class LocalizedCommand:
             default_lang = self.language_manager.default_language
 
             name = (
-                self.language_manager.get_string(
-                    f"commands.names.{name_key}", default_lang
-                )
+                self.language_manager.get_string(f"commands.names.{name_key}", default_lang)
                 or name_key
             )
             description = self.language_manager.get_string(
@@ -94,9 +84,7 @@ class LocalizedCommand:
             )
 
             # 創建 app_commands.Group
-            group_decorator = app_commands.Group(
-                name=name, description=description, **kwargs
-            )
+            group_decorator = app_commands.Group(name=name, description=description, **kwargs)
 
             @wraps(func)
             async def wrapper(interaction: discord.Interaction, *args, **kwargs):
@@ -107,11 +95,7 @@ class LocalizedCommand:
                         guild_id=interaction.guild.id if interaction.guild else None,
                     )
 
-                    user_lang = (
-                        user_lang_info["language_code"]
-                        if user_lang_info
-                        else default_lang
-                    )
+                    user_lang = user_lang_info["language_code"] if user_lang_info else default_lang
                     interaction.user_language = user_lang
 
                 except Exception as e:
@@ -132,14 +116,10 @@ class LocalizedResponse:
         self.language_manager = LanguageManager()
         self.language_dao = LanguageDAO()
 
-    async def get_user_language(
-        self, user_id: int, guild_id: Optional[int] = None
-    ) -> str:
+    async def get_user_language(self, user_id: int, guild_id: Optional[int] = None) -> str:
         """獲取用戶語言設定"""
         try:
-            user_lang_info = await self.language_dao.get_user_language(
-                user_id, guild_id
-            )
+            user_lang_info = await self.language_dao.get_user_language(user_id, guild_id)
             return (
                 user_lang_info["language_code"]
                 if user_lang_info
@@ -162,9 +142,7 @@ class LocalizedResponse:
         **kwargs,
     ) -> discord.Embed:
         """創建本地化的 Embed"""
-        user_lang = getattr(
-            interaction, "user_language", self.language_manager.default_language
-        )
+        user_lang = getattr(interaction, "user_language", self.language_manager.default_language)
 
         title = self.get_text(title_key, user_lang, **kwargs)
 
@@ -185,9 +163,7 @@ class LocalizedResponse:
         **kwargs,
     ) -> None:
         """發送本地化回應"""
-        user_lang = getattr(
-            interaction, "user_language", self.language_manager.default_language
-        )
+        user_lang = getattr(interaction, "user_language", self.language_manager.default_language)
         message = self.get_text(message_key, user_lang, **kwargs)
 
         if embed:
@@ -201,9 +177,7 @@ class LocalizedResponse:
             if interaction.response.is_done():
                 await interaction.followup.send(embed=embed_obj, ephemeral=ephemeral)
             else:
-                await interaction.response.send_message(
-                    embed=embed_obj, ephemeral=ephemeral
-                )
+                await interaction.response.send_message(embed=embed_obj, ephemeral=ephemeral)
         else:
             if interaction.response.is_done():
                 await interaction.followup.send(message, ephemeral=ephemeral)
@@ -235,9 +209,7 @@ class CommandReloader:
         except Exception as e:
             logger.error(f"重新載入指令描述錯誤: {e}")
 
-    async def update_command_for_user(
-        self, user_id: int, guild_id: Optional[int] = None
-    ):
+    async def update_command_for_user(self, user_id: int, guild_id: Optional[int] = None):
         """為特定用戶更新指令（Discord 不支持，只能記錄語言變更）"""
         try:
             # Discord 不支援為特定用戶更新指令描述

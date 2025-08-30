@@ -136,20 +136,14 @@ class DatabaseCleanupManager:
     ) -> Dict[str, Any]:
         """歸檔特定時期的資料"""
         try:
-            logger.info(
-                f"歸檔 {guild_id} 的 {data_type} 資料: {start_date} 到 {end_date}"
-            )
+            logger.info(f"歸檔 {guild_id} 的 {data_type} 資料: {start_date} 到 {end_date}")
 
             if data_type == "tickets":
                 # 自定義查詢歸檔特定期間的票券
-                result = await self._archive_tickets_by_period(
-                    guild_id, start_date, end_date
-                )
+                result = await self._archive_tickets_by_period(guild_id, start_date, end_date)
             elif data_type == "votes":
                 # 自定義查詢歸檔特定期間的投票
-                result = await self._archive_votes_by_period(
-                    guild_id, start_date, end_date
-                )
+                result = await self._archive_votes_by_period(guild_id, start_date, end_date)
             else:
                 return {"error": f"不支援的資料類型: {data_type}"}
 
@@ -185,9 +179,7 @@ class DatabaseCleanupManager:
     ) -> Dict[str, Any]:
         """設置清理排程"""
         try:
-            schedule_id = await self.dao.create_cleanup_schedule(
-                guild_id, schedule_config
-            )
+            schedule_id = await self.dao.create_cleanup_schedule(guild_id, schedule_config)
 
             if schedule_id:
                 logger.info(f"創建清理排程成功: {schedule_id}")
@@ -282,9 +274,7 @@ class DatabaseCleanupManager:
             stats = {
                 **archive_stats,
                 "storage_analysis": await self._analyze_storage_usage(guild_id),
-                "recommendations": await self._generate_cleanup_recommendations(
-                    guild_id
-                ),
+                "recommendations": await self._generate_cleanup_recommendations(guild_id),
             }
 
             return stats
@@ -315,18 +305,10 @@ class DatabaseCleanupManager:
             # 基於資料分析生成建議
             archive_stats = await self.dao.get_archive_statistics(guild_id)
 
-            if (
-                archive_stats.get("ticket_archives", {}).get(
-                    "total_archived_tickets", 0
-                )
-                > 1000
-            ):
+            if archive_stats.get("ticket_archives", {}).get("total_archived_tickets", 0) > 1000:
                 recommendations.append("考慮設置更短的票券保留期間")
 
-            if (
-                archive_stats.get("vote_archives", {}).get("total_archived_votes", 0)
-                > 500
-            ):
+            if archive_stats.get("vote_archives", {}).get("total_archived_votes", 0) > 500:
                 recommendations.append("建議定期清理舊投票資料")
 
             # 如果沒有特殊建議，提供通用建議
@@ -386,9 +368,7 @@ class DatabaseCleanupManager:
             await self.perform_comprehensive_cleanup(guild_id, cleanup_config)
 
             # 更新排程的下次執行時間
-            await self._update_schedule_next_run(
-                schedule["id"], schedule["schedule_type"]
-            )
+            await self._update_schedule_next_run(schedule["id"], schedule["schedule_type"])
 
             logger.info(f"排程清理完成: {schedule['id']}")
 

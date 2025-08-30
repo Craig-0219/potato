@@ -177,18 +177,10 @@ class MariaDBPool:
             # 修復：添加連線池狀態檢查
             pool_info = {
                 "size": getattr(self.pool, "_size", getattr(self.pool, "size", 0)),
-                "used": getattr(
-                    self.pool, "_used_size", getattr(self.pool, "used_size", 0)
-                ),
-                "free": getattr(
-                    self.pool, "_free_size", getattr(self.pool, "free_size", 0)
-                ),
-                "minsize": getattr(
-                    self.pool, "_minsize", getattr(self.pool, "minsize", 0)
-                ),
-                "maxsize": getattr(
-                    self.pool, "_maxsize", getattr(self.pool, "maxsize", 0)
-                ),
+                "used": getattr(self.pool, "_used_size", getattr(self.pool, "used_size", 0)),
+                "free": getattr(self.pool, "_free_size", getattr(self.pool, "free_size", 0)),
+                "minsize": getattr(self.pool, "_minsize", getattr(self.pool, "minsize", 0)),
+                "maxsize": getattr(self.pool, "_maxsize", getattr(self.pool, "maxsize", 0)),
             }
 
             # 快速測試查詢

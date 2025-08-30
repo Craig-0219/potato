@@ -2,7 +2,6 @@
 資料庫整合測試
 """
 
-import asyncio
 import os
 import sys
 import unittest

@@ -169,14 +169,11 @@ class GuildPermissionManager:
             admin_members = [
                 member
                 for member in guild.members
-                if member.guild_permissions.administrator
-                and member.id != guild.owner_id
+                if member.guild_permissions.administrator and member.id != guild.owner_id
             ]
 
             for admin in admin_members:
-                await self._assign_role_to_user(
-                    admin.id, guild.id, GuildRole.ADMIN, guild.owner_id
-                )
+                await self._assign_role_to_user(admin.id, guild.id, GuildRole.ADMIN, guild.owner_id)
 
             logger.info(f"✅ 伺服器權限系統初始化完成: {guild.name} (ID: {guild.id})")
             return True
@@ -203,9 +200,7 @@ class GuildPermissionManager:
 
             # 檢查 Discord 原生權限（可選）
             if check_discord_perms:
-                discord_perm = await self._check_discord_permission(
-                    user_id, guild_id, permission
-                )
+                discord_perm = await self._check_discord_permission(user_id, guild_id, permission)
                 if discord_perm:
                     return True
 
@@ -219,9 +214,7 @@ class GuildPermissionManager:
             logger.error(f"❌ 權限檢查失敗: {e}")
             return False
 
-    async def get_user_permissions(
-        self, user_id: int, guild_id: int
-    ) -> GuildUserPermissions:
+    async def get_user_permissions(self, user_id: int, guild_id: int) -> GuildUserPermissions:
         """獲取用戶在伺服器的權限"""
         cache_key = f"{user_id}:{guild_id}"
 
@@ -229,10 +222,7 @@ class GuildPermissionManager:
         if cache_key in self._permission_cache:
             cached = self._permission_cache[cache_key]
             # 檢查快取是否過期（5分鐘）
-            if (
-                cached.assigned_at
-                and (datetime.now() - cached.assigned_at).total_seconds() < 300
-            ):
+            if cached.assigned_at and (datetime.now() - cached.assigned_at).total_seconds() < 300:
                 return cached
 
         try:
@@ -255,9 +245,7 @@ class GuildPermissionManager:
                 assigned_at=datetime.now(),
             )
 
-    async def _load_user_permissions(
-        self, user_id: int, guild_id: int
-    ) -> GuildUserPermissions:
+    async def _load_user_permissions(self, user_id: int, guild_id: int) -> GuildUserPermissions:
         """從資料庫載入用戶權限"""
         try:
             # 查詢用戶在該伺服器的角色
@@ -295,8 +283,7 @@ class GuildPermissionManager:
                             roles=roles,
                             permissions=permissions,
                             is_owner=GuildRole.OWNER in roles,
-                            is_admin=GuildRole.ADMIN in roles
-                            or GuildRole.OWNER in roles,
+                            is_admin=GuildRole.ADMIN in roles or GuildRole.OWNER in roles,
                             assigned_at=result.get("assigned_at"),
                             expires_at=result.get("expires_at"),
                         )
@@ -305,9 +292,7 @@ class GuildPermissionManager:
             guild_info = await self._get_guild_info(guild_id)
             if guild_info and guild_info.get("owner_id") == user_id:
                 # 自動分配擁有者角色
-                await self._assign_role_to_user(
-                    user_id, guild_id, GuildRole.OWNER, user_id
-                )
+                await self._assign_role_to_user(user_id, guild_id, GuildRole.OWNER, user_id)
                 return GuildUserPermissions(
                     user_id=user_id,
                     guild_id=guild_id,
@@ -342,15 +327,11 @@ class GuildPermissionManager:
         """分配角色給用戶"""
         try:
             # 檢查分配者權限
-            if not await self.check_permission(
-                assigned_by, guild_id, GuildPermission.SYSTEM_ADMIN
-            ):
+            if not await self.check_permission(assigned_by, guild_id, GuildPermission.SYSTEM_ADMIN):
                 logger.warning(f"用戶 {assigned_by} 沒有權限分配角色")
                 return False
 
-            return await self._assign_role_to_user(
-                user_id, guild_id, role, assigned_by, expires_at
-            )
+            return await self._assign_role_to_user(user_id, guild_id, role, assigned_by, expires_at)
 
         except Exception as e:
             logger.error(f"❌ 分配角色失敗: {e}")
@@ -433,9 +414,7 @@ class GuildPermissionManager:
         """移除用戶角色"""
         try:
             # 檢查權限
-            if not await self.check_permission(
-                removed_by, guild_id, GuildPermission.SYSTEM_ADMIN
-            ):
+            if not await self.check_permission(removed_by, guild_id, GuildPermission.SYSTEM_ADMIN):
                 return False
 
             # 獲取現有權限
@@ -532,9 +511,7 @@ class GuildPermissionManager:
             logger.error(f"❌ 獲取伺服器統計失敗: {e}")
             return {}
 
-    def clear_cache(
-        self, user_id: Optional[int] = None, guild_id: Optional[int] = None
-    ):
+    def clear_cache(self, user_id: Optional[int] = None, guild_id: Optional[int] = None):
         """清除權限快取"""
         if user_id and guild_id:
             # 清除特定用戶快取
@@ -544,9 +521,7 @@ class GuildPermissionManager:
         elif guild_id:
             # 清除整個伺服器的快取
             keys_to_remove = [
-                key
-                for key in self._permission_cache.keys()
-                if key.endswith(f":{guild_id}")
+                key for key in self._permission_cache.keys() if key.endswith(f":{guild_id}")
             ]
             for key in keys_to_remove:
                 del self._permission_cache[key]

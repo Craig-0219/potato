@@ -2,7 +2,6 @@
 Bot 生命週期端到端測試
 """
 
-import asyncio
 import os
 import sys
 import unittest

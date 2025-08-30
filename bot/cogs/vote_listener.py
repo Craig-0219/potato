@@ -38,9 +38,7 @@ class VoteListener(commands.Cog):
         # Step 1 - 輸入標題
         if "title" not in session:
             session["title"] = message.content.strip()
-            await message.channel.send(
-                "請輸入投票選項，每行一個（2~20 個）...", delete_after=15
-            )
+            await message.channel.send("請輸入投票選項，每行一個（2~20 個）...", delete_after=15)
             try:
                 await message.delete()
             except discord.Forbidden:
@@ -50,9 +48,7 @@ class VoteListener(commands.Cog):
         # Step 2 - 輸入選項
         if "options" not in session:
             options = [
-                line.strip()
-                for line in message.content.strip().splitlines()
-                if line.strip()
+                line.strip() for line in message.content.strip().splitlines() if line.strip()
             ]
             if not 2 <= len(options) <= 20:
                 await message.channel.send("請輸入 2~20 個有效選項。", delete_after=10)
@@ -133,9 +129,9 @@ class VoteListener(commands.Cog):
             and custom_id.startswith("duration_select")
         ):
             minutes = int(values[0])
-            session["end_time"] = interaction.created_at.replace(
-                tzinfo=timezone.utc
-            ) + timedelta(minutes=minutes)
+            session["end_time"] = interaction.created_at.replace(tzinfo=timezone.utc) + timedelta(
+                minutes=minutes
+            )
             session["duration"] = minutes
             await interaction.response.send_message(
                 "✅ 所有項目已完成，請點擊下方按鈕建立投票：",

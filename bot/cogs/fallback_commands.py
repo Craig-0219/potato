@@ -143,9 +143,7 @@ class FallbackCommands(commands.Cog):
                 description="使用方式：`!ai_chat <你的問題>`",
                 color=0x9B59B6,
             )
-            embed.add_field(
-                name="範例", value="`!ai_chat 你好` 或 `!ask 天氣如何`", inline=False
-            )
+            embed.add_field(name="範例", value="`!ai_chat 你好` 或 `!ask 天氣如何`", inline=False)
             await ctx.send(embed=embed)
             return
 
@@ -175,9 +173,7 @@ class FallbackCommands(commands.Cog):
                 name="📡 延遲", value=f"{round(self.bot.latency * 1000)}ms", inline=True
             )
 
-            embed.add_field(
-                name="🏛️ 伺服器數", value=f"{len(self.bot.guilds)}", inline=True
-            )
+            embed.add_field(name="🏛️ 伺服器數", value=f"{len(self.bot.guilds)}", inline=True)
 
             embed.add_field(
                 name="⚠️ 注意事項",
@@ -215,9 +211,7 @@ class FallbackCommands(commands.Cog):
         embed.add_field(
             name="ℹ️ 系統功能",
             value=(
-                "`!bot_status` - 系統狀態\n"
-                "`!guide` - 說明頁面\n"
-                "`!sync` - 同步命令 (管理員)"
+                "`!bot_status` - 系統狀態\n" "`!guide` - 說明頁面\n" "`!sync` - 同步命令 (管理員)"
             ),
             inline=True,
         )

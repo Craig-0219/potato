@@ -226,9 +226,7 @@ class TicketDAO:
                         (guild_id,),
                     )
                     await conn.commit()
-                    logger.info(
-                        f"保存面板訊息 - 伺服器: {guild_id}, 訊息: {message_id}"
-                    )
+                    logger.info(f"保存面板訊息 - 伺服器: {guild_id}, 訊息: {message_id}")
 
         except Exception as e:
             logger.error(f"保存面板訊息錯誤：{e}")
@@ -291,9 +289,7 @@ class TicketDAO:
 
                     # 建立票券 - 提供預設值避免NULL錯誤
                     ticket_title = title or f"{ticket_type.title()} 票券"
-                    ticket_description = (
-                        description or f"由 {username} 建立的 {ticket_type} 票券"
-                    )
+                    ticket_description = description or f"由 {username} 建立的 {ticket_type} 票券"
 
                     await cursor.execute(
                         """
@@ -337,9 +333,7 @@ class TicketDAO:
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute(
-                        "SELECT * FROM tickets WHERE id = %s", (ticket_id,)
-                    )
+                    await cursor.execute("SELECT * FROM tickets WHERE id = %s", (ticket_id,))
                     result = await cursor.fetchone()
                     if result:
                         columns = [desc[0] for desc in cursor.description]
@@ -424,9 +418,7 @@ class TicketDAO:
             logger.error(f"查詢票券列表錯誤：{e}")
             return [], 0
 
-    async def close_ticket(
-        self, ticket_id: int, closed_by: int, reason: str = None
-    ) -> bool:
+    async def close_ticket(self, ticket_id: int, closed_by: int, reason: str = None) -> bool:
         """關閉票券 - 修復參數"""
         await self._ensure_initialized()
         try:
@@ -465,9 +457,7 @@ class TicketDAO:
             logger.error(f"關閉票券錯誤：{e}")
             return False
 
-    async def assign_ticket(
-        self, ticket_id: int, assigned_to: int, assigned_by: int
-    ) -> bool:
+    async def assign_ticket(self, ticket_id: int, assigned_to: int, assigned_by: int) -> bool:
         """指派票券 - 修復異步"""
         await self._ensure_initialized()
         try:
@@ -684,9 +674,7 @@ class TicketDAO:
             logger.error(f"更新優先級錯誤：{e}")
             return False
 
-    async def save_rating(
-        self, ticket_id: int, rating: int, feedback: str = None
-    ) -> bool:
+    async def save_rating(self, ticket_id: int, rating: int, feedback: str = None) -> bool:
         """保存評分 - 修復異步"""
         await self._ensure_initialized()
         try:
@@ -768,9 +756,7 @@ class TicketDAO:
             logger.error(f"取得統計錯誤：{e}")
             return {}
 
-    async def get_user_ticket_count(
-        self, user_id: int, guild_id: int, status: str = "open"
-    ) -> int:
+    async def get_user_ticket_count(self, user_id: int, guild_id: int, status: str = "open") -> int:
         """取得用戶票券數量 - 修復異步"""
         await self._ensure_initialized()
         try:
@@ -884,9 +870,7 @@ class TicketDAO:
                     # 解析 JSON 欄位
                     if settings.get("support_roles"):
                         try:
-                            settings["support_roles"] = json.loads(
-                                settings["support_roles"]
-                            )
+                            settings["support_roles"] = json.loads(settings["support_roles"])
                         except:
                             settings["support_roles"] = []
                     else:
@@ -1172,9 +1156,7 @@ class TicketDAO:
                             "id": row[0],
                             "ticket_id": row[0],  # 添加 ticket_id 別名
                             "guild_id": row[1],
-                            "user_id": row[
-                                2
-                            ],  # discord_id mapped to user_id for compatibility
+                            "user_id": row[2],  # discord_id mapped to user_id for compatibility
                             "discord_id": row[2],  # 原始 discord_id 欄位
                             "username": row[3],
                             "channel_id": row[4],
@@ -1270,9 +1252,7 @@ class TicketDAO:
             logger.error(f"獲取每日票券統計失敗: {e}")
             return []
 
-    async def get_ticket_performance_metrics(
-        self, guild_id: int, days: int = 30
-    ) -> Dict[str, Any]:
+    async def get_ticket_performance_metrics(self, guild_id: int, days: int = 30) -> Dict[str, Any]:
         """獲取票券性能指標"""
         try:
             await self._ensure_initialized()
@@ -1309,9 +1289,7 @@ class TicketDAO:
                             "avg_resolution_time": float(row[1]) if row[1] else 0.0,
                             "closed_tickets": row[2],
                             "open_tickets": row[3],
-                            "resolution_rate": (
-                                (row[2] / row[0] * 100) if row[0] > 0 else 0
-                            ),
+                            "resolution_rate": ((row[2] / row[0] * 100) if row[0] > 0 else 0),
                             "priority_distribution": {
                                 "high": row[4],
                                 "medium": row[5],

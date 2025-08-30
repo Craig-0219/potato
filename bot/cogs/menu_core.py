@@ -43,9 +43,7 @@ class MenuCore(commands.Cog):
         """Cog 卸載時執行"""
         logger.info("🎮 選單系統已卸載")
 
-    @app_commands.command(
-        name="menu", description="🏠 開啟 Potato Bot 主選單 - 全功能 GUI 介面"
-    )
+    @app_commands.command(name="menu", description="🏠 開啟 Potato Bot 主選單 - 全功能 GUI 介面")
     async def main_menu(self, interaction: discord.Interaction):
         """
         開啟主選單
@@ -114,9 +112,7 @@ class MenuCore(commands.Cog):
                 "❌ 管理控制面板載入失敗，請稍後再試。", ephemeral=True
             )
 
-    @app_commands.command(
-        name="quick", description="⚡ 快速操作面板 - 常用功能一鍵存取"
-    )
+    @app_commands.command(name="quick", description="⚡ 快速操作面板 - 常用功能一鍵存取")
     async def quick_menu(self, interaction: discord.Interaction):
         """
         快速操作面板
@@ -135,9 +131,7 @@ class MenuCore(commands.Cog):
             )
 
             view = QuickMenuView(self.bot, interaction.user.id)
-            await interaction.response.send_message(
-                embed=embed, view=view, ephemeral=True
-            )
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
             logger.info(f"⚡ 用戶 {interaction.user.name} 開啟了快速操作面板")
 
@@ -147,9 +141,7 @@ class MenuCore(commands.Cog):
                 "❌ 快速操作面板載入失敗，請稍後再試。", ephemeral=True
             )
 
-    @app_commands.command(
-        name="help_gui", description="❓ GUI 系統說明 - 學習如何使用新的選單介面"
-    )
+    @app_commands.command(name="help_gui", description="❓ GUI 系統說明 - 學習如何使用新的選單介面")
     async def help_gui(self, interaction: discord.Interaction):
         """
         GUI 系統使用說明
@@ -199,9 +191,7 @@ class MenuCore(commands.Cog):
             logger.error(f"❌ GUI 說明顯示失敗: {e}")
             await interaction.response.send_message("❌ 說明載入失敗。", ephemeral=True)
 
-    @app_commands.command(
-        name="menu_stats", description="📊 選單使用統計 - 查看 GUI 系統使用情況"
-    )
+    @app_commands.command(name="menu_stats", description="📊 選單使用統計 - 查看 GUI 系統使用情況")
     async def menu_stats(self, interaction: discord.Interaction):
         """
         選單使用統計
@@ -248,17 +238,11 @@ class QuickMenuView(discord.ui.View):
         self.bot = bot
         self.user_id = user_id
 
-    @discord.ui.button(
-        label="💬 AI 對話", style=discord.ButtonStyle.primary, emoji="💬"
-    )
-    async def quick_ai_chat(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    @discord.ui.button(label="💬 AI 對話", style=discord.ButtonStyle.primary, emoji="💬")
+    async def quick_ai_chat(self, interaction: discord.Interaction, button: discord.ui.Button):
         """快速 AI 對話"""
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message(
-                "❌ 只有選單發起者可以使用", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 只有選單發起者可以使用", ephemeral=True)
             return
 
         from bot.ui.menu_system import SmartChatModal
@@ -266,17 +250,13 @@ class QuickMenuView(discord.ui.View):
         modal = SmartChatModal(self.bot)
         await interaction.response.send_modal(modal)
 
-    @discord.ui.button(
-        label="🎫 建立票券", style=discord.ButtonStyle.secondary, emoji="🎫"
-    )
+    @discord.ui.button(label="🎫 建立票券", style=discord.ButtonStyle.secondary, emoji="🎫")
     async def quick_create_ticket(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
         """快速建立票券"""
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message(
-                "❌ 只有選單發起者可以使用", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 只有選單發起者可以使用", ephemeral=True)
             return
 
         from bot.ui.menu_system import CreateTicketModal
@@ -284,12 +264,8 @@ class QuickMenuView(discord.ui.View):
         modal = CreateTicketModal()
         await interaction.response.send_modal(modal)
 
-    @discord.ui.button(
-        label="📊 系統狀態", style=discord.ButtonStyle.secondary, emoji="📊"
-    )
-    async def quick_status(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    @discord.ui.button(label="📊 系統狀態", style=discord.ButtonStyle.secondary, emoji="📊")
+    async def quick_status(self, interaction: discord.Interaction, button: discord.ui.Button):
         """快速查看系統狀態"""
         embed = discord.Embed(
             title="📊 系統狀態",
@@ -306,17 +282,11 @@ class QuickMenuView(discord.ui.View):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(
-        label="🏠 完整選單", style=discord.ButtonStyle.primary, emoji="🏠"
-    )
-    async def open_full_menu(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    @discord.ui.button(label="🏠 完整選單", style=discord.ButtonStyle.primary, emoji="🏠")
+    async def open_full_menu(self, interaction: discord.Interaction, button: discord.ui.Button):
         """開啟完整主選單"""
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message(
-                "❌ 只有選單發起者可以使用", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 只有選單發起者可以使用", ephemeral=True)
             return
 
         from bot.ui.menu_system import MainMenuView

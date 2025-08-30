@@ -296,9 +296,7 @@ class LanguageDAO:
             logger.error(f"更新語言使用統計錯誤: {e}")
             return False
 
-    async def get_language_usage_stats(
-        self, guild_id: int, days: int = 30
-    ) -> List[Dict[str, Any]]:
+    async def get_language_usage_stats(self, guild_id: int, days: int = 30) -> List[Dict[str, Any]]:
         """取得語言使用統計"""
         await self._ensure_initialized()
         try:
@@ -474,9 +472,7 @@ class LanguageDAO:
                         total_correct += correct
 
                     overall_accuracy = (
-                        total_correct / total_detections
-                        if total_detections > 0
-                        else 0.0
+                        total_correct / total_detections if total_detections > 0 else 0.0
                     )
 
                     return {
@@ -499,9 +495,7 @@ class LanguageDAO:
 
     # ========== 批次操作 ==========
 
-    async def get_popular_languages(
-        self, guild_id: int, limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    async def get_popular_languages(self, guild_id: int, limit: int = 10) -> List[Dict[str, Any]]:
         """取得熱門語言列表"""
         await self._ensure_initialized()
         try:

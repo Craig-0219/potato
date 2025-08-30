@@ -54,9 +54,7 @@ class StatisticsManager:
             logger.error(f"獲取綜合統計失敗: {e}")
             return {"error": str(e)}
 
-    async def _get_basic_ticket_stats(
-        self, guild_id: Optional[int], days: int
-    ) -> Dict[str, Any]:
+    async def _get_basic_ticket_stats(self, guild_id: Optional[int], days: int) -> Dict[str, Any]:
         """獲取基本票券統計"""
         try:
             async with self.db.connection() as conn:
@@ -103,9 +101,7 @@ class StatisticsManager:
             logger.error(f"獲取票券統計失敗: {e}")
             return {"error": str(e)}
 
-    async def _get_basic_vote_stats(
-        self, guild_id: Optional[int], days: int
-    ) -> Dict[str, Any]:
+    async def _get_basic_vote_stats(self, guild_id: Optional[int], days: int) -> Dict[str, Any]:
         """獲取基本投票統計"""
         try:
             async with self.db.connection() as conn:
@@ -151,18 +147,14 @@ class StatisticsManager:
             async with self.db.connection() as conn:
                 async with conn.cursor(aiomysql.DictCursor) as cursor:
                     # 簡單的系統統計
-                    await cursor.execute(
-                        "SELECT DATABASE() as db_name, NOW() as current_time"
-                    )
+                    await cursor.execute("SELECT DATABASE() as db_name, NOW() as current_time")
                     result = await cursor.fetchone()
 
                     return {
                         "summary": {
                             "database_name": result["db_name"] if result else "unknown",
                             "system_time": (
-                                str(result["current_time"])
-                                if result
-                                else str(datetime.now())
+                                str(result["current_time"]) if result else str(datetime.now())
                             ),
                             "status": "healthy",
                         }
@@ -226,23 +218,15 @@ class StatisticsManager:
             logger.info(f"開始生成綜合報告 - Guild ID: {guild_id}, 天數: {days}")
 
             # 獲取基本統計數據
-            comprehensive_stats = await self.get_comprehensive_statistics(
-                guild_id, days
-            )
+            comprehensive_stats = await self.get_comprehensive_statistics(guild_id, days)
 
             if "error" in comprehensive_stats:
                 return comprehensive_stats
 
             # 生成關鍵指標
-            ticket_stats = comprehensive_stats.get("ticket_statistics", {}).get(
-                "summary", {}
-            )
-            vote_stats = comprehensive_stats.get("vote_statistics", {}).get(
-                "summary", {}
-            )
-            system_stats = comprehensive_stats.get("system_statistics", {}).get(
-                "summary", {}
-            )
+            ticket_stats = comprehensive_stats.get("ticket_statistics", {}).get("summary", {})
+            vote_stats = comprehensive_stats.get("vote_statistics", {}).get("summary", {})
+            system_stats = comprehensive_stats.get("system_statistics", {}).get("summary", {})
 
             # 計算關鍵績效指標
             kpi_metrics = {
@@ -250,9 +234,7 @@ class StatisticsManager:
                 "average_rating": ticket_stats.get("avg_rating", 0),
                 "total_interactions": ticket_stats.get("total_tickets", 0)
                 + vote_stats.get("total_votes", 0),
-                "system_health_score": (
-                    100.0 if system_stats.get("status") == "healthy" else 0.0
-                ),
+                "system_health_score": (100.0 if system_stats.get("status") == "healthy" else 0.0),
             }
 
             # 生成趨勢分析（簡化版）
@@ -270,10 +252,7 @@ class StatisticsManager:
                 insights.append("票券解決率偏低，建議檢查處理流程")
             if vote_stats.get("total_votes", 0) == 0:
                 insights.append("投票參與度較低，可考慮推廣投票功能")
-            if (
-                kpi_metrics["average_rating"] < 3.0
-                and kpi_metrics["average_rating"] > 0
-            ):
+            if kpi_metrics["average_rating"] < 3.0 and kpi_metrics["average_rating"] > 0:
                 insights.append("用戶滿意度有待改進，建議優化服務品質")
 
             if not insights:
@@ -355,23 +334,17 @@ class StatisticsManager:
                         "system_online": True,
                         "active_users": 0,  # 暫時使用預設值
                         "current_load": 0.1,  # 暫時使用預設值
-                        "open_tickets": (
-                            tickets_result["open_tickets"] if tickets_result else 0
-                        ),
+                        "open_tickets": (tickets_result["open_tickets"] if tickets_result else 0),
                         "pending_tickets": (
                             tickets_result["pending_tickets"] if tickets_result else 0
                         ),
                         "today_new_tickets": (
-                            today_tickets_result["today_new_tickets"]
-                            if today_tickets_result
-                            else 0
+                            today_tickets_result["today_new_tickets"] if today_tickets_result else 0
                         ),
                         "active_workflows": 0,  # 暫時使用預設值
                         "running_executions": 0,  # 暫時使用預設值
                         "today_executions": 0,  # 暫時使用預設值
-                        "active_votes": (
-                            votes_result["active_votes"] if votes_result else 0
-                        ),
+                        "active_votes": (votes_result["active_votes"] if votes_result else 0),
                         "last_updated": datetime.now().isoformat(),
                     }
 

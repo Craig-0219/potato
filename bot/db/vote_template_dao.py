@@ -142,9 +142,7 @@ class VoteTemplateDAO:
                     params = [category]
 
                     if guild_id:
-                        conditions.append(
-                            "(guild_id = %s OR guild_id IS NULL OR is_public = TRUE)"
-                        )
+                        conditions.append("(guild_id = %s OR guild_id IS NULL OR is_public = TRUE)")
                         params.append(guild_id)
                     else:
                         conditions.append("guild_id IS NULL")
@@ -254,9 +252,7 @@ class VoteTemplateDAO:
         except Exception as e:
             logger.error(f"更新模板使用次數失敗: {e}")
 
-    async def add_template_favorite(
-        self, template_id: int, user_id: int, guild_id: int
-    ) -> bool:
+    async def add_template_favorite(self, template_id: int, user_id: int, guild_id: int) -> bool:
         """加入模板收藏"""
         try:
             async with self.db.connection() as conn:

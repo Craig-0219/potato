@@ -4,13 +4,14 @@ Minecraft 經濟整合系統
 參考：zientis/discord/api/ZientisDiscordAPI.java
 """
 
-from typing import Dict, Any, List, Tuple
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Tuple
 
-from shared.logger import logger
 from bot.db.database_manager import DatabaseManager
 from bot.services.economy_manager import EconomyManager
+from shared.logger import logger
+
 from .rcon_manager import RCONManager
 
 
@@ -138,18 +139,14 @@ class EconomyIntegrationService:
             # 初始同步餘額
             await self._sync_balance(discord_id)
 
-            logger.info(
-                f"經濟帳戶連結成功: Discord {discord_id} ↔ Minecraft {minecraft_uuid}"
-            )
+            logger.info(f"經濟帳戶連結成功: Discord {discord_id} ↔ Minecraft {minecraft_uuid}")
             return True
 
         except Exception as e:
             logger.error(f"連結經濟帳戶失敗: {e}")
             return False
 
-    async def get_balance(
-        self, discord_id: int, platform: str = "both"
-    ) -> Dict[str, float]:
+    async def get_balance(self, discord_id: int, platform: str = "both") -> Dict[str, float]:
         """獲取玩家餘額"""
         try:
             result = await self.db.fetchone(
@@ -210,7 +207,9 @@ class EconomyIntegrationService:
                 )
 
             # 生成交易 ID
-            transaction_id = f"transfer_{from_discord_id}_{to_discord_id}_{int(datetime.now().timestamp())}"
+            transaction_id = (
+                f"transfer_{from_discord_id}_{to_discord_id}_{int(datetime.now().timestamp())}"
+            )
 
             # 記錄交易
             await self.db.execute(
@@ -273,9 +272,7 @@ class EconomyIntegrationService:
                 await self._sync_minecraft_balance(from_discord_id)
             await self._sync_minecraft_balance(to_discord_id)
 
-            logger.info(
-                f"轉帳成功: {from_discord_id} → {to_discord_id}, 金額: {amount}"
-            )
+            logger.info(f"轉帳成功: {from_discord_id} → {to_discord_id}, 金額: {amount}")
             return True, f"轉帳成功！已將 {amount:.2f} 點數轉給目標用戶"
 
         except Exception as e:
@@ -305,7 +302,9 @@ class EconomyIntegrationService:
                 )
 
             # 生成交易 ID
-            transaction_id = f"{transaction_type.value}_{discord_id}_{int(datetime.now().timestamp())}"
+            transaction_id = (
+                f"{transaction_type.value}_{discord_id}_{int(datetime.now().timestamp())}"
+            )
 
             # 記錄交易
             await self.db.execute(
@@ -514,9 +513,7 @@ class EconomyIntegrationService:
         except Exception as e:
             logger.error(f"同步現有數據失敗: {e}")
 
-    def format_balance_display(
-        self, balance_data: Dict[str, float], username: str = None
-    ) -> str:
+    def format_balance_display(self, balance_data: Dict[str, float], username: str = None) -> str:
         """格式化餘額顯示"""
         total = balance_data.get("total", 0.0)
         discord_bal = balance_data.get("discord", 0.0)
@@ -548,8 +545,6 @@ class EconomyIntegrationService:
             username = entry.get("minecraft_username") or f"玩家{entry['discord_id']}"
             total = entry["total_balance"]
 
-            result += (
-                f"{rank_emoji} **#{entry['rank']}** {username}: {total:,.2f} 點數\n"
-            )
+            result += f"{rank_emoji} **#{entry['rank']}** {username}: {total:,.2f} 點數\n"
 
         return result

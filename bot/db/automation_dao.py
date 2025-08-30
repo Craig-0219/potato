@@ -191,9 +191,7 @@ class AutomationDAO(BaseDAO):
             logger.error(f"創建自動化規則失敗: {e}")
             raise
 
-    async def update_rule(
-        self, rule_id: str, updates: Dict[str, Any], updated_by: int
-    ) -> bool:
+    async def update_rule(self, rule_id: str, updates: Dict[str, Any], updated_by: int) -> bool:
         """更新自動化規則"""
         try:
             async with self.db.connection() as conn:
@@ -255,9 +253,7 @@ class AutomationDAO(BaseDAO):
                     await conn.commit()
 
                     # 記錄變更歷史
-                    await self._log_rule_history(
-                        rule_id, updated_by, "updated", updates
-                    )
+                    await self._log_rule_history(rule_id, updated_by, "updated", updates)
 
                     return cursor.rowcount > 0
 
@@ -293,12 +289,8 @@ class AutomationDAO(BaseDAO):
                         "guild_id": result[3],
                         "status": result[4],
                         "trigger_type": result[5],
-                        "trigger_conditions": (
-                            json.loads(result[6]) if result[6] else []
-                        ),
-                        "trigger_parameters": (
-                            json.loads(result[7]) if result[7] else {}
-                        ),
+                        "trigger_conditions": (json.loads(result[6]) if result[6] else []),
+                        "trigger_parameters": (json.loads(result[7]) if result[7] else {}),
                         "actions": json.loads(result[8]) if result[8] else [],
                         "created_by": result[9],
                         "created_at": result[10],
@@ -404,9 +396,7 @@ class AutomationDAO(BaseDAO):
                     await self._log_rule_history(rule_id, deleted_by, "deleted", {})
 
                     # 刪除規則（級聯刪除相關記錄）
-                    await cursor.execute(
-                        "DELETE FROM automation_rules WHERE id = %s", (rule_id,)
-                    )
+                    await cursor.execute("DELETE FROM automation_rules WHERE id = %s", (rule_id,))
                     await conn.commit()
 
                     return cursor.rowcount > 0
@@ -434,9 +424,7 @@ class AutomationDAO(BaseDAO):
                             execution_data["rule_id"],
                             execution_data["guild_id"],
                             json.dumps(execution_data.get("trigger_event", {})),
-                            execution_data.get(
-                                "started_at", datetime.now(timezone.utc)
-                            ),
+                            execution_data.get("started_at", datetime.now(timezone.utc)),
                             execution_data.get("user_id"),
                             execution_data.get("channel_id"),
                             execution_data.get("message_id"),
@@ -450,9 +438,7 @@ class AutomationDAO(BaseDAO):
             logger.error(f"創建執行記錄失敗: {e}")
             raise
 
-    async def update_execution(
-        self, execution_id: str, updates: Dict[str, Any]
-    ) -> bool:
+    async def update_execution(self, execution_id: str, updates: Dict[str, Any]) -> bool:
         """更新執行記錄"""
         try:
             async with self.db.connection() as conn:
@@ -536,9 +522,7 @@ class AutomationDAO(BaseDAO):
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     # 獲取總數
-                    count_sql = (
-                        f"SELECT COUNT(*) FROM automation_executions {where_clause}"
-                    )
+                    count_sql = f"SELECT COUNT(*) FROM automation_executions {where_clause}"
                     await cursor.execute(count_sql, params)
                     total_count = (await cursor.fetchone())[0]
 
@@ -574,9 +558,7 @@ class AutomationDAO(BaseDAO):
                                 "success": result[6],
                                 "executed_actions": result[7],
                                 "failed_actions": result[8],
-                                "execution_time": (
-                                    float(result[9]) if result[9] else 0.0
-                                ),
+                                "execution_time": (float(result[9]) if result[9] else 0.0),
                                 "error_message": result[10],
                                 "user_id": result[11],
                                 "channel_id": result[12],
@@ -591,9 +573,7 @@ class AutomationDAO(BaseDAO):
 
     # ========== 統計操作 ==========
 
-    async def update_rule_statistics(
-        self, rule_id: str, execution_time: float, success: bool
-    ):
+    async def update_rule_statistics(self, rule_id: str, execution_time: float, success: bool):
         """更新規則統計"""
         try:
             today = datetime.now(timezone.utc).date()
@@ -690,9 +670,7 @@ class AutomationDAO(BaseDAO):
                         "success_count": overall_stats[1] or 0,
                         "failure_count": overall_stats[2] or 0,
                         "success_rate": (
-                            (overall_stats[1] / overall_stats[0] * 100)
-                            if overall_stats[0]
-                            else 0
+                            (overall_stats[1] / overall_stats[0] * 100) if overall_stats[0] else 0
                         ),
                         "avg_execution_time": (
                             float(overall_stats[3]) if overall_stats[3] else 0.0
@@ -780,9 +758,7 @@ class AutomationDAO(BaseDAO):
                         "success_count": overall_stats[3] or 0,
                         "failure_count": overall_stats[4] or 0,
                         "success_rate": (
-                            (overall_stats[3] / overall_stats[2] * 100)
-                            if overall_stats[2]
-                            else 0
+                            (overall_stats[3] / overall_stats[2] * 100) if overall_stats[2] else 0
                         ),
                         "avg_execution_time": (
                             float(overall_stats[5]) if overall_stats[5] else 0.0

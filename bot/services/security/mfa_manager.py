@@ -107,9 +107,7 @@ class MFAManager:
             totp = pyotp.TOTP(secret)
 
             # 生成 QR Code URI
-            qr_uri = totp.provisioning_uri(
-                name=user_email, issuer_name=self.issuer_name
-            )
+            qr_uri = totp.provisioning_uri(name=user_email, issuer_name=self.issuer_name)
 
             # 生成 QR Code 圖片
             qr_code_image = await self._generate_qr_code(qr_uri)
@@ -211,9 +209,7 @@ class MFAManager:
 
             if is_valid:
                 # 記錄成功驗證
-                await self._log_mfa_event(
-                    user_id, MFAMethod.TOTP, True, "TOTP 驗證成功"
-                )
+                await self._log_mfa_event(user_id, MFAMethod.TOTP, True, "TOTP 驗證成功")
                 await self._reset_attempt_count(user_id, MFAMethod.TOTP)
 
                 logger.info(f"✅ TOTP 驗證成功：用戶 {user_id}")
@@ -225,9 +221,7 @@ class MFAManager:
             else:
                 # 記錄失敗嘗試
                 await self._increment_attempt_count(user_id, MFAMethod.TOTP)
-                await self._log_mfa_event(
-                    user_id, MFAMethod.TOTP, False, "TOTP 驗證失敗"
-                )
+                await self._log_mfa_event(user_id, MFAMethod.TOTP, False, "TOTP 驗證失敗")
 
                 return {
                     "success": False,
@@ -405,9 +399,7 @@ class MFAManager:
                         )
                         remaining_codes = (await cursor.fetchone())[0]
 
-                        logger.info(
-                            f"✅ 備用代碼驗證成功：用戶 {user_id}, 剩餘: {remaining_codes}"
-                        )
+                        logger.info(f"✅ 備用代碼驗證成功：用戶 {user_id}, 剩餘: {remaining_codes}")
 
                         return {
                             "success": True,
@@ -421,9 +413,7 @@ class MFAManager:
                         }
                     else:
                         # 代碼無效
-                        await self._increment_attempt_count(
-                            user_id, MFAMethod.BACKUP_CODES
-                        )
+                        await self._increment_attempt_count(user_id, MFAMethod.BACKUP_CODES)
                         await self._log_mfa_event(
                             user_id, MFAMethod.BACKUP_CODES, False, "備用代碼無效"
                         )
@@ -491,9 +481,7 @@ class MFAManager:
                 "methods": mfa_methods,
                 "backup_codes_count": backup_codes_count,
                 "security_level": "high" if has_enabled_mfa else "low",
-                "recommendations": await self._get_security_recommendations(
-                    user_id, mfa_methods
-                ),
+                "recommendations": await self._get_security_recommendations(user_id, mfa_methods),
             }
 
         except Exception as e:
@@ -520,9 +508,7 @@ class MFAManager:
                 if method == MFAMethod.TOTP:
                     verify_result = await self.verify_totp(user_id, verification_code)
                 elif method == MFAMethod.BACKUP_CODES:
-                    verify_result = await self.verify_backup_code(
-                        user_id, verification_code
-                    )
+                    verify_result = await self.verify_backup_code(user_id, verification_code)
                 else:
                     verify_result = {"success": True}  # 其他方法暫時不需要驗證
 
@@ -570,9 +556,7 @@ class MFAManager:
             }
 
         except Exception as e:
-            logger.error(
-                f"❌ MFA 停用失敗：用戶 {user_id}, 方法: {method.value}, 錯誤: {e}"
-            )
+            logger.error(f"❌ MFA 停用失敗：用戶 {user_id}, 方法: {method.value}, 錯誤: {e}")
             return {"success": False, "error": str(e)}
 
     # 私有方法
@@ -619,9 +603,7 @@ class MFAManager:
 
                 # 檢查是否在鎖定期間
                 if attempts >= self.max_attempts:
-                    if datetime.now() - last_attempt < timedelta(
-                        seconds=self.lockout_duration
-                    ):
+                    if datetime.now() - last_attempt < timedelta(seconds=self.lockout_duration):
                         return False
                     else:
                         # 鎖定期間結束，重置計數
@@ -649,9 +631,7 @@ class MFAManager:
         if key in self._attempt_cache:
             del self._attempt_cache[key]
 
-    async def _log_mfa_event(
-        self, user_id: int, method: MFAMethod, success: bool, details: str
-    ):
+    async def _log_mfa_event(self, user_id: int, method: MFAMethod, success: bool, details: str):
         """記錄 MFA 事件"""
         try:
             async with db_pool.connection() as conn:
@@ -678,18 +658,16 @@ class MFAManager:
         except Exception as e:
             logger.error(f"❌ MFA 事件記錄失敗: {e}")
 
-    async def _get_security_recommendations(
-        self, user_id: int, methods: Dict
-    ) -> List[str]:
+    async def _get_security_recommendations(self, user_id: int, methods: Dict) -> List[str]:
         """獲取安全建議"""
         recommendations = []
 
         if not methods:
             recommendations.append("建議設置 TOTP 多因素認證以提高帳戶安全性")
 
-        if MFAMethod.TOTP.value not in methods or not methods.get(
-            MFAMethod.TOTP.value, {}
-        ).get("enabled"):
+        if MFAMethod.TOTP.value not in methods or not methods.get(MFAMethod.TOTP.value, {}).get(
+            "enabled"
+        ):
             recommendations.append("建議啟用 TOTP 認證應用程式")
 
         # 可以根據需要添加更多建議

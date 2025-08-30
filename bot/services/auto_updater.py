@@ -121,14 +121,10 @@ class AutoUpdater:
                 "current_commit": self.current_commit,
                 "commit_info": commit_info,
                 "commit_message": commit_info.get("commit", {}).get("message", ""),
-                "commit_date": commit_info.get("commit", {})
-                .get("author", {})
-                .get("date"),
+                "commit_date": commit_info.get("commit", {}).get("author", {}).get("date"),
                 "author": commit_info.get("commit", {}).get("author", {}).get("name"),
                 "files_changed": (
-                    len(commit_info.get("files", []))
-                    if "files" in commit_info
-                    else "未知"
+                    len(commit_info.get("files", [])) if "files" in commit_info else "未知"
                 ),
             }
             return True, update_info
@@ -234,9 +230,7 @@ class AutoUpdater:
         except Exception as e:
             return False, f"更新依賴時發生錯誤: {e}"
 
-    async def _send_update_notification(
-        self, message: str, embed: Optional[discord.Embed] = None
-    ):
+    async def _send_update_notification(self, message: str, embed: Optional[discord.Embed] = None):
         """發送更新通知"""
         if not self.update_channel_id:
             return
@@ -404,9 +398,7 @@ class AutoUpdater:
                         # 自動重啟
                         self.restart_bot()
                     else:
-                        await self._send_update_notification(
-                            f"❌ 自動更新失敗: {result['error']}"
-                        )
+                        await self._send_update_notification(f"❌ 自動更新失敗: {result['error']}")
 
             self.last_check = datetime.utcnow()
 
@@ -477,9 +469,7 @@ class AutoUpdateCog(commands.Cog, name="自動更新"):
                     + ("..." if len(update_info["commit_message"]) > 500 else ""),
                     inline=False,
                 )
-                embed.add_field(
-                    name="⏰ 提交時間", value=update_info["commit_date"], inline=True
-                )
+                embed.add_field(name="⏰ 提交時間", value=update_info["commit_date"], inline=True)
             else:
                 embed = discord.Embed(
                     title="✅ 已是最新版本",
@@ -515,9 +505,7 @@ class AutoUpdateCog(commands.Cog, name="自動更新"):
             )
 
         try:
-            reaction, user = await self.bot.wait_for(
-                "reaction_add", timeout=30.0, check=check
-            )
+            reaction, user = await self.bot.wait_for("reaction_add", timeout=30.0, check=check)
 
             if str(reaction.emoji) == "✅":
                 await ctx.send("🔄 開始執行更新...")
@@ -539,9 +527,7 @@ class AutoUpdateCog(commands.Cog, name="自動更新"):
     @update_group.command(name="status", aliases=["狀態"])
     async def update_status(self, ctx):
         """查看自動更新狀態"""
-        embed = discord.Embed(
-            title="📊 自動更新狀態", color=0x0099FF, timestamp=datetime.utcnow()
-        )
+        embed = discord.Embed(title="📊 自動更新狀態", color=0x0099FF, timestamp=datetime.utcnow())
 
         embed.add_field(
             name="⚙️ 配置狀態",

@@ -108,9 +108,7 @@ class DataExportManager:
         start_time = datetime.now()
 
         try:
-            logger.info(
-                f"🚀 開始匯出 {request.export_type} 資料 ({request.format} 格式)"
-            )
+            logger.info(f"🚀 開始匯出 {request.export_type} 資料 ({request.format} 格式)")
 
             # 檢查匯出類型是否支援
             if request.export_type not in self.export_handlers:
@@ -130,9 +128,7 @@ class DataExportManager:
             data, metadata = await handler(request)
 
             if not data:
-                return ExportResult(
-                    success=False, error_message="沒有找到符合條件的資料"
-                )
+                return ExportResult(success=False, error_message="沒有找到符合條件的資料")
 
             # 生成檔案名稱
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -155,9 +151,7 @@ class DataExportManager:
             # 記錄匯出日誌
             await self._log_export(request, str(file_path), len(data), export_time)
 
-            logger.info(
-                f"✅ 匯出完成: {filename} ({file_size} bytes, {len(data)} 條記錄)"
-            )
+            logger.info(f"✅ 匯出完成: {filename} ({file_size} bytes, {len(data)} 條記錄)")
 
             return ExportResult(
                 success=True,
@@ -383,9 +377,7 @@ class DataExportManager:
 
         return all_logs, metadata
 
-    async def _export_statistics(
-        self, request: ExportRequest
-    ) -> tuple[List[Dict], Dict]:
+    async def _export_statistics(self, request: ExportRequest) -> tuple[List[Dict], Dict]:
         """匯出統計資料"""
         statistics = []
 
@@ -463,9 +455,7 @@ class DataExportManager:
 
         return statistics, metadata
 
-    async def _export_analytics(
-        self, request: ExportRequest
-    ) -> tuple[List[Dict], Dict]:
+    async def _export_analytics(self, request: ExportRequest) -> tuple[List[Dict], Dict]:
         """匯出分析資料"""
         analytics = []
 
@@ -529,9 +519,7 @@ class DataExportManager:
 
         return analytics, metadata
 
-    async def _export_assignments(
-        self, request: ExportRequest
-    ) -> tuple[List[Dict], Dict]:
+    async def _export_assignments(self, request: ExportRequest) -> tuple[List[Dict], Dict]:
         """匯出指派記錄"""
         query = """
         SELECT
@@ -637,9 +625,7 @@ class DataExportManager:
 
         return webhooks, metadata
 
-    async def _export_security_events(
-        self, request: ExportRequest
-    ) -> tuple[List[Dict], Dict]:
+    async def _export_security_events(self, request: ExportRequest) -> tuple[List[Dict], Dict]:
         """匯出安全事件"""
         query = "SELECT * FROM security_events WHERE 1=1"
         params = []
@@ -712,9 +698,7 @@ class DataExportManager:
                         processed_row = {}
                         for key, value in row.items():
                             if isinstance(value, (list, dict)):
-                                processed_row[key] = json.dumps(
-                                    value, ensure_ascii=False
-                                )
+                                processed_row[key] = json.dumps(value, ensure_ascii=False)
                             elif isinstance(value, datetime):
                                 processed_row[key] = value.isoformat()
                             else:
@@ -730,9 +714,7 @@ class DataExportManager:
             export_data = {"metadata": metadata, "data": data}
 
             with open(file_path, "w", encoding="utf-8") as jsonfile:
-                json.dump(
-                    export_data, jsonfile, ensure_ascii=False, indent=2, default=str
-                )
+                json.dump(export_data, jsonfile, ensure_ascii=False, indent=2, default=str)
 
         await asyncio.get_event_loop().run_in_executor(None, write_json_sync)
 
@@ -834,11 +816,7 @@ class DataExportManager:
                     await cursor.execute(create_table_query)
 
                     # 插入日誌記錄
-                    file_size = (
-                        Path(file_path).stat().st_size
-                        if Path(file_path).exists()
-                        else 0
-                    )
+                    file_size = Path(file_path).stat().st_size if Path(file_path).exists() else 0
 
                     insert_query = """
                     INSERT INTO export_logs
@@ -847,9 +825,7 @@ class DataExportManager:
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """
 
-                    filters_json = (
-                        json.dumps(request.filters) if request.filters else None
-                    )
+                    filters_json = json.dumps(request.filters) if request.filters else None
                     date_start = request.date_range[0] if request.date_range else None
                     date_end = request.date_range[1] if request.date_range else None
 

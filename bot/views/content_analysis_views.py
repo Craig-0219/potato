@@ -24,9 +24,7 @@ class ContentAnalysisMainView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=300)
 
-    @discord.ui.button(
-        label="📊 情感分析", style=discord.ButtonStyle.primary, emoji="📊"
-    )
+    @discord.ui.button(label="📊 情感分析", style=discord.ButtonStyle.primary, emoji="📊")
     async def sentiment_analysis_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
@@ -37,13 +35,9 @@ class ContentAnalysisMainView(discord.ui.View):
 
         except Exception as e:
             logger.error(f"❌ 情感分析按鈕錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 啟動情感分析時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 啟動情感分析時發生錯誤。", ephemeral=True)
 
-    @discord.ui.button(
-        label="🔒 安全檢測", style=discord.ButtonStyle.secondary, emoji="🔒"
-    )
+    @discord.ui.button(label="🔒 安全檢測", style=discord.ButtonStyle.secondary, emoji="🔒")
     async def safety_check_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
@@ -54,16 +48,10 @@ class ContentAnalysisMainView(discord.ui.View):
 
         except Exception as e:
             logger.error(f"❌ 安全檢測按鈕錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 啟動安全檢測時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 啟動安全檢測時發生錯誤。", ephemeral=True)
 
-    @discord.ui.button(
-        label="🔗 連結檢測", style=discord.ButtonStyle.secondary, emoji="🔗"
-    )
-    async def link_check_button(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    @discord.ui.button(label="🔗 連結檢測", style=discord.ButtonStyle.secondary, emoji="🔗")
+    async def link_check_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """連結檢測按鈕"""
         try:
             modal = LinkCheckModal()
@@ -71,13 +59,9 @@ class ContentAnalysisMainView(discord.ui.View):
 
         except Exception as e:
             logger.error(f"❌ 連結檢測按鈕錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 啟動連結檢測時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 啟動連結檢測時發生錯誤。", ephemeral=True)
 
-    @discord.ui.button(
-        label="📈 內容統計", style=discord.ButtonStyle.success, emoji="📈"
-    )
+    @discord.ui.button(label="📈 內容統計", style=discord.ButtonStyle.success, emoji="📈")
     async def content_stats_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
@@ -150,9 +134,7 @@ class ContentAnalysisMainView(discord.ui.View):
                     inline=False,
                 )
 
-            embed.add_field(
-                name="📊 統計期間", value="最近 7 天的數據分析結果", inline=False
-            )
+            embed.add_field(name="📊 統計期間", value="最近 7 天的數據分析結果", inline=False)
 
             embed.set_footer(
                 text=f"更新時間: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC"
@@ -162,16 +144,10 @@ class ContentAnalysisMainView(discord.ui.View):
 
         except Exception as e:
             logger.error(f"❌ 內容統計錯誤: {e}")
-            await interaction.followup.send(
-                "❌ 獲取內容統計時發生錯誤。", ephemeral=True
-            )
+            await interaction.followup.send("❌ 獲取內容統計時發生錯誤。", ephemeral=True)
 
-    @discord.ui.button(
-        label="ℹ️ 使用說明", style=discord.ButtonStyle.secondary, emoji="ℹ️"
-    )
-    async def usage_guide_button(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    @discord.ui.button(label="ℹ️ 使用說明", style=discord.ButtonStyle.secondary, emoji="ℹ️")
+    async def usage_guide_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """使用說明按鈕"""
         try:
             embed = EmbedBuilder.create_info_embed(
@@ -218,9 +194,7 @@ class ContentAnalysisMainView(discord.ui.View):
 
         except Exception as e:
             logger.error(f"❌ 使用說明錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 顯示使用說明時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 顯示使用說明時發生錯誤。", ephemeral=True)
 
 
 class SentimentAnalysisModal(discord.ui.Modal):
@@ -244,9 +218,7 @@ class SentimentAnalysisModal(discord.ui.Modal):
 
             text = self.text_input.value.strip()
             if not text:
-                await interaction.followup.send(
-                    "❌ 請輸入要分析的文本內容。", ephemeral=True
-                )
+                await interaction.followup.send("❌ 請輸入要分析的文本內容。", ephemeral=True)
                 return
 
             # 執行情感分析
@@ -334,9 +306,7 @@ class SentimentAnalysisModal(discord.ui.Modal):
 
         except Exception as e:
             logger.error(f"❌ 情感分析錯誤: {e}")
-            await interaction.followup.send(
-                "❌ 執行情感分析時發生錯誤。", ephemeral=True
-            )
+            await interaction.followup.send("❌ 執行情感分析時發生錯誤。", ephemeral=True)
 
 
 class SafetyCheckModal(discord.ui.Modal):
@@ -360,9 +330,7 @@ class SafetyCheckModal(discord.ui.Modal):
 
             text = self.text_input.value.strip()
             if not text:
-                await interaction.followup.send(
-                    "❌ 請輸入要檢測的文本內容。", ephemeral=True
-                )
+                await interaction.followup.send("❌ 請輸入要檢測的文本內容。", ephemeral=True)
                 return
 
             # 執行安全檢測
@@ -474,9 +442,7 @@ class SafetyCheckModal(discord.ui.Modal):
 
         except Exception as e:
             logger.error(f"❌ 安全檢測錯誤: {e}")
-            await interaction.followup.send(
-                "❌ 執行安全檢測時發生錯誤。", ephemeral=True
-            )
+            await interaction.followup.send("❌ 執行安全檢測時發生錯誤。", ephemeral=True)
 
 
 class LinkCheckModal(discord.ui.Modal):
@@ -500,9 +466,7 @@ class LinkCheckModal(discord.ui.Modal):
 
             text = self.text_input.value.strip()
             if not text:
-                await interaction.followup.send(
-                    "❌ 請輸入要檢測的內容。", ephemeral=True
-                )
+                await interaction.followup.send("❌ 請輸入要檢測的內容。", ephemeral=True)
                 return
 
             # 執行連結分析
@@ -519,9 +483,7 @@ class LinkCheckModal(discord.ui.Modal):
                 return
 
             if not result.links:
-                await interaction.followup.send(
-                    "❌ 未在文本中檢測到任何連結。", ephemeral=True
-                )
+                await interaction.followup.send("❌ 未在文本中檢測到任何連結。", ephemeral=True)
                 return
 
             # 創建結果嵌入
@@ -549,9 +511,7 @@ class LinkCheckModal(discord.ui.Modal):
                     ContentRiskLevel.CRITICAL: "極高風險",
                 }
 
-                link_info = (
-                    f"**連結**: {link.url[:50]}{'...' if len(link.url) > 50 else ''}\n"
-                )
+                link_info = f"**連結**: {link.url[:50]}{'...' if len(link.url) > 50 else ''}\n"
                 link_info += f"**安全性**: {risk_emojis.get(link.risk_level, '❓')} {risk_names.get(link.risk_level, '未知')}\n"
                 link_info += f"**信譽度**: {link.domain_reputation:.1%}\n"
 
@@ -582,6 +542,4 @@ class LinkCheckModal(discord.ui.Modal):
 
         except Exception as e:
             logger.error(f"❌ 連結檢測錯誤: {e}")
-            await interaction.followup.send(
-                "❌ 執行連結檢測時發生錯誤。", ephemeral=True
-            )
+            await interaction.followup.send("❌ 執行連結檢測時發生錯誤。", ephemeral=True)

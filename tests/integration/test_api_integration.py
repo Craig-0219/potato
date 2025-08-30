@@ -2,7 +2,6 @@
 API 系統整合測試
 """
 
-import asyncio
 import os
 import sys
 import unittest

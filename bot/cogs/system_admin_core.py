@@ -43,21 +43,15 @@ class SystemAdmin(commands.Cog):
             )
 
             view = SystemAdminPanel(user_id=interaction.user.id)
-            await interaction.response.send_message(
-                embed=embed, view=view, ephemeral=True
-            )
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
         except Exception as e:
             logger.error(f"管理面板錯誤: {e}")
             try:
                 if not interaction.response.is_done():
-                    await interaction.response.send_message(
-                        "❌ 管理面板載入失敗", ephemeral=True
-                    )
+                    await interaction.response.send_message("❌ 管理面板載入失敗", ephemeral=True)
                 else:
-                    await interaction.followup.send(
-                        "❌ 管理面板載入失敗", ephemeral=True
-                    )
+                    await interaction.followup.send("❌ 管理面板載入失敗", ephemeral=True)
             except Exception as followup_error:
                 logger.error(f"發送錯誤訊息失敗: {followup_error}")
 
@@ -72,9 +66,7 @@ class SystemAdmin(commands.Cog):
                 return
 
         except Exception as e:
-            await SafeInteractionHandler.handle_interaction_error(
-                interaction, e, "基礎儀表板"
-            )
+            await SafeInteractionHandler.handle_interaction_error(interaction, e, "基礎儀表板")
 
     @app_commands.command(name="system_status", description="查看系統整體狀態")
     @app_commands.default_permissions(administrator=True)
@@ -94,9 +86,7 @@ class SystemAdmin(commands.Cog):
                         "❌ 投票管理面板載入失敗", ephemeral=True
                     )
                 else:
-                    await interaction.followup.send(
-                        "❌ 投票管理面板載入失敗", ephemeral=True
-                    )
+                    await interaction.followup.send("❌ 投票管理面板載入失敗", ephemeral=True)
             except Exception as followup_error:
                 logger.error(f"發送錯誤訊息失敗: {followup_error}")
 
@@ -196,11 +186,7 @@ class SystemAdmin(commands.Cog):
                 backup_details = []
                 for btype, result in results.items():
                     if result["success"]:
-                        size_mb = (
-                            result["file_size"] / 1024 / 1024
-                            if result["file_size"]
-                            else 0
-                        )
+                        size_mb = result["file_size"] / 1024 / 1024 if result["file_size"] else 0
                         backup_details.append(
                             f"✅ **{btype.title()}**: {result['record_count']} 筆記錄 ({size_mb:.2f} MB)"
                         )
@@ -209,9 +195,7 @@ class SystemAdmin(commands.Cog):
                             f"❌ **{btype.title()}**: {result.get('error', '未知錯誤')}"
                         )
 
-                embed.add_field(
-                    name="📋 備份詳情", value="\n".join(backup_details), inline=False
-                )
+                embed.add_field(name="📋 備份詳情", value="\n".join(backup_details), inline=False)
 
                 embed.add_field(
                     name="📊 總計",
@@ -233,9 +217,7 @@ class SystemAdmin(commands.Cog):
                         f"❌ **{btype.title()}**: {result.get('error', '未知錯誤')}"
                     )
 
-                embed.add_field(
-                    name="❌ 錯誤詳情", value="\n".join(error_details), inline=False
-                )
+                embed.add_field(name="❌ 錯誤詳情", value="\n".join(error_details), inline=False)
 
             embed.set_footer(text=f"由 {interaction.user.display_name} 執行")
             await interaction.edit_original_response(embed=embed)
@@ -263,9 +245,7 @@ class SystemAdmin(commands.Cog):
         ]
     )
     @app_commands.default_permissions(administrator=True)
-    async def database(
-        self, interaction: discord.Interaction, action: str, target: str = "all"
-    ):
+    async def database(self, interaction: discord.Interaction, action: str, target: str = "all"):
         """資料庫管理面板"""
         try:
             await interaction.response.defer(ephemeral=True)
@@ -287,9 +267,7 @@ class SystemAdmin(commands.Cog):
 
                 embed = discord.Embed(
                     title="💊 資料庫健康檢查",
-                    color=(
-                        0x2ECC71 if db_health.get("status") == "healthy" else 0xE74C3C
-                    ),
+                    color=(0x2ECC71 if db_health.get("status") == "healthy" else 0xE74C3C),
                 )
 
                 embed.add_field(
@@ -321,13 +299,9 @@ class SystemAdmin(commands.Cog):
 
                             for table in main_tables:
                                 try:
-                                    await cursor.execute(
-                                        f"SELECT COUNT(*) as count FROM {table}"
-                                    )
+                                    await cursor.execute(f"SELECT COUNT(*) as count FROM {table}")
                                     result = await cursor.fetchone()
-                                    tables_info[table] = (
-                                        result["count"] if result else 0
-                                    )
+                                    tables_info[table] = result["count"] if result else 0
                                 except Exception as e:
                                     logger.warning(f"無法查詢表格 {table}: {e}")
                                     tables_info[table] = "N/A"
@@ -335,9 +309,7 @@ class SystemAdmin(commands.Cog):
                             # 添加表格資訊
                             table_stats = []
                             for table, count in tables_info.items():
-                                table_stats.append(
-                                    f"📊 **{table.title()}**: {count} 筆"
-                                )
+                                table_stats.append(f"📊 **{table.title()}**: {count} 筆")
 
                             embed.add_field(
                                 name="📈 資料統計",
@@ -367,17 +339,11 @@ class SystemAdmin(commands.Cog):
                 )
 
                 # 添加清理詳情
-                cleanup_details = (
-                    results.details if results.details else ["沒有需要清理的資料"]
-                )
+                cleanup_details = results.details if results.details else ["沒有需要清理的資料"]
 
                 embed.add_field(
                     name="🗑️ 清理詳情",
-                    value=(
-                        "\n".join(cleanup_details)
-                        if cleanup_details
-                        else "沒有需要清理的資料"
-                    ),
+                    value=("\n".join(cleanup_details) if cleanup_details else "沒有需要清理的資料"),
                     inline=False,
                 )
 
@@ -417,22 +383,16 @@ class SystemAdmin(commands.Cog):
                                     reindex_results[table] = f"failed: {str(e)}"
 
                             # 建立結果嵌入
-                            embed = discord.Embed(
-                                title="🔧 索引重建完成", color=0x2ECC71
-                            )
+                            embed = discord.Embed(title="🔧 索引重建完成", color=0x2ECC71)
 
                             reindex_details = []
                             successful = 0
                             for table, result in reindex_results.items():
                                 if result == "success":
-                                    reindex_details.append(
-                                        f"✅ **{table.title()}**: 重建成功"
-                                    )
+                                    reindex_details.append(f"✅ **{table.title()}**: 重建成功")
                                     successful += 1
                                 else:
-                                    reindex_details.append(
-                                        f"❌ **{table.title()}**: {result}"
-                                    )
+                                    reindex_details.append(f"❌ **{table.title()}**: {result}")
 
                             embed.add_field(
                                 name="🔨 重建詳情",
@@ -461,9 +421,7 @@ class SystemAdmin(commands.Cog):
                     stats_manager = StatisticsManager()
 
                     # 獲取綜合統計
-                    stats = await stats_manager.get_comprehensive_statistics(
-                        interaction.guild.id
-                    )
+                    stats = await stats_manager.get_comprehensive_statistics(interaction.guild.id)
 
                     embed = discord.Embed(title="📊 資料庫統計資訊", color=0x3498DB)
 

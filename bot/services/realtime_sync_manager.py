@@ -92,13 +92,9 @@ class RealtimeSyncManager:
             if REDIS_AVAILABLE:
                 try:
                     if REDIS_TYPE == "aioredis":
-                        self.redis = await aioredis.from_url(
-                            self.redis_url, decode_responses=True
-                        )
+                        self.redis = await aioredis.from_url(self.redis_url, decode_responses=True)
                     elif REDIS_TYPE == "redis-py":
-                        self.redis = await redis.from_url(
-                            self.redis_url, decode_responses=True
-                        )
+                        self.redis = await redis.from_url(self.redis_url, decode_responses=True)
                     logger.info(f"✅ Redis 連接成功 ({REDIS_TYPE})")
                 except Exception as e:
                     logger.warning(f"⚠️ Redis 連接失敗，將使用本機模式: {e}")
@@ -137,11 +133,7 @@ class RealtimeSyncManager:
                 }
 
                 await self.redis.publish(
-                    (
-                        f"ticket_sync:{event.guild_id}"
-                        if event.guild_id
-                        else "ticket_sync:global"
-                    ),
+                    (f"ticket_sync:{event.guild_id}" if event.guild_id else "ticket_sync:global"),
                     json.dumps(event_data, ensure_ascii=False),
                 )
 
@@ -277,12 +269,8 @@ class RealtimeSyncManager:
                     color=0x3498DB,
                 )
                 if ticket_info:
-                    embed.add_field(
-                        name="票券類型", value=ticket_info["type"], inline=True
-                    )
-                    embed.add_field(
-                        name="優先級", value=ticket_info["priority"], inline=True
-                    )
+                    embed.add_field(name="票券類型", value=ticket_info["type"], inline=True)
+                    embed.add_field(name="優先級", value=ticket_info["priority"], inline=True)
 
                 try:
                     await user.send(embed=embed)
@@ -311,9 +299,7 @@ class RealtimeSyncManager:
                 )
 
                 if event.data.get("reason"):
-                    embed.add_field(
-                        name="關閉原因", value=event.data["reason"], inline=False
-                    )
+                    embed.add_field(name="關閉原因", value=event.data["reason"], inline=False)
 
                 try:
                     await user.send(embed=embed)
@@ -328,9 +314,7 @@ class RealtimeSyncManager:
         try:
             async with db_pool.connection() as conn:
                 async with conn.cursor(aiomysql.DictCursor) as cursor:
-                    await cursor.execute(
-                        "SELECT * FROM tickets WHERE id = %s", (ticket_id,)
-                    )
+                    await cursor.execute("SELECT * FROM tickets WHERE id = %s", (ticket_id,))
                     return await cursor.fetchone()
         except Exception as e:
             logger.error(f"獲取票券資訊失敗: {e}")
@@ -354,11 +338,7 @@ class RealtimeSyncManager:
                             event.ticket_id,
                             event.user_id,
                             event.guild_id,
-                            (
-                                json.dumps(event.data, ensure_ascii=False)
-                                if event.data
-                                else None
-                            ),
+                            (json.dumps(event.data, ensure_ascii=False) if event.data else None),
                             event.timestamp,
                         ),
                     )
@@ -389,9 +369,7 @@ class RealtimeSyncManager:
                             (guild_id,),
                         )
                     else:
-                        await cursor.execute(
-                            "SELECT COUNT(*) FROM tickets WHERE status = 'open'"
-                        )
+                        await cursor.execute("SELECT COUNT(*) FROM tickets WHERE status = 'open'")
 
                     result = await cursor.fetchone()
                     return result[0] if result else 0
@@ -413,10 +391,7 @@ class RealtimeSyncManager:
             online_staff = 0
             for member in guild.members:
                 # 檢查是否有客服角色且在線
-                if any(
-                    role.name in ["客服", "Staff", "管理員", "Admin"]
-                    for role in member.roles
-                ):
+                if any(role.name in ["客服", "Staff", "管理員", "Admin"] for role in member.roles):
                     if member.status != discord.Status.offline:
                         online_staff += 1
 

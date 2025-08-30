@@ -37,9 +37,7 @@ class SecurityCore(commands.Cog):
 
     @app_commands.command(name="security_dashboard", description="查看安全監控儀表板")
     @app_commands.describe(days="統計天數")
-    async def security_dashboard(
-        self, interaction: discord.Interaction, days: int = 30
-    ):
+    async def security_dashboard(self, interaction: discord.Interaction, days: int = 30):
         """查看安全監控儀表板"""
         try:
             # 檢查權限
@@ -50,17 +48,13 @@ class SecurityCore(commands.Cog):
                 return
 
             if not 1 <= days <= 365:
-                await interaction.response.send_message(
-                    "❌ 天數必須在1-365之間", ephemeral=True
-                )
+                await interaction.response.send_message("❌ 天數必須在1-365之間", ephemeral=True)
                 return
 
             await interaction.response.defer(ephemeral=True)
 
             # 獲取安全統計
-            stats = await self.security_dao.get_security_statistics(
-                interaction.guild.id, days
-            )
+            stats = await self.security_dao.get_security_statistics(interaction.guild.id, days)
 
             # 獲取活躍警報
             alerts = await self.security_dao.get_active_alerts(interaction.guild.id)
@@ -143,9 +137,7 @@ class SecurityCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"查看安全儀表板失敗: {e}")
-            await interaction.followup.send(
-                f"❌ 獲取安全儀表板失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.followup.send(f"❌ 獲取安全儀表板失敗: {str(e)}", ephemeral=True)
 
     @app_commands.command(name="security_events", description="查看安全事件記錄")
     @app_commands.describe(
@@ -186,9 +178,7 @@ class SecurityCore(commands.Cog):
                 return
 
             if not 1 <= days <= 90:
-                await interaction.response.send_message(
-                    "❌ 天數必須在1-90之間", ephemeral=True
-                )
+                await interaction.response.send_message("❌ 天數必須在1-90之間", ephemeral=True)
                 return
 
             await interaction.response.defer(ephemeral=True)
@@ -256,16 +246,12 @@ class SecurityCore(commands.Cog):
                         f"資源: {event['resource'][:30]}{'...' if len(event['resource']) > 30 else ''}"
                     )
 
-                embed.add_field(
-                    name="🕐 最新事件", value="\n\n".join(events_text), inline=False
-                )
+                embed.add_field(name="🕐 最新事件", value="\n\n".join(events_text), inline=False)
 
             # 篩選條件摘要
             filters = []
             if query_event_type:
-                filters.append(
-                    f"類型: {self._get_event_display_name(query_event_type)}"
-                )
+                filters.append(f"類型: {self._get_event_display_name(query_event_type)}")
             if query_risk_level:
                 filters.append(f"風險: {query_risk_level}")
             if user:
@@ -278,9 +264,7 @@ class SecurityCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"查看安全事件失敗: {e}")
-            await interaction.followup.send(
-                f"❌ 獲取安全事件失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.followup.send(f"❌ 獲取安全事件失敗: {str(e)}", ephemeral=True)
 
     @app_commands.command(name="security_alerts", description="查看安全警報")
     @app_commands.describe(severity="警報嚴重程度")
@@ -293,9 +277,7 @@ class SecurityCore(commands.Cog):
             app_commands.Choice(name="嚴重", value="critical"),
         ]
     )
-    async def security_alerts(
-        self, interaction: discord.Interaction, severity: str = "all"
-    ):
+    async def security_alerts(self, interaction: discord.Interaction, severity: str = "all"):
         """查看安全警報"""
         try:
             # 檢查權限
@@ -309,9 +291,7 @@ class SecurityCore(commands.Cog):
 
             # 獲取活躍警報
             query_severity = severity if severity != "all" else None
-            alerts = await self.security_dao.get_active_alerts(
-                interaction.guild.id, query_severity
-            )
+            alerts = await self.security_dao.get_active_alerts(interaction.guild.id, query_severity)
 
             # 創建嵌入式訊息
             embed = EmbedBuilder.build(
@@ -388,9 +368,7 @@ class SecurityCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"查看安全警報失敗: {e}")
-            await interaction.followup.send(
-                f"❌ 獲取安全警報失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.followup.send(f"❌ 獲取安全警報失敗: {str(e)}", ephemeral=True)
 
     # ========== 合規報告指令 ==========
 
@@ -402,9 +380,7 @@ class SecurityCore(commands.Cog):
             app_commands.Choice(name="SOX - 薩班斯-奧克斯利法案", value="sox"),
             app_commands.Choice(name="ISO27001 - 資訊安全管理", value="iso27001"),
             app_commands.Choice(name="HIPAA - 健康保險便利和責任法案", value="hipaa"),
-            app_commands.Choice(
-                name="PCI DSS - 支付卡行業數據安全標準", value="pci_dss"
-            ),
+            app_commands.Choice(name="PCI DSS - 支付卡行業數據安全標準", value="pci_dss"),
         ]
     )
     async def compliance_report(
@@ -493,9 +469,7 @@ class SecurityCore(commands.Cog):
 
             risk_levels = {1: "🟢 低", 2: "🟡 中", 3: "🟠 高", 4: "🔴 嚴重"}
 
-            embed.add_field(
-                name="⚡ 風險評級", value=risk_levels[risk_score], inline=True
-            )
+            embed.add_field(name="⚡ 風險評級", value=risk_levels[risk_score], inline=True)
 
             # 違規情況
             if report.violations:
@@ -510,13 +484,9 @@ class SecurityCore(commands.Cog):
                     violation_text.append(f"{sev_emoji} {violation['description']}")
 
                 if len(report.violations) > 3:
-                    violation_text.append(
-                        f"...還有 {len(report.violations) - 3} 個違規"
-                    )
+                    violation_text.append(f"...還有 {len(report.violations) - 3} 個違規")
 
-                embed.add_field(
-                    name="⚠️ 主要違規", value="\n".join(violation_text), inline=False
-                )
+                embed.add_field(name="⚠️ 主要違規", value="\n".join(violation_text), inline=False)
 
             # 建議
             if report.recommendations:
@@ -541,9 +511,7 @@ class SecurityCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"生成合規報告失敗: {e}")
-            await interaction.followup.send(
-                f"❌ 生成合規報告失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.followup.send(f"❌ 生成合規報告失敗: {str(e)}", ephemeral=True)
 
     @app_commands.command(name="compliance_history", description="查看合規報告歷史")
     @app_commands.describe(standard="合規標準")
@@ -557,9 +525,7 @@ class SecurityCore(commands.Cog):
             app_commands.Choice(name="PCI DSS", value="pci_dss"),
         ]
     )
-    async def compliance_history(
-        self, interaction: discord.Interaction, standard: str = "all"
-    ):
+    async def compliance_history(self, interaction: discord.Interaction, standard: str = "all"):
         """查看合規報告歷史"""
         try:
             # 檢查權限
@@ -615,9 +581,7 @@ class SecurityCore(commands.Cog):
                         period = f"{report['period_start']} 至 {report['period_end']}"
 
                         violation_count = len(report["violations"])
-                        status_emoji = (
-                            "✅" if violation_count == 0 else f"⚠️({violation_count})"
-                        )
+                        status_emoji = "✅" if violation_count == 0 else f"⚠️({violation_count})"
 
                         reports_text.append(
                             f"{status_emoji} **{period}**\n"
@@ -639,9 +603,7 @@ class SecurityCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"查看合規歷史失敗: {e}")
-            await interaction.followup.send(
-                f"❌ 獲取合規歷史失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.followup.send(f"❌ 獲取合規歷史失敗: {str(e)}", ephemeral=True)
 
     # ========== 輔助方法 ==========
 
@@ -680,9 +642,7 @@ class SecurityCore(commands.Cog):
                 resource=f"role:{role.id}",
                 details={
                     "role_name": role.name,
-                    "role_permissions": [
-                        perm for perm, value in role.permissions if value
-                    ],
+                    "role_permissions": [perm for perm, value in role.permissions if value],
                     "created_at": datetime.now(timezone.utc).isoformat(),
                 },
                 risk_level=RiskLevel.MEDIUM,
@@ -777,9 +737,7 @@ class SecurityCore(commands.Cog):
                 "❌ 安全指令執行時發生錯誤，請稍後再試", ephemeral=True
             )
         else:
-            await interaction.followup.send(
-                "❌ 操作失敗，請檢查系統狀態", ephemeral=True
-            )
+            await interaction.followup.send("❌ 操作失敗，請檢查系統狀態", ephemeral=True)
 
 
 async def setup(bot):
