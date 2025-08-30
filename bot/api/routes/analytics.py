@@ -8,14 +8,14 @@ from datetime import datetime, timedelta
 
 # from slowapi import Limiter, _rate_limit_exceeded_handler
 # from slowapi.util import get_remote_address
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from shared.logger import logger
 
 from ..auth import APIUser, require_read_permission
-from ..models import BaseResponse, StaffPerformance, SystemMetrics
+from ..models import StaffPerformance
 
 router = APIRouter()
 # limiter = Limiter(key_func=get_remote_address)
@@ -214,7 +214,11 @@ async def generate_report(
         raise HTTPException(status_code=500, detail="生成報告失敗")
 
 
-@router.get("/staff-performance", response_model=List[StaffPerformance], summary="獲取客服績效數據")
+@router.get(
+    "/staff-performance",
+    response_model=List[StaffPerformance],
+    summary="獲取客服績效數據",
+)
 # @limiter.limit("10/minute")
 async def get_staff_performance(
     guild_id: Optional[int] = Query(None),

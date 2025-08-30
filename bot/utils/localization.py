@@ -5,7 +5,7 @@
 """
 
 from functools import wraps
-from typing import Any, Callable, Dict, Optional
+from typing import Optional
 
 import discord
 from discord import app_commands

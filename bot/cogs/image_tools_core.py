@@ -4,18 +4,15 @@
 提供圖片格式轉換、特效處理、壓縮等功能的Discord指令
 """
 
-import asyncio
 import io
 import time
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Optional
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 from bot.services.image_processor import (
-    ImageEffect,
     ImageFormat,
     ImageOperation,
     ImageProcessRequest,
@@ -59,7 +56,9 @@ class ImageToolsCog(commands.Cog):
             )
 
             embed.add_field(
-                name="📏 限制", value="**最大文件**: 10MB\n**最大尺寸**: 2000x2000", inline=True
+                name="📏 限制",
+                value="**最大文件**: 10MB\n**最大尺寸**: 2000x2000",
+                inline=True,
             )
 
             await interaction.response.send_message(embed=embed, view=view)
@@ -239,7 +238,8 @@ class ImageToolsCog(commands.Cog):
 
             else:
                 embed = EmbedBuilder.create_error_embed(
-                    "❌ 特效處理失敗", result.error_message or "特效處理過程中發生未知錯誤"
+                    "❌ 特效處理失敗",
+                    result.error_message or "特效處理過程中發生未知錯誤",
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -252,7 +252,10 @@ class ImageToolsCog(commands.Cog):
     @app_commands.command(name="compress_image", description="壓縮圖片以減少文件大小")
     @app_commands.describe(image="要壓縮的圖片附件", quality="壓縮品質 (1-100，數值越低壓縮越大)")
     async def compress_image(
-        self, interaction: discord.Interaction, image: discord.Attachment, quality: int = 75
+        self,
+        interaction: discord.Interaction,
+        image: discord.Attachment,
+        quality: int = 75,
     ):
         """壓縮圖片"""
         try:
@@ -383,7 +386,11 @@ class ImageToolsCog(commands.Cog):
             request = ImageProcessRequest(
                 image_url=image.url,
                 operation=ImageOperation.RESIZE,
-                parameters={"width": width, "height": height, "maintain_aspect": maintain_aspect},
+                parameters={
+                    "width": width,
+                    "height": height,
+                    "maintain_aspect": maintain_aspect,
+                },
                 output_format=ImageFormat.PNG,
             )
 
@@ -396,7 +403,8 @@ class ImageToolsCog(commands.Cog):
                 file = discord.File(io.BytesIO(result.image_data), filename=filename)
 
                 embed = EmbedBuilder.create_success_embed(
-                    "📏 圖片尺寸調整完成", f"新尺寸: **{result.size[0]}×{result.size[1]}**"
+                    "📏 圖片尺寸調整完成",
+                    f"新尺寸: **{result.size[0]}×{result.size[1]}**",
                 )
 
                 embed.add_field(
@@ -421,7 +429,8 @@ class ImageToolsCog(commands.Cog):
 
             else:
                 embed = EmbedBuilder.create_error_embed(
-                    "❌ 尺寸調整失敗", result.error_message or "尺寸調整過程中發生未知錯誤"
+                    "❌ 尺寸調整失敗",
+                    result.error_message or "尺寸調整過程中發生未知錯誤",
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
 

@@ -4,15 +4,9 @@
 提供統一的圖片處理管理界面，包括特效、格式轉換、壓縮等功能
 """
 
-import asyncio
-import io
-import traceback
 from enum import Enum
-from typing import Any, Dict, List, Optional
 
 import discord
-from discord import ui
-from discord.ext import commands
 
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
@@ -48,13 +42,19 @@ class ImageFormatSelector(discord.ui.Select):
     def __init__(self):
         options = [
             discord.SelectOption(
-                label="PNG", value="png", description="高品質無損格式，支援透明度", emoji="🖼️"
+                label="PNG",
+                value="png",
+                description="高品質無損格式，支援透明度",
+                emoji="🖼️",
             ),
             discord.SelectOption(
                 label="JPEG", value="jpeg", description="高壓縮比，適合照片", emoji="📸"
             ),
             discord.SelectOption(
-                label="WEBP", value="webp", description="現代格式，優秀的壓縮比", emoji="🌐"
+                label="WEBP",
+                value="webp",
+                description="現代格式，優秀的壓縮比",
+                emoji="🌐",
             ),
             discord.SelectOption(
                 label="GIF", value="gif", description="支援動畫的格式", emoji="🎬"
@@ -72,7 +72,8 @@ class ImageFormatSelector(discord.ui.Select):
             view.selected_format = selected_format
 
             embed = EmbedBuilder.create_success_embed(
-                "✅ 格式已選擇", f"已選擇 **{selected_format.upper()}** 格式\n請上傳圖片開始轉換！"
+                "✅ 格式已選擇",
+                f"已選擇 **{selected_format.upper()}** 格式\n請上傳圖片開始轉換！",
             )
 
             await interaction.response.edit_message(embed=embed, view=view)
@@ -281,7 +282,9 @@ class ImageToolsControlView(discord.ui.View):
             )
 
             embed.add_field(
-                name="📤 使用方法", value="直接上傳圖片文件，系統將自動進行智能壓縮。", inline=False
+                name="📤 使用方法",
+                value="直接上傳圖片文件，系統將自動進行智能壓縮。",
+                inline=False,
             )
 
             await interaction.response.edit_message(embed=embed, view=self)
@@ -374,7 +377,9 @@ class ImageToolsControlView(discord.ui.View):
     def create_back_button(self):
         """創建返回按鈕"""
         back_button = discord.ui.Button(
-            label="🔙 返回主選單", style=discord.ButtonStyle.danger, custom_id="back_to_main"
+            label="🔙 返回主選單",
+            style=discord.ButtonStyle.danger,
+            custom_id="back_to_main",
         )
         back_button.callback = self.back_to_main
         return back_button
@@ -424,7 +429,9 @@ class ImageToolsMainView(discord.ui.View):
             )
 
             embed.add_field(
-                name="📏 限制", value="**最大文件**: 10MB\n**最大尺寸**: 2000x2000", inline=True
+                name="📏 限制",
+                value="**最大文件**: 10MB\n**最大尺寸**: 2000x2000",
+                inline=True,
             )
 
             await interaction.response.edit_message(embed=embed, view=control_view)

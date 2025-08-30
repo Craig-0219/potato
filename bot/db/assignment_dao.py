@@ -4,9 +4,7 @@
 處理客服指派、工作量追蹤、專精匹配等功能
 """
 
-import json
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from bot.db.pool import db_pool
 from shared.logger import logger
@@ -223,7 +221,14 @@ class AssignmentDAO:
                         (ticket_id, assigned_from, assigned_to, assigned_by, assignment_reason, assignment_method)
                         VALUES (%s, %s, %s, %s, %s, %s)
                     """,
-                        (ticket_id, assigned_from, assigned_to, assigned_by, reason, method),
+                        (
+                            ticket_id,
+                            assigned_from,
+                            assigned_to,
+                            assigned_by,
+                            reason,
+                            method,
+                        ),
                     )
 
                     await conn.commit()
@@ -260,7 +265,11 @@ class AssignmentDAO:
     # ========== 專精系統管理 ==========
 
     async def add_staff_specialty(
-        self, guild_id: int, staff_id: int, specialty_type: str, skill_level: str = "intermediate"
+        self,
+        guild_id: int,
+        staff_id: int,
+        specialty_type: str,
+        skill_level: str = "intermediate",
     ) -> bool:
         """添加客服專精"""
         await self._ensure_initialized()
@@ -367,7 +376,10 @@ class AssignmentDAO:
     # ========== 指派規則管理 ==========
 
     async def get_assignment_rule(
-        self, guild_id: int, ticket_type: Optional[str] = None, priority_level: Optional[str] = None
+        self,
+        guild_id: int,
+        ticket_type: Optional[str] = None,
+        priority_level: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
         """取得適用的指派規則"""
         await self._ensure_initialized()

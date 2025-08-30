@@ -7,13 +7,11 @@
 import asyncio
 import json
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, Set
 
-import aiomysql
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
-from bot.db.pool import db_pool
 from bot.services.statistics_manager import StatisticsManager
 from shared.logger import logger
 
@@ -349,7 +347,11 @@ async def get_real_time_vote_stats(guild_id: int) -> Dict[str, Any]:
             "error": str(e),
             "active_votes": [],
             "recent_completed": [],
-            "today_statistics": {"votes_created": 0, "votes_completed": 0, "total_participants": 0},
+            "today_statistics": {
+                "votes_created": 0,
+                "votes_completed": 0,
+                "total_participants": 0,
+            },
             "summary": {"active_count": 0, "total_active_participants": 0},
         }
 

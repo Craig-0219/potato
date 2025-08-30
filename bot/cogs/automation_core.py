@@ -4,10 +4,6 @@
 提供Discord指令介面來管理和執行自動化規則
 """
 
-import asyncio
-import json
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
 
 import discord
 from discord import app_commands
@@ -15,14 +11,11 @@ from discord.ext import commands
 
 from bot.db.automation_dao import AutomationDAO
 from bot.services.automation_engine import (
-    ActionType,
-    ConditionOperator,
-    RuleStatus,
     TriggerType,
     automation_engine,
 )
 from bot.utils.embed_builder import EmbedBuilder
-from bot.views.automation_views import AutomationView, RuleBuilderModal, RuleExecutionView
+from bot.views.automation_views import AutomationView, RuleBuilderModal
 from shared.logger import logger
 
 
@@ -59,7 +52,10 @@ class AutomationCore(commands.Cog):
         ],
     )
     async def automation_list(
-        self, interaction: discord.Interaction, status: str = "all", trigger_type: str = "all"
+        self,
+        interaction: discord.Interaction,
+        status: str = "all",
+        trigger_type: str = "all",
     ):
         """查看自動化規則列表"""
         try:
@@ -270,7 +266,9 @@ class AutomationCore(commands.Cog):
                     actions_text += f"\n...還有 {len(rule['actions']) - 3} 個動作"
 
             embed.add_field(
-                name="🎯 動作", value=f"動作數: {len(rule['actions'])}\n{actions_text}", inline=True
+                name="🎯 動作",
+                value=f"動作數: {len(rule['actions'])}\n{actions_text}",
+                inline=True,
             )
 
             # 執行統計
@@ -385,7 +383,11 @@ class AutomationCore(commands.Cog):
 
             # 獲取執行記錄
             executions, total_count = await self.dao.get_executions(
-                rule_id=rule_id, guild_id=interaction.guild.id, days=days, page=1, page_size=20
+                rule_id=rule_id,
+                guild_id=interaction.guild.id,
+                days=days,
+                page=1,
+                page_size=20,
             )
 
             # 創建嵌入式訊息
@@ -401,7 +403,9 @@ class AutomationCore(commands.Cog):
 
             if not executions:
                 embed.add_field(
-                    name="📋 執行狀態", value="在指定時間範圍內沒有執行記錄", inline=False
+                    name="📋 執行狀態",
+                    value="在指定時間範圍內沒有執行記錄",
+                    inline=False,
                 )
             else:
                 # 統計資訊
@@ -431,7 +435,9 @@ class AutomationCore(commands.Cog):
                     )
 
                 embed.add_field(
-                    name="🕐 最近執行", value="\n\n".join(recent_executions), inline=False
+                    name="🕐 最近執行",
+                    value="\n\n".join(recent_executions),
+                    inline=False,
                 )
 
             embed.set_footer(text=f"共 {total_count} 條記錄 | 顯示前 {min(20, len(executions))} 條")
@@ -570,7 +576,7 @@ class AutomationCore(commands.Cog):
                     "id": member.id,
                     "name": member.name,
                     "display_name": member.display_name,
-                    "joined_at": member.joined_at.isoformat() if member.joined_at else None,
+                    "joined_at": (member.joined_at.isoformat() if member.joined_at else None),
                 },
             }
 
@@ -587,7 +593,11 @@ class AutomationCore(commands.Cog):
             event_data = {
                 "guild_id": member.guild.id,
                 "user_id": member.id,
-                "user": {"id": member.id, "name": member.name, "display_name": member.display_name},
+                "user": {
+                    "id": member.id,
+                    "name": member.name,
+                    "display_name": member.display_name,
+                },
             }
 
             # 處理事件

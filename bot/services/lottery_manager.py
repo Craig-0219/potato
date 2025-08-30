@@ -6,13 +6,13 @@
 
 import asyncio
 import random
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 import discord
 from discord.ext import tasks
 
-from bot.db.lottery_dao import LotteryDAO, LotteryData
+from bot.db.lottery_dao import LotteryDAO
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 
@@ -213,13 +213,19 @@ class LotteryManager:
             if lottery["min_account_age_days"] > 0:
                 account_age = (datetime.now(user.created_at.tzinfo) - user.created_at).days
                 if account_age < lottery["min_account_age_days"]:
-                    return False, f"帳號年齡需要至少 {lottery['min_account_age_days']} 天"
+                    return (
+                        False,
+                        f"帳號年齡需要至少 {lottery['min_account_age_days']} 天",
+                    )
 
             # 檢查加入伺服器時間
             if lottery["min_server_join_days"] > 0 and user.joined_at:
                 join_age = (datetime.now(user.joined_at.tzinfo) - user.joined_at).days
                 if join_age < lottery["min_server_join_days"]:
-                    return False, f"加入伺服器需要至少 {lottery['min_server_join_days']} 天"
+                    return (
+                        False,
+                        f"加入伺服器需要至少 {lottery['min_server_join_days']} 天",
+                    )
 
             # 檢查必需角色
             if lottery["required_roles"]:
@@ -271,14 +277,18 @@ class LotteryManager:
             prize_info = lottery["prize_data"]
             if isinstance(prize_info, dict):
                 embed.add_field(
-                    name="🎁 獎品", value=prize_info.get("description", "未知獎品"), inline=False
+                    name="🎁 獎品",
+                    value=prize_info.get("description", "未知獎品"),
+                    inline=False,
                 )
             else:
                 embed.add_field(name="🎁 獎品", value=str(prize_info), inline=False)
 
         embed.add_field(name="👥 中獎人數", value=f"{lottery['winner_count']} 人", inline=True)
         embed.add_field(
-            name="⏰ 結束時間", value=f"<t:{int(lottery['end_time'].timestamp())}:R>", inline=True
+            name="⏰ 結束時間",
+            value=f"<t:{int(lottery['end_time'].timestamp())}:R>",
+            inline=True,
         )
 
         # 參與方式
@@ -328,7 +338,9 @@ class LotteryManager:
                 )
 
             embed.add_field(
-                name=f"🎊 中獎者 ({len(winners)} 人)", value="\n".join(winner_list), inline=False
+                name=f"🎊 中獎者 ({len(winners)} 人)",
+                value="\n".join(winner_list),
+                inline=False,
             )
 
         embed.add_field(name="👥 總參與人數", value=f"{total_participants} 人", inline=True)

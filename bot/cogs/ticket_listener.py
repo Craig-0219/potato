@@ -1,7 +1,6 @@
 # bot/listeners/ticket_listener.py - 票券系統事件監聽器完整版
 
 import asyncio
-import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -13,8 +12,7 @@ from bot.db.ticket_dao import TicketDAO
 from bot.services.chat_transcript_manager import ChatTranscriptManager
 from bot.services.realtime_sync_manager import SyncEvent, SyncEventType, realtime_sync
 from bot.services.ticket_manager import TicketManager
-from bot.utils.helper import format_duration
-from bot.utils.ticket_constants import ERROR_MESSAGES, get_priority_emoji
+from bot.utils.ticket_constants import get_priority_emoji
 from bot.utils.ticket_utils import TicketPermissionChecker, is_ticket_channel
 from shared.logger import logger
 
@@ -92,7 +90,10 @@ class TicketListener(commands.Cog):
                     ticket_id=ticket_info["ticket_id"],
                     user_id=message.author.id,
                     guild_id=message.guild.id,
-                    data={"content": message.content[:100], "author": message.author.display_name},
+                    data={
+                        "content": message.content[:100],
+                        "author": message.author.display_name,
+                    },
                 )
             )
 
@@ -400,7 +401,9 @@ class TicketListener(commands.Cog):
             from bot.utils.ticket_constants import format_duration
 
             embed.add_field(
-                name="持續時間", value=format_duration(int(duration.total_seconds())), inline=True
+                name="持續時間",
+                value=format_duration(int(duration.total_seconds())),
+                inline=True,
             )
 
             await log_channel.send(embed=embed)
@@ -416,7 +419,10 @@ class TicketListener(commands.Cog):
         try:
             # 檢查該成員是否有開啟的票券
             tickets, _ = await self.dao.paginate_tickets(
-                user_id=str(member.id), status="open", guild_id=member.guild.id, page_size=50
+                user_id=str(member.id),
+                status="open",
+                guild_id=member.guild.id,
+                page_size=50,
             )
 
             if not tickets:
@@ -425,7 +431,9 @@ class TicketListener(commands.Cog):
             # 自動關閉該成員的所有開啟票券
             for ticket in tickets:
                 await self.dao.close_ticket(
-                    ticket["channel_id"], "system", f"用戶 {member.display_name} 離開伺服器"
+                    ticket["channel_id"],
+                    "system",
+                    f"用戶 {member.display_name} 離開伺服器",
                 )
 
                 # 嘗試在頻道中通知並延遲刪除
@@ -902,7 +910,8 @@ class TicketMaintenanceListener(commands.Cog):
             async with self.dao.db_pool.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
-                        "DELETE FROM auto_reply_logs WHERE created_at < %s", (cutoff_date,)
+                        "DELETE FROM auto_reply_logs WHERE created_at < %s",
+                        (cutoff_date,),
                     )
                     await conn.commit()
 
@@ -919,10 +928,10 @@ class TicketMaintenanceListener(commands.Cog):
             for guild in self.bot.guilds:
                 try:
                     # 更新基本統計
-                    stats = await self.dao.get_server_statistics(guild.id)
+                    await self.dao.get_server_statistics(guild.id)
 
                     # 更新 SLA 統計
-                    sla_stats = await self.dao.get_sla_statistics(guild.id)
+                    await self.dao.get_sla_statistics(guild.id)
 
                     # 可以在這裡添加更多統計更新邏輯
 

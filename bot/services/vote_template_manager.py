@@ -99,7 +99,13 @@ class VoteTemplateManager:
                 "description": "團購飲料時的選擇模板",
                 "category": "food",
                 "title_template": "🥤 {event}飲料團購",
-                "options_template": ["🧋 珍珠奶茶", "☕ 咖啡", "🥤 汽水", "🧃 果汁", "🍵 茶類"],
+                "options_template": [
+                    "🧋 珍珠奶茶",
+                    "☕ 咖啡",
+                    "🥤 汽水",
+                    "🧃 果汁",
+                    "🍵 茶類",
+                ],
                 "default_duration": 60,
                 "default_is_multi": True,
                 "default_anonymous": False,
@@ -186,7 +192,12 @@ class VoteTemplateManager:
         """創建自定義模板"""
         try:
             # 驗證必要欄位
-            required_fields = ["name", "title_template", "options_template", "creator_id"]
+            required_fields = [
+                "name",
+                "title_template",
+                "options_template",
+                "creator_id",
+            ]
             for field in required_fields:
                 if field not in template_data:
                     logger.error(f"創建模板失敗: 缺少必要欄位 {field}")
@@ -248,7 +259,10 @@ class VoteTemplateManager:
             return None
 
     async def get_templates_by_category(
-        self, category: str, guild_id: Optional[int] = None, user_id: Optional[int] = None
+        self,
+        category: str,
+        guild_id: Optional[int] = None,
+        user_id: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
         """根據類別取得模板"""
         return await vote_template_dao.get_templates_by_category(category, guild_id, user_id)

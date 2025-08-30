@@ -2,17 +2,15 @@
 # 🔐 伺服器級權限管理系統
 # Guild-Level Permission Management System
 
-import asyncio
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set
 
 import aiomysql
 import discord
-from discord.ext import commands
 
 from bot.db.pool import db_pool
 from bot.utils.multi_tenant_security import multi_tenant_security, secure_query_builder

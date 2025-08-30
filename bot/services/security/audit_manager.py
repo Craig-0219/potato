@@ -11,7 +11,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from bot.db.pool import db_pool
 
@@ -210,7 +210,12 @@ class AuditManager:
         return await self.log_event(event)
 
     async def log_authorization_event(
-        self, user_id: int, guild_id: int, permission: str, granted: bool, resource: str = None
+        self,
+        user_id: int,
+        guild_id: int,
+        permission: str,
+        granted: bool,
+        resource: str = None,
     ) -> bool:
         """記錄授權事件"""
         event = SecurityEvent(
@@ -220,7 +225,11 @@ class AuditManager:
             category=EventCategory.AUTHORIZATION,
             severity=EventSeverity.LOW,
             message=f"權限檢查: {permission} - {'允許' if granted else '拒絕'}",
-            details={"permission": permission, "granted": granted, "resource": resource},
+            details={
+                "permission": permission,
+                "granted": granted,
+                "resource": resource,
+            },
         )
 
         return await self.log_event(event)
@@ -265,7 +274,11 @@ class AuditManager:
             category=EventCategory.API_ACCESS,
             severity=severity,
             message=f"API 存取: {method} {endpoint} - {status_code}",
-            details={"endpoint": endpoint, "method": method, "status_code": status_code},
+            details={
+                "endpoint": endpoint,
+                "method": method,
+                "status_code": status_code,
+            },
             ip_address=ip_address,
             user_agent=user_agent,
         )
@@ -411,7 +424,10 @@ class AuditManager:
         try:
             report = {
                 "standard": standard.value,
-                "period": {"start": start_date.isoformat(), "end": end_date.isoformat()},
+                "period": {
+                    "start": start_date.isoformat(),
+                    "end": end_date.isoformat(),
+                },
                 "guild_id": guild_id,
                 "generated_at": datetime.now().isoformat(),
                 "summary": {},
@@ -521,7 +537,14 @@ class AuditManager:
                     total_count = len(records)
 
                     for record in records:
-                        event_id, stored_hash, user_id, event_type, timestamp, details = record
+                        (
+                            event_id,
+                            stored_hash,
+                            user_id,
+                            event_type,
+                            timestamp,
+                            details,
+                        ) = record
 
                         # 重新計算雜湊值
                         calculated_hash = self._calculate_record_hash(

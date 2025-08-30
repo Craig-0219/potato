@@ -4,9 +4,8 @@
 提供基本的統計功能，避免複雜的合併衝突
 """
 
-import asyncio
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime
+from typing import Any, Dict, Optional
 
 import aiomysql
 
@@ -235,14 +234,16 @@ class StatisticsManager:
                 "average_rating": ticket_stats.get("avg_rating", 0),
                 "total_interactions": ticket_stats.get("total_tickets", 0)
                 + vote_stats.get("total_votes", 0),
-                "system_health_score": 100.0 if system_stats.get("status") == "healthy" else 0.0,
+                "system_health_score": (100.0 if system_stats.get("status") == "healthy" else 0.0),
             }
 
             # 生成趨勢分析（簡化版）
             trend_analysis = {
                 "ticket_trend": "stable",  # 簡化版，實際應該基於歷史數據
                 "vote_trend": "stable",
-                "engagement_trend": "positive" if kpi_metrics["total_interactions"] > 0 else "low",
+                "engagement_trend": (
+                    "positive" if kpi_metrics["total_interactions"] > 0 else "low"
+                ),
             }
 
             # 生成建議和洞察
@@ -333,7 +334,7 @@ class StatisticsManager:
                         "system_online": True,
                         "active_users": 0,  # 暫時使用預設值
                         "current_load": 0.1,  # 暫時使用預設值
-                        "open_tickets": tickets_result["open_tickets"] if tickets_result else 0,
+                        "open_tickets": (tickets_result["open_tickets"] if tickets_result else 0),
                         "pending_tickets": (
                             tickets_result["pending_tickets"] if tickets_result else 0
                         ),
@@ -343,7 +344,7 @@ class StatisticsManager:
                         "active_workflows": 0,  # 暫時使用預設值
                         "running_executions": 0,  # 暫時使用預設值
                         "today_executions": 0,  # 暫時使用預設值
-                        "active_votes": votes_result["active_votes"] if votes_result else 0,
+                        "active_votes": (votes_result["active_votes"] if votes_result else 0),
                         "last_updated": datetime.now().isoformat(),
                     }
 

@@ -4,7 +4,7 @@
 提供統一的互動錯誤處理和安全回應方法
 """
 
-from typing import Any, Optional, Union
+from typing import Optional
 
 import discord
 
@@ -193,7 +193,9 @@ def safe_interaction(operation_name: str = "操作"):
 
             except discord.Forbidden:
                 await SafeInteractionHandler.safe_respond(
-                    interaction, content=f"❌ 沒有權限執行{operation_name}", ephemeral=True
+                    interaction,
+                    content=f"❌ 沒有權限執行{operation_name}",
+                    ephemeral=True,
                 )
             except Exception as e:
                 logger.error(f"{operation_name}執行失敗: {e}")

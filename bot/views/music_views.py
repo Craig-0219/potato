@@ -4,14 +4,9 @@
 完全重寫的互動處理機制，解決超時和響應問題
 """
 
-import asyncio
 import traceback
-from enum import Enum
-from typing import Any, Dict, List, Optional
 
 import discord
-from discord import ui
-from discord.ext import commands
 
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
@@ -208,7 +203,8 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
             volume_view = VolumeControlView(self.player)
 
             embed = EmbedBuilder.create_info_embed(
-                "🔊 音量控制", f"當前音量：{int(self.player.volume * 100)}%\n使用下方按鈕調整音量"
+                "🔊 音量控制",
+                f"當前音量：{int(self.player.volume * 100)}%\n使用下方按鈕調整音量",
             )
 
             await self.safe_respond(interaction, embed=embed, ephemeral=True, view=volume_view)
@@ -382,7 +378,9 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
             await self.safe_respond(interaction, embed=embed)
 
     @discord.ui.button(
-        label="🎛️ 控制面板", style=discord.ButtonStyle.secondary, custom_id="menu_control"
+        label="🎛️ 控制面板",
+        style=discord.ButtonStyle.secondary,
+        custom_id="menu_control",
     )
     async def control_panel_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
@@ -475,7 +473,9 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
                 pass
 
     @discord.ui.button(
-        label="🔍 搜索音樂", style=discord.ButtonStyle.secondary, custom_id="menu_search"
+        label="🔍 搜索音樂",
+        style=discord.ButtonStyle.secondary,
+        custom_id="menu_search",
     )
     async def search_music_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
@@ -619,7 +619,8 @@ class SearchInputModal(discord.ui.Modal, title="🔍 搜索音樂"):
 
                 if not search_results:
                     embed = EmbedBuilder.create_warning_embed(
-                        "🔍 無搜索結果", f"沒有找到與 '{self.search_input.value}' 相關的音樂"
+                        "🔍 無搜索結果",
+                        f"沒有找到與 '{self.search_input.value}' 相關的音樂",
                     )
                     await search_msg.edit(embed=embed)
                     return
@@ -633,7 +634,8 @@ class SearchInputModal(discord.ui.Modal, title="🔍 搜索音樂"):
                     result_text += f"   👤 {result.uploader} | ⏱️ {result.duration_str}\n\n"
 
                 embed = EmbedBuilder.create_info_embed(
-                    "🔍 搜索結果", f"找到 {len(search_results)} 個結果：\n\n{result_text}"
+                    "🔍 搜索結果",
+                    f"找到 {len(search_results)} 個結果：\n\n{result_text}",
                 )
 
                 embed.add_field(

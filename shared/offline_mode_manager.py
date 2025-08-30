@@ -4,12 +4,10 @@
 自動檢測網路環境並啟用對應功能
 """
 
-import asyncio
 import os
 import socket
-import time
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict
 
 from shared.logger import logger
 
@@ -130,7 +128,6 @@ class OfflineModeManager:
 
     def _setup_fallback_services(self):
         """設置後備服務"""
-        from bot.services.local_api_server import start_local_api_if_needed
         from shared.local_cache_manager import get_local_cache_manager
 
         # 本地快取管理器
@@ -146,8 +143,14 @@ class OfflineModeManager:
                 "type": "local" if self.is_offline_mode else "external",
                 "enabled": True,
             },
-            "cache": {"type": "memory" if self.is_offline_mode else "redis", "enabled": True},
-            "websocket": {"type": "local" if self.is_offline_mode else "external", "enabled": True},
+            "cache": {
+                "type": "memory" if self.is_offline_mode else "redis",
+                "enabled": True,
+            },
+            "websocket": {
+                "type": "local" if self.is_offline_mode else "external",
+                "enabled": True,
+            },
             "external_apis": {"enabled": not self.is_offline_mode},
         }
 

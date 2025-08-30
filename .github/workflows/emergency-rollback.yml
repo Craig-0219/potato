@@ -1,0 +1,323 @@
+name: 🚨 Emergency Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      rollback_target:
+        description: '回滾目標 (commit SHA 或標籤)'
+        required: true
+        type: string
+      rollback_reason:
+        description: '回滾原因'
+        required: true
+        type: choice
+        options:
+          - 'Critical Bug'
+          - 'Performance Issue'
+          - 'Security Incident'
+          - 'Data Corruption'
+          - 'Service Outage'
+          - 'Other'
+      confirm_rollback:
+        description: '確認回滾 (輸入 CONFIRM)'
+        required: true
+        type: string
+      notify_team:
+        description: '通知團隊'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  PYTHON_VERSION: '3.10'
+
+jobs:
+  # ==========================================
+  # 階段 1: 回滾前驗證
+  # ==========================================
+  pre-rollback-validation:
+    name: 🔍 Pre-rollback Validation
+    runs-on: ubuntu-latest
+    outputs:
+      can_rollback: ${{ steps.validation.outputs.can_rollback }}
+      rollback_plan: ${{ steps.validation.outputs.rollback_plan }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🔍 Validate rollback request
+        id: validation
+        run: |
+          # 驗證確認字串
+          if [ "${{ inputs.confirm_rollback }}" != "CONFIRM" ]; then
+            echo "❌ Rollback not confirmed. Please type 'CONFIRM' to proceed."
+            echo "can_rollback=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # 驗證目標存在
+          target="${{ inputs.rollback_target }}"
+          if ! git rev-parse --verify "$target" >/dev/null 2>&1; then
+            echo "❌ Rollback target '$target' not found"
+            echo "can_rollback=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # 獲取目標 commit 資訊
+          target_commit=$(git rev-parse "$target")
+          target_message=$(git log -1 --pretty=format:"%s" "$target_commit")
+          target_date=$(git log -1 --pretty=format:"%ci" "$target_commit")
+
+          # 獲取當前 commit 資訊
+          current_commit=$(git rev-parse HEAD)
+          current_message=$(git log -1 --pretty=format:"%s" "$current_commit")
+
+          # 檢查是否真的需要回滾
+          if [ "$target_commit" = "$current_commit" ]; then
+            echo "⚠️ Target commit is same as current commit. No rollback needed."
+            echo "can_rollback=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # 分析回滾影響
+          commits_to_revert=$(git rev-list --count "$target_commit".."$current_commit")
+          files_affected=$(git diff --name-only "$target_commit".."$current_commit" | wc -l)
+
+          # 生成回滾計劃
+          rollback_plan="
+          🎯 Rollback Plan:
+          ================
+          📍 Current: $current_commit ($current_message)
+          🔄 Target:  $target_commit ($target_message)
+          📅 Target Date: $target_date
+          📊 Commits to Revert: $commits_to_revert
+          📁 Files Affected: $files_affected
+          🚨 Reason: ${{ inputs.rollback_reason }}
+          "
+
+          echo "can_rollback=true" >> $GITHUB_OUTPUT
+          echo "rollback_plan<<EOF" >> $GITHUB_OUTPUT
+          echo "$rollback_plan" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          echo "target_commit=$target_commit" >> $GITHUB_OUTPUT
+          echo "commits_to_revert=$commits_to_revert" >> $GITHUB_OUTPUT
+
+          echo "$rollback_plan"
+
+  # ==========================================
+  # 階段 2: 建立回滾備份
+  # ==========================================
+  create-backup:
+    name: 💾 Create Rollback Backup
+    runs-on: ubuntu-latest
+    needs: pre-rollback-validation
+    if: needs.pre-rollback-validation.outputs.can_rollback == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 💾 Create backup branch
+        run: |
+          backup_branch="rollback-backup-$(date +%Y%m%d-%H%M%S)"
+
+          echo "💾 Creating backup branch: $backup_branch"
+          git checkout -b "$backup_branch"
+          git push origin "$backup_branch"
+
+          echo "✅ Backup created: $backup_branch"
+          echo "This branch can be used to restore if rollback needs to be reverted."
+
+  # ==========================================
+  # 階段 3: 執行回滾
+  # ==========================================
+  execute-rollback:
+    name: 🔄 Execute Rollback
+    runs-on: ubuntu-latest
+    needs: [pre-rollback-validation, create-backup]
+    if: needs.pre-rollback-validation.outputs.can_rollback == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config --global user.name 'Emergency Rollback Bot'
+          git config --global user.email 'noreply@github.com'
+
+      - name: 🔄 Execute rollback
+        run: |
+          target_commit="${{ needs.pre-rollback-validation.outputs.target_commit }}"
+          reason="${{ inputs.rollback_reason }}"
+
+          echo "🔄 Executing emergency rollback..."
+          echo "  Target: $target_commit"
+          echo "  Reason: $reason"
+
+          # 創建回滾 commit 訊息
+          rollback_msg="🚨 EMERGENCY ROLLBACK: $reason
+
+          Rollback to: $target_commit
+          Reason: $reason
+          Triggered by: ${{ github.actor }}
+          Date: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+          This rollback reverts ${{ needs.pre-rollback-validation.outputs.commits_to_revert }} commits.
+
+          🆘 Emergency rollback performed via GitHub Actions
+
+          Co-Authored-By: Emergency Rollback Bot <noreply@github.com>"
+
+          # 執行 hard reset 到目標 commit
+          git reset --hard "$target_commit"
+
+          # 強制推送 (危險操作，僅限緊急情況)
+          echo "⚠️ Force pushing rollback to main branch..."
+          git push --force-with-lease origin main
+
+          echo "✅ Emergency rollback completed"
+
+  # ==========================================
+  # 階段 4: 回滾後驗證
+  # ==========================================
+  post-rollback-validation:
+    name: ✅ Post-rollback Validation
+    runs-on: ubuntu-latest
+    needs: [pre-rollback-validation, execute-rollback]
+    if: needs.pre-rollback-validation.outputs.can_rollback == 'true'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+
+      - name: ✅ Validate rollback success
+        run: |
+          echo "✅ Validating rollback success..."
+
+          # 驗證當前 commit 是否為目標 commit
+          current_commit=$(git rev-parse HEAD)
+          target_commit="${{ needs.pre-rollback-validation.outputs.target_commit }}"
+
+          if [ "$current_commit" = "$target_commit" ]; then
+            echo "✅ Rollback successful - now at target commit"
+          else
+            echo "❌ Rollback failed - current commit doesn't match target"
+            exit 1
+          fi
+
+          # 基本健康檢查
+          echo "🏥 Running basic health checks..."
+          python -m compileall bot/ shared/ -q
+          echo "✅ Syntax validation passed"
+
+      - name: 🧪 Run critical tests
+        env:
+          TESTING: true
+          DISCORD_TOKEN: "test_token_for_rollback_validation_minimum_length_requirement_met_automatically_generated_rollback_token" # pragma: allowlist secret
+          DB_HOST: "localhost"
+          DB_USER: "test_user"
+          DB_PASSWORD: "test_password_for_rollback_environment_only" # pragma: allowlist secret
+          DB_NAME: "test_database"
+          DB_PORT: "3306"
+          JWT_SECRET: "test_jwt_secret_for_rollback_validation_pipeline_usage_only" # pragma: allowlist secret
+        run: |
+          echo "🧪 Running critical tests after rollback..."
+
+          # 安裝依賴
+          pip install -r requirements.txt
+
+          # 執行基本配置測試
+          python3 -c "
+          import sys
+          sys.path.append('.')
+          try:
+              import shared.config
+              print('✅ Config module loads successfully after rollback')
+
+              from bot.db.pool import init_database
+              print('✅ Database module loads successfully after rollback')
+
+          except Exception as e:
+              print(f'❌ Critical test failed after rollback: {e}')
+              sys.exit(1)
+          "
+
+          echo "✅ Critical tests passed"
+
+  # ==========================================
+  # 階段 5: 回滾通知和後續行動
+  # ==========================================
+  rollback-notification:
+    name: 📢 Rollback Notifications
+    runs-on: ubuntu-latest
+    needs: [pre-rollback-validation, execute-rollback, post-rollback-validation]
+    if: always() && needs.pre-rollback-validation.outputs.can_rollback == 'true'
+
+    steps:
+      - name: 📢 Generate rollback report
+        run: |
+          echo "📢 Emergency Rollback Report"
+          echo "============================"
+
+          if [ "${{ needs.execute-rollback.result }}" = "success" ] && [ "${{ needs.post-rollback-validation.result }}" = "success" ]; then
+            status="✅ SUCCESSFUL"
+            echo "🎉 Emergency rollback completed successfully!"
+          else
+            status="❌ FAILED"
+            echo "💥 Emergency rollback failed - immediate attention required!"
+          fi
+
+          cat << EOF
+          📊 Rollback Summary:
+          ==================
+          🚨 Status: $status
+          🎯 Target: ${{ inputs.rollback_target }}
+          📋 Reason: ${{ inputs.rollback_reason }}
+          👤 Triggered by: ${{ github.actor }}
+          📅 Time: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          📊 Commits Reverted: ${{ needs.pre-rollback-validation.outputs.commits_to_revert }}
+
+          ${{ needs.pre-rollback-validation.outputs.rollback_plan }}
+
+          📋 Next Actions:
+          ================
+          1. ✅ Verify system stability
+          2. 📊 Monitor application metrics
+          3. 🔍 Investigate root cause
+          4. 📝 Document incident
+          5. 🔄 Plan forward fix
+          EOF
+
+      - name: 🚨 High priority notification
+        if: needs.execute-rollback.result == 'success'
+        run: |
+          echo "🚨 EMERGENCY ROLLBACK COMPLETED"
+          echo "================================"
+          echo "🎯 System has been rolled back due to: ${{ inputs.rollback_reason }}"
+          echo "👀 Immediate monitoring and investigation required"
+          echo "📞 Consider notifying stakeholders if not already done"
+
+      - name: 💥 Rollback failure notification
+        if: needs.execute-rollback.result != 'success'
+        run: |
+          echo "💥 EMERGENCY ROLLBACK FAILED"
+          echo "============================"
+          echo "🚨 CRITICAL: Automated rollback failed!"
+          echo "⚡ Manual intervention required IMMEDIATELY"
+          echo "📞 Escalate to senior team members"
+          echo "🔧 Consider manual git operations or alternative recovery"

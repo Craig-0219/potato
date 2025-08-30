@@ -4,16 +4,15 @@
 提供工作流程創建、管理、執行等指令
 """
 
-import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 from bot.db.workflow_dao import WorkflowDAO
-from bot.services.workflow_engine import ActionType, TriggerType, WorkflowStatus, workflow_engine
+from bot.services.workflow_engine import TriggerType, WorkflowStatus, workflow_engine
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 
@@ -42,7 +41,7 @@ class WorkflowCore(commands.Cog):
                     "user_id": member.id,
                     "username": member.name,
                     "display_name": member.display_name,
-                    "joined_at": member.joined_at.isoformat() if member.joined_at else None,
+                    "joined_at": (member.joined_at.isoformat() if member.joined_at else None),
                 },
             )
 
@@ -106,7 +105,9 @@ class WorkflowCore(commands.Cog):
             )
 
             embed.add_field(
-                name="🛠️ 下一步", value="使用 `/workflow_edit` 來配置觸發器和動作", inline=False
+                name="🛠️ 下一步",
+                value="使用 `/workflow_edit` 來配置觸發器和動作",
+                inline=False,
             )
 
             await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -123,12 +124,15 @@ class WorkflowCore(commands.Cog):
         """查看工作流程列表"""
         try:
             workflows = workflow_engine.get_workflows(
-                guild_id=interaction.guild.id, status=WorkflowStatus(status) if status else None
+                guild_id=interaction.guild.id,
+                status=WorkflowStatus(status) if status else None,
             )
 
             if not workflows:
                 embed = EmbedBuilder.build(
-                    title="📋 工作流程列表", description="目前沒有工作流程", color=0x95A5A6
+                    title="📋 工作流程列表",
+                    description="目前沒有工作流程",
+                    color=0x95A5A6,
                 )
                 await interaction.response.send_message(embed=embed, ephemeral=True)
                 return
@@ -165,7 +169,9 @@ class WorkflowCore(commands.Cog):
 
             if len(workflows) > 10:
                 embed.add_field(
-                    name="📄 更多", value=f"還有 {len(workflows) - 10} 個工作流程...", inline=False
+                    name="📄 更多",
+                    value=f"還有 {len(workflows) - 10} 個工作流程...",
+                    inline=False,
                 )
 
             await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -250,7 +256,12 @@ class WorkflowCore(commands.Cog):
                 return
 
             # 狀態圖示
-            status_icons = {"running": "🔄", "completed": "✅", "failed": "❌", "cancelled": "⏹️"}
+            status_icons = {
+                "running": "🔄",
+                "completed": "✅",
+                "failed": "❌",
+                "cancelled": "⏹️",
+            }
 
             embed = EmbedBuilder.build(
                 title=f"{status_icons.get(status['status'], '❓')} 工作流程執行狀態",
@@ -364,7 +375,9 @@ class WorkflowCore(commands.Cog):
             stats = workflow_engine.get_workflow_statistics(guild_id=interaction.guild.id)
 
             embed = EmbedBuilder.build(
-                title="📊 工作流程統計", description=f"伺服器工作流程使用統計", color=0x9B59B6
+                title="📊 工作流程統計",
+                description=f"伺服器工作流程使用統計",
+                color=0x9B59B6,
             )
 
             embed.add_field(
@@ -519,7 +532,11 @@ class WorkflowCore(commands.Cog):
                 "trigger": {
                     "type": "sla_breach",
                     "conditions": [
-                        {"field": "sla_remaining_minutes", "operator": "<=", "value": 30}
+                        {
+                            "field": "sla_remaining_minutes",
+                            "operator": "<=",
+                            "value": 30,
+                        }
                     ],
                 },
                 "actions": [
@@ -542,10 +559,16 @@ class WorkflowCore(commands.Cog):
                     "parameters": {"cron": "0 9 * * 1"},  # 每週一早上9點
                 },
                 "actions": [
-                    {"type": "generate_report", "parameters": {"report_type": "weekly_summary"}},
+                    {
+                        "type": "generate_report",
+                        "parameters": {"report_type": "weekly_summary"},
+                    },
                     {
                         "type": "send_message",
-                        "parameters": {"channel_type": "admin", "message": "📊 週報已生成"},
+                        "parameters": {
+                            "channel_type": "admin",
+                            "message": "📊 週報已生成",
+                        },
                     },
                 ],
                 "tags": ["報告", "定期", "統計"],

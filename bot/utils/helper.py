@@ -218,7 +218,11 @@ def format_role_list(role_ids: List[int], max_display: int = 3) -> str:
 
 
 def create_progress_bar(
-    current: int, total: int, length: int = 10, filled_char: str = "█", empty_char: str = "░"
+    current: int,
+    total: int,
+    length: int = 10,
+    filled_char: str = "█",
+    empty_char: str = "░",
 ) -> str:
     """建立進度條"""
     if total <= 0:
@@ -438,7 +442,10 @@ def create_info_embed(message: str) -> discord.Embed:
 
 
 async def safe_send_message(
-    channel: discord.TextChannel, content: str = None, embed: discord.Embed = None, **kwargs
+    channel: discord.TextChannel,
+    content: str = None,
+    embed: discord.Embed = None,
+    **kwargs,
 ) -> Optional[discord.Message]:
     """安全發送訊息"""
     try:

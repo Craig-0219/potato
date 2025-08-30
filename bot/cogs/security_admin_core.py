@@ -5,16 +5,15 @@
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.services.security.api_security import api_security
-from bot.services.security.audit_manager import ComplianceStandard, EventSeverity, audit_manager
-from bot.services.security.mfa_manager import MFAMethod, mfa_manager
-from bot.services.security.rbac_manager import Permission, RoleLevel, rbac_manager
+from bot.services.security.audit_manager import ComplianceStandard, audit_manager
+from bot.services.security.mfa_manager import mfa_manager
+from bot.services.security.rbac_manager import Permission, rbac_manager
 from bot.utils.interaction_helper import SafeInteractionHandler
 from bot.views.security_management_views import (
     APIKeyManagementView,
@@ -177,7 +176,9 @@ class SecurityAdminCore(commands.Cog):
                 )
             else:
                 await SafeInteractionHandler.safe_followup(
-                    interaction, f"❌ MFA 設置失敗: {setup_result['error']}", ephemeral=True
+                    interaction,
+                    f"❌ MFA 設置失敗: {setup_result['error']}",
+                    ephemeral=True,
                 )
 
         except Exception as e:
@@ -308,7 +309,9 @@ class SecurityAdminCore(commands.Cog):
 
     @app_commands.command(name="assign_role", description="➕ 分配角色給用戶")
     @app_commands.describe(
-        user="要分配角色的用戶", role_name="角色名稱", expires_days="角色過期天數 (可選)"
+        user="要分配角色的用戶",
+        role_name="角色名稱",
+        expires_days="角色過期天數 (可選)",
     )
     @app_commands.default_permissions(administrator=True)
     async def assign_role(
@@ -368,7 +371,7 @@ class SecurityAdminCore(commands.Cog):
 
                 embed.add_field(
                     name="⏰ 過期時間",
-                    value=expires_at.strftime("%Y-%m-%d %H:%M") if expires_at else "永不過期",
+                    value=(expires_at.strftime("%Y-%m-%d %H:%M") if expires_at else "永不過期"),
                     inline=True,
                 )
 
@@ -495,7 +498,11 @@ class SecurityAdminCore(commands.Cog):
                 )
 
                 # 合規狀態
-                status_color = {"compliant": "🟢", "partial": "🟡", "non_compliant": "🔴"}
+                status_color = {
+                    "compliant": "🟢",
+                    "partial": "🟡",
+                    "non_compliant": "🔴",
+                }
 
                 embed.add_field(
                     name="📊 合規狀態",
@@ -542,7 +549,9 @@ class SecurityAdminCore(commands.Cog):
                     )
             else:
                 await SafeInteractionHandler.safe_followup(
-                    interaction, f"❌ 合規報告生成失敗: {report['error']}", ephemeral=True
+                    interaction,
+                    f"❌ 合規報告生成失敗: {report['error']}",
+                    ephemeral=True,
                 )
 
         except Exception as e:

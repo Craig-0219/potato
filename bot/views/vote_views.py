@@ -4,9 +4,8 @@
 整合所有投票相關的 UI 組件
 """
 
-import asyncio
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Literal, Optional
+from typing import Any, Dict, List
 
 import discord
 from discord import ui
@@ -107,7 +106,6 @@ class SingleSelectVoteButton(discord.ui.Button):
                 return
 
             # 記錄投票
-            from bot.cogs.vote_core import VoteCore
 
             cog = interaction.client.get_cog("VoteCore")
             if cog:
@@ -124,7 +122,12 @@ class MultiSelectVoteButton(discord.ui.Button):
     """多選投票按鈕"""
 
     def __init__(
-        self, option: str, option_index: int, vote_id: int, count: int = 0, percentage: float = 0
+        self,
+        option: str,
+        option_index: int,
+        vote_id: int,
+        count: int = 0,
+        percentage: float = 0,
     ):
         # 限制標籤長度並添加百分比顯示
         base_label = option[:15] + "..." if len(option) > 15 else option
@@ -200,7 +203,6 @@ class MultiSelectSubmitButton(discord.ui.Button):
                 return
 
             # 記錄投票
-            from bot.cogs.vote_core import VoteCore
 
             cog = interaction.client.get_cog("VoteCore")
             if cog:
@@ -217,7 +219,12 @@ class VoteButton(discord.ui.Button):
     """舊版投票選項按鈕 - 保持向後相容性"""
 
     def __init__(
-        self, option: str, option_index: int, vote_id: int, is_multi: bool, anonymous: bool
+        self,
+        option: str,
+        option_index: int,
+        vote_id: int,
+        is_multi: bool,
+        anonymous: bool,
     ):
         # 限制標籤長度
         label = option[:20] + "..." if len(option) > 20 else option
@@ -243,7 +250,6 @@ class VoteButton(discord.ui.Button):
                 return
 
             # 記錄投票
-            from bot.cogs.vote_core import VoteCore
 
             cog = interaction.client.get_cog("VoteCore")
             if cog:
@@ -267,7 +273,7 @@ class VoteSubmitButton(discord.ui.Button):
     async def callback(self, interaction: discord.Interaction):
         """處理投票提交"""
         try:
-            from bot.cogs.vote_core import VoteCore
+            pass
 
             cog = interaction.client.get_cog("VoteCore")
             if cog:
@@ -290,7 +296,10 @@ class ComprehensiveVoteModal(ui.Modal):
 
         # 投票標題
         self.title_input = ui.TextInput(
-            label="投票標題", placeholder="例：今晚聚餐地點投票", max_length=100, required=True
+            label="投票標題",
+            placeholder="例：今晚聚餐地點投票",
+            max_length=100,
+            required=True,
         )
         self.add_item(self.title_input)
 
@@ -306,7 +315,11 @@ class ComprehensiveVoteModal(ui.Modal):
 
         # 持續時間
         self.duration_input = ui.TextInput(
-            label="持續時間 (分鐘)", placeholder="60", default="60", max_length=4, required=True
+            label="持續時間 (分鐘)",
+            placeholder="60",
+            default="60",
+            max_length=4,
+            required=True,
         )
         self.add_item(self.duration_input)
 
@@ -383,7 +396,10 @@ class QuickVoteModal(ui.Modal):
 
         # 投票標題
         self.title_input = ui.TextInput(
-            label="投票標題", placeholder="例：今晚聚餐地點投票", max_length=100, required=True
+            label="投票標題",
+            placeholder="例：今晚聚餐地點投票",
+            max_length=100,
+            required=True,
         )
         self.add_item(self.title_input)
 
@@ -399,7 +415,11 @@ class QuickVoteModal(ui.Modal):
 
         # 持續時間
         self.duration_input = ui.TextInput(
-            label="持續時間 (分鐘)", placeholder="60", default="60", max_length=4, required=True
+            label="持續時間 (分鐘)",
+            placeholder="60",
+            default="60",
+            max_length=4,
+            required=True,
         )
         self.add_item(self.duration_input)
 
@@ -526,10 +546,16 @@ class VoteTypeSelectMenu(ui.Select):
     def __init__(self):
         options = [
             discord.SelectOption(
-                label="單選投票", description="每人只能選擇一個選項", emoji="1️⃣", value="single"
+                label="單選投票",
+                description="每人只能選擇一個選項",
+                emoji="1️⃣",
+                value="single",
             ),
             discord.SelectOption(
-                label="多選投票", description="每人可以選擇多個選項", emoji="🔢", value="multi"
+                label="多選投票",
+                description="每人可以選擇多個選項",
+                emoji="🔢",
+                value="multi",
             ),
         ]
 
@@ -666,7 +692,10 @@ class CancelConfigButton(ui.Button):
 
     def __init__(self):
         super().__init__(
-            label="❌ 取消", style=discord.ButtonStyle.danger, emoji="❌", custom_id="cancel_config"
+            label="❌ 取消",
+            style=discord.ButtonStyle.danger,
+            emoji="❌",
+            custom_id="cancel_config",
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -957,14 +986,15 @@ class MultiSelectView(discord.ui.View):
         self.user_id = user_id
 
     @discord.ui.button(
-        label="單選投票", style=discord.ButtonStyle.primary, emoji="1️⃣", custom_id="single"
+        label="單選投票",
+        style=discord.ButtonStyle.primary,
+        emoji="1️⃣",
+        custom_id="single",
     )
     async def single_choice(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
             return
-
-        from bot.cogs.vote_core import VoteCore
 
         cog = interaction.client.get_cog("VoteCore")
         if cog and self.user_id in cog.vote_sessions:
@@ -973,14 +1003,15 @@ class MultiSelectView(discord.ui.View):
             await interaction.response.edit_message(content="選擇投票是否匿名：", view=view)
 
     @discord.ui.button(
-        label="多選投票", style=discord.ButtonStyle.secondary, emoji="🔢", custom_id="multi"
+        label="多選投票",
+        style=discord.ButtonStyle.secondary,
+        emoji="🔢",
+        custom_id="multi",
     )
     async def multi_choice(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
             return
-
-        from bot.cogs.vote_core import VoteCore
 
         cog = interaction.client.get_cog("VoteCore")
         if cog and self.user_id in cog.vote_sessions:
@@ -997,14 +1028,15 @@ class AnonSelectView(discord.ui.View):
         self.user_id = user_id
 
     @discord.ui.button(
-        label="公開投票", style=discord.ButtonStyle.primary, emoji="👁️", custom_id="public"
+        label="公開投票",
+        style=discord.ButtonStyle.primary,
+        emoji="👁️",
+        custom_id="public",
     )
     async def public_vote(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
             return
-
-        from bot.cogs.vote_core import VoteCore
 
         cog = interaction.client.get_cog("VoteCore")
         if cog and self.user_id in cog.vote_sessions:
@@ -1013,14 +1045,15 @@ class AnonSelectView(discord.ui.View):
             await interaction.response.edit_message(content="選擇投票持續時間：", view=view)
 
     @discord.ui.button(
-        label="匿名投票", style=discord.ButtonStyle.secondary, emoji="🔒", custom_id="anonymous"
+        label="匿名投票",
+        style=discord.ButtonStyle.secondary,
+        emoji="🔒",
+        custom_id="anonymous",
     )
     async def anonymous_vote(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
             return
-
-        from bot.cogs.vote_core import VoteCore
 
         cog = interaction.client.get_cog("VoteCore")
         if cog and self.user_id in cog.vote_sessions:
@@ -1037,7 +1070,10 @@ class DurationSelectView(discord.ui.View):
         self.user_id = user_id
 
     @discord.ui.button(
-        label="30 分鐘", style=discord.ButtonStyle.primary, emoji="⏰", custom_id="30min"
+        label="30 分鐘",
+        style=discord.ButtonStyle.primary,
+        emoji="⏰",
+        custom_id="30min",
     )
     async def duration_30min(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._set_duration(interaction, 30)
@@ -1049,13 +1085,19 @@ class DurationSelectView(discord.ui.View):
         await self._set_duration(interaction, 60)
 
     @discord.ui.button(
-        label="6 小時", style=discord.ButtonStyle.primary, emoji="🕕", custom_id="6hours"
+        label="6 小時",
+        style=discord.ButtonStyle.primary,
+        emoji="🕕",
+        custom_id="6hours",
     )
     async def duration_6hours(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._set_duration(interaction, 360)
 
     @discord.ui.button(
-        label="24 小時", style=discord.ButtonStyle.primary, emoji="📅", custom_id="24hours"
+        label="24 小時",
+        style=discord.ButtonStyle.primary,
+        emoji="📅",
+        custom_id="24hours",
     )
     async def duration_24hours(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._set_duration(interaction, 1440)
@@ -1070,8 +1112,6 @@ class DurationSelectView(discord.ui.View):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
             return
-
-        from bot.cogs.vote_core import VoteCore
 
         cog = interaction.client.get_cog("VoteCore")
         if cog and self.user_id in cog.vote_sessions:
@@ -1091,14 +1131,15 @@ class RoleSelectView(discord.ui.View):
         self.user_id = user_id
 
     @discord.ui.button(
-        label="所有人", style=discord.ButtonStyle.primary, emoji="🌍", custom_id="everyone"
+        label="所有人",
+        style=discord.ButtonStyle.primary,
+        emoji="🌍",
+        custom_id="everyone",
     )
     async def everyone(self, interaction: discord.Interaction, button: discord.ui.Button):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
             return
-
-        from bot.cogs.vote_core import VoteCore
 
         cog = interaction.client.get_cog("VoteCore")
         if cog and self.user_id in cog.vote_sessions:
@@ -1109,7 +1150,10 @@ class RoleSelectView(discord.ui.View):
             await interaction.response.edit_message(content="", embed=embed, view=view)
 
     @discord.ui.button(
-        label="指定身分組", style=discord.ButtonStyle.secondary, emoji="👥", custom_id="roles"
+        label="指定身分組",
+        style=discord.ButtonStyle.secondary,
+        emoji="👥",
+        custom_id="roles",
     )
     async def specific_roles(self, interaction: discord.Interaction, button: discord.ui.Button):
         await interaction.response.send_message("指定身分組功能開發中...", ephemeral=True)
@@ -1125,7 +1169,9 @@ class RoleSelectView(discord.ui.View):
         embed.add_field(name="選項", value=options_text or "無選項", inline=False)
 
         embed.add_field(
-            name="類型", value="多選" if session.get("is_multi") else "單選", inline=True
+            name="類型",
+            value="多選" if session.get("is_multi") else "單選",
+            inline=True,
         )
         embed.add_field(name="匿名", value="是" if session.get("anonymous") else "否", inline=True)
         embed.add_field(name="持續時間", value=f"{session.get('duration', 0)} 分鐘", inline=True)
@@ -1148,8 +1194,6 @@ class FinalStepView(discord.ui.View):
 
         await interaction.response.edit_message(content="正在創建投票...", embed=None, view=None)
 
-        from bot.cogs.vote_core import VoteCore
-
         cog = interaction.client.get_cog("VoteCore")
         if cog:
             # 設定 start_time
@@ -1162,8 +1206,6 @@ class FinalStepView(discord.ui.View):
         if interaction.user.id != self.user_id:
             await interaction.response.send_message("❌ 這不是你的投票創建流程。", ephemeral=True)
             return
-
-        from bot.cogs.vote_core import VoteCore
 
         cog = interaction.client.get_cog("VoteCore")
         if cog and self.user_id in cog.vote_sessions:

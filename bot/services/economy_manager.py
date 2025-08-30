@@ -10,18 +10,17 @@ import base64
 import hashlib
 import hmac
 import json
-import math
 import secrets
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import aiohttp
 
 from bot.db.pool import db_pool
-from shared.cache_manager import cache_manager, cached
+from shared.cache_manager import cache_manager
 from shared.logger import logger
 
 # ========== 新增：跨平台經濟系統枚舉 ==========
@@ -210,7 +209,9 @@ class EconomyManager:
                             "daily_wins": 0 if should_reset else daily_wins,
                             "daily_claimed": False if should_reset else daily_claimed,
                             "last_checkin": last_checkin,
-                            "win_rate": (total_wins / total_games * 100) if total_games > 0 else 0,
+                            "win_rate": (
+                                (total_wins / total_games * 100) if total_games > 0 else 0
+                            ),
                         }
 
                         # 如果需要重置，更新資料庫
@@ -743,7 +744,7 @@ class EconomyManager:
                 "games": "total_games DESC",
             }
 
-            order_by = order_by_map.get(metric, "coins DESC")
+            order_by_map.get(metric, "coins DESC")
 
             async with db_pool.connection() as conn:
                 async with conn.cursor() as cursor:
@@ -763,7 +764,16 @@ class EconomyManager:
                             END
                         )
                     """,
-                        (user_id, guild_id, guild_id, metric, metric, metric, metric, metric),
+                        (
+                            user_id,
+                            guild_id,
+                            guild_id,
+                            metric,
+                            metric,
+                            metric,
+                            metric,
+                            metric,
+                        ),
                     )
 
                     result = await cursor.fetchone()
@@ -999,7 +1009,10 @@ class EconomyManager:
 
                             # 記錄同步交易
                             await self._record_sync_transaction(
-                                user_id, guild_id, "discord_to_zientis", sync_data["balances"]
+                                user_id,
+                                guild_id,
+                                "discord_to_zientis",
+                                sync_data["balances"],
                             )
 
                             # 處理 Minecraft 獎勵加成
@@ -1375,7 +1388,13 @@ class EconomyManager:
                                 minecraft_server_key = VALUES(minecraft_server_key),
                                 last_updated = VALUES(last_updated)
                         """,
-                            (guild_id, True, api_endpoint, server_key, datetime.now(timezone.utc)),
+                            (
+                                guild_id,
+                                True,
+                                api_endpoint,
+                                server_key,
+                                datetime.now(timezone.utc),
+                            ),
                         )
                         await conn.commit()
 

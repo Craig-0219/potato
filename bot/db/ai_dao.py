@@ -6,7 +6,7 @@ AI 系統資料存取層
 
 import json
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from bot.db.pool import db_pool
 from shared.logger import logger
@@ -507,7 +507,10 @@ class AIDAO:
                             categories = json.loads(row[4])
                             for category, stats in categories.items():
                                 if category not in combined_categories:
-                                    combined_categories[category] = {"total": 0, "accepted": 0}
+                                    combined_categories[category] = {
+                                        "total": 0,
+                                        "accepted": 0,
+                                    }
                                 combined_categories[category]["total"] += stats["total"]
                                 combined_categories[category]["accepted"] += stats["accepted"]
 

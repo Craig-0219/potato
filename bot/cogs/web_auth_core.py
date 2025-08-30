@@ -4,8 +4,6 @@ Web 認證相關指令
 提供 Discord 用戶設定 Web 密碼和管理 API 金鑰的功能
 """
 
-from datetime import datetime, timezone
-from typing import List, Optional
 
 import discord
 from discord import app_commands
@@ -197,7 +195,9 @@ class WebAuthCommands(commands.Cog):
             last_login = user_info.get("last_login")
             if last_login:
                 embed.add_field(
-                    name="📅 最後登入", value=last_login.strftime("%Y-%m-%d %H:%M:%S"), inline=True
+                    name="📅 最後登入",
+                    value=last_login.strftime("%Y-%m-%d %H:%M:%S"),
+                    inline=True,
                 )
 
             await interaction.followup.send(embed=embed, ephemeral=True)

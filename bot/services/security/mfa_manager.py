@@ -2,18 +2,15 @@
 # 🔐 多因素認證 (MFA) 管理系統
 # 支援 TOTP, SMS, Email 驗證
 
-import asyncio
 import base64
 import hashlib
 import io
 import logging
 import secrets
-import smtplib
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
-import aiohttp
 import pyotp
 import qrcode
 
@@ -191,12 +188,20 @@ class MFAManager:
                     result = await cursor.fetchone()
 
             if not result:
-                return {"success": False, "error": "not_setup", "message": "TOTP 未設置"}
+                return {
+                    "success": False,
+                    "error": "not_setup",
+                    "message": "TOTP 未設置",
+                }
 
             secret_key, is_enabled = result
 
             if not is_enabled:
-                return {"success": False, "error": "not_enabled", "message": "TOTP 未啟用"}
+                return {
+                    "success": False,
+                    "error": "not_enabled",
+                    "message": "TOTP 未啟用",
+                }
 
             # 驗證 TOTP 代碼
             totp = pyotp.TOTP(secret_key)
@@ -218,7 +223,11 @@ class MFAManager:
                 await self._increment_attempt_count(user_id, MFAMethod.TOTP)
                 await self._log_mfa_event(user_id, MFAMethod.TOTP, False, "TOTP 驗證失敗")
 
-                return {"success": False, "error": "invalid_code", "message": "驗證碼無效"}
+                return {
+                    "success": False,
+                    "error": "invalid_code",
+                    "message": "驗證碼無效",
+                }
 
         except Exception as e:
             logger.error(f"❌ TOTP 驗證失敗：用戶 {user_id}, 錯誤: {e}")

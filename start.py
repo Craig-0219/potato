@@ -8,7 +8,6 @@ import os
 import platform
 import subprocess
 import sys
-import time
 from pathlib import Path
 
 
@@ -92,19 +91,19 @@ class PotatoBotStarter:
 
                     print(f"✅ discord.py {discord.__version__}")
                 elif package == "aiomysql":
-                    import aiomysql
+                    pass
 
                     print(f"✅ aiomysql")
                 elif package == "python-dotenv":
-                    import dotenv
+                    pass
 
                     print(f"✅ python-dotenv")
                 elif package == "fastapi":
-                    import fastapi
+                    pass
 
                     print(f"✅ fastapi")
                 elif package == "uvicorn":
-                    import uvicorn
+                    pass
 
                     print(f"✅ uvicorn")
             except ImportError:

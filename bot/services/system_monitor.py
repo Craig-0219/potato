@@ -5,16 +5,13 @@
 """
 
 import asyncio
-import json
-import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import aiomysql
 import psutil
 
 from bot.db.pool import db_pool
-from bot.services.realtime_sync_manager import SyncEvent, SyncEventType, realtime_sync
 from shared.logger import logger
 
 
@@ -160,7 +157,11 @@ class SystemMonitor:
                     result = await cursor.fetchone()
                     today_tickets = result["count"] if result else 0
                     await self._record_metric(
-                        "tickets", "today_new_tickets", today_tickets, "count", "tickets"
+                        "tickets",
+                        "today_new_tickets",
+                        today_tickets,
+                        "count",
+                        "tickets",
                     )
 
                     # 今日關閉票券數
@@ -173,7 +174,11 @@ class SystemMonitor:
                     result = await cursor.fetchone()
                     today_closed = result["count"] if result else 0
                     await self._record_metric(
-                        "tickets", "today_closed_tickets", today_closed, "count", "tickets"
+                        "tickets",
+                        "today_closed_tickets",
+                        today_closed,
+                        "count",
+                        "tickets",
                     )
 
                     # 平均回應時間（分鐘）
@@ -249,7 +254,12 @@ class SystemMonitor:
             logger.error(f"收集票券指標失敗: {e}")
 
     async def _record_metric(
-        self, guild_id: str, metric_name: str, value: float, unit: str = None, category: str = None
+        self,
+        guild_id: str,
+        metric_name: str,
+        value: float,
+        unit: str = None,
+        category: str = None,
     ):
         """記錄指標到資料庫"""
         try:
@@ -272,7 +282,7 @@ class SystemMonitor:
                         VALUES (%s, %s, %s, %s, %s, NOW())
                     """,
                         (
-                            None if guild_id in ["system", "bot", "tickets"] else int(guild_id),
+                            (None if guild_id in ["system", "bot", "tickets"] else int(guild_id)),
                             metric_name,
                             value,
                             unit,
@@ -288,7 +298,7 @@ class SystemMonitor:
                         AND guild_id = %s AND metric_name = %s
                     """,
                         (
-                            None if guild_id in ["system", "bot", "tickets"] else int(guild_id),
+                            (None if guild_id in ["system", "bot", "tickets"] else int(guild_id)),
                             metric_name,
                         ),
                     )
@@ -345,8 +355,8 @@ class SystemMonitor:
                         ORDER BY recorded_at ASC
                     """,
                         (
-                            None if guild_id in ["system", "bot", "tickets"] else guild_id,
-                            None if guild_id in ["system", "bot", "tickets"] else int(guild_id),
+                            (None if guild_id in ["system", "bot", "tickets"] else guild_id),
+                            (None if guild_id in ["system", "bot", "tickets"] else int(guild_id)),
                             metric_name,
                             hours,
                         ),
@@ -468,7 +478,9 @@ class SystemMonitor:
                         "trend": (
                             "up"
                             if len(values) > 1 and values[-1] > values[0]
-                            else "down" if len(values) > 1 and values[-1] < values[0] else "stable"
+                            else (
+                                "down" if len(values) > 1 and values[-1] < values[0] else "stable"
+                            )
                         ),
                     }
 

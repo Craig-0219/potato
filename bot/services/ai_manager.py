@@ -4,10 +4,8 @@ AI 智能回覆管理服務
 提供智能回覆建議、內容分析、自動標籤建議等 AI 功能
 """
 
-import json
-import re
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime
+from typing import Any, Dict, List
 
 from bot.db.tag_dao import TagDAO
 from bot.db.ticket_dao import TicketDAO
@@ -59,7 +57,12 @@ class AIManager:
 
         except Exception as e:
             logger.error(f"AI 回覆建議錯誤: {e}")
-            return {"success": False, "error": str(e), "suggestions": [], "confidence": 0.0}
+            return {
+                "success": False,
+                "error": str(e),
+                "suggestions": [],
+                "confidence": 0.0,
+            }
 
     async def _analyze_content(self, content: str) -> Dict[str, Any]:
         """分析票券內容"""
@@ -223,7 +226,7 @@ class AIManager:
         """建議適合的標籤"""
         try:
             suggestions = []
-            content_lower = ticket_content.lower()
+            ticket_content.lower()
 
             # 基於內容分析的標籤建議
             content_analysis = await self._analyze_content(ticket_content)
@@ -242,7 +245,11 @@ class AIManager:
             priority = content_analysis.get("priority", "medium")
             if priority == "high":
                 suggestions.append(
-                    {"tag_name": "urgent", "confidence": 0.7, "reason": "內容顯示高優先級"}
+                    {
+                        "tag_name": "urgent",
+                        "confidence": 0.7,
+                        "reason": "內容顯示高優先級",
+                    }
                 )
 
             # 基於關鍵字的標籤建議
@@ -252,7 +259,11 @@ class AIManager:
                 related_tags = self._find_related_tags(keyword)
                 for tag in related_tags:
                     suggestions.append(
-                        {"tag_name": tag, "confidence": 0.6, "reason": f"關鍵字匹配: {keyword}"}
+                        {
+                            "tag_name": tag,
+                            "confidence": 0.6,
+                            "reason": f"關鍵字匹配: {keyword}",
+                        }
                     )
 
             # 去重並排序
@@ -503,8 +514,26 @@ class AIManager:
                 "asap",
                 "emergency",
             ],
-            "positive_keywords": ["謝謝", "感謝", "很好", "棒", "滿意", "thanks", "good", "great"],
-            "negative_keywords": ["生氣", "憤怒", "爛", "糟糕", "討厭", "angry", "bad", "terrible"],
+            "positive_keywords": [
+                "謝謝",
+                "感謝",
+                "很好",
+                "棒",
+                "滿意",
+                "thanks",
+                "good",
+                "great",
+            ],
+            "negative_keywords": [
+                "生氣",
+                "憤怒",
+                "爛",
+                "糟糕",
+                "討厭",
+                "angry",
+                "bad",
+                "terrible",
+            ],
             "technical_keywords": [
                 "api",
                 "bug",
@@ -515,7 +544,15 @@ class AIManager:
                 "伺服器",
                 "資料庫",
             ],
-            "feature_keywords": ["建議", "feature", "功能", "新增", "suggest", "add", "improve"],
+            "feature_keywords": [
+                "建議",
+                "feature",
+                "功能",
+                "新增",
+                "suggest",
+                "add",
+                "improve",
+            ],
         }
 
     def _load_sentiment_rules(self) -> Dict[str, Any]:

@@ -9,7 +9,7 @@ import json
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, Optional
 
 # 可選依賴導入
 try:
@@ -133,7 +133,7 @@ class RealtimeSyncManager:
                 }
 
                 await self.redis.publish(
-                    f"ticket_sync:{event.guild_id}" if event.guild_id else "ticket_sync:global",
+                    (f"ticket_sync:{event.guild_id}" if event.guild_id else "ticket_sync:global"),
                     json.dumps(event_data, ensure_ascii=False),
                 )
 
@@ -338,7 +338,7 @@ class RealtimeSyncManager:
                             event.ticket_id,
                             event.user_id,
                             event.guild_id,
-                            json.dumps(event.data, ensure_ascii=False) if event.data else None,
+                            (json.dumps(event.data, ensure_ascii=False) if event.data else None),
                             event.timestamp,
                         ),
                     )

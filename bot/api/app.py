@@ -9,7 +9,14 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 import uvicorn
-from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import (
+    Depends,
+    FastAPI,
+    HTTPException,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
@@ -492,7 +499,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 "type": "welcome",
                 "message": "WebSocket 連線成功",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
-                "server_info": {"service": "Potato Discord Bot API", "version": "1.8.0"},
+                "server_info": {
+                    "service": "Potato Discord Bot API",
+                    "version": "1.8.0",
+                },
             },
             websocket,
         )
@@ -510,7 +520,10 @@ async def websocket_endpoint(websocket: WebSocket):
                 if message_type == "ping":
                     # 回應心跳
                     await websocket_manager.send_personal_message(
-                        {"type": "pong", "timestamp": datetime.now(timezone.utc).isoformat()},
+                        {
+                            "type": "pong",
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
+                        },
                         websocket,
                     )
 
@@ -563,7 +576,11 @@ async def websocket_endpoint(websocket: WebSocket):
             except asyncio.TimeoutError:
                 # 心跳逾時，發送 ping
                 await websocket_manager.send_personal_message(
-                    {"type": "ping", "timestamp": datetime.now(timezone.utc).isoformat()}, websocket
+                    {
+                        "type": "ping",
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
+                    },
+                    websocket,
                 )
 
     except WebSocketDisconnect:
@@ -579,7 +596,10 @@ async def websocket_status():
     return {
         "active_connections": len(websocket_manager.active_connections),
         "connections_info": [
-            {"client": str(info.get("client")), "connected_at": info.get("connected_at")}
+            {
+                "client": str(info.get("client")),
+                "connected_at": info.get("connected_at"),
+            }
             for info in websocket_manager.connection_info.values()
         ],
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -705,13 +725,7 @@ async def start_api_server():
         logger.info(f"📚 API 文檔位址: http://{host}:{port}{API_BASE_PATH}/docs")
 
         # 使用 uvicorn 啟動伺服器
-        config = uvicorn.Config(
-            app,
-            host=host,
-            port=port,
-            log_level="info",
-            access_log=True
-        )
+        config = uvicorn.Config(app, host=host, port=port, log_level="info", access_log=True)
         server = uvicorn.Server(config)
         await server.serve()
 

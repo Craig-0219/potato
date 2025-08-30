@@ -5,9 +5,7 @@
 """
 
 import asyncio
-import json
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
 
 import discord
 from discord import app_commands
@@ -102,7 +100,9 @@ class SecurityCore(commands.Cog):
                     event_types_text.append(f"• {event_name}: {event_type['count']}")
 
                 embed.add_field(
-                    name="📈 主要事件類型", value="\n".join(event_types_text), inline=False
+                    name="📈 主要事件類型",
+                    value="\n".join(event_types_text),
+                    inline=False,
                 )
 
             # 最新警報
@@ -123,7 +123,9 @@ class SecurityCore(commands.Cog):
                     )
 
                 embed.add_field(
-                    name="🚨 最新警報", value="\n\n".join(recent_alerts_text), inline=False
+                    name="🚨 最新警報",
+                    value="\n\n".join(recent_alerts_text),
+                    inline=False,
                 )
 
             embed.set_footer(text=f"數據期間: {days} 天 | 實時更新")
@@ -207,7 +209,9 @@ class SecurityCore(commands.Cog):
 
             if not events:
                 embed.add_field(
-                    name="📋 查詢結果", value="在指定條件下沒有找到安全事件", inline=False
+                    name="📋 查詢結果",
+                    value="在指定條件下沒有找到安全事件",
+                    inline=False,
                 )
             else:
                 # 統計資訊
@@ -226,9 +230,12 @@ class SecurityCore(commands.Cog):
                 # 事件列表
                 events_text = []
                 for event in events[:10]:
-                    risk_emoji = {"low": "🟢", "medium": "🟡", "high": "🟠", "critical": "🔴"}.get(
-                        event["risk_level"], "⚪"
-                    )
+                    risk_emoji = {
+                        "low": "🟢",
+                        "medium": "🟡",
+                        "high": "🟠",
+                        "critical": "🔴",
+                    }.get(event["risk_level"], "⚪")
 
                     event_name = self._get_event_display_name(event["event_type"])
                     time_str = event["timestamp"].strftime("%m-%d %H:%M")
@@ -288,12 +295,16 @@ class SecurityCore(commands.Cog):
 
             # 創建嵌入式訊息
             embed = EmbedBuilder.build(
-                title="🚨 安全警報管理", description="當前活躍的安全警報", color=0xE74C3C
+                title="🚨 安全警報管理",
+                description="當前活躍的安全警報",
+                color=0xE74C3C,
             )
 
             if not alerts:
                 embed.add_field(
-                    name="✅ 警報狀態", value="目前沒有活躍的安全警報\n系統運行正常", inline=False
+                    name="✅ 警報狀態",
+                    value="目前沒有活躍的安全警報\n系統運行正常",
+                    inline=False,
                 )
             else:
                 # 按嚴重程度分組
@@ -306,7 +317,12 @@ class SecurityCore(commands.Cog):
 
                 # 顯示各級別警報
                 severity_order = ["critical", "high", "medium", "low"]
-                severity_emojis = {"critical": "🔴", "high": "🟠", "medium": "🟡", "low": "🟢"}
+                severity_emojis = {
+                    "critical": "🔴",
+                    "high": "🟠",
+                    "medium": "🟡",
+                    "low": "🟢",
+                }
                 severity_names = {
                     "critical": "嚴重",
                     "high": "高級",
@@ -459,9 +475,12 @@ class SecurityCore(commands.Cog):
             if report.violations:
                 violation_text = []
                 for violation in report.violations[:3]:
-                    sev_emoji = {"low": "🟢", "medium": "🟡", "high": "🟠", "critical": "🔴"}.get(
-                        violation["severity"], "⚪"
-                    )
+                    sev_emoji = {
+                        "low": "🟢",
+                        "medium": "🟡",
+                        "high": "🟠",
+                        "critical": "🔴",
+                    }.get(violation["severity"], "⚪")
                     violation_text.append(f"{sev_emoji} {violation['description']}")
 
                 if len(report.violations) > 3:
@@ -476,7 +495,9 @@ class SecurityCore(commands.Cog):
                     recommendations_text.append(f"{i}. {rec}")
 
                 embed.add_field(
-                    name="💡 改善建議", value="\n".join(recommendations_text), inline=False
+                    name="💡 改善建議",
+                    value="\n".join(recommendations_text),
+                    inline=False,
                 )
 
             embed.set_footer(

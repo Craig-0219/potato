@@ -4,16 +4,14 @@
 提供全面的安全監控、審計日誌、權限管理和合規報告功能
 """
 
-import asyncio
-import hashlib
 import ipaddress
 import json
 import re
 import uuid
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 from cryptography.fernet import Fernet
 
@@ -167,7 +165,10 @@ class SecurityAuditManager:
                 "name": "權限提升檢測",
                 "description": "檢測異常權限變更",
                 "rule_type": "anomaly",
-                "conditions": {"event_type": "role_assignment", "check_elevation": True},
+                "conditions": {
+                    "event_type": "role_assignment",
+                    "check_elevation": True,
+                },
                 "actions": [
                     {"type": "alert", "severity": "critical"},
                     {"type": "require_approval"},
@@ -179,8 +180,15 @@ class SecurityAuditManager:
                 "name": "資料匯出監控",
                 "description": "監控大量資料匯出活動",
                 "rule_type": "volume",
-                "conditions": {"action": "export", "volume_threshold": 1000, "time_window": 3600},
-                "actions": [{"type": "alert", "severity": "medium"}, {"type": "log_detail"}],
+                "conditions": {
+                    "action": "export",
+                    "volume_threshold": 1000,
+                    "time_window": 3600,
+                },
+                "actions": [
+                    {"type": "alert", "severity": "medium"},
+                    {"type": "log_detail"},
+                ],
                 "severity": RiskLevel.MEDIUM,
             },
         ]
@@ -361,7 +369,10 @@ class SecurityAuditManager:
 
         if recent_events > 50:  # 1小時內超過50個事件
             await self._handle_suspicious_activity(
-                event.user_id, event.guild_id, "異常高頻操作", {"events_per_hour": recent_events}
+                event.user_id,
+                event.guild_id,
+                "異常高頻操作",
+                {"events_per_hour": recent_events},
             )
 
         # 檢測異常時間模式
@@ -376,7 +387,10 @@ class SecurityAuditManager:
         # 檢測IP地址異常
         if event.ip_address and await self._is_suspicious_ip(event.ip_address):
             await self._handle_suspicious_activity(
-                event.user_id, event.guild_id, "可疑IP地址", {"ip_address": event.ip_address}
+                event.user_id,
+                event.guild_id,
+                "可疑IP地址",
+                {"ip_address": event.ip_address},
             )
 
     def _is_unusual_time(self, timestamp: datetime) -> bool:
@@ -410,7 +424,11 @@ class SecurityAuditManager:
             return True  # 無效IP地址本身就可疑
 
     async def _handle_suspicious_activity(
-        self, user_id: int, guild_id: Optional[int], activity_type: str, details: Dict[str, Any]
+        self,
+        user_id: int,
+        guild_id: Optional[int],
+        activity_type: str,
+        details: Dict[str, Any],
     ):
         """處理可疑活動"""
         await self.log_security_event(

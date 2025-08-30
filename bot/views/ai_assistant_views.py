@@ -4,14 +4,9 @@ AI 助手管理界面視圖 - Phase 5
 提供統一的 AI 模型選擇、對話管理、使用統計等功能界面
 """
 
-import asyncio
 import traceback
-from enum import Enum
-from typing import Any, Dict, List, Optional
 
 import discord
-from discord import ui
-from discord.ext import commands
 
 from bot.services.ai_assistant import AIProvider, AIRequest, AITaskType, ai_assistant
 from bot.utils.embed_builder import EmbedBuilder
@@ -59,7 +54,10 @@ class AIModelSelector(discord.ui.Select):
         if not options:
             options.append(
                 discord.SelectOption(
-                    label="無可用模型", value="none", description="請配置 AI API 密鑰", emoji="⚠️"
+                    label="無可用模型",
+                    value="none",
+                    description="請配置 AI API 密鑰",
+                    emoji="⚠️",
                 )
             )
 
@@ -82,7 +80,8 @@ class AIModelSelector(discord.ui.Select):
             view.selected_provider = selected_provider
 
             embed = EmbedBuilder.create_success_embed(
-                "✅ 模型已選擇", f"已選擇 **{selected_provider.value}** 模型\n現在可以開始對話了！"
+                "✅ 模型已選擇",
+                f"已選擇 **{selected_provider.value}** 模型\n現在可以開始對話了！",
             )
 
             await interaction.response.edit_message(embed=embed, view=view)
@@ -193,7 +192,7 @@ class AIAssistantControlView(discord.ui.View):
     async def usage_stats_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """顯示使用統計"""
         try:
-            user_id = interaction.user.id
+            interaction.user.id
 
             # 這裡應該從數據庫獲取實際的使用統計
             # 暫時使用模擬數據
@@ -207,7 +206,9 @@ class AIAssistantControlView(discord.ui.View):
             )
 
             embed.add_field(
-                name="💰 使用成本", value="本月費用: $0.00\\n剩餘額度: 無限制", inline=True
+                name="💰 使用成本",
+                value="本月費用: $0.00\\n剩餘額度: 無限制",
+                inline=True,
             )
 
             embed.add_field(name="⏱️ 最近活動", value="暫無記錄", inline=True)
@@ -343,7 +344,10 @@ class AIChatModal(discord.ui.Modal, title="🤖 AI 助手對話"):
         self.chat_input.placeholder = placeholders.get(task_type, "輸入您的請求...")
 
     chat_input = discord.ui.TextInput(
-        label="您的訊息", style=discord.TextStyle.paragraph, max_length=2000, required=True
+        label="您的訊息",
+        style=discord.TextStyle.paragraph,
+        max_length=2000,
+        required=True,
     )
 
     async def on_submit(self, interaction: discord.Interaction):

@@ -89,7 +89,10 @@ class AutoUpdateManager:
 
             # 備選：從 git log 獲取簡短 hash
             result = subprocess.run(
-                ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, timeout=10
+                ["git", "rev-parse", "--short", "HEAD"],
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
 
             if result.returncode == 0:
@@ -232,7 +235,10 @@ class AutoUpdateManager:
 
             # 2. Pull 最新更改
             pull_result = subprocess.run(
-                ["git", "pull", "origin", "main"], capture_output=True, text=True, timeout=300
+                ["git", "pull", "origin", "main"],
+                capture_output=True,
+                text=True,
+                timeout=300,
             )
 
             if pull_result.returncode == 0:
@@ -316,7 +322,9 @@ class AutoUpdateManager:
                 channel = self.bot.get_channel(self.update_channel_id)
                 if channel:
                     embed = discord.Embed(
-                        description=message, color=discord.Color.blue(), timestamp=datetime.now()
+                        description=message,
+                        color=discord.Color.blue(),
+                        timestamp=datetime.now(),
                     )
                     embed.set_footer(text="Potato Bot 自動更新系統")
                     await channel.send(embed=embed)
@@ -436,7 +444,9 @@ class AutoUpdateCog(commands.Cog):
                     color=discord.Color.green(),
                 )
                 embed.add_field(
-                    name="最後檢查", value=datetime.now().strftime("%Y-%m-%d %H:%M:%S"), inline=True
+                    name="最後檢查",
+                    value=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    inline=True,
                 )
 
             await ctx.followup.send(embed=embed)
@@ -460,18 +470,24 @@ class AutoUpdateCog(commands.Cog):
 
             if result.get("error"):
                 embed = discord.Embed(
-                    title="❌ 更新失敗", description=result["error"], color=discord.Color.red()
+                    title="❌ 更新失敗",
+                    description=result["error"],
+                    color=discord.Color.red(),
                 )
             else:
                 embed = discord.Embed(
-                    title="✅ 更新啟動", description=result["message"], color=discord.Color.green()
+                    title="✅ 更新啟動",
+                    description=result["message"],
+                    color=discord.Color.green(),
                 )
 
             await ctx.followup.send(embed=embed)
 
         except Exception as e:
             embed = discord.Embed(
-                title="❌ 更新失敗", description=f"發生錯誤: {str(e)}", color=discord.Color.red()
+                title="❌ 更新失敗",
+                description=f"發生錯誤: {str(e)}",
+                color=discord.Color.red(),
             )
             await ctx.followup.send(embed=embed)
 

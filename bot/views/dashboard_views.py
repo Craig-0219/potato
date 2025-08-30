@@ -7,10 +7,10 @@
 import io
 import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Dict, List
 
 import discord
-from discord.ui import Button, Modal, Select, TextInput, View, button, select
+from discord.ui import Button, Modal, Select, TextInput, View, button
 
 from bot.services.dashboard_manager import ChartData, ChartType, DashboardData
 from bot.utils.embed_builder import EmbedBuilder
@@ -445,7 +445,9 @@ class ExportOptionsModal(Modal):
         )
 
         self.date_range = TextInput(
-            label="日期範圍 (可選)", placeholder="格式: YYYY-MM-DD to YYYY-MM-DD", required=False
+            label="日期範圍 (可選)",
+            placeholder="格式: YYYY-MM-DD to YYYY-MM-DD",
+            required=False,
         )
 
         self.add_item(self.format_choice)
@@ -477,7 +479,9 @@ class ExportOptionsModal(Modal):
             )
 
             embed.add_field(
-                name="⏱️ 處理時間", value="預計1-2分鐘完成，報告將通過私訊發送", inline=False
+                name="⏱️ 處理時間",
+                value="預計1-2分鐘完成，報告將通過私訊發送",
+                inline=False,
             )
 
             await interaction.response.send_message(embed=embed, ephemeral=True)

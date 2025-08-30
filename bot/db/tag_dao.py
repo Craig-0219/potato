@@ -4,9 +4,7 @@
 處理標籤CRUD、標籤映射、使用統計、自動規則等功能
 """
 
-import json
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from bot.db.pool import db_pool
 from shared.logger import logger

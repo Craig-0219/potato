@@ -4,13 +4,8 @@
 提供各種遊戲的互動界面和用戶交互組件
 """
 
-import asyncio
-import json
-import math
 import random
-import time
-from datetime import datetime, timezone
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict
 
 import discord
 from discord import ui
@@ -39,15 +34,21 @@ class GameMenuView(ui.View):
             )
 
             embed.add_field(
-                name="🟢 簡單", value="• 範圍: 1-50\n• 機會: 8次\n• 獎勵: 50🪙", inline=True
+                name="🟢 簡單",
+                value="• 範圍: 1-50\n• 機會: 8次\n• 獎勵: 50🪙",
+                inline=True,
             )
 
             embed.add_field(
-                name="🟡 中等", value="• 範圍: 1-100\n• 機會: 6次\n• 獎勵: 100🪙", inline=True
+                name="🟡 中等",
+                value="• 範圍: 1-100\n• 機會: 6次\n• 獎勵: 100🪙",
+                inline=True,
             )
 
             embed.add_field(
-                name="🔴 困難", value="• 範圍: 1-200\n• 機會: 5次\n• 獎勵: 200🪙", inline=True
+                name="🔴 困難",
+                value="• 範圍: 1-200\n• 機會: 5次\n• 獎勵: 200🪙",
+                inline=True,
             )
 
             await interaction.response.edit_message(embed=embed, view=view)
@@ -63,7 +64,9 @@ class GameMenuView(ui.View):
             view = RockPaperScissorsView(self.game_cog)
 
             embed = EmbedBuilder.build(
-                title="✂️ 剪刀石頭布", description="經典對戰遊戲！選擇您的招式：", color=0xFF6B6B
+                title="✂️ 剪刀石頭布",
+                description="經典對戰遊戲！選擇您的招式：",
+                color=0xFF6B6B,
             )
 
             embed.add_field(
@@ -89,7 +92,9 @@ class GameMenuView(ui.View):
             )
 
             embed.add_field(
-                name="💰 您的金幣", value=f"{self.user_economy.get('coins', 0):,} 🪙", inline=True
+                name="💰 您的金幣",
+                value=f"{self.user_economy.get('coins', 0):,} 🪙",
+                inline=True,
             )
 
             embed.add_field(
@@ -117,11 +122,15 @@ class GameMenuView(ui.View):
             view = RouletteView(self.game_cog, self.user_economy)
 
             embed = EmbedBuilder.build(
-                title="🎰 輪盤遊戲", description="歡迎來到刺激的輪盤賭桌！", color=0x8B0000
+                title="🎰 輪盤遊戲",
+                description="歡迎來到刺激的輪盤賭桌！",
+                color=0x8B0000,
             )
 
             embed.add_field(
-                name="💰 您的金幣", value=f"{self.user_economy.get('coins', 0):,} 🪙", inline=True
+                name="💰 您的金幣",
+                value=f"{self.user_economy.get('coins', 0):,} 🪙",
+                inline=True,
             )
 
             embed.add_field(
@@ -593,7 +602,10 @@ class CoinFlipView(ui.View):
                 for i, field in enumerate(embed.fields):
                     if "下注金額" in field.name:
                         embed.set_field_at(
-                            i, name="💰 目前下注", value=f"{self.bet_amount}🪙", inline=True
+                            i,
+                            name="💰 目前下注",
+                            value=f"{self.bet_amount}🪙",
+                            inline=True,
                         )
                         break
                 else:
@@ -702,7 +714,9 @@ class RouletteView(ui.View):
 
         if self.bet_type == "number":
             await interaction.response.send_message(
-                "請選擇要下注的數字 (0-36):", ephemeral=True, view=NumberSelectView(self)
+                "請選擇要下注的數字 (0-36):",
+                ephemeral=True,
+                view=NumberSelectView(self),
             )
         else:
             await self._update_bet_display(interaction)
@@ -740,7 +754,9 @@ class RouletteView(ui.View):
             }
 
             embed = EmbedBuilder.build(
-                title="🎰 輪盤遊戲", description="設定您的下注並轉動輪盤！", color=0x8B0000
+                title="🎰 輪盤遊戲",
+                description="設定您的下注並轉動輪盤！",
+                color=0x8B0000,
             )
 
             embed.add_field(
@@ -751,7 +767,9 @@ class RouletteView(ui.View):
             )
 
             embed.add_field(
-                name="💳 您的金幣", value=f"{self.user_economy.get('coins', 0):,}🪙", inline=True
+                name="💳 您的金幣",
+                value=f"{self.user_economy.get('coins', 0):,}🪙",
+                inline=True,
             )
 
             await interaction.response.edit_message(embed=embed, view=self)
@@ -779,7 +797,26 @@ class RouletteView(ui.View):
             result_number = random.randint(0, 36)
 
             # 判斷顏色
-            red_numbers = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]
+            red_numbers = [
+                1,
+                3,
+                5,
+                7,
+                9,
+                12,
+                14,
+                16,
+                18,
+                19,
+                21,
+                23,
+                25,
+                27,
+                30,
+                32,
+                34,
+                36,
+            ]
             is_red = result_number in red_numbers
             is_black = result_number != 0 and not is_red
             is_odd = result_number % 2 == 1 and result_number != 0
@@ -927,7 +964,9 @@ class TriviaView(ui.View):
             self.current_question = random.choice(self.questions)
 
             embed = EmbedBuilder.build(
-                title="🧠 問答競賽", description=self.current_question["question"], color=0x4169E1
+                title="🧠 問答競賽",
+                description=self.current_question["question"],
+                color=0x4169E1,
             )
 
             # 添加答案選項
@@ -998,7 +1037,9 @@ class TriviaAnswerView(ui.View):
                 )
 
                 embed = EmbedBuilder.build(
-                    title="🎉 答對了！", description=f"恭喜您答對了問題！", color=0x00FF00
+                    title="🎉 答對了！",
+                    description=f"恭喜您答對了問題！",
+                    color=0x00FF00,
                 )
 
                 embed.add_field(
@@ -1213,7 +1254,9 @@ class DiceGameView(ui.View):
             }
 
             embed = EmbedBuilder.build(
-                title="🎲 骰子遊戲", description="設定您的預測和下注金額！", color=0x32CD32
+                title="🎲 骰子遊戲",
+                description="設定您的預測和下注金額！",
+                color=0x32CD32,
             )
 
             embed.add_field(
@@ -1224,7 +1267,9 @@ class DiceGameView(ui.View):
             )
 
             embed.add_field(
-                name="💳 您的金幣", value=f"{self.user_economy.get('coins', 0):,}🪙", inline=True
+                name="💳 您的金幣",
+                value=f"{self.user_economy.get('coins', 0):,}🪙",
+                inline=True,
             )
 
             embed.add_field(

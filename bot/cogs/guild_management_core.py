@@ -5,8 +5,7 @@
 import asyncio
 import json
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
 
 import discord
 from discord import app_commands
@@ -14,12 +13,14 @@ from discord.ext import commands
 
 from bot.services.data_management_service import (
     DataExportRequest,
-    DataRetentionPolicy,
     ExportFormat,
     data_management_service,
 )
 from bot.services.guild_analytics_service import guild_analytics_service
-from bot.services.guild_permission_manager import GuildPermission, guild_permission_manager
+from bot.services.guild_permission_manager import (
+    GuildPermission,
+    guild_permission_manager,
+)
 from bot.utils.interaction_helper import SafeInteractionHandler
 
 logger = logging.getLogger(__name__)
@@ -478,7 +479,11 @@ class GuildManagementCore(commands.Cog):
     )
     @app_commands.default_permissions(administrator=True)
     async def manage_permissions(
-        self, interaction: discord.Interaction, user: discord.Member, action: str, role: str = None
+        self,
+        interaction: discord.Interaction,
+        user: discord.Member,
+        action: str,
+        role: str = None,
     ):
         """管理用戶權限"""
         try:

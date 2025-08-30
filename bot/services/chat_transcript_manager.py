@@ -461,7 +461,12 @@ class ChatTranscriptManager:
         return json.dumps(data, ensure_ascii=False, indent=2)
 
     async def _save_transcript_record(
-        self, ticket_id: int, content: str, format_type: str, file_path: str, message_count: int
+        self,
+        ticket_id: int,
+        content: str,
+        format_type: str,
+        file_path: str,
+        message_count: int,
     ):
         """保存聊天記錄到資料庫"""
         try:
@@ -483,7 +488,14 @@ class ChatTranscriptManager:
                             file_size = VALUES(file_size),
                             export_format = VALUES(export_format)
                         """,
-                            (ticket_id, content, message_count, file_path, file_size, format_type),
+                            (
+                                ticket_id,
+                                content,
+                                message_count,
+                                file_path,
+                                file_size,
+                                format_type,
+                            ),
                         )
                     elif format_type == "text":
                         await cursor.execute(
@@ -498,7 +510,14 @@ class ChatTranscriptManager:
                             file_size = VALUES(file_size),
                             export_format = VALUES(export_format)
                         """,
-                            (ticket_id, content, message_count, file_path, file_size, format_type),
+                            (
+                                ticket_id,
+                                content,
+                                message_count,
+                                file_path,
+                                file_size,
+                                format_type,
+                            ),
                         )
                     elif format_type == "json":
                         await cursor.execute(
@@ -513,7 +532,14 @@ class ChatTranscriptManager:
                             file_size = VALUES(file_size),
                             export_format = VALUES(export_format)
                         """,
-                            (ticket_id, content, message_count, file_path, file_size, format_type),
+                            (
+                                ticket_id,
+                                content,
+                                message_count,
+                                file_path,
+                                file_size,
+                                format_type,
+                            ),
                         )
 
                     await conn.commit()

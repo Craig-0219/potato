@@ -7,14 +7,14 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 try:
-    from slowapi import Limiter, _rate_limit_exceeded_handler
+    from slowapi import Limiter
     from slowapi.util import get_remote_address
 
     HAS_SLOWAPI = True
 except ImportError:
     HAS_SLOWAPI = False
 from datetime import datetime, timedelta
-from typing import List, Optional
+from typing import Optional
 
 from bot.db.tag_dao import TagDAO
 from bot.db.ticket_dao import TicketDAO
@@ -24,11 +24,9 @@ from shared.logger import logger
 from ..auth import APIUser, require_read_permission, require_write_permission
 from ..models import (
     BaseResponse,
-    CommonQueryParams,
     PaginatedResponse,
     TicketCreate,
     TicketResponse,
-    TicketSearchQuery,
     TicketStatistics,
     TicketUpdate,
 )
@@ -222,7 +220,9 @@ async def create_ticket(
 @router.put("/{ticket_id}", response_model=BaseResponse, summary="更新票券")
 # @limiter.limit("20/minute")
 async def update_ticket(
-    ticket_id: int, ticket_data: TicketUpdate, user: APIUser = Depends(require_write_permission)
+    ticket_id: int,
+    ticket_data: TicketUpdate,
+    user: APIUser = Depends(require_write_permission),
 ):
     """更新票券信息"""
     try:
@@ -250,7 +250,7 @@ async def update_ticket(
 
         # 處理標籤更新
         if ticket_data.tags is not None:
-            tag_dao = get_tag_dao()
+            get_tag_dao()
             # 這裡需要實現標籤更新邏輯
             # await update_ticket_tags(ticket_id, ticket_data.tags, tag_dao)
 
@@ -292,7 +292,9 @@ async def delete_ticket(ticket_id: int, user: APIUser = Depends(require_write_pe
 @router.post("/{ticket_id}/close", response_model=BaseResponse, summary="關閉票券")
 # @limiter.limit("20/minute")
 async def close_ticket(
-    ticket_id: int, reason: Optional[str] = None, user: APIUser = Depends(require_write_permission)
+    ticket_id: int,
+    reason: Optional[str] = None,
+    user: APIUser = Depends(require_write_permission),
 ):
     """關閉指定的票券"""
     try:
@@ -326,13 +328,18 @@ async def assign_ticket(
 
         # 指派票券
         success = await ticket_manager.assign_ticket(
-            ticket_id=ticket_id, assigned_to=assigned_to, assigned_by=0  # API 指派，使用特殊用戶 ID
+            ticket_id=ticket_id,
+            assigned_to=assigned_to,
+            assigned_by=0,  # API 指派，使用特殊用戶 ID
         )
 
         if not success:
             raise HTTPException(status_code=400, detail="指派票券失敗")
 
-        return {"success": True, "message": f"票券 #{ticket_id} 已指派給用戶 {assigned_to}"}
+        return {
+            "success": True,
+            "message": f"票券 #{ticket_id} 已指派給用戶 {assigned_to}",
+        }
 
     except HTTPException:
         raise
@@ -379,7 +386,7 @@ async def get_ticket_statistics(
 ):
     """獲取票券統計概覽"""
     try:
-        ticket_dao = get_ticket_dao()
+        get_ticket_dao()
 
         # 這裡需要實現統計查詢邏輯
         # stats = await ticket_dao.get_ticket_statistics(guild_id, days)

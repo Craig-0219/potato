@@ -8,13 +8,11 @@ Date: 2025-08-20
 """
 
 import asyncio
-import json
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 import discord
 from discord.ext import commands
@@ -227,7 +225,7 @@ class ContextAwarenessEngine:
                 "most_used_features": self._get_top_features(preferences),
                 "usage_frequency": self._calculate_usage_frequency(preferences),
                 "time_patterns": self._analyze_time_patterns(preferences),
-                "last_activity": max([p.last_used for p in preferences]) if preferences else 0,
+                "last_activity": (max([p.last_used for p in preferences]) if preferences else 0),
             }
 
             return behavior_analysis

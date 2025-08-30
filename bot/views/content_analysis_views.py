@@ -4,18 +4,12 @@
 提供內容分析統計、情感分析、安全檢測等功能的用戶界面
 """
 
-import asyncio
-import time
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
 
 import discord
-from discord import ui
-from discord.ext import commands
 
 from bot.services.content_analyzer import (
     AnalysisType,
-    ContentAnalysisResult,
     ContentRiskLevel,
     SentimentType,
     content_analyzer,
@@ -433,7 +427,9 @@ class SafetyCheckModal(discord.ui.Modal):
 
                     if category_text:
                         embed.add_field(
-                            name="📊 風險類別", value="\n".join(category_text[:5]), inline=False
+                            name="📊 風險類別",
+                            value="\n".join(category_text[:5]),
+                            inline=False,
                         )
 
             embed.add_field(
@@ -475,7 +471,9 @@ class LinkCheckModal(discord.ui.Modal):
 
             # 執行連結分析
             result = await content_analyzer.analyze_content(
-                text, user_id=interaction.user.id, analysis_types=[AnalysisType.LINK_SAFETY]
+                text,
+                user_id=interaction.user.id,
+                analysis_types=[AnalysisType.LINK_SAFETY],
             )
 
             if not result.success:
@@ -529,7 +527,9 @@ class LinkCheckModal(discord.ui.Modal):
 
             if len(result.links) > 3:
                 embed.add_field(
-                    name="📝 注意", value=f"還有 {len(result.links) - 3} 個連結未顯示", inline=False
+                    name="📝 注意",
+                    value=f"還有 {len(result.links) - 3} 個連結未顯示",
+                    inline=False,
                 )
 
             embed.add_field(

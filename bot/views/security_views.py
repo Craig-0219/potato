@@ -6,10 +6,9 @@
 
 import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import discord
-from discord.ext import commands
 
 from shared.logger import logger
 
@@ -188,9 +187,12 @@ class AlertSelectDropdown(discord.ui.Select):
         options = []
 
         for alert in alerts[:25]:
-            severity_emoji = {"low": "🟢", "medium": "🟡", "high": "🟠", "critical": "🔴"}.get(
-                alert["severity"], "⚪"
-            )
+            severity_emoji = {
+                "low": "🟢",
+                "medium": "🟡",
+                "high": "🟠",
+                "critical": "🔴",
+            }.get(alert["severity"], "⚪")
 
             status_emoji = {"open": "🔓", "investigating": "🔍", "resolved": "✅"}.get(
                 alert["status"], "❓"
@@ -206,7 +208,10 @@ class AlertSelectDropdown(discord.ui.Select):
             )
 
         super().__init__(
-            placeholder="選擇要操作的警報...", min_values=1, max_values=1, options=options
+            placeholder="選擇要操作的警報...",
+            min_values=1,
+            max_values=1,
+            options=options,
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -247,7 +252,9 @@ class AlertDetailView(discord.ui.View):
     async def view_details(self, interaction: discord.Interaction, button: discord.ui.Button):
         """查看警報詳情"""
         embed = discord.Embed(
-            title="📋 警報詳細資訊", description=f"警報ID: {self.alert_id}", color=0x3498DB
+            title="📋 警報詳細資訊",
+            description=f"警報ID: {self.alert_id}",
+            color=0x3498DB,
         )
 
         embed.add_field(
@@ -342,7 +349,9 @@ class AlertFilterModal(discord.ui.Modal):
                 )
             else:
                 embed.add_field(
-                    name="ℹ️ 提示", value="未設定任何篩選條件，將顯示所有警報", inline=False
+                    name="ℹ️ 提示",
+                    value="未設定任何篩選條件，將顯示所有警報",
+                    inline=False,
                 )
 
             await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -481,13 +490,18 @@ class ComplianceReportView(discord.ui.View):
         if self.report.violations:
             violations_text = []
             for violation in self.report.violations:
-                sev_emoji = {"low": "🟢", "medium": "🟡", "high": "🟠", "critical": "🔴"}.get(
-                    violation["severity"], "⚪"
-                )
+                sev_emoji = {
+                    "low": "🟢",
+                    "medium": "🟡",
+                    "high": "🟠",
+                    "critical": "🔴",
+                }.get(violation["severity"], "⚪")
                 violations_text.append(f"{sev_emoji} {violation['description']}")
 
             embed.add_field(
-                name="⚠️ 發現的違規", value="\n".join(violations_text[:10]), inline=False  # 限制10個
+                name="⚠️ 發現的違規",
+                value="\n".join(violations_text[:10]),
+                inline=False,  # 限制10個
             )
 
         # 改善建議
@@ -542,7 +556,9 @@ class ComplianceReportView(discord.ui.View):
             health_desc = f"發現 {violations_count} 個違規，需要立即處理"
 
         embed.add_field(
-            name="🛡️ 合規健康度", value=f"{compliance_health}\n{health_desc}", inline=True
+            name="🛡️ 合規健康度",
+            value=f"{compliance_health}\n{health_desc}",
+            inline=True,
         )
 
         # 改善進度

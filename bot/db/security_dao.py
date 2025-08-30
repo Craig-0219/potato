@@ -6,7 +6,7 @@
 
 import json
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from bot.db.base_dao import BaseDAO
 from shared.logger import logger
@@ -684,8 +684,8 @@ class SecurityDAO(BaseDAO):
                                 "generated_by": result[4],
                                 "generated_at": result[5],
                                 "summary": json.loads(result[6]) if result[6] else {},
-                                "violations": json.loads(result[7]) if result[7] else [],
-                                "recommendations": json.loads(result[8]) if result[8] else [],
+                                "violations": (json.loads(result[7]) if result[7] else []),
+                                "recommendations": (json.loads(result[8]) if result[8] else []),
                                 "status": result[9],
                             }
                         )

@@ -8,7 +8,7 @@ import asyncio
 import logging
 import traceback
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Union
 
 import discord
 from discord.ext import commands
@@ -37,7 +37,8 @@ class GlobalErrorHandler:
 
         @self.bot.tree.error
         async def on_app_command_error(
-            interaction: discord.Interaction, error: discord.app_commands.AppCommandError
+            interaction: discord.Interaction,
+            error: discord.app_commands.AppCommandError,
         ):
             await self.handle_interaction_error(interaction, error)
 
@@ -89,7 +90,8 @@ class GlobalErrorHandler:
 
             elif isinstance(error, commands.CommandOnCooldown):
                 embed = self._create_error_embed(
-                    "命令冷卻中", f"⏰ 命令冷卻中，請在 {error.retry_after:.1f} 秒後重試"
+                    "命令冷卻中",
+                    f"⏰ 命令冷卻中，請在 {error.retry_after:.1f} 秒後重試",
                 )
                 await ctx.send(embed=embed)
 
@@ -121,7 +123,9 @@ class GlobalErrorHandler:
             logger.error(f"處理命令錯誤時發生錯誤：{e}")
 
     async def handle_interaction_error(
-        self, interaction: discord.Interaction, error: discord.app_commands.AppCommandError
+        self,
+        interaction: discord.Interaction,
+        error: discord.app_commands.AppCommandError,
     ):
         """處理斜線命令/互動錯誤"""
         error_type = type(error).__name__
@@ -150,7 +154,8 @@ class GlobalErrorHandler:
 
             elif isinstance(error, discord.app_commands.CommandOnCooldown):
                 embed = self._create_error_embed(
-                    "命令冷卻中", f"⏰ 命令冷卻中，請在 {error.retry_after:.1f} 秒後重試"
+                    "命令冷卻中",
+                    f"⏰ 命令冷卻中，請在 {error.retry_after:.1f} 秒後重試",
                 )
                 await send_func(embed=embed, ephemeral=True)
 

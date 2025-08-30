@@ -4,11 +4,7 @@
 處理自動指派、手動指派、工作量平衡等業務邏輯
 """
 
-import random
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
-
-import discord
 
 from bot.db.assignment_dao import AssignmentDAO
 from bot.db.ticket_dao import TicketDAO
@@ -78,7 +74,12 @@ class AssignmentManager:
 
                 # 記錄指派歷史
                 await self.assignment_dao.record_assignment(
-                    ticket_id, original_assigned, assigned_to, assigned_by, reason, method
+                    ticket_id,
+                    original_assigned,
+                    assigned_to,
+                    assigned_by,
+                    reason,
+                    method,
                 )
 
                 logger.info(
@@ -273,7 +274,11 @@ class AssignmentManager:
     # ========== 專精管理 ==========
 
     async def add_staff_specialty(
-        self, guild_id: int, staff_id: int, specialty_type: str, skill_level: str = "intermediate"
+        self,
+        guild_id: int,
+        staff_id: int,
+        specialty_type: str,
+        skill_level: str = "intermediate",
     ) -> Tuple[bool, str]:
         """添加客服專精"""
         try:

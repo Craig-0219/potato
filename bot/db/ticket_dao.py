@@ -440,7 +440,11 @@ class TicketDAO:
                             INSERT INTO ticket_logs (ticket_id, action, details, created_by, created_at)
                             VALUES (%s, 'closed', %s, %s, NOW())
                         """,
-                            (ticket_id, f"關閉票券 - {reason or '無原因'}", str(closed_by)),
+                            (
+                                ticket_id,
+                                f"關閉票券 - {reason or '無原因'}",
+                                str(closed_by),
+                            ),
                         )
 
                         await conn.commit()
@@ -483,7 +487,11 @@ class TicketDAO:
             return False
 
     async def get_tickets_with_filters(
-        self, filters: Dict[str, Any], limit: int = 20, offset: int = 0, guild_id: int = None
+        self,
+        filters: Dict[str, Any],
+        limit: int = 20,
+        offset: int = 0,
+        guild_id: int = None,
     ) -> List[Dict[str, Any]]:
         """根據篩選條件獲取票券列表"""
         try:
@@ -1281,7 +1289,7 @@ class TicketDAO:
                             "avg_resolution_time": float(row[1]) if row[1] else 0.0,
                             "closed_tickets": row[2],
                             "open_tickets": row[3],
-                            "resolution_rate": (row[2] / row[0] * 100) if row[0] > 0 else 0,
+                            "resolution_rate": ((row[2] / row[0] * 100) if row[0] > 0 else 0),
                             "priority_distribution": {
                                 "high": row[4],
                                 "medium": row[5],

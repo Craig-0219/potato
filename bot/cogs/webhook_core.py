@@ -4,16 +4,13 @@ Webhook整合核心功能
 提供Discord指令介面來管理和配置Webhook
 """
 
-import asyncio
-import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.services.webhook_manager import WebhookEvent, WebhookStatus, WebhookType, webhook_manager
+from bot.services.webhook_manager import WebhookEvent, webhook_manager
 from bot.utils.embed_builder import EmbedBuilder
 from bot.views.webhook_views import WebhookConfigModal, WebhookManagerView
 from shared.logger import logger
@@ -55,7 +52,11 @@ class WebhookCore(commands.Cog):
         ]
     )
     async def create_webhook(
-        self, interaction: discord.Interaction, name: str, url: str, webhook_type: str = "outgoing"
+        self,
+        interaction: discord.Interaction,
+        name: str,
+        url: str,
+        webhook_type: str = "outgoing",
     ):
         """創建Webhook"""
         try:
@@ -114,7 +115,9 @@ class WebhookCore(commands.Cog):
                 )
 
             embed.add_field(
-                name="🛠️ 下一步", value="使用 `/webhook_config` 配置事件和其他設定", inline=False
+                name="🛠️ 下一步",
+                value="使用 `/webhook_config` 配置事件和其他設定",
+                inline=False,
             )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
@@ -149,19 +152,26 @@ class WebhookCore(commands.Cog):
 
             if not webhooks:
                 embed = EmbedBuilder.build(
-                    title="📋 Webhook列表", description="目前沒有Webhook", color=0x95A5A6
+                    title="📋 Webhook列表",
+                    description="目前沒有Webhook",
+                    color=0x95A5A6,
                 )
                 await interaction.response.send_message(embed=embed, ephemeral=True)
                 return
 
             embed = EmbedBuilder.build(
-                title="📋 Webhook列表", description=f"共 {len(webhooks)} 個Webhook", color=0x3498DB
+                title="📋 Webhook列表",
+                description=f"共 {len(webhooks)} 個Webhook",
+                color=0x3498DB,
             )
 
             for webhook in webhooks[:10]:  # 最多顯示10個
-                status_emoji = {"active": "✅", "inactive": "⏸️", "paused": "⏸️", "error": "❌"}.get(
-                    webhook["status"], "❓"
-                )
+                status_emoji = {
+                    "active": "✅",
+                    "inactive": "⏸️",
+                    "paused": "⏸️",
+                    "error": "❌",
+                }.get(webhook["status"], "❓")
 
                 type_emoji = {"outgoing": "📤", "incoming": "📥", "both": "🔄"}.get(
                     webhook["type"], "🔧"
@@ -177,7 +187,9 @@ class WebhookCore(commands.Cog):
 
             if len(webhooks) > 10:
                 embed.add_field(
-                    name="📄 更多", value=f"還有 {len(webhooks) - 10} 個Webhook...", inline=False
+                    name="📄 更多",
+                    value=f"還有 {len(webhooks) - 10} 個Webhook...",
+                    inline=False,
                 )
 
             # 添加管理界面
@@ -443,7 +455,9 @@ class WebhookCore(commands.Cog):
                         )
                     else:
                         embed = EmbedBuilder.build(
-                            title="❌ 刪除失敗", description="刪除Webhook時發生錯誤", color=0xE74C3C
+                            title="❌ 刪除失敗",
+                            description="刪除Webhook時發生錯誤",
+                            color=0xE74C3C,
                         )
 
                     await interaction.response.edit_message(embed=embed, view=None)
@@ -453,7 +467,9 @@ class WebhookCore(commands.Cog):
                     self, interaction: discord.Interaction, button: discord.ui.Button
                 ):
                     embed = EmbedBuilder.build(
-                        title="❌ 已取消", description="Webhook刪除已取消", color=0x95A5A6
+                        title="❌ 已取消",
+                        description="Webhook刪除已取消",
+                        color=0x95A5A6,
                     )
                     await interaction.response.edit_message(embed=embed, view=None)
 
@@ -470,7 +486,6 @@ class WebhookCore(commands.Cog):
     async def on_message(self, message):
         """監聽消息事件並觸發相應的Webhook"""
         # 可以根據需要添加自動觸發邏輯
-        pass
 
     # ========== 錯誤處理 ==========
 

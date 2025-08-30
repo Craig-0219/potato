@@ -55,7 +55,15 @@ except ImportError:
 
 # config fallback
 try:
-    from shared.config import DB_HOST, DB_NAME, DB_PASSWORD, DB_PORT, DB_USER, DISCORD_TOKEN
+    from shared.config import (
+        DB_HOST,
+        DB_NAME,
+        DB_PASSWORD,
+        DB_PORT,
+        DB_USER,
+        DISCORD_TOKEN,
+        SYNC_COMMANDS,
+    )
 except ImportError:
     logger.error("❌ shared/config.py 不存在或設定不齊全")
     sys.exit(1)
@@ -81,10 +89,18 @@ except ImportError as e:
 
 import threading
 
-import uvicorn
+# API Server 整合 - 可選依賴
+try:
+    import uvicorn
 
-# API Server 整合
-from bot.api.app import app as api_app
+    from bot.api.app import app as api_app
+
+    API_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"API 服務器依賴不可用: {e}")
+    API_AVAILABLE = False
+    uvicorn = None
+    api_app = None
 from bot.db.pool import close_database, db_pool, get_db_health, init_database
 from bot.services.guild_manager import GuildManager
 from bot.utils.multi_tenant_security import multi_tenant_security
@@ -287,7 +303,9 @@ class PotatoBot(commands.Bot):
 
         try:
             # 初始化伺服器管理表格
-            from bot.db.migrations.guild_management_tables import initialize_guild_management_system
+            from bot.db.migrations.guild_management_tables import (
+                initialize_guild_management_system,
+            )
 
             await initialize_guild_management_system()
 
@@ -361,7 +379,7 @@ class PotatoBot(commands.Bot):
                     view_info = {
                         "type": type(view).__name__,
                         "timeout": getattr(view, "timeout", None),
-                        "children_count": len(view.children) if hasattr(view, "children") else 0,
+                        "children_count": (len(view.children) if hasattr(view, "children") else 0),
                     }
                     validation_results["view_details"].append(view_info)
 
@@ -382,10 +400,8 @@ class PotatoBot(commands.Bot):
             existing_commands = self.tree.get_commands()
             logger.info(f"🔍 發現 {len(existing_commands)} 個本地命令等待同步")
 
-            # 檢查是否啟用命令同步（環境變數控制）
-            import os
-
-            sync_enabled = os.getenv("SYNC_COMMANDS", "true").lower() == "true"
+            # 檢查是否啟用命令同步（配置控制）
+            sync_enabled = SYNC_COMMANDS
 
             if not sync_enabled:
                 logger.info("🚫 命令同步已停用（SYNC_COMMANDS=false）")
@@ -420,6 +436,10 @@ class PotatoBot(commands.Bot):
 
     async def _start_integrated_api_server(self):
         """啟動整合的 API 伺服器"""
+        if not API_AVAILABLE:
+            logger.warning("⚠️ API 服務器依賴不可用，跳過 API 服務器啟動")
+            return
+
         try:
             # 取得 API 設定
             api_host = os.getenv("API_HOST", "0.0.0.0")
@@ -431,7 +451,11 @@ class PotatoBot(commands.Bot):
                 """在單獨執行緒中執行 API 伺服器"""
                 asyncio.set_event_loop(asyncio.new_event_loop())
                 config = uvicorn.Config(
-                    app=api_app, host=api_host, port=api_port, log_level="info", access_log=True
+                    app=api_app,
+                    host=api_host,
+                    port=api_port,
+                    log_level="info",
+                    access_log=True,
                 )
                 server = uvicorn.Server(config)
                 self.api_server = server
@@ -536,7 +560,8 @@ class PotatoBot(commands.Bot):
                     async with db_pool.connection() as conn:
                         async with conn.cursor() as cursor:
                             await cursor.execute(
-                                "SELECT COUNT(*) FROM guild_info WHERE guild_id = %s", (guild.id,)
+                                "SELECT COUNT(*) FROM guild_info WHERE guild_id = %s",
+                                (guild.id,),
                             )
                             exists = (await cursor.fetchone())[0] > 0
 
@@ -648,7 +673,7 @@ async def database_status(ctx):
 
         embed = discord.Embed(
             title="📊 資料庫狀態",
-            color=discord.Color.green() if status.get("healthy") else discord.Color.orange(),
+            color=(discord.Color.green() if status.get("healthy") else discord.Color.orange()),
         )
 
         # 基本資訊
@@ -664,7 +689,9 @@ async def database_status(ctx):
             for table, count in status["tables"].items():
                 table_info.append(f"• {table}: {count} 筆")
             embed.add_field(
-                name="資料表", value="\n".join(table_info[:5]), inline=True  # 限制顯示數量
+                name="資料表",
+                value="\n".join(table_info[:5]),
+                inline=True,  # 限制顯示數量
             )
 
         await ctx.send(embed=embed)
@@ -686,7 +713,9 @@ async def bot_status(ctx):
 
         embed = EmbedBuilder.status_embed(
             {
-                "overall_status": "healthy" if db_health.get("status") == "healthy" else "degraded",
+                "overall_status": (
+                    "healthy" if db_health.get("status") == "healthy" else "degraded"
+                ),
                 "基本資訊": {
                     "伺服器數量": len(ctx.bot.guilds),
                     "延遲": (

@@ -116,7 +116,11 @@ class MaintenanceScheduler:
                 description="執行完整的系統清理和優化",
                 frequency=TaskFrequency.WEEKLY,
                 handler=self._weekly_cleanup_task,
-                config={"run_day": "sunday", "run_time": "03:00", "optimize_database": True},
+                config={
+                    "run_day": "sunday",
+                    "run_time": "03:00",
+                    "optimize_database": True,
+                },
             )
         )
 
@@ -148,7 +152,11 @@ class MaintenanceScheduler:
                 config={
                     "check_database": True,
                     "check_disk_space": True,
-                    "alert_thresholds": {"cpu_usage": 80, "memory_usage": 85, "disk_usage": 90},
+                    "alert_thresholds": {
+                        "cpu_usage": 80,
+                        "memory_usage": 85,
+                        "disk_usage": 90,
+                    },
                 },
             )
         )
@@ -700,7 +708,12 @@ class MaintenanceScheduler:
                     async with self.db.get_connection() as conn:
                         async with conn.cursor() as cursor:
                             # 獲取主要表格
-                            main_tables = ["tickets", "votes", "ticket_logs", "security_events"]
+                            main_tables = [
+                                "tickets",
+                                "votes",
+                                "ticket_logs",
+                                "security_events",
+                            ]
 
                             for table in main_tables:
                                 try:

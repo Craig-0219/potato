@@ -6,15 +6,10 @@ Discord Bot 娛樂模組互動視圖組件
 
 import asyncio
 import random
-import time
-from datetime import datetime
-from typing import Any, Dict, List, Optional
 
 import discord
-from discord.ext import commands
 
 from bot.utils.embed_builder import EmbedBuilder
-from shared.logger import logger
 
 
 class EntertainmentMenuView(discord.ui.View):
@@ -158,7 +153,7 @@ class GuessNumberView(discord.ui.View):
     @discord.ui.button(label="🔙 返回菜單", style=discord.ButtonStyle.danger, row=1)
     async def back_to_menu(self, interaction: discord.Interaction, button: discord.ui.Button):
         view = EntertainmentMenuView(self.cog, self.user_id)
-        stats = await self.cog.get_user_stats(self.user_id)
+        await self.cog.get_user_stats(self.user_id)
         embed = EmbedBuilder.create_info_embed("🎮 娛樂中心", "選擇您想要的遊戲：")
         await interaction.response.edit_message(embed=embed, view=view)
 
@@ -186,7 +181,8 @@ class GuessNumberView(discord.ui.View):
             await self.cog.update_user_stats(self.user_id, "guess_number", False, 0)
 
             embed = EmbedBuilder.create_error_embed(
-                "💥 遊戲結束", f"很遺憾，正確答案是 **{self.target_number}**\n下次加油！"
+                "💥 遊戲結束",
+                f"很遺憾，正確答案是 **{self.target_number}**\n下次加油！",
             )
             self.game_over = True
 
@@ -228,7 +224,9 @@ class RockPaperScissorsView(discord.ui.View):
         embed = EmbedBuilder.create_info_embed("✂️ 剪刀石頭布", f"五局三勝制！選擇你的出招：")
 
         embed.add_field(
-            name="📊 當前比分", value=f"你：{self.user_score} | Bot：{self.bot_score}", inline=True
+            name="📊 當前比分",
+            value=f"你：{self.user_score} | Bot：{self.bot_score}",
+            inline=True,
         )
 
         embed.add_field(name="🎯 局數", value=f"{self.games_played}/{self.max_games}", inline=True)
@@ -290,7 +288,9 @@ class RockPaperScissorsView(discord.ui.View):
             inline=False,
         )
         embed.add_field(
-            name="📊 總比分", value=f"你：{self.user_score} | Bot：{self.bot_score}", inline=True
+            name="📊 總比分",
+            value=f"你：{self.user_score} | Bot：{self.bot_score}",
+            inline=True,
         )
         embed.add_field(name="🎯 局數", value=f"{self.games_played}/{self.max_games}", inline=True)
 
@@ -330,7 +330,11 @@ class RockPaperScissorsView(discord.ui.View):
         if user_choice == bot_choice:
             return "tie"
 
-        winning_combinations = {"rock": "scissors", "paper": "rock", "scissors": "paper"}
+        winning_combinations = {
+            "rock": "scissors",
+            "paper": "rock",
+            "scissors": "paper",
+        }
 
         if winning_combinations[user_choice] == bot_choice:
             return "user"
@@ -390,7 +394,8 @@ class CoinFlipView(discord.ui.View):
             points = self.bet_amount * 2
             await self.cog.update_user_stats(self.user_id, "coin_flip", True, points)
             embed = EmbedBuilder.create_success_embed(
-                f"🎉 猜對了！硬幣是{result_text} {result_emoji}", f"獲得 {points} 積分！"
+                f"🎉 猜對了！硬幣是{result_text} {result_emoji}",
+                f"獲得 {points} 積分！",
             )
         else:
             await self.cog.update_user_stats(self.user_id, "coin_flip", False, 0)
@@ -484,10 +489,14 @@ class DiceRollView(discord.ui.View):
 
         embed = discord.Embed(title=title, color=color)
         embed.add_field(
-            name="你的骰子", value=f"{user_dice_display}\n總計：{user_total}", inline=True
+            name="你的骰子",
+            value=f"{user_dice_display}\n總計：{user_total}",
+            inline=True,
         )
         embed.add_field(
-            name="Bot的骰子", value=f"{bot_dice_display}\n總計：{bot_total}", inline=True
+            name="Bot的骰子",
+            value=f"{bot_dice_display}\n總計：{bot_total}",
+            inline=True,
         )
 
         if points > 0:
@@ -714,7 +723,9 @@ class QuizView(discord.ui.View):
         embed.add_field(name="解釋", value=self.current_question["explanation"], inline=False)
         embed.add_field(name="目前積分", value=f"{self.score} 分", inline=True)
         embed.add_field(
-            name="進度", value=f"{self.question_count}/{self.max_questions}", inline=True
+            name="進度",
+            value=f"{self.question_count}/{self.max_questions}",
+            inline=True,
         )
 
         # 禁用選項按鈕

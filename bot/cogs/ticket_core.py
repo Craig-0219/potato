@@ -6,7 +6,7 @@ Author: Craig JunWei + ChatGPT Turbo
 
 import asyncio
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 import discord
 from discord import app_commands
@@ -24,7 +24,7 @@ from bot.services.ticket_manager import TicketManager
 from bot.utils.embed_builder import EmbedBuilder
 from bot.utils.helper import format_duration, get_time_ago
 from bot.utils.ticket_constants import TicketConstants
-from bot.views.ticket_views import RatingView, TicketControlView, TicketListView, TicketPanelView
+from bot.views.ticket_views import RatingView, TicketControlView, TicketPanelView
 from shared.logger import logger
 
 
@@ -382,7 +382,9 @@ class TicketCore(commands.Cog):
                         f"• {s['specialty_type']} ({s['skill_level']})" for s in specialties
                     ]
                     embed.add_field(
-                        name="🎯 專精領域", value="\n".join(specialty_list), inline=False
+                        name="🎯 專精領域",
+                        value="\n".join(specialty_list),
+                        inline=False,
                     )
 
                 if workload["last_assigned_at"]:
@@ -532,7 +534,9 @@ class TicketCore(commands.Cog):
                     top_performers.append(f"{i}. {name} ({staff['completion_rate']:.1f}%)")
 
                 embed.add_field(
-                    name="🏆 績效排行 TOP5", value="\n".join(top_performers), inline=False
+                    name="🏆 績效排行 TOP5",
+                    value="\n".join(top_performers),
+                    inline=False,
                 )
 
             await ctx.send(embed=embed)
@@ -797,7 +801,9 @@ class TicketCore(commands.Cog):
             )
 
             embed.add_field(
-                name="⏰ SLA 要求", value="高優先級票券預期在 **30分鐘內** 回應", inline=False
+                name="⏰ SLA 要求",
+                value="高優先級票券預期在 **30分鐘內** 回應",
+                inline=False,
             )
 
             # 提及客服角色
@@ -818,7 +824,10 @@ class TicketCore(commands.Cog):
     @app_commands.command(name="close", description="關閉票券 | Close ticket")
     @app_commands.describe(reason="關閉原因", request_rating="是否要求評分")
     async def close_ticket(
-        self, interaction: discord.Interaction, reason: str = None, request_rating: bool = True
+        self,
+        interaction: discord.Interaction,
+        reason: str = None,
+        request_rating: bool = True,
     ):
         """
         關閉票券（slash 指令）
@@ -859,7 +868,9 @@ class TicketCore(commands.Cog):
                 logger.error(f"❌ 匯入聊天歷史失敗: {transcript_error}")
 
             success = await self.manager.close_ticket(
-                ticket_id=ticket["id"], closed_by=interaction.user.id, reason=reason or "手動關閉"
+                ticket_id=ticket["id"],
+                closed_by=interaction.user.id,
+                reason=reason or "手動關閉",
             )
             if success:
                 # 更新指派統計（如果票券有指派）
@@ -977,7 +988,11 @@ class TicketCore(commands.Cog):
                     "❌ 只有客服人員可以查看其他用戶的票券。", ephemeral=True
                 )
                 return
-            query_params = {"guild_id": interaction.guild.id, "page": 1, "page_size": 10}
+            query_params = {
+                "guild_id": interaction.guild.id,
+                "page": 1,
+                "page_size": 10,
+            }
             if user:
                 query_params["user_id"] = user.id
             elif not is_staff:
@@ -1021,7 +1036,9 @@ class TicketCore(commands.Cog):
 
             # 簡化版本用於測試
             simple_embed = discord.Embed(
-                title="🎫 票券列表（簡化版）", description=f"找到 {total} 張票券", color=0x3498DB
+                title="🎫 票券列表（簡化版）",
+                description=f"找到 {total} 張票券",
+                color=0x3498DB,
             )
 
             for i, ticket in enumerate(tickets[:5]):  # 只顯示前5張
@@ -1373,7 +1390,11 @@ class TicketCore(commands.Cog):
             priority_stats = dashboard_data.get("priority_stats", {})
             if priority_stats:
                 priority_text = []
-                for priority, emoji in [("high", "🔴"), ("medium", "🟡"), ("low", "🟢")]:
+                for priority, emoji in [
+                    ("high", "🔴"),
+                    ("medium", "🟡"),
+                    ("low", "🟢"),
+                ]:
                     stats = priority_stats.get(priority, {})
                     if stats:
                         priority_text.append(
@@ -1598,7 +1619,9 @@ class TicketCore(commands.Cog):
         embed.add_field(name="⏰ 時間資訊", value=time_info, inline=False)
         if ticket.get("assigned_to"):
             embed.add_field(
-                name="👥 指派資訊", value=f"**負責客服：** <@{ticket['assigned_to']}>", inline=True
+                name="👥 指派資訊",
+                value=f"**負責客服：** <@{ticket['assigned_to']}>",
+                inline=True,
             )
         if ticket.get("rating"):
             stars = TicketConstants.RATING_EMOJIS.get(ticket["rating"], "⭐")
@@ -1613,7 +1636,9 @@ class TicketCore(commands.Cog):
             embed.add_field(name="⭐ 評分", value=rating_text, inline=True)
         if ticket["status"] == "open":
             embed.add_field(
-                name="📍 頻道資訊", value=f"**頻道：** <#{ticket['channel_id']}>", inline=True
+                name="📍 頻道資訊",
+                value=f"**頻道：** <#{ticket['channel_id']}>",
+                inline=True,
             )
         return embed
 
@@ -1689,7 +1714,7 @@ class TicketCore(commands.Cog):
                 if displayed_count >= max_display:
                     break
 
-                status_emoji = TicketConstants.STATUS_EMOJIS.get(ticket["status"], "🟢")
+                TicketConstants.STATUS_EMOJIS.get(ticket["status"], "🟢")
                 priority_emoji = TicketConstants.PRIORITY_EMOJIS.get(
                     ticket.get("priority", "medium"), "🟡"
                 )

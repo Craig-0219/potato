@@ -375,7 +375,11 @@ class WebhookDAO(BaseDAO):
             return 0
 
     async def get_webhook_logs(
-        self, webhook_id: Optional[str] = None, days: int = 7, page: int = 1, page_size: int = 50
+        self,
+        webhook_id: Optional[str] = None,
+        days: int = 7,
+        page: int = 1,
+        page_size: int = 50,
     ) -> Tuple[List[Dict[str, Any]], int]:
         """獲取Webhook執行日誌"""
         try:
@@ -529,7 +533,7 @@ class WebhookDAO(BaseDAO):
                         "total_requests": result[0] or 0,
                         "successful_requests": result[1] or 0,
                         "failed_requests": result[2] or 0,
-                        "success_rate": (result[1] / result[0] * 100) if result[0] else 0,
+                        "success_rate": ((result[1] / result[0] * 100) if result[0] else 0),
                         "avg_response_time": float(result[3]) if result[3] else 0.0,
                     }
 

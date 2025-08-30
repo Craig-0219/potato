@@ -5,8 +5,8 @@
 """
 
 import json
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone
+from typing import Any, Dict, List
 
 import aiomysql
 
@@ -51,7 +51,8 @@ class VoteDAO:
                     for row in rows:
                         # 取得選項數量
                         await cursor.execute(
-                            "SELECT COUNT(*) FROM vote_options WHERE vote_id = %s", (row[0],)
+                            "SELECT COUNT(*) FROM vote_options WHERE vote_id = %s",
+                            (row[0],),
                         )
                         options_count = (await cursor.fetchone())[0]
 
@@ -912,8 +913,8 @@ async def get_guild_vote_stats(guild_id: int, days: int = 30):
                     "total_votes": basic_stats[0] if basic_stats else 0,
                     "active_votes": basic_stats[1] if basic_stats else 0,
                     "finished_votes": basic_stats[2] if basic_stats else 0,
-                    "unique_participants": participation_stats[0] if participation_stats else 0,
-                    "total_responses": participation_stats[1] if participation_stats else 0,
+                    "unique_participants": (participation_stats[0] if participation_stats else 0),
+                    "total_responses": (participation_stats[1] if participation_stats else 0),
                     "top_creators": [
                         {"user_id": row[0], "votes_created": row[1]} for row in top_creators
                     ],

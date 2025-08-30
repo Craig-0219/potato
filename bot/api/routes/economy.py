@@ -4,9 +4,8 @@
 提供 Minecraft 插件與 Discord Bot 之間的經濟數據同步接口
 """
 
-import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -79,7 +78,9 @@ class EconomyStatsResponse(BaseModel):
 # ========== 認證函數 ==========
 
 
-async def verify_server_key(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
+async def verify_server_key(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> str:
     """驗證 Minecraft 伺服器金鑰"""
     try:
         # 這裡應該實現真正的金鑰驗證邏輯
@@ -177,7 +178,10 @@ async def sync_economy_data(
 
         # 背景任務：觸發反向同步和統計更新
         background_tasks.add_task(
-            _update_sync_statistics, request.guild_id, request.sync_type, len(adjustments)
+            _update_sync_statistics,
+            request.guild_id,
+            request.sync_type,
+            len(adjustments),
         )
 
         logger.info(f"✅ 同步完成：用戶 {request.user_id} 調整了 {len(adjustments)} 項餘額")
@@ -217,7 +221,9 @@ async def handle_minecraft_webhook(
         if success:
             # 背景任務：觸發跨平台同步
             background_tasks.add_task(
-                economy_manager.trigger_cross_platform_sync, request.user_id, request.guild_id
+                economy_manager.trigger_cross_platform_sync,
+                request.user_id,
+                request.guild_id,
             )
 
             return {
@@ -391,7 +397,7 @@ async def health_check():
     """健康檢查端點"""
     try:
         # 檢查經濟管理器狀態
-        test_settings = await economy_manager.get_economy_settings(0)
+        await economy_manager.get_economy_settings(0)
 
         # 檢查活躍同步任務
         active_syncs = len(economy_manager._sync_tasks)

@@ -226,7 +226,11 @@ class LanguageDAO:
 
                     row = await cursor.fetchone()
                     if row:
-                        return {"language_code": row[0], "created_at": row[1], "updated_at": row[2]}
+                        return {
+                            "language_code": row[0],
+                            "created_at": row[1],
+                            "updated_at": row[2],
+                        }
 
                     return None
 
@@ -259,7 +263,11 @@ class LanguageDAO:
     # ========== 語言使用統計 ==========
 
     async def update_language_usage(
-        self, guild_id: int, language_code: str, user_count: int = 1, message_count: int = 1
+        self,
+        guild_id: int,
+        language_code: str,
+        user_count: int = 1,
+        message_count: int = 1,
     ) -> bool:
         """更新語言使用統計"""
         await self._ensure_initialized()
@@ -358,7 +366,14 @@ class LanguageDAO:
                             confidence_score, detection_method
                         ) VALUES (%s, %s, %s, %s, %s, %s)
                     """,
-                        (guild_id, user_id, text[:500], detected_language, confidence, method),
+                        (
+                            guild_id,
+                            user_id,
+                            text[:500],
+                            detected_language,
+                            confidence,
+                            method,
+                        ),
                     )
 
                     log_id = cursor.lastrowid
@@ -403,7 +418,10 @@ class LanguageDAO:
 
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    conditions = ["created_at >= %s", "feedback_provided_at IS NOT NULL"]
+                    conditions = [
+                        "created_at >= %s",
+                        "feedback_provided_at IS NOT NULL",
+                    ]
                     params = [cutoff_date]
 
                     if guild_id:

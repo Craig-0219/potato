@@ -4,10 +4,9 @@
 包含歡迎系統設定、管理、測試等指令
 """
 
-from typing import List, Optional
+from typing import Optional
 
 import discord
-from discord import app_commands
 from discord.ext import commands
 
 from bot.db.welcome_dao import WelcomeDAO
@@ -160,7 +159,9 @@ class WelcomeCore(commands.Cog):
 
             if success:
                 embed = discord.Embed(
-                    title="✅ 歡迎訊息已更新", description="新的歡迎訊息已儲存", color=0x00FF00
+                    title="✅ 歡迎訊息已更新",
+                    description="新的歡迎訊息已儲存",
+                    color=0x00FF00,
                 )
 
                 embed.add_field(
@@ -358,7 +359,9 @@ class WelcomeCore(commands.Cog):
             embed = discord.Embed(title="🧪 歡迎訊息測試", color=0xFFA500)
 
             embed.add_field(
-                name="🎯 測試用戶", value=f"{test_member.mention} (`{test_member}`)", inline=False
+                name="🎯 測試用戶",
+                value=f"{test_member.mention} (`{test_member}`)",
+                inline=False,
             )
 
             embed.add_field(
@@ -396,11 +399,14 @@ class WelcomeCore(commands.Cog):
 
             # 創建結果報告
             embed = discord.Embed(
-                title="🧪 歡迎事件模擬結果", color=0x00FF00 if result["success"] else 0xFF0000
+                title="🧪 歡迎事件模擬結果",
+                color=0x00FF00 if result["success"] else 0xFF0000,
             )
 
             embed.add_field(
-                name="📋 處理狀態", value="✅ 成功" if result["success"] else "❌ 失敗", inline=True
+                name="📋 處理狀態",
+                value="✅ 成功" if result["success"] else "❌ 失敗",
+                inline=True,
             )
 
             embed.add_field(
@@ -620,7 +626,11 @@ class WelcomeCore(commands.Cog):
                 listener_status.append("✅ WelcomeListener 已載入")
 
                 # 檢查事件監聽器數量
-                member_events = ["on_member_join", "on_member_remove", "on_member_update"]
+                member_events = [
+                    "on_member_join",
+                    "on_member_remove",
+                    "on_member_update",
+                ]
                 for event_name in member_events:
                     listeners = ctx.bot.extra_events.get(event_name, [])
                     if listeners:
@@ -761,7 +771,9 @@ class WelcomeCore(commands.Cog):
             # 錯誤統計
             if stats.get("errors", 0) > 0:
                 embed.add_field(
-                    name="⚠️ 錯誤統計", value=f"錯誤次數: {stats.get('errors', 0)}", inline=True
+                    name="⚠️ 錯誤統計",
+                    value=f"錯誤次數: {stats.get('errors', 0)}",
+                    inline=True,
                 )
 
             embed.set_footer(text=f"總事件數: {stats.get('total_events', 0)}")

@@ -7,7 +7,7 @@
 from typing import Any, Dict, List, Optional
 
 import discord
-from discord.ui import Button, Select, View, button, select
+from discord.ui import Button, Select, View, button
 
 from bot.utils.ticket_constants import TicketConstants
 from shared.logger import logger
@@ -37,7 +37,9 @@ class TicketTypeSelect(Select):
         options = (
             [
                 discord.SelectOption(
-                    label=tp["name"], value=tp["name"], description=tp.get("description", "")
+                    label=tp["name"],
+                    value=tp["name"],
+                    description=tp.get("description", ""),
                 )
                 for tp in ticket_types
             ]
@@ -74,11 +76,15 @@ class TicketTypeSelect(Select):
             )
 
             embed.add_field(
-                name="🟡 中優先級", value="一般問題、功能諮詢\n預期 1-2 小時內回應", inline=False
+                name="🟡 中優先級",
+                value="一般問題、功能諮詢\n預期 1-2 小時內回應",
+                inline=False,
             )
 
             embed.add_field(
-                name="🟢 低優先級", value="建議回饋、非緊急問題\n預期 4-8 小時內回應", inline=False
+                name="🟢 低優先級",
+                value="建議回饋、非緊急問題\n預期 4-8 小時內回應",
+                inline=False,
             )
 
             view = PrioritySelectView(ticket_type, interaction.user.id)
@@ -186,7 +192,11 @@ class PrioritySelect(Select):
 
             if success:
                 # 根據優先級顯示不同顏色的成功訊息
-                priority_colors = {"high": 0xFF0000, "medium": 0xFFAA00, "low": 0x00FF00}
+                priority_colors = {
+                    "high": 0xFF0000,
+                    "medium": 0xFFAA00,
+                    "low": 0x00FF00,
+                }
 
                 embed = discord.Embed(
                     title="✅ 票券建立成功！",
@@ -290,9 +300,21 @@ class PriorityStatusButton(Button):
 
     def __init__(self, priority: str):
         priority_config = {
-            "high": {"emoji": "🔴", "label": "高優先級", "style": discord.ButtonStyle.danger},
-            "medium": {"emoji": "🟡", "label": "中優先級", "style": discord.ButtonStyle.secondary},
-            "low": {"emoji": "🟢", "label": "低優先級", "style": discord.ButtonStyle.success},
+            "high": {
+                "emoji": "🔴",
+                "label": "高優先級",
+                "style": discord.ButtonStyle.danger,
+            },
+            "medium": {
+                "emoji": "🟡",
+                "label": "中優先級",
+                "style": discord.ButtonStyle.secondary,
+            },
+            "low": {
+                "emoji": "🟢",
+                "label": "低優先級",
+                "style": discord.ButtonStyle.success,
+            },
         }
 
         config = priority_config.get(priority, priority_config["medium"])
@@ -459,15 +481,30 @@ class RatingView(View):
         super().__init__(timeout=timeout)
         self.ticket_id = ticket_id
 
-    @button(label="1 星", style=discord.ButtonStyle.secondary, emoji="1️⃣", custom_id="rating_1")
+    @button(
+        label="1 星",
+        style=discord.ButtonStyle.secondary,
+        emoji="1️⃣",
+        custom_id="rating_1",
+    )
     async def rate_1(self, interaction: discord.Interaction, button: Button):
         await self.send_rating(interaction, 1)
 
-    @button(label="2 星", style=discord.ButtonStyle.secondary, emoji="2️⃣", custom_id="rating_2")
+    @button(
+        label="2 星",
+        style=discord.ButtonStyle.secondary,
+        emoji="2️⃣",
+        custom_id="rating_2",
+    )
     async def rate_2(self, interaction: discord.Interaction, button: Button):
         await self.send_rating(interaction, 2)
 
-    @button(label="3 星", style=discord.ButtonStyle.secondary, emoji="3️⃣", custom_id="rating_3")
+    @button(
+        label="3 星",
+        style=discord.ButtonStyle.secondary,
+        emoji="3️⃣",
+        custom_id="rating_3",
+    )
     async def rate_3(self, interaction: discord.Interaction, button: Button):
         await self.send_rating(interaction, 3)
 

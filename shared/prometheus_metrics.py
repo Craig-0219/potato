@@ -136,7 +136,11 @@ class PrometheusMetricsManager:
         self.http_port = int(os.getenv("PROMETHEUS_PORT", 8090))
 
         # 性能統計
-        self.stats = {"metrics_collected": 0, "collections_per_second": 0, "last_collection": None}
+        self.stats = {
+            "metrics_collected": 0,
+            "collections_per_second": 0,
+            "last_collection": None,
+        }
 
         logger.info(f"📊 Prometheus 監控管理器初始化 - 可用: {PROMETHEUS_AVAILABLE}")
 
@@ -190,11 +194,15 @@ class PrometheusMetricsManager:
             )
 
             self.register_gauge(
-                "potato_bot_active_tickets", "Number of active tickets", ["guild", "status"]
+                "potato_bot_active_tickets",
+                "Number of active tickets",
+                ["guild", "status"],
             )
 
             self.register_counter(
-                "potato_bot_tickets_total", "Total number of tickets created", ["guild", "category"]
+                "potato_bot_tickets_total",
+                "Total number of tickets created",
+                ["guild", "category"],
             )
 
             # 快取指標
@@ -232,7 +240,8 @@ class PrometheusMetricsManager:
             self.register_gauge("potato_bot_db_connections_active", "Active database connections")
 
             self.register_gauge(
-                "potato_bot_db_slow_queries", "Number of slow queries in the last period"
+                "potato_bot_db_slow_queries",
+                "Number of slow queries in the last period",
             )
 
             # Discord Bot 指標
@@ -243,7 +252,9 @@ class PrometheusMetricsManager:
             self.register_gauge("potato_bot_latency_seconds", "Bot latency in seconds")
 
             self.register_counter(
-                "potato_bot_events_total", "Total Discord events received", ["event_type"]
+                "potato_bot_events_total",
+                "Total Discord events received",
+                ["event_type"],
             )
 
             # 系統資源指標
@@ -260,7 +271,9 @@ class PrometheusMetricsManager:
             )
 
             self.register_gauge(
-                "potato_bot_sla_violations", "Number of SLA violations", ["guild", "sla_type"]
+                "potato_bot_sla_violations",
+                "Number of SLA violations",
+                ["guild", "sla_type"],
             )
 
             logger.info("✅ 預設指標創建完成")
@@ -299,7 +312,11 @@ class PrometheusMetricsManager:
             return Gauge()
 
     def register_histogram(
-        self, name: str, help: str, labels: List[str] = None, buckets: List[float] = None
+        self,
+        name: str,
+        help: str,
+        labels: List[str] = None,
+        buckets: List[float] = None,
     ) -> Histogram:
         """註冊直方圖指標"""
         if not PROMETHEUS_AVAILABLE:
@@ -443,10 +460,14 @@ class PrometheusMetricsManager:
             process = psutil.Process()
             process_memory = process.memory_info()
             self.set_gauge(
-                "potato_bot_memory_usage_bytes", process_memory.rss, {"type": "process_rss"}
+                "potato_bot_memory_usage_bytes",
+                process_memory.rss,
+                {"type": "process_rss"},
             )
             self.set_gauge(
-                "potato_bot_memory_usage_bytes", process_memory.vms, {"type": "process_vms"}
+                "potato_bot_memory_usage_bytes",
+                process_memory.vms,
+                {"type": "process_vms"},
             )
 
         except ImportError:
@@ -523,7 +544,8 @@ class PrometheusMetricsManager:
 
             # InnoDB 緩衝池命中率
             self.set_gauge(
-                "potato_bot_db_innodb_buffer_pool_hit_rate", metrics.innodb_buffer_pool_hit_rate
+                "potato_bot_db_innodb_buffer_pool_hit_rate",
+                metrics.innodb_buffer_pool_hit_rate,
             )
 
         except Exception as e:

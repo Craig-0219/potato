@@ -7,17 +7,14 @@ Version: 3.2.0 - Phase 7 Stage 2
 Date: 2025-08-20
 """
 
-import asyncio
 import logging
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
 # 匯入選單系統
-from bot.ui.menu_system import AdminMenuView, MainMenuView, MenuStyle, MenuSystemManager, MenuType
+from bot.ui.menu_system import MenuSystemManager
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +71,8 @@ class MenuCore(commands.Cog):
             )
 
     @app_commands.command(
-        name="admin_gui", description="👑 管理員控制面板 - 伺服器管理專用GUI (需要管理員權限)"
+        name="admin_gui",
+        description="👑 管理員控制面板 - 伺服器管理專用GUI (需要管理員權限)",
     )
     async def admin_menu(self, interaction: discord.Interaction):
         """
@@ -200,7 +198,9 @@ class MenuCore(commands.Cog):
         """
         try:
             embed = discord.Embed(
-                title="📊 GUI 系統使用統計", description="**選單系統使用情況概覽**", color=0x27AE60
+                title="📊 GUI 系統使用統計",
+                description="**選單系統使用情況概覽**",
+                color=0x27AE60,
             )
 
             embed.add_field(
@@ -268,7 +268,9 @@ class QuickMenuView(discord.ui.View):
     async def quick_status(self, interaction: discord.Interaction, button: discord.ui.Button):
         """快速查看系統狀態"""
         embed = discord.Embed(
-            title="📊 系統狀態", description="**Potato Bot 即時狀態** (2025-08-20)", color=0x27AE60
+            title="📊 系統狀態",
+            description="**Potato Bot 即時狀態** (2025-08-20)",
+            color=0x27AE60,
         )
 
         embed.add_field(name="🤖 Bot 狀態", value="✅ 在線運行", inline=True)

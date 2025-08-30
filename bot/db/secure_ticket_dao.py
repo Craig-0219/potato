@@ -2,10 +2,9 @@
 # 🔐 安全的票券資料存取層
 # Secure Ticket Data Access Object
 
-import json
 import logging
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timezone
+from typing import Any, Dict, Optional
 
 import aiomysql
 
@@ -205,7 +204,11 @@ class SecureTicketDAO:
 
                     # 記錄建立日誌
                     await self.add_ticket_log(
-                        ticket_id, guild_id, "created", f"票券由用戶 {user_id} 建立", user_id
+                        ticket_id,
+                        guild_id,
+                        "created",
+                        f"票券由用戶 {user_id} 建立",
+                        user_id,
                     )
 
                     # 記錄存取日誌

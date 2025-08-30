@@ -4,15 +4,14 @@
 管理用戶的遊戲成就、徽章和里程碑
 """
 
-import asyncio
 import json
-from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 from bot.db.pool import db_pool
-from shared.cache_manager import cache_manager, cached
+from shared.cache_manager import cache_manager
 from shared.logger import logger
 
 
@@ -272,7 +271,11 @@ class AchievementManager:
 
         try:
             # 檢查簽到相關成就
-            daily_achievements = [("first_checkin", 1), ("week_warrior", 7), ("month_master", 30)]
+            daily_achievements = [
+                ("first_checkin", 1),
+                ("week_warrior", 7),
+                ("month_master", 30),
+            ]
 
             for achievement_id, required_streak in daily_achievements:
                 if streak_days >= required_streak:
@@ -557,7 +560,9 @@ class AchievementManager:
                                     "rarity": achievement_def.rarity.value,
                                     "type": achievement_def.type.value,
                                     "unlocked_at": unlocked_at,
-                                    "progress": json.loads(progress_json) if progress_json else {},
+                                    "progress": (
+                                        json.loads(progress_json) if progress_json else {}
+                                    ),
                                 }
                             )
 

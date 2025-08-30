@@ -7,14 +7,12 @@ Discord Bot 音樂系統 v2.3.0
 import asyncio
 import logging
 import re
-import urllib.parse
-from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 import discord
 import yt_dlp
-from discord import FFmpegOpusAudio, FFmpegPCMAudio, app_commands
+from discord import FFmpegPCMAudio, app_commands
 from discord.ext import commands
 
 from bot.utils.embed_builder import EmbedBuilder
@@ -361,7 +359,9 @@ class MusicPlayer:
 
         if self.queue:
             embed.add_field(
-                name="播放列表", value=f"📝 還有 {len(self.queue)} 首歌曲等待播放", inline=True
+                name="播放列表",
+                value=f"📝 還有 {len(self.queue)} 首歌曲等待播放",
+                inline=True,
             )
 
         embed.add_field(name="播放模式", value=f"🔁 {self.loop_mode.value}", inline=True)
@@ -516,7 +516,8 @@ class MusicCore(commands.Cog):
                 embed = EmbedBuilder.create_info_embed("🎛️ 音樂控制面板", "使用下方按鈕控制音樂播放")
             else:
                 embed = EmbedBuilder.create_warning_embed(
-                    "🎛️ 音樂控制面板", "Bot 目前未連接語音頻道，請先使用 `/play` 播放音樂"
+                    "🎛️ 音樂控制面板",
+                    "Bot 目前未連接語音頻道，請先使用 `/play` 播放音樂",
                 )
 
             if player.current:

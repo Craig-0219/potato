@@ -7,8 +7,7 @@
 import json
 import os
 import re
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 from shared.logger import logger
 
@@ -142,8 +141,30 @@ class LanguageManager:
         chinese_chars = len(re.findall(r"[\u4e00-\u9fff]", text))
         if chinese_chars > 0:
             # 繁簡體偵測
-            traditional_indicators = ["請", "時", "會", "說", "門", "車", "電", "話", "問", "題"]
-            simplified_indicators = ["请", "时", "会", "说", "门", "车", "电", "话", "问", "题"]
+            traditional_indicators = [
+                "請",
+                "時",
+                "會",
+                "說",
+                "門",
+                "車",
+                "電",
+                "話",
+                "問",
+                "題",
+            ]
+            simplified_indicators = [
+                "请",
+                "时",
+                "会",
+                "说",
+                "门",
+                "车",
+                "电",
+                "话",
+                "问",
+                "题",
+            ]
 
             traditional_score = sum(1 for char in traditional_indicators if char in text)
             simplified_score = sum(1 for char in simplified_indicators if char in text)
@@ -167,7 +188,18 @@ class LanguageManager:
             return "ko"
 
         # 英文偵測（基於常見英文詞彙）
-        english_words = ["the", "and", "you", "that", "was", "for", "are", "with", "his", "they"]
+        english_words = [
+            "the",
+            "and",
+            "you",
+            "that",
+            "was",
+            "for",
+            "are",
+            "with",
+            "his",
+            "they",
+        ]
         english_score = sum(1 for word in english_words if f" {word} " in f" {text} ")
         if english_score >= 2:
             return "en"

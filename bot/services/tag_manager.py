@@ -5,7 +5,6 @@
 """
 
 import re
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
 import discord
@@ -92,7 +91,11 @@ class TagManager:
         try:
             # 驗證標籤名稱
             if not self._validate_tag_name(name):
-                return False, "標籤名稱只能包含字母、數字、底線和連字符，長度 2-50 字元", None
+                return (
+                    False,
+                    "標籤名稱只能包含字母、數字、底線和連字符，長度 2-50 字元",
+                    None,
+                )
 
             # 驗證顏色格式
             if color and not self._validate_color(color):
@@ -112,7 +115,14 @@ class TagManager:
 
             # 創建標籤
             tag_id = await self.tag_dao.create_tag(
-                guild_id, name, display_name, color, emoji, description, category, created_by
+                guild_id,
+                name,
+                display_name,
+                color,
+                emoji,
+                description,
+                category,
+                created_by,
             )
 
             if tag_id:
@@ -272,7 +282,11 @@ class TagManager:
             # 驗證觸發類型
             valid_trigger_types = ["keyword", "ticket_type", "user_role", "channel"]
             if trigger_type not in valid_trigger_types:
-                return False, f"無效的觸發類型，支援：{', '.join(valid_trigger_types)}", None
+                return (
+                    False,
+                    f"無效的觸發類型，支援：{', '.join(valid_trigger_types)}",
+                    None,
+                )
 
             # 檢查標籤是否存在
             tag = await self.tag_dao.get_tag_by_id(tag_id)
@@ -280,7 +294,13 @@ class TagManager:
                 return False, "指定的標籤不存在", None
 
             rule_id = await self.tag_dao.create_auto_rule(
-                guild_id, rule_name, tag_id, trigger_type, trigger_value, created_by, priority
+                guild_id,
+                rule_name,
+                tag_id,
+                trigger_type,
+                trigger_value,
+                created_by,
+                priority,
             )
 
             if rule_id:

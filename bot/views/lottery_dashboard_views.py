@@ -4,9 +4,8 @@
 提供詳細的抽獎系統統計和分析功能
 """
 
-import asyncio
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import discord
 from discord import ui
@@ -29,16 +28,28 @@ class LotteryStatsDashboardView(ui.View):
         placeholder="選擇統計時間範圍...",
         options=[
             discord.SelectOption(
-                label="最近 7 天", description="查看近一週的抽獎統計", emoji="📅", value="7"
+                label="最近 7 天",
+                description="查看近一週的抽獎統計",
+                emoji="📅",
+                value="7",
             ),
             discord.SelectOption(
-                label="最近 30 天", description="查看近一個月的抽獎統計", emoji="📊", value="30"
+                label="最近 30 天",
+                description="查看近一個月的抽獎統計",
+                emoji="📊",
+                value="30",
             ),
             discord.SelectOption(
-                label="最近 90 天", description="查看近三個月的抽獎統計", emoji="📈", value="90"
+                label="最近 90 天",
+                description="查看近三個月的抽獎統計",
+                emoji="📈",
+                value="90",
             ),
             discord.SelectOption(
-                label="最近 365 天", description="查看近一年的抽獎統計", emoji="📋", value="365"
+                label="最近 365 天",
+                description="查看近一年的抽獎統計",
+                emoji="📋",
+                value="365",
             ),
         ],
     )
@@ -361,7 +372,9 @@ class UserLotteryHistoryView(ui.View):
 
             # 獲取用戶抽獎歷史
             history = await self.lottery_manager.dao.get_user_lottery_history(
-                self.guild_id, self.user_id, limit=self.page_size * (self.current_page + 1)
+                self.guild_id,
+                self.user_id,
+                limit=self.page_size * (self.current_page + 1),
             )
 
             # 分頁處理

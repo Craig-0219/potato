@@ -4,11 +4,10 @@
 處理資料歸檔、清理和格式化功能
 """
 
-import asyncio
 import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
 import aiomysql
 
@@ -91,7 +90,7 @@ class ArchiveDAO(BaseDAO):
                         }
 
                         messages_data = {
-                            "messages": ticket["messages"] if ticket["messages"] else "",
+                            "messages": (ticket["messages"] if ticket["messages"] else ""),
                             "message_count": ticket["message_count"],
                         }
 
@@ -191,7 +190,9 @@ class ArchiveDAO(BaseDAO):
                             "created_at": (
                                 vote["created_at"].isoformat() if vote["created_at"] else None
                             ),
-                            "end_time": vote["end_time"].isoformat() if vote["end_time"] else None,
+                            "end_time": (
+                                vote["end_time"].isoformat() if vote["end_time"] else None
+                            ),
                             "status": vote["status"],
                             "total_voters": vote["total_voters"],
                         }
@@ -204,7 +205,7 @@ class ArchiveDAO(BaseDAO):
                                 "user_id": str(r["user_id"]),
                                 "username": r["username"],
                                 "selected_option": r["selected_option"],
-                                "voted_at": r["voted_at"].isoformat() if r["voted_at"] else None,
+                                "voted_at": (r["voted_at"].isoformat() if r["voted_at"] else None),
                             }
                             for r in responses
                         ]
@@ -351,7 +352,11 @@ class ArchiveDAO(BaseDAO):
             return {"error": str(e)}
 
     async def cleanup_old_data(
-        self, guild_id: int, data_type: str, days_old: int = 90, delete_after_archive: bool = True
+        self,
+        guild_id: int,
+        data_type: str,
+        days_old: int = 90,
+        delete_after_archive: bool = True,
     ) -> Dict[str, int]:
         """清理舊資料"""
         try:

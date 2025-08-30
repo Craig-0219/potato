@@ -4,9 +4,8 @@
 提供模板選擇、自定義、應用等UI功能
 """
 
-import asyncio
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import discord
 from discord import ui
@@ -79,7 +78,10 @@ class TemplateCategorySelect(ui.Select):
     def __init__(self):
         options = [
             discord.SelectOption(
-                label="📊 民意調查", description="快速收集意見的投票模板", value="poll", emoji="📊"
+                label="📊 民意調查",
+                description="快速收集意見的投票模板",
+                value="poll",
+                emoji="📊",
             ),
             discord.SelectOption(
                 label="🗓️ 活動安排",
@@ -88,21 +90,35 @@ class TemplateCategorySelect(ui.Select):
                 emoji="🗓️",
             ),
             discord.SelectOption(
-                label="🍕 聚餐選擇", description="地點、菜單選擇模板", value="food", emoji="🍕"
+                label="🍕 聚餐選擇",
+                description="地點、菜單選擇模板",
+                value="food",
+                emoji="🍕",
             ),
             discord.SelectOption(
-                label="⭐ 評分投票", description="滿意度和評分調查模板", value="rating", emoji="⭐"
+                label="⭐ 評分投票",
+                description="滿意度和評分調查模板",
+                value="rating",
+                emoji="⭐",
             ),
             discord.SelectOption(
-                label="🎮 遊戲選擇", description="遊戲和娛樂相關模板", value="game", emoji="🎮"
+                label="🎮 遊戲選擇",
+                description="遊戲和娛樂相關模板",
+                value="game",
+                emoji="🎮",
             ),
             discord.SelectOption(
-                label="🛠️ 自定義", description="用戶創建的自定義模板", value="custom", emoji="🛠️"
+                label="🛠️ 自定義",
+                description="用戶創建的自定義模板",
+                value="custom",
+                emoji="🛠️",
             ),
         ]
 
         super().__init__(
-            placeholder="選擇模板類別...", options=options, custom_id="template_category_select"
+            placeholder="選擇模板類別...",
+            options=options,
+            custom_id="template_category_select",
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -153,7 +169,8 @@ class FavoriteTemplatesButton(ui.Button):
 
             if not favorites:
                 await interaction.response.send_message(
-                    "📭 你還沒有收藏任何模板\n💡 在模板詳情中點擊 ⭐ 可以收藏模板", ephemeral=True
+                    "📭 你還沒有收藏任何模板\n💡 在模板詳情中點擊 ⭐ 可以收藏模板",
+                    ephemeral=True,
                 )
                 return
 
@@ -262,7 +279,9 @@ class TemplateSelectMenu(ui.Select):
             )
 
         super().__init__(
-            placeholder="選擇要使用的模板...", options=options, custom_id="template_select_menu"
+            placeholder="選擇要使用的模板...",
+            options=options,
+            custom_id="template_select_menu",
         )
 
     def _get_category_emoji(self, category: str) -> str:
@@ -364,7 +383,8 @@ class TemplateDetailView(ui.View):
                 return None
 
             embed = EmbedBuilder.create_info_embed(
-                f"📋 模板詳情：{template['name']}", template.get("description", "無描述")
+                f"📋 模板詳情：{template['name']}",
+                template.get("description", "無描述"),
             )
 
             # 模板資訊
@@ -383,7 +403,9 @@ class TemplateDetailView(ui.View):
 
             # 標題模板
             embed.add_field(
-                name="📝 標題模板", value=f"```{template['title_template']}```", inline=False
+                name="📝 標題模板",
+                value=f"```{template['title_template']}```",
+                inline=False,
             )
 
             # 選項模板
@@ -607,7 +629,10 @@ class CreateCustomTemplateModal(ui.Modal):
         super().__init__(title="🛠️ 創建自定義模板", timeout=300)
 
         self.name = ui.TextInput(
-            label="模板名稱", placeholder="例如：每週例會時間投票", max_length=100, required=True
+            label="模板名稱",
+            placeholder="例如：每週例會時間投票",
+            max_length=100,
+            required=True,
         )
         self.add_item(self.name)
 

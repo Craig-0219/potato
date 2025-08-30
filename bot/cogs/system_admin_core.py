@@ -4,9 +4,7 @@
 提供基本的系統管理功能
 """
 
-import asyncio
-from datetime import datetime, timedelta
-from typing import Optional
+from datetime import datetime
 
 import discord
 from discord import app_commands
@@ -29,7 +27,9 @@ class SystemAdmin(commands.Cog):
             from bot.views.system_admin_views import SystemAdminPanel
 
             embed = discord.Embed(
-                title="🔧 系統管理面板", description="選擇要執行的管理操作", color=0x3498DB
+                title="🔧 系統管理面板",
+                description="選擇要執行的管理操作",
+                color=0x3498DB,
             )
 
             embed.add_field(
@@ -92,7 +92,8 @@ class SystemAdmin(commands.Cog):
 
     @app_commands.command(name="backup", description="執行系統資料備份")
     @app_commands.describe(
-        backup_type="備份類型 (all/tickets/votes/statistics)", format_type="檔案格式 (json/csv/sql)"
+        backup_type="備份類型 (all/tickets/votes/statistics)",
+        format_type="檔案格式 (json/csv/sql)",
     )
     @app_commands.choices(
         backup_type=[
@@ -109,7 +110,10 @@ class SystemAdmin(commands.Cog):
     )
     @app_commands.default_permissions(administrator=True)
     async def backup(
-        self, interaction: discord.Interaction, backup_type: str = "all", format_type: str = "json"
+        self,
+        interaction: discord.Interaction,
+        backup_type: str = "all",
+        format_type: str = "json",
     ):
         """執行系統資料備份"""
         try:
@@ -118,12 +122,17 @@ class SystemAdmin(commands.Cog):
             # 導入必要的模組
             from datetime import datetime
 
-            from bot.services.data_export_manager import DataExportManager, ExportRequest
+            from bot.services.data_export_manager import (
+                DataExportManager,
+                ExportRequest,
+            )
 
             export_manager = DataExportManager()
 
             embed = discord.Embed(
-                title="💾 系統資料備份", description="正在執行資料備份...", color=0xF39C12
+                title="💾 系統資料備份",
+                description="正在執行資料備份...",
+                color=0xF39C12,
             )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
@@ -197,7 +206,9 @@ class SystemAdmin(commands.Cog):
 
             else:
                 embed = discord.Embed(
-                    title="❌ 備份失敗", description="所有備份操作都失敗了", color=0xE74C3C
+                    title="❌ 備份失敗",
+                    description="所有備份操作都失敗了",
+                    color=0xE74C3C,
                 )
 
                 error_details = []
@@ -214,7 +225,9 @@ class SystemAdmin(commands.Cog):
         except Exception as e:
             logger.error(f"備份指令錯誤: {e}")
             error_embed = discord.Embed(
-                title="❌ 備份失敗", description=f"執行備份時發生錯誤: {str(e)}", color=0xE74C3C
+                title="❌ 備份失敗",
+                description=f"執行備份時發生錯誤: {str(e)}",
+                color=0xE74C3C,
             )
             try:
                 await interaction.edit_original_response(embed=error_embed)
@@ -241,7 +254,9 @@ class SystemAdmin(commands.Cog):
             from bot.services.data_cleanup_manager import DataCleanupManager
 
             embed = discord.Embed(
-                title="🗄️ 資料庫管理", description=f"正在執行操作: {action}...", color=0x3498DB
+                title="🗄️ 資料庫管理",
+                description=f"正在執行操作: {action}...",
+                color=0x3498DB,
             )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
@@ -252,7 +267,7 @@ class SystemAdmin(commands.Cog):
 
                 embed = discord.Embed(
                     title="💊 資料庫健康檢查",
-                    color=0x2ECC71 if db_health.get("status") == "healthy" else 0xE74C3C,
+                    color=(0x2ECC71 if db_health.get("status") == "healthy" else 0xE74C3C),
                 )
 
                 embed.add_field(
@@ -275,7 +290,12 @@ class SystemAdmin(commands.Cog):
                         async with conn.cursor(aiomysql.DictCursor) as cursor:
                             # 獲取表格統計
                             tables_info = {}
-                            main_tables = ["tickets", "votes", "ticket_logs", "vote_responses"]
+                            main_tables = [
+                                "tickets",
+                                "votes",
+                                "ticket_logs",
+                                "vote_responses",
+                            ]
 
                             for table in main_tables:
                                 try:
@@ -292,12 +312,16 @@ class SystemAdmin(commands.Cog):
                                 table_stats.append(f"📊 **{table.title()}**: {count} 筆")
 
                             embed.add_field(
-                                name="📈 資料統計", value="\n".join(table_stats), inline=True
+                                name="📈 資料統計",
+                                value="\n".join(table_stats),
+                                inline=True,
                             )
 
                 except Exception as e:
                     embed.add_field(
-                        name="⚠️ 統計警告", value=f"無法獲取詳細統計: {str(e)}", inline=False
+                        name="⚠️ 統計警告",
+                        value=f"無法獲取詳細統計: {str(e)}",
+                        inline=False,
                     )
 
             elif action == "cleanup":
@@ -319,7 +343,7 @@ class SystemAdmin(commands.Cog):
 
                 embed.add_field(
                     name="🗑️ 清理詳情",
-                    value="\n".join(cleanup_details) if cleanup_details else "沒有需要清理的資料",
+                    value=("\n".join(cleanup_details) if cleanup_details else "沒有需要清理的資料"),
                     inline=False,
                 )
 
@@ -343,7 +367,12 @@ class SystemAdmin(commands.Cog):
                     async with db.db.connection() as conn:
                         async with conn.cursor(aiomysql.DictCursor) as cursor:
                             # 主要表格
-                            main_tables = ["tickets", "votes", "ticket_logs", "vote_responses"]
+                            main_tables = [
+                                "tickets",
+                                "votes",
+                                "ticket_logs",
+                                "vote_responses",
+                            ]
                             reindex_results = {}
 
                             for table in main_tables:
@@ -366,7 +395,9 @@ class SystemAdmin(commands.Cog):
                                     reindex_details.append(f"❌ **{table.title()}**: {result}")
 
                             embed.add_field(
-                                name="🔨 重建詳情", value="\n".join(reindex_details), inline=False
+                                name="🔨 重建詳情",
+                                value="\n".join(reindex_details),
+                                inline=False,
                             )
 
                             embed.add_field(

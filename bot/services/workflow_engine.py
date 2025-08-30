@@ -5,12 +5,11 @@
 """
 
 import asyncio
-import json
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
 from shared.logger import logger
 
@@ -326,7 +325,10 @@ class WorkflowEngine:
         """指派票券動作"""
         # 這裡需要整合票券系統的指派功能
         logger.info(f"🎫 指派票券: {action.parameters}")
-        return {"status": "assigned", "ticket_id": execution.trigger_data.get("ticket_id")}
+        return {
+            "status": "assigned",
+            "ticket_id": execution.trigger_data.get("ticket_id"),
+        }
 
     async def _action_add_tag(self, action: WorkflowAction, execution: WorkflowExecution):
         """添加標籤動作"""
@@ -336,7 +338,10 @@ class WorkflowEngine:
     async def _action_change_priority(self, action: WorkflowAction, execution: WorkflowExecution):
         """變更優先級動作"""
         logger.info(f"⚡ 變更優先級: {action.parameters.get('priority')}")
-        return {"status": "priority_changed", "priority": action.parameters.get("priority")}
+        return {
+            "status": "priority_changed",
+            "priority": action.parameters.get("priority"),
+        }
 
     async def _action_notify_user(self, action: WorkflowAction, execution: WorkflowExecution):
         """通知用戶動作"""
@@ -359,7 +364,10 @@ class WorkflowEngine:
     async def _action_close_ticket(self, action: WorkflowAction, execution: WorkflowExecution):
         """關閉票券動作"""
         logger.info(f"🔒 關閉票券: {execution.trigger_data.get('ticket_id')}")
-        return {"status": "closed", "ticket_id": execution.trigger_data.get("ticket_id")}
+        return {
+            "status": "closed",
+            "ticket_id": execution.trigger_data.get("ticket_id"),
+        }
 
     # ========== 條件檢查 ==========
 

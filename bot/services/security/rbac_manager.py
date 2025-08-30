@@ -5,9 +5,9 @@
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set
 
 from bot.db.pool import db_pool
 
@@ -290,7 +290,14 @@ class RBACManager:
                         INSERT INTO rbac_roles (name, description, level, is_system, is_active, created_at)
                         VALUES (%s, %s, %s, %s, %s, %s)
                     """,
-                        (name, description, level.value, is_system, True, datetime.now()),
+                        (
+                            name,
+                            description,
+                            level.value,
+                            is_system,
+                            True,
+                            datetime.now(),
+                        ),
                     )
 
                     role_id = cursor.lastrowid
@@ -372,7 +379,15 @@ class RBACManager:
                         (user_id, guild_id, role_id, assigned_by, assigned_at, expires_at, is_active)
                         VALUES (%s, %s, %s, %s, %s, %s, %s)
                     """,
-                        (user_id, guild_id, role_id, assigned_by, datetime.now(), expires_at, True),
+                        (
+                            user_id,
+                            guild_id,
+                            role_id,
+                            assigned_by,
+                            datetime.now(),
+                            expires_at,
+                            True,
+                        ),
                     )
 
                     await conn.commit()
@@ -441,7 +456,10 @@ class RBACManager:
 
             # 記錄操作日誌
             await self._log_rbac_event(
-                user_id, guild_id, "role_revoked", {"role_id": role_id, "revoked_by": revoked_by}
+                user_id,
+                guild_id,
+                "role_revoked",
+                {"role_id": role_id, "revoked_by": revoked_by},
             )
 
             logger.info(f"✅ 角色撤銷成功: user_id={user_id}, role_id={role_id}")
@@ -712,7 +730,8 @@ class RBACManager:
 
                 if not await self.check_permission(user_id, guild_id, permission):
                     await interaction.response.send_message(
-                        f"❌ 您沒有執行此操作的權限 ({permission.value})", ephemeral=True
+                        f"❌ 您沒有執行此操作的權限 ({permission.value})",
+                        ephemeral=True,
                     )
                     return
 

@@ -2,15 +2,14 @@
 # 🔐 安全管理互動視圖
 # Security Management Interactive Views
 
-import json
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any, Dict, List
 
 import discord
 
 from bot.services.security.api_security import api_security
-from bot.services.security.mfa_manager import MFAMethod, mfa_manager
+from bot.services.security.mfa_manager import mfa_manager
 from bot.services.security.rbac_manager import Permission, rbac_manager
 from bot.utils.interaction_helper import SafeInteractionHandler
 
@@ -283,7 +282,9 @@ class MFASetupView(discord.ui.View):
                 await SafeInteractionHandler.safe_response(interaction, embed=embed, ephemeral=True)
             else:
                 await SafeInteractionHandler.safe_response(
-                    interaction, f"❌ 重新設置失敗: {setup_result['error']}", ephemeral=True
+                    interaction,
+                    f"❌ 重新設置失敗: {setup_result['error']}",
+                    ephemeral=True,
                 )
 
         except Exception as e:
@@ -313,7 +314,9 @@ class MFAManagementView(discord.ui.View):
 
         async def callback(interaction):
             await SafeInteractionHandler.safe_response(
-                interaction, "請使用 `/mfa_setup` 命令來設置多因素認證。", ephemeral=True
+                interaction,
+                "請使用 `/mfa_setup` 命令來設置多因素認證。",
+                ephemeral=True,
             )
 
         button.callback = callback
@@ -338,7 +341,9 @@ class MFAManagementView(discord.ui.View):
                     )
 
                     embed.add_field(
-                        name="🔑 備用代碼", value=f"```\n{codes_text}\n```", inline=False
+                        name="🔑 備用代碼",
+                        value=f"```\n{codes_text}\n```",
+                        inline=False,
                     )
 
                     embed.add_field(
@@ -468,7 +473,9 @@ class RoleManagementView(discord.ui.View):
     async def create_role(self, interaction: discord.Interaction, button: discord.ui.Button):
         """創建新角色"""
         await SafeInteractionHandler.safe_response(
-            interaction, "要創建新角色，請聯繫系統管理員或使用管理面板。", ephemeral=True
+            interaction,
+            "要創建新角色，請聯繫系統管理員或使用管理面板。",
+            ephemeral=True,
         )
 
 
@@ -556,13 +563,22 @@ class APIKeyTypeSelectionView(discord.ui.View):
         placeholder="選擇 API 密鑰類型...",
         options=[
             discord.SelectOption(
-                label="唯讀密鑰", value="read_only", description="僅限查詢操作", emoji="👁️"
+                label="唯讀密鑰",
+                value="read_only",
+                description="僅限查詢操作",
+                emoji="👁️",
             ),
             discord.SelectOption(
-                label="讀寫密鑰", value="read_write", description="可進行資料修改", emoji="✏️"
+                label="讀寫密鑰",
+                value="read_write",
+                description="可進行資料修改",
+                emoji="✏️",
             ),
             discord.SelectOption(
-                label="管理員密鑰", value="admin", description="完整管理權限", emoji="👑"
+                label="管理員密鑰",
+                value="admin",
+                description="完整管理權限",
+                emoji="👑",
             ),
             discord.SelectOption(
                 label="服務密鑰", value="service", description="系統間通訊", emoji="🔧"

@@ -6,18 +6,15 @@
 
 import asyncio
 import hashlib
-import json
 import re
 import time
 import urllib.parse
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional
 
-import aiohttp
-
-from shared.cache_manager import cache_manager, cached
+from shared.cache_manager import cache_manager
 from shared.logger import logger
 
 
@@ -167,7 +164,11 @@ class ContentAnalyzer:
         }
 
         # 危險域名清單
-        self.dangerous_domains = ["malware-example.com", "phishing-site.net", "spam-domain.org"]
+        self.dangerous_domains = [
+            "malware-example.com",
+            "phishing-site.net",
+            "spam-domain.org",
+        ]
 
         # 短網址服務清單
         self.url_shorteners = [
@@ -321,7 +322,7 @@ class ContentAnalyzer:
             negative_count += negative_emojis
 
             # 計算分數
-            total_words = len(text.split())
+            len(text.split())
             total_sentiment = positive_count + negative_count
 
             if total_sentiment == 0:

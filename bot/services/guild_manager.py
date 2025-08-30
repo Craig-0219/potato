@@ -6,7 +6,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 import aiomysql
 import discord
@@ -14,7 +14,6 @@ from discord.ext import commands
 
 from bot.db.pool import db_pool
 from bot.services.guild_permission_manager import (
-    GuildPermission,
     GuildRole,
     guild_permission_manager,
 )
@@ -178,7 +177,9 @@ class GuildManager:
                     str(guild.preferred_locale) if guild.preferred_locale else "zh-TW"
                 ),
                 "verification_level": guild.verification_level.name,
-                "mfa_level": guild.mfa_level.name if guild.mfa_level.name == "none" else "elevated",
+                "mfa_level": (
+                    guild.mfa_level.name if guild.mfa_level.name == "none" else "elevated"
+                ),
                 "explicit_content_filter": guild.explicit_content_filter.name,
                 "status": "active",
                 "bot_joined_at": datetime.now(),
@@ -226,7 +227,11 @@ class GuildManager:
                 "cross_channel_access": False,
                 "auto_moderation": json.dumps({"enabled": False, "rules": []}),
                 "auto_cleanup_settings": json.dumps(
-                    {"enabled": True, "cleanup_logs_days": 30, "cleanup_tickets_days": 90}
+                    {
+                        "enabled": True,
+                        "cleanup_logs_days": 30,
+                        "cleanup_tickets_days": 90,
+                    }
                 ),
             }
 
@@ -517,7 +522,9 @@ class GuildManager:
             }
 
             query, params = self.query_builder.build_update(
-                table="guild_info", data=update_data, where_conditions={"guild_id": guild.id}
+                table="guild_info",
+                data=update_data,
+                where_conditions={"guild_id": guild.id},
             )
 
             async with self.db.connection() as conn:

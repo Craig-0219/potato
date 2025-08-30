@@ -14,11 +14,9 @@ import hashlib
 import json
 import pickle
 import time
-import weakref
 from dataclasses import dataclass
-from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List
 
 try:
     import aioredis
@@ -393,7 +391,10 @@ class MultiLevelCacheManager:
                 "misses": self.stats.l2_misses,
                 "hit_rate": f"{self.stats.l2_hit_rate():.2%}",
             },
-            "operations": {"sets": self.stats.total_sets, "deletes": self.stats.total_deletes},
+            "operations": {
+                "sets": self.stats.total_sets,
+                "deletes": self.stats.total_deletes,
+            },
         }
 
         # 添加 Redis 詳細資訊
@@ -585,7 +586,12 @@ class MultiLevelCacheManager:
 
         try:
             message = json.dumps(
-                {"key": key, "action": action, "timestamp": time.time(), "source": "cache_manager"}
+                {
+                    "key": key,
+                    "action": action,
+                    "timestamp": time.time(),
+                    "source": "cache_manager",
+                }
             )
 
             await self.redis.publish("cache:invalidation", message)
@@ -668,7 +674,9 @@ async def get_cache_manager() -> MultiLevelCacheManager:
 
 # 便捷的快取裝飾器
 def cached(
-    key_prefix: str = "", ttl: int = 300, strategy: CacheStrategy = CacheStrategy.WRITE_THROUGH
+    key_prefix: str = "",
+    ttl: int = 300,
+    strategy: CacheStrategy = CacheStrategy.WRITE_THROUGH,
 ):
     """快取裝飾器"""
 

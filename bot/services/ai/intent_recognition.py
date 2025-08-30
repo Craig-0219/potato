@@ -7,12 +7,11 @@ Version: 3.1.0 - Phase 7 Stage 1
 """
 
 import asyncio
-import json
 import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 logger = logging.getLogger(__name__)
 

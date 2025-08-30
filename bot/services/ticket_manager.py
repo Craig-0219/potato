@@ -4,9 +4,8 @@
 專注於核心業務邏輯，移除過度複雜的功能
 """
 
-import asyncio
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import discord
 
@@ -263,7 +262,12 @@ class TicketManager:
             logger.error(f"自動分配錯誤：{e}")
 
     async def _apply_auto_tags(
-        self, ticket_id: int, guild_id: int, ticket_type: str, content: str, user: discord.Member
+        self,
+        ticket_id: int,
+        guild_id: int,
+        ticket_type: str,
+        content: str,
+        user: discord.Member,
     ):
         """應用自動標籤"""
         try:
@@ -408,7 +412,11 @@ class TicketManager:
             return False
 
     async def send_channel_notification(
-        self, channel: discord.TextChannel, title: str, message: str, color: int = 0x00FF00
+        self,
+        channel: discord.TextChannel,
+        title: str,
+        message: str,
+        color: int = 0x00FF00,
     ) -> bool:
         """發送頻道通知"""
         try:
@@ -540,4 +548,8 @@ class TicketManager:
 
         except Exception as e:
             logger.error(f"健康檢查錯誤：{e}")
-            return {"status": "unhealthy", "error": str(e), "timestamp": datetime.now(timezone.utc)}
+            return {
+                "status": "unhealthy",
+                "error": str(e),
+                "timestamp": datetime.now(timezone.utc),
+            }

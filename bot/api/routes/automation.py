@@ -8,14 +8,19 @@ from datetime import datetime
 
 # from slowapi import Limiter
 # from slowapi.util import get_remote_address
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from shared.logger import logger
 
 from ..auth import APIUser, require_read_permission, require_write_permission
-from ..models import AutomationExecution, AutomationRule, BaseResponse, PaginatedResponse
+from ..models import (
+    AutomationExecution,
+    AutomationRule,
+    BaseResponse,
+    PaginatedResponse,
+)
 
 router = APIRouter()
 # limiter = Limiter(key_func=get_remote_address)

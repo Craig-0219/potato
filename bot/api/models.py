@@ -6,9 +6,9 @@ API 數據模型定義
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 # 基礎響應模型
@@ -275,7 +275,8 @@ class CommonQueryParams(BaseModel):
         default="desc", pattern="^(asc|desc)$", description="排序方向"
     )
 
-    @validator("sort_order")
+    @field_validator("sort_order")
+    @classmethod
     def validate_sort_order(cls, v):
         if v not in ["asc", "desc"]:
             raise ValueError("sort_order must be either asc or desc")

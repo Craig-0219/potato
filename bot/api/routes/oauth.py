@@ -10,14 +10,12 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 import httpx
-from fastapi import APIRouter, HTTPException, Query, Request, Response
+from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from jose import jwt
 
 from shared.config import DISCORD_TOKEN
 from shared.logger import logger
-
-from ..models import BaseResponse
 
 router = APIRouter()
 
@@ -165,7 +163,8 @@ async def get_discord_user_info(access_token: str) -> Optional[dict]:
     try:
         async with httpx.AsyncClient() as client:
             response = await client.get(
-                f"{DISCORD_API_BASE}/users/@me", headers={"Authorization": f"Bearer {access_token}"}
+                f"{DISCORD_API_BASE}/users/@me",
+                headers={"Authorization": f"Bearer {access_token}"},
             )
 
             if response.status_code == 200:

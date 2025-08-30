@@ -6,13 +6,11 @@ Author: Potato Bot Development Team
 Version: 3.1.0 - Phase 7 Stage 1
 """
 
-import asyncio
-import json
 import logging
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import aiohttp
 import openai
@@ -350,7 +348,10 @@ class AIEngineManager:
                 "content": response.content[0].text,
                 "tokens_used": response.usage.input_tokens + response.usage.output_tokens,
                 "confidence": 0.85,  # Claude 不提供信心分數，設為固定值
-                "metadata": {"model": config["model"], "stop_reason": response.stop_reason},
+                "metadata": {
+                    "model": config["model"],
+                    "stop_reason": response.stop_reason,
+                },
             }
 
         except Exception as e:

@@ -7,18 +7,15 @@ Version: 3.2.0 - Phase 7 Stage 2
 Date: 2025-08-20
 """
 
-import asyncio
 import logging
-import traceback
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict
 
 import discord
-from discord import app_commands
 from discord.ext import commands
 
-from .context_awareness import RecommendationLevel, SmartRecommendation, get_context_engine
+from .context_awareness import RecommendationLevel, get_context_engine
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +48,10 @@ class InteractiveMenu:
     """
 
     def __init__(
-        self, bot: commands.Bot, menu_type: MenuType, style: MenuStyle = MenuStyle.DETAILED
+        self,
+        bot: commands.Bot,
+        menu_type: MenuType,
+        style: MenuStyle = MenuStyle.DETAILED,
     ):
         self.bot = bot
         self.menu_type = menu_type
@@ -63,7 +63,10 @@ class InteractiveMenu:
     ) -> discord.Embed:
         """創建標準化 Embed"""
         embed = discord.Embed(
-            title=title, description=description, color=color, timestamp=datetime.now(timezone.utc)
+            title=title,
+            description=description,
+            color=color,
+            timestamp=datetime.now(timezone.utc),
         )
         embed.set_footer(
             text="Potato Bot • Phase 7 GUI System",
@@ -205,7 +208,9 @@ class AdminMenuView(discord.ui.View):
     async def system_monitoring(self, interaction: discord.Interaction, button: discord.ui.Button):
         """系統監控面板"""
         embed = discord.Embed(
-            title="📊 系統監控儀表板", description="**即時系統狀態概覽**", color=0x27AE60
+            title="📊 系統監控儀表板",
+            description="**即時系統狀態概覽**",
+            color=0x27AE60,
         )
 
         # 獲取實際系統狀態數據
@@ -258,7 +263,9 @@ class AdminMenuView(discord.ui.View):
                 memory_used = memory_info.used // (1024**2)  # MB
                 memory_total = memory_info.total // (1024**2)  # MB
                 embed.add_field(
-                    name="💾 記憶體", value=f"{memory_used}MB / {memory_total}MB", inline=True
+                    name="💾 記憶體",
+                    value=f"{memory_used}MB / {memory_total}MB",
+                    inline=True,
                 )
             except ImportError:
                 embed.add_field(name="💾 記憶體", value="N/A", inline=True)
@@ -428,7 +435,9 @@ class TicketMenuView(discord.ui.View):
             panel_view = TicketPanelView(settings)
 
             embed = discord.Embed(
-                title="🎫 建立支援票券", description="請選擇您的問題類型：", color=0x3498DB
+                title="🎫 建立支援票券",
+                description="請選擇您的問題類型：",
+                color=0x3498DB,
             )
 
             embed.add_field(
@@ -461,7 +470,9 @@ class TicketMenuView(discord.ui.View):
 
             if not tickets:
                 embed = discord.Embed(
-                    title="📋 我的票券", description="您目前沒有任何票券", color=0x3498DB
+                    title="📋 我的票券",
+                    description="您目前沒有任何票券",
+                    color=0x3498DB,
                 )
                 embed.add_field(
                     name="💡 提示",
@@ -508,7 +519,7 @@ class TicketMenuView(discord.ui.View):
                 from bot.services.ticket_manager import TicketManager
 
                 ticket_dao = TicketDAO()
-                ticket_manager = TicketManager(ticket_dao)
+                TicketManager(ticket_dao)
 
                 # 查詢用戶的票券
                 tickets = await ticket_dao.get_user_tickets(
@@ -517,7 +528,9 @@ class TicketMenuView(discord.ui.View):
 
                 if not tickets:
                     embed = discord.Embed(
-                        title="📋 我的票券", description="您目前沒有任何票券", color=0x3498DB
+                        title="📋 我的票券",
+                        description="您目前沒有任何票券",
+                        color=0x3498DB,
                     )
                     embed.add_field(
                         name="💡 提示",
@@ -628,7 +641,10 @@ class CreateTicketModal(discord.ui.Modal):
     )
 
     priority_input = discord.ui.TextInput(
-        label="優先級", placeholder="選擇: 低 / 中 / 高 / 緊急", max_length=10, default="中"
+        label="優先級",
+        placeholder="選擇: 低 / 中 / 高 / 緊急",
+        max_length=10,
+        default="中",
     )
 
     async def on_submit(self, interaction: discord.Interaction):
@@ -664,7 +680,9 @@ class VoteMenuView(discord.ui.View):
     async def create_main_embed(self) -> discord.Embed:
         """創建投票選單嵌入"""
         embed = discord.Embed(
-            title="🗳️ 投票系統", description="**民主決策工具**\n\n選擇投票功能：", color=0xE67E22
+            title="🗳️ 投票系統",
+            description="**民主決策工具**\n\n選擇投票功能：",
+            color=0xE67E22,
         )
 
         embed.add_field(name="📊 投票功能", value="建立、管理、結果統計", inline=True)
@@ -733,7 +751,9 @@ class VoteMenuView(discord.ui.View):
             total_votes = await vote_dao.get_guild_vote_count(interaction.guild.id)
 
             embed = discord.Embed(
-                title="🏆 投票統計", description="**伺服器投票系統統計資訊**", color=0x3498DB
+                title="🏆 投票統計",
+                description="**伺服器投票系統統計資訊**",
+                color=0x3498DB,
             )
 
             embed.add_field(
@@ -809,7 +829,9 @@ class WelcomeMenuView(discord.ui.View):
     async def create_main_embed(self) -> discord.Embed:
         """創建歡迎選單嵌入"""
         embed = discord.Embed(
-            title="👋 歡迎系統", description="**新成員迎接中心**\n\n管理歡迎功能：", color=0x27AE60
+            title="👋 歡迎系統",
+            description="**新成員迎接中心**\n\n管理歡迎功能：",
+            color=0x27AE60,
         )
 
         embed.add_field(name="🎉 歡迎功能", value="自動歡迎、歡迎頻道設定", inline=True)
@@ -868,7 +890,9 @@ class WelcomeMenuView(discord.ui.View):
     async def message_settings(self, interaction: discord.Interaction, button: discord.ui.Button):
         """歡迎訊息設定"""
         embed = discord.Embed(
-            title="📝 歡迎訊息設定", description="**設定歡迎和離開訊息**", color=0x3498DB
+            title="📝 歡迎訊息設定",
+            description="**設定歡迎和離開訊息**",
+            color=0x3498DB,
         )
         embed.add_field(
             name="📝 訊息設定指令",
@@ -1032,7 +1056,9 @@ class SettingsMenuView(discord.ui.View):
     async def create_main_embed(self) -> discord.Embed:
         """創建設定選單嵌入"""
         embed = discord.Embed(
-            title="⚙️ 系統設定", description="**Bot 配置中心**\n\n管理 Bot 設定：", color=0x34495E
+            title="⚙️ 系統設定",
+            description="**Bot 配置中心**\n\n管理 Bot 設定：",
+            color=0x34495E,
         )
 
         embed.add_field(name="🔧 基本設定", value="前綴、語言、時區設定", inline=True)
@@ -1060,7 +1086,9 @@ class SettingsMenuView(discord.ui.View):
         )
 
         embed.add_field(
-            name="ℹ️ 說明", value="基本設定目前使用預設值，如需修改請聯繫管理員", inline=False
+            name="ℹ️ 說明",
+            value="基本設定目前使用預設值，如需修改請聯繫管理員",
+            inline=False,
         )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -1085,11 +1113,15 @@ class SettingsMenuView(discord.ui.View):
         )
 
         embed.add_field(
-            name="🛠️ 版主權限", value="• 基本管理功能\n• 票券系統管理\n• 投票系統使用", inline=True
+            name="🛠️ 版主權限",
+            value="• 基本管理功能\n• 票券系統管理\n• 投票系統使用",
+            inline=True,
         )
 
         embed.add_field(
-            name="👤 用戶權限", value="• 基本功能使用\n• 票券建立\n• 娛樂功能", inline=True
+            name="👤 用戶權限",
+            value="• 基本功能使用\n• 票券建立\n• 娛樂功能",
+            inline=True,
         )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -1098,7 +1130,9 @@ class SettingsMenuView(discord.ui.View):
     async def module_settings(self, interaction: discord.Interaction, button: discord.ui.Button):
         """功能模組狀態"""
         embed = discord.Embed(
-            title="📊 功能模組狀態", description="**已載入的 Bot 功能模組**", color=0x9B59B6
+            title="📊 功能模組狀態",
+            description="**已載入的 Bot 功能模組**",
+            color=0x9B59B6,
         )
 
         # 獲取已載入的 cogs
@@ -1206,7 +1240,9 @@ class SystemMonitoringView(discord.ui.View):
         embed = discord.Embed(title="📁 系統日誌", description="**最近系統事件**", color=0x3498DB)
 
         embed.add_field(
-            name="ℹ️ 說明", value="日誌功能正在開發中，請查看控制台輸出獲取詳細資訊", inline=False
+            name="ℹ️ 說明",
+            value="日誌功能正在開發中，請查看控制台輸出獲取詳細資訊",
+            inline=False,
         )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -1230,7 +1266,9 @@ class UserManagementView(discord.ui.View):
     async def create_main_embed(self) -> discord.Embed:
         """創建用戶管理主選單"""
         embed = discord.Embed(
-            title="👥 用戶管理中心", description="**管理伺服器成員和權限**", color=0x3498DB
+            title="👥 用戶管理中心",
+            description="**管理伺服器成員和權限**",
+            color=0x3498DB,
         )
 
         # 獲取伺服器統計
@@ -1270,7 +1308,9 @@ class UserManagementView(discord.ui.View):
             return
 
         embed = discord.Embed(
-            title="🔍 成員查詢結果", description=f"**{guild.name} 成員概覽**", color=0x3498DB
+            title="🔍 成員查詢結果",
+            description=f"**{guild.name} 成員概覽**",
+            color=0x3498DB,
         )
 
         # 顯示前 10 名成員
@@ -1293,7 +1333,9 @@ class UserManagementView(discord.ui.View):
 
         if len(guild.members) > 10:
             embed.add_field(
-                name="📄 更多", value=f"還有 {len(guild.members) - 10} 名成員...", inline=False
+                name="📄 更多",
+                value=f"還有 {len(guild.members) - 10} 名成員...",
+                inline=False,
             )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -1307,7 +1349,9 @@ class UserManagementView(discord.ui.View):
             return
 
         embed = discord.Embed(
-            title="🎨 角色管理", description=f"**{guild.name} 角色概覽**", color=0x9B59B6
+            title="🎨 角色管理",
+            description=f"**{guild.name} 角色概覽**",
+            color=0x9B59B6,
         )
 
         # 顯示前 10 個角色
@@ -1324,7 +1368,9 @@ class UserManagementView(discord.ui.View):
         )
 
         embed.add_field(
-            name="ℹ️ 說明", value="使用 Discord 內建的伺服器設定來管理角色和權限", inline=False
+            name="ℹ️ 說明",
+            value="使用 Discord 內建的伺服器設定來管理角色和權限",
+            inline=False,
         )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -1360,7 +1406,9 @@ class AdminSettingsView(discord.ui.View):
         )
 
         embed.add_field(
-            name="⚙️ 配置選項", value="• 功能模組管理\n• 日誌設定\n• 網路設定", inline=True
+            name="⚙️ 配置選項",
+            value="• 功能模組管理\n• 日誌設定\n• 網路設定",
+            inline=True,
         )
 
         return embed
@@ -1437,7 +1485,9 @@ class AdminSettingsView(discord.ui.View):
         )
 
         embed.add_field(
-            name="ℹ️ 說明", value="日誌設定目前使用預設配置，需要修改請編輯配置文件", inline=False
+            name="ℹ️ 說明",
+            value="日誌設定目前使用預設配置，需要修改請編輯配置文件",
+            inline=False,
         )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -1465,7 +1515,9 @@ class QuickActionsView(discord.ui.View):
         )
 
         embed.add_field(
-            name="⚡ 快速功能", value="• 系統狀態檢查\n• 快速管理操作\n• 緊急維護模式", inline=True
+            name="⚡ 快速功能",
+            value="• 系統狀態檢查\n• 快速管理操作\n• 緊急維護模式",
+            inline=True,
         )
 
         embed.add_field(name="🛠️ 管理工具", value="• 快速重啟\n• 清理快取\n• 權限檢查", inline=True)
@@ -1509,11 +1561,15 @@ class QuickActionsView(discord.ui.View):
         )
 
         embed.add_field(
-            name="⚠️ 警告", value="清理操作會影響 Bot 性能，建議在使用率低時進行", inline=False
+            name="⚠️ 警告",
+            value="清理操作會影響 Bot 性能，建議在使用率低時進行",
+            inline=False,
         )
 
         embed.add_field(
-            name="ℹ️ 說明", value="清理功能目前為手動模式，請聯繫管理員進行操作", inline=False
+            name="ℹ️ 說明",
+            value="清理功能目前為手動模式，請聯繫管理員進行操作",
+            inline=False,
         )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -1538,7 +1594,9 @@ class QuickActionsView(discord.ui.View):
         )
 
         embed.add_field(
-            name="ℹ️ 操作方式", value="緊急模式需要特殊權限，請聯繫最高管理員", inline=False
+            name="ℹ️ 操作方式",
+            value="緊急模式需要特殊權限，請聯繫最高管理員",
+            inline=False,
         )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)

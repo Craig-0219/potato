@@ -4,8 +4,7 @@ AI 智能回覆核心功能
 提供智能回覆建議、內容分析、自動標籤建議等指令
 """
 
-import asyncio
-from typing import List, Optional
+from typing import Optional
 
 import discord
 from discord import app_commands
@@ -45,7 +44,8 @@ class AICore(commands.Cog):
 
     @app_commands.command(name="ai_suggest", description="為當前票券獲取 AI 智能回覆建議")
     @app_commands.describe(
-        content="要分析的內容（如不提供則分析票券歷史）", suggestions_count="建議數量（1-5）"
+        content="要分析的內容（如不提供則分析票券歷史）",
+        suggestions_count="建議數量（1-5）",
     )
     async def ai_suggest_reply(
         self,
@@ -90,7 +90,8 @@ class AICore(commands.Cog):
 
             if not ai_result["success"]:
                 await interaction.followup.send(
-                    f"❌ AI 分析失敗：{ai_result.get('error', '未知錯誤')}", ephemeral=True
+                    f"❌ AI 分析失敗：{ai_result.get('error', '未知錯誤')}",
+                    ephemeral=True,
                 )
                 return
 
@@ -239,7 +240,10 @@ class AICore(commands.Cog):
                 )
 
             # 建立用戶上下文
-            user_context = {"user_id": ticket_info.get("user_id"), "guild_id": interaction.guild.id}
+            user_context = {
+                "user_id": ticket_info.get("user_id"),
+                "guild_id": interaction.guild.id,
+            }
 
             # 評估優先級
             priority_result = await self.ai_manager.assess_priority(content, user_context)
@@ -278,7 +282,9 @@ class AICore(commands.Cog):
             )
 
             embed.add_field(
-                name="📊 置信度", value=f"{priority_result['confidence']:.1%}", inline=True
+                name="📊 置信度",
+                value=f"{priority_result['confidence']:.1%}",
+                inline=True,
             )
 
             embed.add_field(
@@ -305,7 +311,9 @@ class AICore(commands.Cog):
 
                 if analysis_text:
                     embed.add_field(
-                        name="🔍 分析詳情", value=" | ".join(analysis_text), inline=False
+                        name="🔍 分析詳情",
+                        value=" | ".join(analysis_text),
+                        inline=False,
                     )
 
             embed.set_footer(text="AI 評估僅供參考，最終決定請依實際情況判斷")
@@ -324,7 +332,9 @@ class AICore(commands.Cog):
         """AI 系統管理指令群組"""
         if ctx.invoked_subcommand is None:
             embed = discord.Embed(
-                title="🤖 AI 智能回覆系統", description="管理和監控 AI 智能回覆功能", color=0x00BFFF
+                title="🤖 AI 智能回覆系統",
+                description="管理和監控 AI 智能回覆功能",
+                color=0x00BFFF,
             )
 
             embed.add_field(

@@ -5,10 +5,9 @@
 """
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
 
 import discord
-from discord.ui import Button, Modal, Select, TextInput, View, button, select
+from discord.ui import Button, Modal, Select, TextInput, View, button
 
 from bot.db import vote_dao
 from bot.db.ticket_dao import TicketDAO
@@ -142,7 +141,9 @@ class SystemAdminPanel(BaseView):
 
         if not settings:
             embed.add_field(
-                name="⚠️ 系統狀態", value="歡迎系統尚未初始化\n請點擊下方按鈕進行設定", inline=False
+                name="⚠️ 系統狀態",
+                value="歡迎系統尚未初始化\n請點擊下方按鈕進行設定",
+                inline=False,
             )
             return embed
 
@@ -163,7 +164,9 @@ class SystemAdminPanel(BaseView):
         )
 
         embed.add_field(
-            name="📺 頻道設定", value=f"歡迎頻道: {welcome_ch}\n離開頻道: {leave_ch}", inline=True
+            name="📺 頻道設定",
+            value=f"歡迎頻道: {welcome_ch}\n離開頻道: {leave_ch}",
+            inline=True,
         )
 
         # 功能狀態
@@ -179,7 +182,9 @@ class SystemAdminPanel(BaseView):
     async def _create_vote_settings_embed(self, guild: discord.Guild) -> discord.Embed:
         """創建投票系統設定嵌入"""
         embed = discord.Embed(
-            title="🗳️ 投票系統設定", description="管理投票系統的頻道和參數設定", color=0x3498DB
+            title="🗳️ 投票系統設定",
+            description="管理投票系統的頻道和參數設定",
+            color=0x3498DB,
         )
 
         # 取得投票設定
@@ -243,7 +248,9 @@ class SystemAdminPanel(BaseView):
     async def _create_stats_embed(self, guild: discord.Guild) -> discord.Embed:
         """創建統計監控嵌入"""
         embed = discord.Embed(
-            title="📊 系統統計與監控", description="系統運行狀態和使用統計", color=0x9B59B6
+            title="📊 系統統計與監控",
+            description="系統運行狀態和使用統計",
+            color=0x9B59B6,
         )
 
         # 票券統計
@@ -283,15 +290,21 @@ class SystemAdminPanel(BaseView):
         embed = discord.Embed(title="🔧 系統工具", description="系統維護和管理工具", color=0x95A5A6)
 
         embed.add_field(
-            name="🧹 資料清理", value="• 清理舊日誌\n• 清理過期快取\n• 整理資料庫", inline=True
+            name="🧹 資料清理",
+            value="• 清理舊日誌\n• 清理過期快取\n• 整理資料庫",
+            inline=True,
         )
 
         embed.add_field(
-            name="🗑️ 頻道清空", value="• 清空頻道訊息\n• 清空近期訊息\n• 按用戶清空", inline=True
+            name="🗑️ 頻道清空",
+            value="• 清空頻道訊息\n• 清空近期訊息\n• 按用戶清空",
+            inline=True,
         )
 
         embed.add_field(
-            name="📤 資料匯出", value="• 匯出票券資料\n• 匯出使用統計\n• 匯出設定備份", inline=True
+            name="📤 資料匯出",
+            value="• 匯出票券資料\n• 匯出使用統計\n• 匯出設定備份",
+            inline=True,
         )
 
         return embed
@@ -312,7 +325,9 @@ class TicketSettingsView(View):
     async def set_category_button(self, interaction: discord.Interaction, button: Button):
         """設定票券分類頻道"""
         embed = discord.Embed(
-            title="📂 選擇票券分類頻道", description="請選擇要用作票券分類的頻道", color=0x3498DB
+            title="📂 選擇票券分類頻道",
+            description="請選擇要用作票券分類的頻道",
+            color=0x3498DB,
         )
 
         view = ChannelSelectView(self.user_id, "ticket_category")
@@ -322,7 +337,9 @@ class TicketSettingsView(View):
     async def set_support_roles_button(self, interaction: discord.Interaction, button: Button):
         """設定客服角色"""
         embed = discord.Embed(
-            title="👥 選擇客服角色", description="請選擇要設定為客服的角色", color=0x3498DB
+            title="👥 選擇客服角色",
+            description="請選擇要設定為客服的角色",
+            color=0x3498DB,
         )
 
         view = RoleSelectView(self.user_id, "support_roles")
@@ -431,7 +448,9 @@ class WelcomeSettingsView(View):
     async def auto_roles_button(self, interaction: discord.Interaction, button: Button):
         """設定自動身分組"""
         embed = discord.Embed(
-            title="👥 自動身分組設定", description="設定新成員自動獲得的身分組", color=0x3498DB
+            title="👥 自動身分組設定",
+            description="設定新成員自動獲得的身分組",
+            color=0x3498DB,
         )
 
         view = RoleSelectView(self.user_id, "auto_roles")
@@ -448,7 +467,9 @@ class WelcomeSettingsView(View):
         """功能開關設定"""
         view = WelcomeFeatureToggleView(self.user_id)
         embed = discord.Embed(
-            title="🔧 歡迎系統功能開關", description="啟用或停用各項功能", color=0x95A5A6
+            title="🔧 歡迎系統功能開關",
+            description="啟用或停用各項功能",
+            color=0x95A5A6,
         )
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
@@ -481,7 +502,10 @@ class ChannelSelect(discord.ui.ChannelSelect):
             placeholder = "選擇文字頻道..."
 
         super().__init__(
-            placeholder=placeholder, channel_types=channel_types, min_values=1, max_values=1
+            placeholder=placeholder,
+            channel_types=channel_types,
+            min_values=1,
+            max_values=1,
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -597,7 +621,9 @@ class RoleSelect(discord.ui.RoleSelect):
                     )
                 else:
                     embed = discord.Embed(
-                        title="❌ 設定失敗", description="設定客服角色時發生錯誤", color=0xE74C3C
+                        title="❌ 設定失敗",
+                        description="設定客服角色時發生錯誤",
+                        color=0xE74C3C,
                     )
 
             elif self.setting_type == "auto_roles":
@@ -854,7 +880,9 @@ class SystemToolsView(View):
             inline=True,
         )
         embed.add_field(
-            name="🔧 深度清理", value="• 資料庫優化\n• 索引重建\n• 完整清理", inline=True
+            name="🔧 深度清理",
+            value="• 資料庫優化\n• 索引重建\n• 完整清理",
+            inline=True,
         )
         view = DataCleanupView(self.user_id)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -863,7 +891,9 @@ class SystemToolsView(View):
     async def export_button(self, interaction: discord.Interaction, button: Button):
         """資料匯出工具"""
         embed = discord.Embed(
-            title="📤 資料匯出系統", description="選擇要匯出的資料類型和格式", color=0x3498DB
+            title="📤 資料匯出系統",
+            description="選擇要匯出的資料類型和格式",
+            color=0x3498DB,
         )
         embed.add_field(
             name="📋 支援資料類型",
@@ -871,7 +901,9 @@ class SystemToolsView(View):
             inline=True,
         )
         embed.add_field(
-            name="📁 支援格式", value="• CSV 格式\n• JSON 格式\n• Excel 格式", inline=True
+            name="📁 支援格式",
+            value="• CSV 格式\n• JSON 格式\n• Excel 格式",
+            inline=True,
         )
         embed.add_field(
             name="⏰ 時間範圍", value="• 最近7天\n• 最近30天\n• 自定義範圍", inline=True
@@ -891,7 +923,9 @@ class SystemToolsView(View):
                 return
 
             embed = discord.Embed(
-                title="🗑️ 清空頻道訊息", description="選擇要清空的頻道和清空選項", color=0xE74C3C
+                title="🗑️ 清空頻道訊息",
+                description="選擇要清空的頻道和清空選項",
+                color=0xE74C3C,
             )
 
             embed.add_field(
@@ -1064,7 +1098,9 @@ class TicketMessageModal(Modal):
                 )
             else:
                 embed = discord.Embed(
-                    title="❌ 設定更新失敗", description="更新票券訊息時發生錯誤", color=0xE74C3C
+                    title="❌ 設定更新失敗",
+                    description="更新票券訊息時發生錯誤",
+                    color=0xE74C3C,
                 )
 
             await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -1120,7 +1156,9 @@ class WelcomeMessageModal(Modal):
 
             if success:
                 embed = discord.Embed(
-                    title="✅ 歡迎訊息已更新", description="歡迎訊息設定已成功保存", color=0x2ECC71
+                    title="✅ 歡迎訊息已更新",
+                    description="歡迎訊息設定已成功保存",
+                    color=0x2ECC71,
                 )
             else:
                 embed = discord.Embed(
@@ -1249,11 +1287,15 @@ class VoteSettingsView(View):
             status = "啟用" if new_enabled else "停用"
             color = 0x2ECC71 if new_enabled else 0xF39C12
             embed = discord.Embed(
-                title=f"✅ 投票系統已{status}", description=f"投票系統現在已{status}", color=color
+                title=f"✅ 投票系統已{status}",
+                description=f"投票系統現在已{status}",
+                color=color,
             )
         else:
             embed = discord.Embed(
-                title="❌ 操作失敗", description="切換系統狀態時發生錯誤", color=0xE74C3C
+                title="❌ 操作失敗",
+                description="切換系統狀態時發生錯誤",
+                color=0xE74C3C,
             )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -1299,7 +1341,9 @@ class VoteSettingsView(View):
 
             if len(active_votes) > 5:
                 embed.add_field(
-                    name="📌 提示", value=f"還有 {len(active_votes) - 5} 個投票未顯示", inline=False
+                    name="📌 提示",
+                    value=f"還有 {len(active_votes) - 5} 個投票未顯示",
+                    inline=False,
                 )
 
         return embed
@@ -1330,7 +1374,9 @@ class VoteChannelSelect(discord.ui.ChannelSelect):
             embed.add_field(name="📋 說明", value="新建立的投票將自動發布到此頻道", inline=False)
         else:
             embed = discord.Embed(
-                title="❌ 設定失敗", description="設定投票頻道時發生錯誤", color=0xE74C3C
+                title="❌ 設定失敗",
+                description="設定投票頻道時發生錯誤",
+                color=0xE74C3C,
             )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -1363,7 +1409,9 @@ class AnnounceChannelSelect(discord.ui.ChannelSelect):
             )
         else:
             embed = discord.Embed(
-                title="❌ 設定失敗", description="設定公告頻道時發生錯誤", color=0xE74C3C
+                title="❌ 設定失敗",
+                description="設定公告頻道時發生錯誤",
+                color=0xE74C3C,
             )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -1438,7 +1486,10 @@ class ChannelClearSelect(Select):
                 )
 
         super().__init__(
-            placeholder="選擇要清空的頻道...", min_values=1, max_values=1, options=options
+            placeholder="選擇要清空的頻道...",
+            min_values=1,
+            max_values=1,
+            options=options,
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -1556,7 +1607,9 @@ class BackToClearSelectButton(Button):
 
     async def callback(self, interaction: discord.Interaction):
         embed = discord.Embed(
-            title="🗑️ 清空頻道訊息", description="選擇要清空的頻道和清空選項", color=0xE74C3C
+            title="🗑️ 清空頻道訊息",
+            description="選擇要清空的頻道和清空選項",
+            color=0xE74C3C,
         )
 
         embed.add_field(
@@ -1623,7 +1676,9 @@ class FinalConfirmView(View):
 
         except discord.Forbidden:
             embed = discord.Embed(
-                title="❌ 權限不足", description="Bot沒有足夠權限清空此頻道的訊息", color=0xE74C3C
+                title="❌ 權限不足",
+                description="Bot沒有足夠權限清空此頻道的訊息",
+                color=0xE74C3C,
             )
             await interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -1934,7 +1989,9 @@ class DataCleanupView(View):
 
             if result.success:
                 embed = discord.Embed(
-                    title="✅ 基礎清理完成", description="已成功完成基礎資料清理", color=0x2ECC71
+                    title="✅ 基礎清理完成",
+                    description="已成功完成基礎資料清理",
+                    color=0x2ECC71,
                 )
                 embed.add_field(
                     name="📊 清理結果",
@@ -1972,7 +2029,9 @@ class DataCleanupView(View):
         """執行深度清理"""
         # 確認對話框
         embed = discord.Embed(
-            title="⚠️ 深度清理確認", description="深度清理會執行以下操作：", color=0xF39C12
+            title="⚠️ 深度清理確認",
+            description="深度清理會執行以下操作：",
+            color=0xF39C12,
         )
         embed.add_field(
             name="🔧 清理內容",
@@ -2257,13 +2316,17 @@ class VoteAdminView(View):
 
             if not votes:
                 embed = discord.Embed(
-                    title="📋 活躍投票", description="目前沒有進行中的投票", color=0x95A5A6
+                    title="📋 活躍投票",
+                    description="目前沒有進行中的投票",
+                    color=0x95A5A6,
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
 
             embed = discord.Embed(
-                title="📋 活躍投票", description=f"找到 {len(votes)} 個進行中的投票", color=0x3498DB
+                title="📋 活躍投票",
+                description=f"找到 {len(votes)} 個進行中的投票",
+                color=0x3498DB,
             )
 
             for vote in votes[:10]:  # 只顯示前10個
@@ -2384,7 +2447,7 @@ class ActiveVoteManageView(View):
             await interaction.response.defer()
 
             # 獲取統計數據
-            active_votes = await vote_dao.get_active_votes()
+            await vote_dao.get_active_votes()
             total_votes = await vote_dao.get_total_vote_count(interaction.guild.id)
             guild_stats = await vote_dao.get_guild_vote_stats(interaction.guild.id, 30)
 
@@ -2437,7 +2500,9 @@ class ActiveVoteManageView(View):
                     recent_info.append(f"{status} #{vote['id']} {vote['title'][:25]} ({total}票)")
 
                 embed.add_field(
-                    name="🕐 近期投票 (最新5個)", value="\n".join(recent_info), inline=False
+                    name="🕐 近期投票 (最新5個)",
+                    value="\n".join(recent_info),
+                    inline=False,
                 )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
@@ -2454,7 +2519,9 @@ class ActiveVoteManageView(View):
 
             if not active_votes:
                 embed = discord.Embed(
-                    title="📋 沒有活躍投票", description="目前沒有進行中的投票", color=0x95A5A6
+                    title="📋 沒有活躍投票",
+                    description="目前沒有進行中的投票",
+                    color=0x95A5A6,
                 )
                 await interaction.response.send_message(embed=embed, ephemeral=True)
                 return
@@ -2518,7 +2585,10 @@ class VoteManageSelect(Select):
     def __init__(self, user_id: int, options):
         self.user_id = user_id
         super().__init__(
-            placeholder="選擇要管理的投票...", options=options, min_values=1, max_values=1
+            placeholder="選擇要管理的投票...",
+            options=options,
+            min_values=1,
+            max_values=1,
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -2534,7 +2604,9 @@ class VoteManageSelect(Select):
             total = sum(stats.values())
 
             embed = discord.Embed(
-                title=f"🗳️ 投票管理 - #{vote_id}", description=vote["title"], color=0x3498DB
+                title=f"🗳️ 投票管理 - #{vote_id}",
+                description=vote["title"],
+                color=0x3498DB,
             )
 
             embed.add_field(
@@ -2552,7 +2624,9 @@ class VoteManageSelect(Select):
                     stats_text.append(f"{option}: {count} 票 ({percent:.1f}%)")
 
                 embed.add_field(
-                    name="📈 目前結果 (前5名)", value="\n".join(stats_text), inline=False
+                    name="📈 目前結果 (前5名)",
+                    value="\n".join(stats_text),
+                    inline=False,
                 )
 
             view = SingleVoteManageView(self.user_id, vote_id)
@@ -2609,7 +2683,9 @@ class SingleVoteManageView(View):
             total = sum(stats.values())
 
             embed = discord.Embed(
-                title=f"📊 詳細統計 - #{self.vote_id}", description=vote["title"], color=0x2ECC71
+                title=f"📊 詳細統計 - #{self.vote_id}",
+                description=vote["title"],
+                color=0x2ECC71,
             )
 
             embed.add_field(
@@ -2681,7 +2757,7 @@ class VoteConfirmActionView(View):
 
                 if success:
                     # 發送結果通知
-                    from bot.cogs.vote import VoteCore
+                    pass
 
                     vote_cog = interaction.client.get_cog("VoteCore")
                     if vote_cog:

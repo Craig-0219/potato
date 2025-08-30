@@ -210,7 +210,12 @@ class MariaDBPool:
 
         except Exception as e:
             logger.error(f"健康檢查失敗：{e}")
-            return {"status": "unhealthy", "error": str(e), "latency": "N/A", "pool_status": "N/A"}
+            return {
+                "status": "unhealthy",
+                "error": str(e),
+                "latency": "N/A",
+                "pool_status": "N/A",
+            }
 
     async def close(self):
         """關閉連線池（修復Task warnings）"""

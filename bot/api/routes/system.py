@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import psutil
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 try:
     from slowapi import Limiter
@@ -27,7 +27,13 @@ from ..auth import (
     require_read_permission,
     require_super_admin_permission,
 )
-from ..models import APIKeyCreate, APIKeyResponse, BaseResponse, SystemHealth, SystemMetrics
+from ..models import (
+    APIKeyCreate,
+    APIKeyResponse,
+    BaseResponse,
+    SystemHealth,
+    SystemMetrics,
+)
 
 router = APIRouter()
 
@@ -130,7 +136,7 @@ async def _get_system_metrics_internal():
         disk = psutil.disk_usage("/")
 
         # 網路統計 (簡化版)
-        network = psutil.net_io_counters()
+        psutil.net_io_counters()
 
         # 獲取真實業務指標
         try:
@@ -306,7 +312,7 @@ async def enter_maintenance_mode(
             "message": "系統已進入維護模式",
             "data": {
                 "maintenance_start": datetime.now(),
-                "estimated_end": datetime.now() if not duration_minutes else datetime.now(),
+                "estimated_end": (datetime.now() if not duration_minutes else datetime.now()),
                 "reason": reason or "系統維護",
             },
         }
@@ -365,7 +371,11 @@ async def get_bot_settings(user: APIUser = Depends(require_admin_permission)):
             "ticket_settings": (
                 {row[0]: row[1] for row in ticket_rows}
                 if ticket_rows
-                else {"auto_assign": False, "max_tickets_per_user": 3, "staff_notifications": True}
+                else {
+                    "auto_assign": False,
+                    "max_tickets_per_user": 3,
+                    "staff_notifications": True,
+                }
             ),
             "welcome_settings": (
                 {row[0]: row[1] for row in welcome_rows}
@@ -380,7 +390,11 @@ async def get_bot_settings(user: APIUser = Depends(require_admin_permission)):
             "vote_settings": (
                 {row[0]: row[1] for row in vote_rows}
                 if vote_rows
-                else {"default_duration": 24, "allow_anonymous": False, "auto_close": True}
+                else {
+                    "default_duration": 24,
+                    "allow_anonymous": False,
+                    "auto_close": True,
+                }
             ),
         }
 
@@ -393,7 +407,9 @@ async def get_bot_settings(user: APIUser = Depends(require_admin_permission)):
 
 @router.post("/bot-settings/{section}", response_model=BaseResponse, summary="更新 Bot 設定")
 async def update_bot_settings(
-    section: str, settings: Dict[str, Any], user: APIUser = Depends(require_admin_permission)
+    section: str,
+    settings: Dict[str, Any],
+    user: APIUser = Depends(require_admin_permission),
 ):
     """更新 Discord Bot 的特定模組設定"""
     try:
@@ -403,7 +419,8 @@ async def update_bot_settings(
         valid_sections = ["tickets", "welcome", "votes"]
         if section not in valid_sections:
             raise HTTPException(
-                status_code=400, detail=f"無效的模組名稱，支援: {', '.join(valid_sections)}"
+                status_code=400,
+                detail=f"無效的模組名稱，支援: {', '.join(valid_sections)}",
             )
 
         # 對應的資料表

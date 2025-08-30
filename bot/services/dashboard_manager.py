@@ -5,12 +5,11 @@
 """
 
 import asyncio
-import json
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from bot.db.ticket_dao import TicketDAO
 from bot.db.vote_dao import VoteDAO
@@ -345,7 +344,10 @@ class DashboardManager:
 
         if not daily_data:
             return ChartData(
-                chart_type=ChartType.LINE, title="📈 票券趨勢分析", labels=[], datasets=[]
+                chart_type=ChartType.LINE,
+                title="📈 票券趨勢分析",
+                labels=[],
+                datasets=[],
             )
 
         # 準備數據
@@ -381,7 +383,7 @@ class DashboardManager:
     async def _create_response_time_chart(self, performance_data: Dict[str, Any]) -> ChartData:
         """創建回應時間趨勢圖表"""
         ticket_metrics = performance_data.get("ticket_metrics", {})
-        system_metrics = performance_data.get("system_metrics", {})
+        performance_data.get("system_metrics", {})
 
         # 創建回應時間數據（模擬基於實際數據的時間序列）
         days_labels = []
@@ -432,7 +434,7 @@ class DashboardManager:
 
     async def _create_load_distribution_chart(self, performance_data: Dict[str, Any]) -> ChartData:
         """創建系統負載分佈圖表"""
-        ticket_metrics = performance_data.get("ticket_metrics", {})
+        performance_data.get("ticket_metrics", {})
 
         # 模擬系統負載數據
         hours = [f"{i:02d}:00" for i in range(0, 24, 3)]  # 每3小時一個點
@@ -525,7 +527,7 @@ class DashboardManager:
 
     async def _create_workflow_efficiency_chart(self, workflow_data: Dict[str, Any]) -> ChartData:
         """創建工作流程效率圖表"""
-        overall_stats = workflow_data.get("overall_stats", {})
+        workflow_data.get("overall_stats", {})
 
         # 模擬工作流程效率數據
         workflow_names = ["自動歡迎", "票券指派", "SLA監控", "報告生成", "用戶通知"]
@@ -539,10 +541,19 @@ class DashboardManager:
                 {
                     "label": "效率分數(%)",
                     "data": efficiency_scores,
-                    "backgroundColor": ["#3498db", "#e74c3c", "#f39c12", "#2ecc71", "#9b59b6"],
+                    "backgroundColor": [
+                        "#3498db",
+                        "#e74c3c",
+                        "#f39c12",
+                        "#2ecc71",
+                        "#9b59b6",
+                    ],
                 }
             ],
-            options={"responsive": True, "scales": {"y": {"beginAtZero": True, "max": 100}}},
+            options={
+                "responsive": True,
+                "scales": {"y": {"beginAtZero": True, "max": 100}},
+            },
         )
 
     async def _create_engagement_chart(self, engagement_data: Dict[str, Any]) -> ChartData:
@@ -566,7 +577,10 @@ class DashboardManager:
                     "fill": True,
                 }
             ],
-            options={"responsive": True, "scales": {"y": {"beginAtZero": True, "max": 100}}},
+            options={
+                "responsive": True,
+                "scales": {"y": {"beginAtZero": True, "max": 100}},
+            },
         )
 
     async def _create_performance_heatmap(self, performance_data: Dict[str, Any]) -> ChartData:
@@ -626,7 +640,10 @@ class DashboardManager:
 
         if len(historical_volumes) < self._min_data_points:
             return ChartData(
-                chart_type=ChartType.AREA, title="📊 票券量預測 (數據不足)", labels=[], datasets=[]
+                chart_type=ChartType.AREA,
+                title="📊 票券量預測 (數據不足)",
+                labels=[],
+                datasets=[],
             )
 
         # 簡單的線性預測模型
@@ -746,7 +763,13 @@ class DashboardManager:
     async def _create_resource_prediction_chart(self, historical_data: Dict[str, Any]) -> ChartData:
         """創建資源需求預測圖表"""
         # 模擬資源需求預測數據
-        resource_types = ["CPU使用率", "記憶體使用率", "網路頻寬", "儲存空間", "資料庫連線"]
+        resource_types = [
+            "CPU使用率",
+            "記憶體使用率",
+            "網路頻寬",
+            "儲存空間",
+            "資料庫連線",
+        ]
         current_usage = [65, 72, 45, 58, 80]  # 當前使用率
         predicted_usage = [75, 85, 55, 68, 90]  # 預測使用率 (30天後)
 
@@ -1117,7 +1140,11 @@ class DashboardManager:
         """計算工作流程效率"""
         try:
             if not executions:
-                return {"efficiency_score": 0, "success_rate": 0, "avg_execution_time": 0}
+                return {
+                    "efficiency_score": 0,
+                    "success_rate": 0,
+                    "avg_execution_time": 0,
+                }
 
             successful_executions = [e for e in executions if e.get("status") == "completed"]
             failed_executions = [e for e in executions if e.get("status") == "failed"]

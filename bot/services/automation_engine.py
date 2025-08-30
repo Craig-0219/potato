@@ -5,13 +5,12 @@
 """
 
 import asyncio
-import json
 import re
 import uuid
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
 from shared.logger import logger
 
@@ -353,7 +352,7 @@ class AutomationEngine:
     ) -> List[ExecutionResult]:
         """處理事件並執行匹配的規則"""
         results = []
-        guild_id = event_data.get("guild_id")
+        event_data.get("guild_id")
 
         try:
             # 查找匹配的規則

@@ -7,18 +7,15 @@
 import asyncio
 import csv
 import json
-import os
-import tempfile
 import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import aiomysql
 
 try:
-    import openpyxl
     import pandas as pd
 
     HAS_PANDAS = True
@@ -116,7 +113,8 @@ class DataExportManager:
             # 檢查匯出類型是否支援
             if request.export_type not in self.export_handlers:
                 return ExportResult(
-                    success=False, error_message=f"不支援的匯出類型: {request.export_type}"
+                    success=False,
+                    error_message=f"不支援的匯出類型: {request.export_type}",
                 )
 
             # 檢查格式是否支援
@@ -221,7 +219,7 @@ class DataExportManager:
                         await cursor.execute(tag_query, (ticket["id"],))
                         tags = await cursor.fetchall()
                         ticket["tags"] = [tag["name"] for tag in tags] if tags else []
-                    except Exception as e:
+                    except Exception:
                         # 如果標籤查詢失敗，設為空列表
                         ticket["tags"] = []
 
@@ -787,7 +785,11 @@ class DataExportManager:
         return str(file_path)
 
     async def _log_export(
-        self, request: ExportRequest, file_path: str, record_count: int, export_time: float
+        self,
+        request: ExportRequest,
+        file_path: str,
+        record_count: int,
+        export_time: float,
     ):
         """記錄匯出日誌"""
         try:

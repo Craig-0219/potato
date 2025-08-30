@@ -10,18 +10,16 @@
 6. 資料庫統計更新
 """
 
-import asyncio
 import hashlib
 import json
 import re
 import time
-from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
-from bot.db.pool import db_pool, execute_query
-from shared.cache_manager import cache_manager
+from bot.db.pool import db_pool
 from shared.logger import logger
 
 
@@ -400,7 +398,11 @@ class DatabaseOptimizer:
         return tables
 
     async def _generate_optimization_suggestions(
-        self, explain_result: Dict, execution_time: float, query_type: QueryType, query: str
+        self,
+        explain_result: Dict,
+        execution_time: float,
+        query_type: QueryType,
+        query: str,
     ) -> Tuple[OptimizationLevel, List[str]]:
         """生成優化建議"""
         suggestions = []
@@ -675,10 +677,10 @@ class DatabaseOptimizer:
             where_columns = self._extract_where_columns(query_patterns)
 
             # 分析 ORDER BY 中常用的欄位
-            order_columns = self._extract_order_columns(query_patterns)
+            self._extract_order_columns(query_patterns)
 
             # 分析 JOIN 條件中的欄位
-            join_columns = self._extract_join_columns(query_patterns)
+            self._extract_join_columns(query_patterns)
 
             # 獲取現有索引
             existing_indexes = self._get_existing_indexes(index_stats)
@@ -1008,12 +1010,12 @@ class DatabaseOptimizer:
                                 if slow_query_stats and slow_query_stats[2]
                                 else 0
                             ),
-                            "unique_count": slow_query_stats[3] if slow_query_stats else 0,
+                            "unique_count": (slow_query_stats[3] if slow_query_stats else 0),
                         },
                         "optimization_levels": optimization_levels,
                         "frequent_queries": [
                             {
-                                "query": query[:100] + "..." if len(query) > 100 else query,
+                                "query": (query[:100] + "..." if len(query) > 100 else query),
                                 "frequency": freq,
                                 "avg_time": float(avg_time),
                                 "level": level,
@@ -1031,12 +1033,10 @@ class DatabaseOptimizer:
     async def _load_optimization_history(self):
         """載入優化歷史"""
         # 實現載入歷史記錄的邏輯
-        pass
 
     async def _analyze_existing_tables(self):
         """分析現有表結構"""
         # 實現分析表結構的邏輯
-        pass
 
 
 # ========== 全域實例 ==========

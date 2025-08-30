@@ -4,9 +4,8 @@
 提供完整的抽獎管理和參與介面
 """
 
-import asyncio
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import discord
 from discord import ui
@@ -24,7 +23,10 @@ class LotteryCreationModal(ui.Modal):
 
         # 抽獎名稱
         self.name_input = ui.TextInput(
-            label="抽獎名稱", placeholder="輸入抽獎活動的名稱...", max_length=100, required=True
+            label="抽獎名稱",
+            placeholder="輸入抽獎活動的名稱...",
+            max_length=100,
+            required=True,
         )
         self.add_item(self.name_input)
 
@@ -40,19 +42,30 @@ class LotteryCreationModal(ui.Modal):
 
         # 獎品描述
         self.prize_input = ui.TextInput(
-            label="獎品說明", placeholder="描述抽獎獎品...", max_length=200, required=False
+            label="獎品說明",
+            placeholder="描述抽獎獎品...",
+            max_length=200,
+            required=False,
         )
         self.add_item(self.prize_input)
 
         # 中獎人數
         self.winner_count_input = ui.TextInput(
-            label="中獎人數", placeholder="1-50", default="1", max_length=2, required=True
+            label="中獎人數",
+            placeholder="1-50",
+            default="1",
+            max_length=2,
+            required=True,
         )
         self.add_item(self.winner_count_input)
 
         # 持續時間
         self.duration_input = ui.TextInput(
-            label="持續時間(小時)", placeholder="1-168", default="24", max_length=3, required=True
+            label="持續時間(小時)",
+            placeholder="1-168",
+            default="24",
+            max_length=3,
+            required=True,
         )
         self.add_item(self.duration_input)
 
@@ -292,7 +305,12 @@ class LotteryParticipationView(ui.View):
             )
 
         # 狀態資訊
-        status_emoji = {"active": "🟢", "pending": "🟡", "ended": "🔴", "cancelled": "⚫"}
+        status_emoji = {
+            "active": "🟢",
+            "pending": "🟡",
+            "ended": "🔴",
+            "cancelled": "⚫",
+        }
 
         embed.add_field(
             name="📊 狀態",
@@ -306,7 +324,11 @@ class LotteryParticipationView(ui.View):
 
     def _get_entry_method_text(self, entry_method: str) -> str:
         """獲取參與方式文字"""
-        method_map = {"reaction": "反應點擊", "command": "指令參與", "both": "反應 + 指令"}
+        method_map = {
+            "reaction": "反應點擊",
+            "command": "指令參與",
+            "both": "反應 + 指令",
+        }
         return method_map.get(entry_method, "未知")
 
     def _format_time_delta(self, delta: timedelta) -> str:
@@ -420,16 +442,25 @@ class LotteryManagementView(ui.View):
         placeholder="選擇管理操作...",
         options=[
             discord.SelectOption(
-                label="結束抽獎", description="提前結束指定的抽獎", emoji="🛑", value="end_lottery"
+                label="結束抽獎",
+                description="提前結束指定的抽獎",
+                emoji="🛑",
+                value="end_lottery",
             ),
             discord.SelectOption(
                 label="重新開獎", description="重新進行開獎", emoji="🔄", value="redraw"
             ),
             discord.SelectOption(
-                label="查看中獎者", description="查看抽獎中獎者", emoji="🏆", value="view_winners"
+                label="查看中獎者",
+                description="查看抽獎中獎者",
+                emoji="🏆",
+                value="view_winners",
             ),
             discord.SelectOption(
-                label="抽獎設定", description="修改抽獎系統設定", emoji="⚙️", value="settings"
+                label="抽獎設定",
+                description="修改抽獎系統設定",
+                emoji="⚙️",
+                value="settings",
             ),
         ],
     )

@@ -6,7 +6,7 @@
 
 import json
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from bot.db.base_dao import BaseDAO
 from shared.logger import logger
@@ -20,7 +20,6 @@ class WelcomeDAO(BaseDAO):
 
     async def _initialize(self):
         """初始化方法 - BaseDAO要求的抽象方法"""
-        pass
 
     # ========== 歡迎設定管理 ==========
 
@@ -372,12 +371,12 @@ class WelcomeDAO(BaseDAO):
                     result = await cursor.fetchone()
                     if result:
                         settings = {
-                            "general_settings": json.loads(result[0]) if result[0] else {},
-                            "channel_settings": json.loads(result[1]) if result[1] else {},
+                            "general_settings": (json.loads(result[0]) if result[0] else {}),
+                            "channel_settings": (json.loads(result[1]) if result[1] else {}),
                             "role_settings": json.loads(result[2]) if result[2] else {},
-                            "notification_settings": json.loads(result[3]) if result[3] else {},
-                            "feature_toggles": json.loads(result[4]) if result[4] else {},
-                            "custom_settings": json.loads(result[5]) if result[5] else {},
+                            "notification_settings": (json.loads(result[3]) if result[3] else {}),
+                            "feature_toggles": (json.loads(result[4]) if result[4] else {}),
+                            "custom_settings": (json.loads(result[5]) if result[5] else {}),
                         }
                         return settings
 

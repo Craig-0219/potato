@@ -3,7 +3,6 @@ import os
 import sys
 from enum import Enum
 from logging.handlers import RotatingFileHandler
-from typing import Optional
 
 
 class LogLevel(Enum):
@@ -64,7 +63,10 @@ class LogManager:
         # 添加文件處理器
         try:
             file_handler = RotatingFileHandler(
-                "bot.log", maxBytes=10 * 1024 * 1024, backupCount=5, encoding="utf-8"  # 10MB
+                "bot.log",
+                maxBytes=10 * 1024 * 1024,
+                backupCount=5,
+                encoding="utf-8",  # 10MB
             )
             file_handler.setFormatter(formatter)
             file_handler.setLevel(log_level)
@@ -108,7 +110,8 @@ class LogManager:
         if is_production:
             # 生產環境使用結構化格式
             return logging.Formatter(
-                fmt="%(asctime)s [%(levelname)s] %(name)s: %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
+                fmt="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+                datefmt="%Y-%m-%d %H:%M:%S",
             )
         else:
             # 開發環境使用詳細格式

@@ -4,8 +4,6 @@
 提供語言設定、統計、管理等指令
 """
 
-import asyncio
-from typing import List, Optional
 
 import discord
 from discord import app_commands
@@ -31,7 +29,8 @@ class LanguageCore(commands.Cog):
     # ========== 用戶語言設定指令 ==========
 
     @app_commands.command(
-        name="set_language", description="設定您的語言偏好 | Set your language preference"
+        name="set_language",
+        description="設定您的語言偏好 | Set your language preference",
     )
     @app_commands.describe(language="選擇語言 | Choose language")
     @app_commands.choices(
@@ -197,7 +196,8 @@ class LanguageCore(commands.Cog):
             await interaction.followup.send(f"❌ 查看語言設定時發生錯誤：{str(e)}", ephemeral=True)
 
     @app_commands.command(
-        name="reset_language", description="重置您的語言設定 | Reset your language settings"
+        name="reset_language",
+        description="重置您的語言設定 | Reset your language settings",
     )
     async def reset_user_language(self, interaction: discord.Interaction):
         """重置用戶語言設定"""
@@ -317,7 +317,9 @@ class LanguageCore(commands.Cog):
                 )
             else:
                 embed = discord.Embed(
-                    title="❌ 設定失敗", description="設定伺服器語言時發生錯誤", color=0xDC3545
+                    title="❌ 設定失敗",
+                    description="設定伺服器語言時發生錯誤",
+                    color=0xDC3545,
                 )
 
             await ctx.send(embed=embed)
@@ -359,7 +361,9 @@ class LanguageCore(commands.Cog):
                     value += f"偵測準確率: {stat['avg_accuracy']:.1%}"
 
                 embed.add_field(
-                    name=f"{i}. {lang_name} (`{stat['language_code']}`)", value=value, inline=True
+                    name=f"{i}. {lang_name} (`{stat['language_code']}`)",
+                    value=value,
+                    inline=True,
                 )
 
             embed.set_footer(text=f"總訊息數: {total_messages}")
@@ -444,7 +448,9 @@ class LanguageCore(commands.Cog):
                     )
 
                 embed.add_field(
-                    name="🌐 各語言準確率", value="\n".join(accuracy_text[:10]), inline=False
+                    name="🌐 各語言準確率",
+                    value="\n".join(accuracy_text[:10]),
+                    inline=False,
                 )
 
             await ctx.send(embed=embed)
@@ -491,7 +497,9 @@ class LanguageCore(commands.Cog):
             logger.error(f"同步指令描述錯誤: {e}")
 
             embed = discord.Embed(
-                title="❌ 同步失敗", description=f"同步指令時發生錯誤：{str(e)}", color=0xDC3545
+                title="❌ 同步失敗",
+                description=f"同步指令時發生錯誤：{str(e)}",
+                color=0xDC3545,
             )
 
             await ctx.send(embed=embed)

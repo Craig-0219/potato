@@ -2,21 +2,21 @@
 # 🗄️ 數據管理服務
 # Data Management Service for GDPR Compliance
 
-import asyncio
 import hashlib
 import json
 import logging
-import os
-import zipfile
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
 import aiomysql
 
 from bot.db.pool import db_pool
-from bot.services.guild_permission_manager import GuildPermission, guild_permission_manager
+from bot.services.guild_permission_manager import (
+    GuildPermission,
+    guild_permission_manager,
+)
 from bot.utils.multi_tenant_security import secure_query_builder
 
 logger = logging.getLogger(__name__)
@@ -70,7 +70,12 @@ class DataManagementService:
         self.table_policies = {
             # 用戶個人數據 - 嚴格 GDPR 管理
             "personal_data": {
-                "tables": ["api_users", "user_mfa", "guild_user_permissions", "user_sessions"],
+                "tables": [
+                    "api_users",
+                    "user_mfa",
+                    "guild_user_permissions",
+                    "user_sessions",
+                ],
                 "retention": DataRetentionPolicy.MEDIUM_TERM,
                 "requires_consent": True,
                 "auto_anonymize": True,
@@ -102,7 +107,11 @@ class DataManagementService:
             },
             # 統計數據 - 匿名化保存
             "analytics_data": {
-                "tables": ["guild_statistics", "ticket_statistics_cache", "tag_usage_stats"],
+                "tables": [
+                    "guild_statistics",
+                    "ticket_statistics_cache",
+                    "tag_usage_stats",
+                ],
                 "retention": DataRetentionPolicy.PERMANENT,
                 "requires_consent": False,
                 "auto_anonymize": True,
@@ -126,7 +135,9 @@ class DataManagementService:
         try:
             # 驗證權限
             if not await self.permission_manager.check_permission(
-                export_request.user_id, export_request.guild_id, GuildPermission.DATA_EXPORT
+                export_request.user_id,
+                export_request.guild_id,
+                GuildPermission.DATA_EXPORT,
             ):
                 raise PermissionError("用戶沒有導出數據的權限")
 
@@ -224,7 +235,11 @@ class DataManagementService:
             return []
 
     async def delete_guild_data(
-        self, guild_id: int, user_id: int, data_types: List[str] = None, hard_delete: bool = False
+        self,
+        guild_id: int,
+        user_id: int,
+        data_types: List[str] = None,
+        hard_delete: bool = False,
     ) -> Dict[str, Any]:
         """刪除伺服器數據 (GDPR Article 17)"""
         try:
@@ -336,7 +351,10 @@ class DataManagementService:
 
                     if update_fields:
                         query, params = self.query_builder.build_update(
-                            table=table, data=update_fields, where_conditions={}, guild_id=guild_id
+                            table=table,
+                            data=update_fields,
+                            where_conditions={},
+                            guild_id=guild_id,
                         )
 
                         await cursor.execute(query, params)
@@ -498,7 +516,6 @@ class DataManagementService:
 
     def _has_date_column(self, table: str) -> bool:
         """檢查表格是否有時間欄位"""
-        date_columns = ["created_at", "timestamp", "updated_at"]
         # 這裡可以根據已知的表格結構返回
         return True  # 大多數表格都有 created_at
 
@@ -532,7 +549,6 @@ class DataManagementService:
     async def _convert_to_csv(self, data: Dict) -> str:
         """轉換為 CSV 格式"""
         # 簡化版，實際實現需要更完整的 CSV 處理
-        import csv
         import io
 
         output = io.StringIO()
@@ -545,7 +561,10 @@ class DataManagementService:
         return f"<export>{json.dumps(data, indent=2, ensure_ascii=False)}</export>"
 
     async def _log_export_event(
-        self, export_request: DataExportRequest, exported_categories: int, error: str = None
+        self,
+        export_request: DataExportRequest,
+        exported_categories: int,
+        error: str = None,
     ):
         """記錄導出事件"""
         try:

@@ -4,7 +4,6 @@ API 認證管理器
 提供 JWT 令牌生成、驗證和用戶認證功能
 """
 
-import asyncio
 import hashlib
 import json
 import secrets
@@ -141,7 +140,13 @@ class AuthenticationManager:
 
             # 判斷是否為管理員或客服（支援模糊匹配）
             admin_keywords = ["管理員", "admin", "owner", "服主", "commander"]
-            staff_keywords = ["客服", "staff", "support", "moderator", "mod"] + admin_keywords
+            staff_keywords = [
+                "客服",
+                "staff",
+                "support",
+                "moderator",
+                "mod",
+            ] + admin_keywords
 
             is_admin = any(
                 any(keyword.lower() in role.lower() for keyword in admin_keywords) for role in roles
@@ -297,7 +302,8 @@ class AuthenticationManager:
 
                     # 更新最後登入時間
                     await cursor.execute(
-                        "UPDATE api_users SET last_login = NOW() WHERE id = %s", (user_data["id"],)
+                        "UPDATE api_users SET last_login = NOW() WHERE id = %s",
+                        (user_data["id"],),
                     )
                     await conn.commit()
 
@@ -307,7 +313,7 @@ class AuthenticationManager:
                         discord_id=user_data["discord_id"],
                         username=user_data["username"],
                         guild_id=user_data["guild_id"],
-                        roles=json.loads(user_data["roles"]) if user_data["roles"] else [],
+                        roles=(json.loads(user_data["roles"]) if user_data["roles"] else []),
                         permissions=(
                             json.loads(user_data["permissions"]) if user_data["permissions"] else []
                         ),
@@ -365,7 +371,11 @@ class AuthenticationManager:
     # ===== API 金鑰管理 =====
 
     async def create_api_key(
-        self, user_id: int, name: str, permissions: List[str] = None, expires_days: int = 30
+        self,
+        user_id: int,
+        name: str,
+        permissions: List[str] = None,
+        expires_days: int = 30,
     ) -> Tuple[bool, str, Optional[str]]:
         """創建 API 金鑰"""
         try:
@@ -442,7 +452,8 @@ class AuthenticationManager:
 
                     # 更新最後使用時間
                     await cursor.execute(
-                        "UPDATE api_keys SET last_used = NOW() WHERE id = %s", (result["id"],)
+                        "UPDATE api_keys SET last_used = NOW() WHERE id = %s",
+                        (result["id"],),
                     )
                     await conn.commit()
 
@@ -477,7 +488,11 @@ class AuthenticationManager:
     # ===== 會話管理 =====
 
     async def create_login_session(
-        self, user_id: int, ip_address: str = None, user_agent: str = None, expires_hours: int = 24
+        self,
+        user_id: int,
+        ip_address: str = None,
+        user_agent: str = None,
+        expires_hours: int = 24,
     ) -> Optional[str]:
         """創建登入會話"""
         try:

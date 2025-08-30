@@ -5,7 +5,6 @@
 """
 
 import json
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from bot.db.pool import db_pool
@@ -129,7 +128,10 @@ class VoteTemplateDAO:
             return None
 
     async def get_templates_by_category(
-        self, category: str, guild_id: Optional[int] = None, user_id: Optional[int] = None
+        self,
+        category: str,
+        guild_id: Optional[int] = None,
+        user_id: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
         """根據類別取得模板列表"""
         try:

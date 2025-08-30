@@ -11,14 +11,13 @@
 5. 團隊遊戲和協作模式
 """
 
-import asyncio
 import json
 import random
 import time
-from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 import discord
 from discord import app_commands
@@ -32,14 +31,10 @@ from bot.services.economy_manager import EconomyManager
 from bot.services.game_manager import GameManager
 from bot.utils.embed_builder import EmbedBuilder
 from bot.views.game_views import (
-    CoinFlipView,
     GameMenuView,
     GuessNumberView,
-    RockPaperScissorsView,
-    RouletteView,
-    TriviaView,
 )
-from shared.cache_manager import cache_manager, cached
+from shared.cache_manager import cache_manager
 from shared.logger import logger
 from shared.prometheus_metrics import prometheus_metrics, track_command_execution
 
@@ -146,7 +141,9 @@ class GameEntertainment(commands.Cog):
 
             # 創建遊戲選單嵌入
             embed = EmbedBuilder.build(
-                title="🎮 遊戲娛樂中心", description="選擇您想要遊玩的遊戲！", color=0x00FF88
+                title="🎮 遊戲娛樂中心",
+                description="選擇您想要遊玩的遊戲！",
+                color=0x00FF88,
             )
 
             embed.add_field(
@@ -231,7 +228,9 @@ class GameEntertainment(commands.Cog):
 
             # 創建獎勵嵌入
             embed = EmbedBuilder.build(
-                title="✅ 每日簽到成功！", description=f"感謝您的持續參與！", color=0x00FF00
+                title="✅ 每日簽到成功！",
+                description=f"感謝您的持續參與！",
+                color=0x00FF00,
             )
 
             embed.add_field(
@@ -370,7 +369,12 @@ class GameEntertainment(commands.Cog):
                 "games": "🎮 遊戲次數排行榜",
             }
 
-            category_emojis = {"coins": "🪙", "experience": "⭐", "wins": "🏅", "games": "🎯"}
+            category_emojis = {
+                "coins": "🪙",
+                "experience": "⭐",
+                "wins": "🏅",
+                "games": "🎯",
+            }
 
             embed = EmbedBuilder.build(
                 title=category_names.get(category, "📊 排行榜"),
@@ -380,7 +384,9 @@ class GameEntertainment(commands.Cog):
 
             if not leaderboard_data:
                 embed.add_field(
-                    name="📝 暫無數據", value="還沒有玩家參與遊戲，快來成為第一名！", inline=False
+                    name="📝 暫無數據",
+                    value="還沒有玩家參與遊戲，快來成為第一名！",
+                    inline=False,
                 )
             else:
                 rank_text = []
@@ -406,12 +412,16 @@ class GameEntertainment(commands.Cog):
                 # 分成兩欄顯示
                 mid_point = len(rank_text) // 2 + 1
                 embed.add_field(
-                    name="🏆 前5名", value="\n\n".join(rank_text[:mid_point]), inline=True
+                    name="🏆 前5名",
+                    value="\n\n".join(rank_text[:mid_point]),
+                    inline=True,
                 )
 
                 if len(rank_text) > mid_point:
                     embed.add_field(
-                        name="🎖️ 6-10名", value="\n\n".join(rank_text[mid_point:]), inline=True
+                        name="🎖️ 6-10名",
+                        value="\n\n".join(rank_text[mid_point:]),
+                        inline=True,
                     )
 
             # 用戶排名
@@ -580,7 +590,9 @@ class GameEntertainment(commands.Cog):
             else:
                 # 顯示所有未完成成就的進度
                 embed = EmbedBuilder.build(
-                    title="🎯 成就進度總覽", description="您的成就解鎖進度", color=0x4169E1
+                    title="🎯 成就進度總覽",
+                    description="您的成就解鎖進度",
+                    color=0x4169E1,
                 )
 
                 incomplete_count = 0
@@ -737,7 +749,9 @@ class GameEntertainment(commands.Cog):
             await interaction.response.defer(ephemeral=True)
 
             result = await cross_platform_economy.sync_user_economy(
-                discord_id=interaction.user.id, guild_id=interaction.guild.id, direction=direction
+                discord_id=interaction.user.id,
+                guild_id=interaction.guild.id,
+                direction=direction,
             )
 
             if result["success"]:
@@ -803,7 +817,9 @@ class GameEntertainment(commands.Cog):
                 embed.add_field(name="🔗 綁定狀態", value="✅ 已綁定", inline=True)
 
                 embed.add_field(
-                    name="🎮 Minecraft帳號", value=f"`{link_info['minecraft_uuid']}`", inline=True
+                    name="🎮 Minecraft帳號",
+                    value=f"`{link_info['minecraft_uuid']}`",
+                    inline=True,
                 )
 
                 embed.add_field(

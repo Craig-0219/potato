@@ -6,11 +6,9 @@
 
 import json
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 import discord
-from discord.ext import commands
 
 from shared.logger import logger
 
@@ -91,7 +89,10 @@ class RuleSelectDropdown(discord.ui.Select):
             )
 
         super().__init__(
-            placeholder="選擇要操作的規則...", min_values=1, max_values=1, options=options
+            placeholder="選擇要操作的規則...",
+            min_values=1,
+            max_values=1,
+            options=options,
         )
 
     def _get_trigger_display_name(self, trigger_type: str) -> str:
@@ -152,21 +153,24 @@ class RuleOperationsView(discord.ui.View):
     async def enable_rule(self, interaction: discord.Interaction, button: discord.ui.Button):
         """啟用規則"""
         await interaction.response.send_message(
-            f"請使用 `/automation_toggle {self.rule_id} active` 啟用規則", ephemeral=True
+            f"請使用 `/automation_toggle {self.rule_id} active` 啟用規則",
+            ephemeral=True,
         )
 
     @discord.ui.button(label="🟡 暫停", style=discord.ButtonStyle.secondary)
     async def pause_rule(self, interaction: discord.Interaction, button: discord.ui.Button):
         """暫停規則"""
         await interaction.response.send_message(
-            f"請使用 `/automation_toggle {self.rule_id} paused` 暫停規則", ephemeral=True
+            f"請使用 `/automation_toggle {self.rule_id} paused` 暫停規則",
+            ephemeral=True,
         )
 
     @discord.ui.button(label="🔴 停用", style=discord.ButtonStyle.danger)
     async def disable_rule(self, interaction: discord.Interaction, button: discord.ui.Button):
         """停用規則"""
         await interaction.response.send_message(
-            f"請使用 `/automation_toggle {self.rule_id} disabled` 停用規則", ephemeral=True
+            f"請使用 `/automation_toggle {self.rule_id} disabled` 停用規則",
+            ephemeral=True,
         )
 
 
@@ -241,7 +245,8 @@ class RuleBuilderModal(discord.ui.Modal):
             for action in actions_data:
                 if "type" not in action or "parameters" not in action:
                     await interaction.followup.send(
-                        "❌ 每個動作必須包含 'type' 和 'parameters' 欄位", ephemeral=True
+                        "❌ 每個動作必須包含 'type' 和 'parameters' 欄位",
+                        ephemeral=True,
                     )
                     return
 
@@ -438,7 +443,9 @@ class TriggerBuilderModal(discord.ui.Modal):
 
             # 顯示確認資訊
             embed = discord.Embed(
-                title="⚡ 觸發器設定完成", description="觸發器配置已準備就緒", color=0xF39C12
+                title="⚡ 觸發器設定完成",
+                description="觸發器配置已準備就緒",
+                color=0xF39C12,
             )
 
             embed.add_field(
@@ -498,7 +505,8 @@ class ActionBuilderModal(discord.ui.Modal):
                     or "parameters" not in action
                 ):
                     await interaction.response.send_message(
-                        f"❌ 動作 {i+1} 格式錯誤，必須包含 'type' 和 'parameters'", ephemeral=True
+                        f"❌ 動作 {i+1} 格式錯誤，必須包含 'type' 和 'parameters'",
+                        ephemeral=True,
                     )
                     return
 

@@ -4,9 +4,8 @@
 負責歷史資料的歸檔、清理和維護工作
 """
 
-import asyncio
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any, Dict, List
 
 from discord.ext import tasks
 
@@ -72,7 +71,10 @@ class DatabaseCleanupManager:
             if config.get("clean_logs", True):
                 logger.info(f"清理 {config['log_retention_days']} 天前的日誌...")
                 log_result = await self.dao.cleanup_old_data(
-                    guild_id, "logs", config["log_retention_days"], False  # 日誌不需要歸檔
+                    guild_id,
+                    "logs",
+                    config["log_retention_days"],
+                    False,  # 日誌不需要歸檔
                 )
                 results["logs_cleaned"] = log_result
 
@@ -181,7 +183,11 @@ class DatabaseCleanupManager:
 
             if schedule_id:
                 logger.info(f"創建清理排程成功: {schedule_id}")
-                return {"success": True, "schedule_id": schedule_id, "config": schedule_config}
+                return {
+                    "success": True,
+                    "schedule_id": schedule_id,
+                    "config": schedule_config,
+                }
             else:
                 return {"success": False, "error": "創建清理排程失敗"}
 
@@ -359,7 +365,7 @@ class DatabaseCleanupManager:
             }
 
             # 執行清理
-            result = await self.perform_comprehensive_cleanup(guild_id, cleanup_config)
+            await self.perform_comprehensive_cleanup(guild_id, cleanup_config)
 
             # 更新排程的下次執行時間
             await self._update_schedule_next_run(schedule["id"], schedule["schedule_type"])
@@ -372,7 +378,6 @@ class DatabaseCleanupManager:
     async def _update_schedule_next_run(self, schedule_id: int, schedule_type: str):
         """更新排程下次執行時間"""
         # 這裡需要在ArchiveDAO中實現相應的更新方法
-        pass
 
     @cleanup_scheduler.before_loop
     async def before_cleanup_scheduler(self):

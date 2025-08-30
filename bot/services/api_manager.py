@@ -83,7 +83,11 @@ class APIManager:
     # ========== API 金鑰管理 ==========
 
     def generate_api_key(
-        self, guild_id: int, permissions: List[str], rate_limit: int = 100, expires_days: int = None
+        self,
+        guild_id: int,
+        permissions: List[str],
+        rate_limit: int = 100,
+        expires_days: int = None,
     ) -> APIKey:
         """生成 API 金鑰"""
         try:
@@ -518,14 +522,26 @@ class APIManager:
             },
             "GET /api/v1/tickets": {
                 "page": {"type": "integer", "default": 1, "description": "頁碼"},
-                "page_size": {"type": "integer", "default": 50, "description": "每頁數量"},
+                "page_size": {
+                    "type": "integer",
+                    "default": 50,
+                    "description": "每頁數量",
+                },
                 "status": {"type": "string", "description": "票券狀態篩選"},
             },
             "POST /api/v1/ai/suggest": {
-                "content": {"type": "string", "required": True, "description": "要分析的內容"}
+                "content": {
+                    "type": "string",
+                    "required": True,
+                    "description": "要分析的內容",
+                }
             },
             "POST /api/v1/language/detect": {
-                "text": {"type": "string", "required": True, "description": "要偵測的文本"}
+                "text": {
+                    "type": "string",
+                    "required": True,
+                    "description": "要偵測的文本",
+                }
             },
         }
 
@@ -544,7 +560,7 @@ class APIManager:
             "permissions": api_key.permissions,
             "rate_limit": api_key.rate_limit,
             "created_at": api_key.created_at.isoformat(),
-            "expires_at": api_key.expires_at.isoformat() if api_key.expires_at else None,
+            "expires_at": (api_key.expires_at.isoformat() if api_key.expires_at else None),
             "is_active": api_key.is_active,
             "current_usage": self.rate_limits.get(key_id, {}).get("count", 0),
         }

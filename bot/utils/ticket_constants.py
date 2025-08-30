@@ -249,13 +249,22 @@ def validate_setting_value(setting: str, value: Any) -> bool:
 def create_priority_options() -> List[discord.SelectOption]:
     return [
         discord.SelectOption(
-            label="🔴 高優先級", value="high", description="緊急問題，需要立即處理", emoji="🔴"
+            label="🔴 高優先級",
+            value="high",
+            description="緊急問題，需要立即處理",
+            emoji="🔴",
         ),
         discord.SelectOption(
-            label="🟡 中優先級", value="medium", description="一般問題，正常處理時間", emoji="🟡"
+            label="🟡 中優先級",
+            value="medium",
+            description="一般問題，正常處理時間",
+            emoji="🟡",
         ),
         discord.SelectOption(
-            label="🟢 低優先級", value="low", description="非緊急問題，可稍後處理", emoji="🟢"
+            label="🟢 低優先級",
+            value="low",
+            description="非緊急問題，可稍後處理",
+            emoji="🟢",
         ),
     ]
 

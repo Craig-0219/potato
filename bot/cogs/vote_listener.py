@@ -104,7 +104,9 @@ class VoteListener(commands.Cog):
         ):
             session["anonymous"] = values[0] == "true"
             await interaction.response.send_message(
-                "請選擇投票方式（單選或多選）：", view=MultiSelectView(user_id), ephemeral=True
+                "請選擇投票方式（單選或多選）：",
+                view=MultiSelectView(user_id),
+                ephemeral=True,
             )
             return
 

@@ -4,10 +4,8 @@
 提供文本情感分析、內容安全檢查、連結分析等功能的Discord指令
 """
 
-import asyncio
-import time
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict
 
 import discord
 from discord import app_commands
@@ -15,7 +13,6 @@ from discord.ext import commands
 
 from bot.services.content_analyzer import (
     AnalysisType,
-    ContentAnalysisResult,
     ContentRiskLevel,
     SentimentType,
     content_analyzer,
@@ -24,7 +21,7 @@ from bot.services.economy_manager import EconomyManager
 from bot.utils.embed_builder import EmbedBuilder
 from shared.cache_manager import cache_manager
 from shared.logger import logger
-from shared.prometheus_metrics import prometheus_metrics, track_command_execution
+from shared.prometheus_metrics import track_command_execution
 
 
 class ContentAnalysisCog(commands.Cog):
@@ -110,7 +107,9 @@ class ContentAnalysisCog(commands.Cog):
 
             if not can_use:
                 embed = EmbedBuilder.build(
-                    title="❌ 使用受限", description=cost_info["message"], color=0xFF0000
+                    title="❌ 使用受限",
+                    description=cost_info["message"],
+                    color=0xFF0000,
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
@@ -182,7 +181,9 @@ class ContentAnalysisCog(commands.Cog):
                 # 費用信息
                 if cost_info["cost"] > 0:
                     embed.add_field(
-                        name="💰 費用", value=f"消耗金幣: {cost_info['cost']}🪙", inline=True
+                        name="💰 費用",
+                        value=f"消耗金幣: {cost_info['cost']}🪙",
+                        inline=True,
                     )
 
                 embed.set_footer(text=f"分析者: {interaction.user.display_name}")
@@ -224,7 +225,9 @@ class ContentAnalysisCog(commands.Cog):
 
             if not can_use:
                 embed = EmbedBuilder.build(
-                    title="❌ 使用受限", description=cost_info["message"], color=0xFF0000
+                    title="❌ 使用受限",
+                    description=cost_info["message"],
+                    color=0xFF0000,
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
@@ -294,7 +297,9 @@ class ContentAnalysisCog(commands.Cog):
 
                     if category_text:
                         embed.add_field(
-                            name="⚠️ 問題類別", value="\n".join(category_text), inline=True
+                            name="⚠️ 問題類別",
+                            value="\n".join(category_text),
+                            inline=True,
                         )
 
                 # 標記的詞彙
@@ -345,7 +350,9 @@ class ContentAnalysisCog(commands.Cog):
 
             if not can_use:
                 embed = EmbedBuilder.build(
-                    title="❌ 使用受限", description=cost_info["message"], color=0xFF0000
+                    title="❌ 使用受限",
+                    description=cost_info["message"],
+                    color=0xFF0000,
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
@@ -367,7 +374,9 @@ class ContentAnalysisCog(commands.Cog):
 
                 if not result.links:
                     embed = EmbedBuilder.build(
-                        title="🔍 連結分析結果", description="文本中沒有發現連結", color=0x808080
+                        title="🔍 連結分析結果",
+                        description="文本中沒有發現連結",
+                        color=0x808080,
                     )
                 else:
                     # 計算整體安全性
@@ -386,7 +395,9 @@ class ContentAnalysisCog(commands.Cog):
                         status = "發現風險連結 ⛔"
 
                     embed = EmbedBuilder.build(
-                        title="🔍 連結安全分析", description=f"**分析結果**: {status}", color=color
+                        title="🔍 連結安全分析",
+                        description=f"**分析結果**: {status}",
+                        color=color,
                     )
 
                     embed.add_field(
@@ -422,7 +433,9 @@ class ContentAnalysisCog(commands.Cog):
                         display_url = link.url if len(link.url) <= 50 else link.url[:47] + "..."
 
                         embed.add_field(
-                            name=f"🔗 連結 {i+1}: {display_url}", value=link_info, inline=False
+                            name=f"🔗 連結 {i+1}: {display_url}",
+                            value=link_info,
+                            inline=False,
                         )
 
                     if len(result.links) > 3:
@@ -479,7 +492,9 @@ class ContentAnalysisCog(commands.Cog):
 
             if not can_use:
                 embed = EmbedBuilder.build(
-                    title="❌ 使用受限", description=cost_info["message"], color=0xFF0000
+                    title="❌ 使用受限",
+                    description=cost_info["message"],
+                    color=0xFF0000,
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
@@ -633,7 +648,9 @@ class ContentAnalysisCog(commands.Cog):
 
             if not can_use:
                 embed = EmbedBuilder.build(
-                    title="❌ 使用受限", description=cost_info["message"], color=0xFF0000
+                    title="❌ 使用受限",
+                    description=cost_info["message"],
+                    color=0xFF0000,
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
@@ -714,7 +731,9 @@ class ContentAnalysisCog(commands.Cog):
                 # 費用信息
                 if cost_info["cost"] > 0:
                     embed.add_field(
-                        name="💰 費用", value=f"消耗金幣: {cost_info['cost']}🪙", inline=True
+                        name="💰 費用",
+                        value=f"消耗金幣: {cost_info['cost']}🪙",
+                        inline=True,
                     )
 
                 embed.set_footer(text=f"統計生成者: {interaction.user.display_name}")

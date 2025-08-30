@@ -3,26 +3,21 @@
 import asyncio
 import json
 import re
-from collections import defaultdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import discord
 
 from bot.utils.ticket_constants import (
     TicketConstants,
-    calculate_sla_time,
     create_progress_indicator,
-    escape_markdown,
     format_duration_chinese,
     get_priority_color,
     get_priority_emoji,
-    get_status_color,
     get_status_emoji,
     get_time_ago_chinese,
     truncate_text,
 )
-from shared.logger import logger
 
 # ===== 權限檢查器 =====
 
@@ -268,7 +263,8 @@ def build_ticket_embed(ticket_info: Dict[str, Any], include_stats: bool = False)
     status_emoji = get_status_emoji(status)
 
     embed = discord.Embed(
-        title=f"🎫 票券 #{ticket_info['ticket_id']:04d}", color=get_priority_color(priority)
+        title=f"🎫 票券 #{ticket_info['ticket_id']:04d}",
+        color=get_priority_color(priority),
     )
 
     # 基本資訊
@@ -303,7 +299,9 @@ def build_ticket_embed(ticket_info: Dict[str, Any], include_stats: bool = False)
     # 指派資訊
     if ticket_info.get("assigned_to"):
         embed.add_field(
-            name="👥 指派資訊", value=f"**負責客服：** <@{ticket_info['assigned_to']}>", inline=True
+            name="👥 指派資訊",
+            value=f"**負責客服：** <@{ticket_info['assigned_to']}>",
+            inline=True,
         )
 
     # 評分資訊
@@ -343,7 +341,9 @@ def build_ticket_embed(ticket_info: Dict[str, Any], include_stats: bool = False)
 
 
 def build_stats_embed(
-    stats: Dict[str, Any], title: str = "📊 統計資訊", color: discord.Color = discord.Color.blue()
+    stats: Dict[str, Any],
+    title: str = "📊 統計資訊",
+    color: discord.Color = discord.Color.blue(),
 ) -> discord.Embed:
     """建立統計資訊嵌入"""
     embed = discord.Embed(title=title, color=color)
@@ -382,7 +382,9 @@ def build_stats_embed(
         close_rate = (closed_count / total_count) * 100
         progress_bar = create_progress_indicator(closed_count, total_count, 10)
         embed.add_field(
-            name="📈 完成進度", value=f"```{progress_bar}``` {close_rate:.1f}%", inline=False
+            name="📈 完成進度",
+            value=f"```{progress_bar}``` {close_rate:.1f}%",
+            inline=False,
         )
 
     return embed
@@ -430,7 +432,9 @@ def build_sla_embed(sla_stats: Dict[str, Any], guild: discord.Guild) -> discord.
     # SLA 進度條
     sla_progress = create_progress_indicator(int(sla_rate), 100, 15)
     embed.add_field(
-        name="📈 SLA 達標率", value=f"```{sla_progress}``` **{sla_rate:.1f}%**", inline=False
+        name="📈 SLA 達標率",
+        value=f"```{sla_progress}``` **{sla_rate:.1f}%**",
+        inline=False,
     )
 
     embed.set_footer(
@@ -495,7 +499,10 @@ def build_staff_performance_embed(
 
 
 def build_user_tickets_embed(
-    tickets: List[Dict[str, Any]], user: discord.Member, page: int = 1, total_pages: int = 1
+    tickets: List[Dict[str, Any]],
+    user: discord.Member,
+    page: int = 1,
+    total_pages: int = 1,
 ) -> discord.Embed:
     """建立用戶票券列表嵌入"""
     embed = discord.Embed(title=f"🎫 {user.display_name} 的票券", color=discord.Color.blue())
@@ -533,7 +540,9 @@ def build_user_tickets_embed(
             field_value += f"\n**客服：** <@{ticket['assigned_to']}>"
 
         embed.add_field(
-            name=f"#{ticket['ticket_id']:04d} - {ticket['type']}", value=field_value, inline=True
+            name=f"#{ticket['ticket_id']:04d} - {ticket['type']}",
+            value=field_value,
+            inline=True,
         )
 
     # 分頁資訊
@@ -644,7 +653,11 @@ def format_settings_value(field_name: str, value: Any, guild: discord.Guild = No
     elif field_name == "auto_assign_enabled":
         return "啟用" if value else "停用"
 
-    elif field_name in ["max_tickets_per_user", "auto_close_hours", "sla_response_minutes"]:
+    elif field_name in [
+        "max_tickets_per_user",
+        "auto_close_hours",
+        "sla_response_minutes",
+    ]:
         units = {
             "max_tickets_per_user": "張",
             "auto_close_hours": "小時",
@@ -812,7 +825,10 @@ class TicketCache:
 
 
 async def send_ticket_notification(
-    user: discord.Member, title: str, description: str, color: discord.Color = discord.Color.blue()
+    user: discord.Member,
+    title: str,
+    description: str,
+    color: discord.Color = discord.Color.blue(),
 ) -> bool:
     """發送票券通知"""
     try:
@@ -856,7 +872,7 @@ async def send_sla_alert(
 
         await channel.send(embed=embed)
         return True
-    except Exception as e:
+    except Exception:
 
         return False
 

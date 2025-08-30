@@ -9,7 +9,6 @@
 
 import os
 import sys
-from typing import Optional
 
 from dotenv import load_dotenv
 
@@ -46,6 +45,9 @@ DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 REDIS_URL = os.getenv("REDIS_URL")  # 可選的 Redis 連接
 
+# 開發工具配置
+SYNC_COMMANDS = os.getenv("SYNC_COMMANDS", "true").lower() == "true"
+
 # 票券系統配置
 TICKET_AUTO_ASSIGNMENT = os.getenv("TICKET_AUTO_ASSIGNMENT", "true").lower() == "true"
 TICKET_SLA_MONITORING = os.getenv("TICKET_SLA_MONITORING", "true").lower() == "true"
@@ -76,8 +78,14 @@ SENTIMENT_ANALYSIS_THRESHOLD = float(os.getenv("SENTIMENT_ANALYSIS_THRESHOLD", "
 
 # 經濟系統配置
 ECONOMY_ENABLED = os.getenv("ECONOMY_ENABLED", "true").lower() == "true"
-MINECRAFT_SERVER_HOST = os.getenv("MINECRAFT_SERVER_HOST")
+
+# Minecraft 整合配置 - Gaming Community BOT
+MINECRAFT_SERVER_HOST = os.getenv("MINECRAFT_SERVER_HOST", "localhost")
 MINECRAFT_SERVER_PORT = int(os.getenv("MINECRAFT_SERVER_PORT", "25565"))
+MINECRAFT_RCON_HOST = os.getenv("MINECRAFT_RCON_HOST", "localhost")
+MINECRAFT_RCON_PORT = int(os.getenv("MINECRAFT_RCON_PORT", "25575"))
+MINECRAFT_RCON_PASSWORD = os.getenv("MINECRAFT_RCON_PASSWORD", "")
+MINECRAFT_NOTIFICATION_CHANNEL = os.getenv("MINECRAFT_NOTIFICATION_CHANNEL")  # Discord 頻道 ID
 TICKET_RATING_SYSTEM = os.getenv("TICKET_RATING_SYSTEM", "true").lower() == "true"
 TICKET_ADVANCED_STATS = os.getenv("TICKET_ADVANCED_STATS", "true").lower() == "true"
 
@@ -92,6 +100,9 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-3.5-turbo")
 OPENAI_MAX_TOKENS = int(os.getenv("OPENAI_MAX_TOKENS", 1000))
 AI_DAILY_FREE_QUOTA = int(os.getenv("AI_DAILY_FREE_QUOTA", 10))
+
+# JWT Configuration
+JWT_SECRET = os.getenv("JWT_SECRET", "default_jwt_secret_for_development_only")
 
 # Image Processing Configuration
 IMAGE_DAILY_FREE_QUOTA = int(os.getenv("IMAGE_DAILY_FREE_QUOTA", 5))
@@ -193,7 +204,11 @@ def get_config_summary() -> dict:
             "auto_close_hours": TICKET_DEFAULT_AUTO_CLOSE_HOURS,
             "max_tickets_per_user": TICKET_MAX_PER_USER,
         },
-        "system": {"debug": DEBUG, "log_level": LOG_LEVEL, "redis_enabled": bool(REDIS_URL)},
+        "system": {
+            "debug": DEBUG,
+            "log_level": LOG_LEVEL,
+            "redis_enabled": bool(REDIS_URL),
+        },
     }
 
 

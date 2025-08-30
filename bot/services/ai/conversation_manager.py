@@ -7,16 +7,14 @@ Version: 3.1.0 - Phase 7 Stage 1
 """
 
 import asyncio
-import json
 import logging
 import time
-import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
-from .ai_engine_manager import AIEngineManager, AIResponse, ConversationContext
-from .intent_recognition import IntentRecognizer, IntentResult, IntentType
+from .ai_engine_manager import AIEngineManager, ConversationContext
+from .intent_recognition import IntentRecognizer, IntentType
 
 logger = logging.getLogger(__name__)
 
@@ -440,7 +438,11 @@ class ConversationManager:
         elif step.expected_input == "confirmation":
             return message_lower in ["是", "否", "yes", "no", "y", "n", "確認", "取消"]
 
-        elif step.expected_input in ["detailed_description", "vote_title", "welcome_message"]:
+        elif step.expected_input in [
+            "detailed_description",
+            "vote_title",
+            "welcome_message",
+        ]:
             return len(message.strip()) >= 10  # 至少10個字符
 
         elif step.expected_input == "vote_options":

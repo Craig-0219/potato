@@ -4,12 +4,9 @@ Discord Bot 娛樂模組 v2.3.0
 提供各種小遊戲和娛樂功能，使用 Discord 原生 GUI 組件
 """
 
-import asyncio
-import random
-import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Dict, Optional
 
 import discord
 from discord import app_commands
@@ -17,15 +14,8 @@ from discord.ext import commands
 
 from bot.utils.embed_builder import EmbedBuilder
 from bot.views.entertainment_views import (
-    CoinFlipView,
-    DiceRollView,
     EntertainmentMenuView,
     GameLeaderboardView,
-    GuessNumberView,
-    MiniGameView,
-    QuizView,
-    RockPaperScissorsView,
-    TruthDareView,
 )
 from shared.logger import logger
 
@@ -133,7 +123,7 @@ class EntertainmentCore(commands.Cog):
 
     async def check_daily_limit(self, user_id: int) -> bool:
         """檢查每日遊戲限制"""
-        today = datetime.now().date()
+        datetime.now().date()
         if user_id not in self.daily_limits:
             self.daily_limits[user_id] = 0
 
@@ -275,7 +265,7 @@ class EntertainmentCore(commands.Cog):
                 leaderboard_text += f"{medal} {username}\n"
                 leaderboard_text += f"   💎 {stats['points']}分 | 🏆 {stats['wins']}勝 | 🎮 {stats['total_games']}場\n\n"
 
-            except Exception as e:
+            except Exception:
                 continue
 
         if not leaderboard_text:

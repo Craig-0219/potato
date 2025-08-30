@@ -4,20 +4,18 @@
 提供Discord指令介面來生成和查看各種分析儀表板
 """
 
-import asyncio
-import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.services.dashboard_manager import ChartType, MetricType, dashboard_manager
+from bot.services.dashboard_manager import dashboard_manager
 from bot.services.statistics_manager import StatisticsManager
 from bot.utils.embed_builder import EmbedBuilder
-from bot.utils.interaction_helper import InteractionContext, SafeInteractionHandler
-from bot.views.dashboard_views import ChartDisplayView, DashboardView
+from bot.utils.interaction_helper import SafeInteractionHandler
+from bot.views.dashboard_views import DashboardView
 from shared.logger import logger
 
 
@@ -173,13 +171,17 @@ class DashboardCore(commands.Cog):
 
             if performance_summary:
                 embed.add_field(
-                    name="🎯 性能摘要", value="\n".join(performance_summary), inline=False
+                    name="🎯 性能摘要",
+                    value="\n".join(performance_summary),
+                    inline=False,
                 )
 
             # 添加改進建議
             if dashboard_data.insights:
                 embed.add_field(
-                    name="💡 性能建議", value="\n".join(dashboard_data.insights[:3]), inline=False
+                    name="💡 性能建議",
+                    value="\n".join(dashboard_data.insights[:3]),
+                    inline=False,
                 )
 
             embed.set_footer(
@@ -239,13 +241,17 @@ class DashboardCore(commands.Cog):
 
             if prediction_summary:
                 embed.add_field(
-                    name="🎯 預測摘要", value="\n".join(prediction_summary[:4]), inline=False
+                    name="🎯 預測摘要",
+                    value="\n".join(prediction_summary[:4]),
+                    inline=False,
                 )
 
             # 添加預測洞察
             if dashboard_data.insights:
                 embed.add_field(
-                    name="🧠 AI洞察", value="\n".join(dashboard_data.insights[:3]), inline=False
+                    name="🧠 AI洞察",
+                    value="\n".join(dashboard_data.insights[:3]),
+                    inline=False,
                 )
 
             # 添加預測說明
@@ -320,7 +326,9 @@ class DashboardCore(commands.Cog):
                 await self.dashboard_manager.clear_dashboard_cache()
 
                 embed = EmbedBuilder.build(
-                    title="✅ 快取已清除", description="所有儀表板快取已成功清除", color=0x2ECC71
+                    title="✅ 快取已清除",
+                    description="所有儀表板快取已成功清除",
+                    color=0x2ECC71,
                 )
 
                 await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -471,7 +479,11 @@ class DashboardCore(commands.Cog):
         except Exception as e:
             logger.warning(f"工作流程實時數據不可用: {e}")
             # 如果工作流程系統不可用，返回默認值
-            return {"active_workflows": 0, "running_executions": 0, "today_executions": 0}
+            return {
+                "active_workflows": 0,
+                "running_executions": 0,
+                "today_executions": 0,
+            }
 
     # ========== 錯誤處理 ==========
 

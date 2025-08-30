@@ -10,9 +10,9 @@ import hmac
 import json
 import secrets
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import aiohttp
 
@@ -123,7 +123,8 @@ class WebhookManager:
         try:
             # 創建HTTP會話
             self.session = aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=60), connector=aiohttp.TCPConnector(limit=100)
+                timeout=aiohttp.ClientTimeout(total=60),
+                connector=aiohttp.TCPConnector(limit=100),
             )
 
             # 從資料庫載入Webhook配置
@@ -449,7 +450,8 @@ class WebhookManager:
             "success_rate": (
                 self.execution_stats["success_count"]
                 / max(
-                    self.execution_stats["total_sent"] + self.execution_stats["total_received"], 1
+                    self.execution_stats["total_sent"] + self.execution_stats["total_received"],
+                    1,
                 )
             )
             * 100,

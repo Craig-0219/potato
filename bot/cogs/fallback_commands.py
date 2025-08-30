@@ -46,7 +46,9 @@ class FallbackCommands(commands.Cog):
                 )
 
                 embed.add_field(
-                    name="ℹ️ 說明", value="斜線命令暫時不可用，請使用上述前綴命令。", inline=False
+                    name="ℹ️ 說明",
+                    value="斜線命令暫時不可用，請使用上述前綴命令。",
+                    inline=False,
                 )
 
                 await ctx.send(embed=embed)
@@ -174,7 +176,9 @@ class FallbackCommands(commands.Cog):
             embed.add_field(name="🏛️ 伺服器數", value=f"{len(self.bot.guilds)}", inline=True)
 
             embed.add_field(
-                name="⚠️ 注意事項", value="目前使用備用命令模式\n斜線命令暫時不可用", inline=False
+                name="⚠️ 注意事項",
+                value="目前使用備用命令模式\n斜線命令暫時不可用",
+                inline=False,
             )
 
             await ctx.send(embed=embed)

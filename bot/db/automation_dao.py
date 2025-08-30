@@ -179,7 +179,10 @@ class AutomationDAO(BaseDAO):
 
                     # 記錄變更歷史
                     await self._log_rule_history(
-                        rule_data["id"], rule_data.get("created_by", 0), "created", rule_data
+                        rule_data["id"],
+                        rule_data.get("created_by", 0),
+                        "created",
+                        rule_data,
                     )
 
                     return rule_data["id"]
@@ -286,8 +289,8 @@ class AutomationDAO(BaseDAO):
                         "guild_id": result[3],
                         "status": result[4],
                         "trigger_type": result[5],
-                        "trigger_conditions": json.loads(result[6]) if result[6] else [],
-                        "trigger_parameters": json.loads(result[7]) if result[7] else {},
+                        "trigger_conditions": (json.loads(result[6]) if result[6] else []),
+                        "trigger_parameters": (json.loads(result[7]) if result[7] else {}),
                         "actions": json.loads(result[8]) if result[8] else [],
                         "created_by": result[9],
                         "created_at": result[10],
@@ -555,7 +558,7 @@ class AutomationDAO(BaseDAO):
                                 "success": result[6],
                                 "executed_actions": result[7],
                                 "failed_actions": result[8],
-                                "execution_time": float(result[9]) if result[9] else 0.0,
+                                "execution_time": (float(result[9]) if result[9] else 0.0),
                                 "error_message": result[10],
                                 "user_id": result[11],
                                 "channel_id": result[12],
@@ -669,7 +672,9 @@ class AutomationDAO(BaseDAO):
                         "success_rate": (
                             (overall_stats[1] / overall_stats[0] * 100) if overall_stats[0] else 0
                         ),
-                        "avg_execution_time": float(overall_stats[3]) if overall_stats[3] else 0.0,
+                        "avg_execution_time": (
+                            float(overall_stats[3]) if overall_stats[3] else 0.0
+                        ),
                         "daily_stats": [
                             {
                                 "date": str(stat[4]),
@@ -755,7 +760,9 @@ class AutomationDAO(BaseDAO):
                         "success_rate": (
                             (overall_stats[3] / overall_stats[2] * 100) if overall_stats[2] else 0
                         ),
-                        "avg_execution_time": float(overall_stats[5]) if overall_stats[5] else 0.0,
+                        "avg_execution_time": (
+                            float(overall_stats[5]) if overall_stats[5] else 0.0
+                        ),
                         "trigger_distribution": [
                             {"type": trigger[0], "count": trigger[1]}
                             for trigger in trigger_distribution

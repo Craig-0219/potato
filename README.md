@@ -1,6 +1,6 @@
 # Potato Discord Bot - Production Branch
 
-[![Version](https://img.shields.io/badge/version-2025.08.28-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-2025.08.30-blue.svg)](VERSION)
 [![Discord Bot](https://img.shields.io/badge/Discord-Bot-7289DA.svg)](https://discord.com)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -49,10 +49,15 @@ nano .env
 
 ## 🔄 自動部署
 
-main 分支會自動部署到 ptero 分支：
-- ✅ 移除開發文件
-- ✅ 清理測試程式
-- ✅ 生成生產版本
+### 生產部署流程
+- **main** 分支包含穩定的生產版本
+- 自動觸發 `deploy-to-ptero.yml` 工作流程
+- 部署到託管服務平台
+
+### 安全機制
+- 緊急回滾機制 (`emergency-rollback.yml`)
+- 自動安全掃描 (`security-scans.yml`)
+- 生產環境健康檢查
 
 ## 📋 系統要求
 

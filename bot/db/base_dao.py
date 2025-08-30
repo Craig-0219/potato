@@ -4,7 +4,6 @@ DAO 基底類別 - 統一資料存取介面
 提供通用的資料庫操作和錯誤處理機制
 """
 
-import asyncio
 import json
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta, timezone
@@ -35,7 +34,6 @@ class BaseDAO(ABC):
     @abstractmethod
     async def _initialize(self):
         """初始化邏輯（由子類實現）"""
-        pass
 
     # ===== 通用資料庫操作 =====
 
@@ -354,7 +352,9 @@ class BaseDAO(ABC):
             return []
 
     async def bulk_update(
-        self, updates: List[Tuple[Union[int, str], Dict[str, Any]]], batch_size: int = 100
+        self,
+        updates: List[Tuple[Union[int, str], Dict[str, Any]]],
+        batch_size: int = 100,
     ) -> int:
         """批次更新"""
         if not self.table_name or not updates:
@@ -467,7 +467,11 @@ class BaseDAO(ABC):
 
         except Exception as e:
             logger.error(f"[{self.__class__.__name__}] 健康檢查失敗：{e}")
-            return {"status": "unhealthy", "error": str(e), "initialized": self._initialized}
+            return {
+                "status": "unhealthy",
+                "error": str(e),
+                "initialized": self._initialized,
+            }
 
 
 # ===== DAO 工廠類別 =====
@@ -524,12 +528,10 @@ class BaseMigration(ABC):
     @abstractmethod
     async def up(self) -> bool:
         """執行遷移"""
-        pass
 
     @abstractmethod
     async def down(self) -> bool:
         """回滾遷移"""
-        pass
 
     async def execute_sql(self, sql: str, params: Tuple = None) -> bool:
         """執行 SQL"""

@@ -4,15 +4,12 @@
 提供圖形化的工作流程創建、編輯和管理功能
 """
 
-import json
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
 
 import discord
-from discord.ui import Button, Modal, Select, TextInput, View, button, select
+from discord.ui import Button, Modal, Select, TextInput, View, button
 
 from bot.db.workflow_dao import WorkflowDAO
-from bot.services.workflow_engine import ActionType, TriggerType, WorkflowStatus, workflow_engine
+from bot.services.workflow_engine import workflow_engine
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 
@@ -69,7 +66,9 @@ class EditWorkflowButton(Button):
         view = WorkflowEditView(interaction.user.id, self.view.workflow_id)
 
         embed = EmbedBuilder.build(
-            title="✏️ 工作流程編輯器", description="選擇要編輯的工作流程組件", color=0x3498DB
+            title="✏️ 工作流程編輯器",
+            description="選擇要編輯的工作流程組件",
+            color=0x3498DB,
         )
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -84,7 +83,9 @@ class WorkflowListSelect(Select):
         # 獲取工作流程列表（需要改為異步獲取）
         options = [
             discord.SelectOption(
-                label="載入工作流程列表...", value="loading", description="正在載入工作流程"
+                label="載入工作流程列表...",
+                value="loading",
+                description="正在載入工作流程",
             )
         ]
 
@@ -99,7 +100,9 @@ class WorkflowListSelect(Select):
         view = WorkflowEditView(self.user_id, workflow_id)
 
         embed = EmbedBuilder.build(
-            title="✏️ 工作流程編輯器", description=f"編輯工作流程: {workflow_id}", color=0x3498DB
+            title="✏️ 工作流程編輯器",
+            description=f"編輯工作流程: {workflow_id}",
+            color=0x3498DB,
         )
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -157,7 +160,9 @@ class WorkflowEditView(View):
                 )
             else:
                 embed = EmbedBuilder.build(
-                    title="❌ 測試失敗", description="工作流程測試執行失敗", color=0xE74C3C
+                    title="❌ 測試失敗",
+                    description="工作流程測試執行失敗",
+                    color=0xE74C3C,
                 )
 
             await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -172,7 +177,9 @@ class WorkflowEditView(View):
         try:
             # 這裡應該將工作流程引擎中的設定同步到資料庫
             embed = EmbedBuilder.build(
-                title="✅ 設定已儲存", description="工作流程設定已成功儲存到資料庫", color=0x2ECC71
+                title="✅ 設定已儲存",
+                description="工作流程設定已成功儲存到資料庫",
+                color=0x2ECC71,
             )
 
             await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -213,7 +220,10 @@ class TriggerTypeSelect(Select):
     def __init__(self):
         options = [
             discord.SelectOption(
-                label="手動觸發", value="manual", description="手動執行工作流程", emoji="👆"
+                label="手動觸發",
+                value="manual",
+                description="手動執行工作流程",
+                emoji="👆",
             ),
             discord.SelectOption(
                 label="票券建立",
@@ -228,10 +238,16 @@ class TriggerTypeSelect(Select):
                 emoji="👋",
             ),
             discord.SelectOption(
-                label="成員離開", value="member_left", description="當成員離開時觸發", emoji="👋"
+                label="成員離開",
+                value="member_left",
+                description="當成員離開時觸發",
+                emoji="👋",
             ),
             discord.SelectOption(
-                label="定時觸發", value="scheduled", description="按時間表觸發", emoji="⏰"
+                label="定時觸發",
+                value="scheduled",
+                description="按時間表觸發",
+                emoji="⏰",
             ),
         ]
 
@@ -285,7 +301,9 @@ class ActionsEditView(View):
     async def clear_actions_button(self, interaction: discord.Interaction, button: Button):
         """清除所有動作"""
         embed = EmbedBuilder.build(
-            title="✅ 動作已清除", description="所有動作已從工作流程中移除", color=0x2ECC71
+            title="✅ 動作已清除",
+            description="所有動作已從工作流程中移除",
+            color=0x2ECC71,
         )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -313,10 +331,16 @@ class ActionTypeSelect(Select):
                 emoji="📨",
             ),
             discord.SelectOption(
-                label="指派票券", value="assign_ticket", description="將票券指派給客服", emoji="🎫"
+                label="指派票券",
+                value="assign_ticket",
+                description="將票券指派給客服",
+                emoji="🎫",
             ),
             discord.SelectOption(
-                label="添加標籤", value="add_tag", description="為票券添加標籤", emoji="🏷️"
+                label="添加標籤",
+                value="add_tag",
+                description="為票券添加標籤",
+                emoji="🏷️",
             ),
             discord.SelectOption(
                 label="變更優先級",
@@ -325,7 +349,10 @@ class ActionTypeSelect(Select):
                 emoji="⚡",
             ),
             discord.SelectOption(
-                label="通知用戶", value="notify_user", description="發送通知給特定用戶", emoji="🔔"
+                label="通知用戶",
+                value="notify_user",
+                description="發送通知給特定用戶",
+                emoji="🔔",
             ),
             discord.SelectOption(
                 label="延遲執行", value="delay", description="暫停一段時間", emoji="⏱️"
@@ -352,7 +379,9 @@ class ActionTypeSelect(Select):
             await interaction.response.send_modal(modal)
         else:
             embed = EmbedBuilder.build(
-                title="✅ 動作已添加", description=f"已添加動作: **{action_type}**", color=0x2ECC71
+                title="✅ 動作已添加",
+                description=f"已添加動作: **{action_type}**",
+                color=0x2ECC71,
             )
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -367,7 +396,10 @@ class CreateWorkflowModal(Modal):
         super().__init__(title="📝 創建新工作流程")
 
         self.name = TextInput(
-            label="工作流程名稱", placeholder="輸入工作流程名稱", max_length=100, required=True
+            label="工作流程名稱",
+            placeholder="輸入工作流程名稱",
+            max_length=100,
+            required=True,
         )
 
         self.description = TextInput(
@@ -478,7 +510,10 @@ class SendMessageActionModal(Modal):
         self.workflow_id = workflow_id
 
         self.channel = TextInput(
-            label="目標頻道", placeholder="頻道ID或頻道名稱", max_length=100, required=True
+            label="目標頻道",
+            placeholder="頻道ID或頻道名稱",
+            max_length=100,
+            required=True,
         )
 
         self.message = TextInput(
@@ -536,7 +571,10 @@ class AddTagActionModal(Modal):
         self.workflow_id = workflow_id
 
         self.tags = TextInput(
-            label="標籤列表", placeholder="標籤1, 標籤2, 標籤3", max_length=200, required=True
+            label="標籤列表",
+            placeholder="標籤1, 標籤2, 標籤3",
+            max_length=200,
+            required=True,
         )
 
         self.add_item(self.tags)
@@ -561,7 +599,10 @@ class DelayActionModal(Modal):
         self.workflow_id = workflow_id
 
         self.seconds = TextInput(
-            label="延遲時間 (秒)", placeholder="輸入延遲秒數", max_length=10, required=True
+            label="延遲時間 (秒)",
+            placeholder="輸入延遲秒數",
+            max_length=10,
+            required=True,
         )
 
         self.add_item(self.seconds)
@@ -598,7 +639,9 @@ class WorkflowStatsView(View):
         stats = workflow_engine.get_workflow_statistics(guild_id=interaction.guild.id)
 
         embed = EmbedBuilder.build(
-            title="📊 工作流程詳細統計", description="伺服器工作流程使用詳細分析", color=0x9B59B6
+            title="📊 工作流程詳細統計",
+            description="伺服器工作流程使用詳細分析",
+            color=0x9B59B6,
         )
 
         # 添加詳細統計資訊
@@ -616,7 +659,9 @@ class WorkflowStatsView(View):
     async def execution_trend_button(self, interaction: discord.Interaction, button: Button):
         """顯示執行趨勢"""
         embed = EmbedBuilder.build(
-            title="📈 工作流程執行趨勢", description="最近7天的執行趨勢分析", color=0x3498DB
+            title="📈 工作流程執行趨勢",
+            description="最近7天的執行趨勢分析",
+            color=0x3498DB,
         )
 
         # 這裡可以添加圖表或趨勢數據

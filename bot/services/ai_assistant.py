@@ -4,23 +4,16 @@ AI智能助手服務 v2.2.0
 整合ChatGPT和其他AI服務，提供智能對話、創意內容生成等功能
 """
 
-import asyncio
-import json
 import re
 import time
-import uuid
-from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta, timezone
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 import aiohttp
 
-from shared.cache_manager import cache_manager, cached
+from shared.cache_manager import cache_manager
 from shared.config import (
-    AI_MAX_TOKENS,
-    AI_RATE_LIMIT_GUILD,
-    AI_RATE_LIMIT_USER,
     ANTHROPIC_API_KEY,
     GEMINI_API_KEY,
     OPENAI_API_KEY,
@@ -29,8 +22,6 @@ from shared.logger import logger
 
 # 引入 Phase 7 新的 AI 服務
 from .ai.ai_engine_manager import AIEngineManager
-from .ai.ai_engine_manager import AIProvider as NewAIProvider
-from .ai.ai_engine_manager import ConversationContext
 from .ai.conversation_manager import ConversationFlow, ConversationManager
 from .ai.intent_recognition import IntentRecognizer, IntentType
 
@@ -290,7 +281,10 @@ class AIAssistantManager:
             raise
 
     async def _call_ai_service(
-        self, provider: AIProvider, messages: List[Dict[str, str]], ai_request: AIRequest
+        self,
+        provider: AIProvider,
+        messages: List[Dict[str, str]],
+        ai_request: AIRequest,
     ) -> tuple[str, int]:
         """調用AI服務"""
         if provider == AIProvider.OPENAI:
@@ -311,11 +305,15 @@ class AIAssistantManager:
             if not api_key:
                 raise ValueError("OpenAI API密鑰未配置")
 
-            headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            }
 
             # 選擇模型
             model = self.models[AIProvider.OPENAI].get(
-                ai_request.task_type.value.split("_")[0], self.models[AIProvider.OPENAI]["chat"]
+                ai_request.task_type.value.split("_")[0],
+                self.models[AIProvider.OPENAI]["chat"],
             )
 
             payload = {
@@ -366,7 +364,8 @@ class AIAssistantManager:
 
             # 選擇模型
             model = self.models[AIProvider.CLAUDE].get(
-                ai_request.task_type.value.split("_")[0], self.models[AIProvider.CLAUDE]["chat"]
+                ai_request.task_type.value.split("_")[0],
+                self.models[AIProvider.CLAUDE]["chat"],
             )
 
             # 將 OpenAI 格式的 messages 轉換為 Claude 格式
@@ -502,7 +501,11 @@ class AIAssistantManager:
     # ========== 便捷方法 ==========
 
     async def chat(
-        self, user_id: int, guild_id: int, message: str, provider: AIProvider = AIProvider.OPENAI
+        self,
+        user_id: int,
+        guild_id: int,
+        message: str,
+        provider: AIProvider = AIProvider.OPENAI,
     ) -> AIResponse:
         """簡單聊天"""
         request = AIRequest(
@@ -576,7 +579,11 @@ class AIAssistantManager:
         return await self.process_request(request)
 
     async def create_ad_copy(
-        self, user_id: int, guild_id: int, product_info: str, target_audience: str = "一般大眾"
+        self,
+        user_id: int,
+        guild_id: int,
+        product_info: str,
+        target_audience: str = "一般大眾",
     ) -> AIResponse:
         """創建廣告文案"""
         request = AIRequest(

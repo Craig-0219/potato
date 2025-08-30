@@ -4,7 +4,6 @@
 處理成員加入/離開、自動身分組分配、歡迎訊息發送等業務邏輯
 """
 
-import re
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -244,7 +243,8 @@ class WelcomeManager:
             )
 
             embed.set_author(
-                name=f"{member.display_name} 離開了伺服器", icon_url=member.display_avatar.url
+                name=f"{member.display_name} 離開了伺服器",
+                icon_url=member.display_avatar.url,
             )
 
             embed.set_footer(text=f"成員 ID: {member.id}")
@@ -453,10 +453,16 @@ class WelcomeManager:
 
             # 格式化測試訊息
             test_message = await self._format_message(
-                settings.get("welcome_message", self.default_welcome_message), user, "welcome"
+                settings.get("welcome_message", self.default_welcome_message),
+                user,
+                "welcome",
             )
 
-            return {"success": True, "formatted_message": test_message, "settings": settings}
+            return {
+                "success": True,
+                "formatted_message": test_message,
+                "settings": settings,
+            }
 
         except Exception as e:
             logger.error(f"測試歡迎訊息錯誤: {e}")

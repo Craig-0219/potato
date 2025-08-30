@@ -11,11 +11,10 @@ import os
 import signal
 import subprocess
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
-import aiofiles
 import aiohttp
 import discord
 from discord.ext import commands, tasks
@@ -51,7 +50,10 @@ class AutoUpdater:
             "webhook_secret": None,
             "update_channel_id": None,
             "authorized_users": [],
-            "maintenance_window": {"start_hour": 2, "end_hour": 6},  # UTC 2:00  # UTC 6:00
+            "maintenance_window": {
+                "start_hour": 2,
+                "end_hour": 6,
+            },  # UTC 2:00  # UTC 6:00
             "backup_before_update": True,
             "rollback_on_failure": True,
         }
@@ -204,7 +206,15 @@ class AutoUpdater:
         """更新依賴包"""
         try:
             result = subprocess.run(
-                [sys.executable, "-m", "pip", "install", "-r", "requirements.txt", "--upgrade"],
+                [
+                    sys.executable,
+                    "-m",
+                    "pip",
+                    "install",
+                    "-r",
+                    "requirements.txt",
+                    "--upgrade",
+                ],
                 capture_output=True,
                 text=True,
                 timeout=300,  # 5分鐘超時
@@ -297,7 +307,9 @@ class AutoUpdater:
 
                 # 創建重啟通知
                 embed = discord.Embed(
-                    title="✅ 更新完成 - 準備重啟", color=0x00FF00, timestamp=datetime.utcnow()
+                    title="✅ 更新完成 - 準備重啟",
+                    color=0x00FF00,
+                    timestamp=datetime.utcnow(),
                 )
                 embed.add_field(
                     name="🔄 新版本信息",
