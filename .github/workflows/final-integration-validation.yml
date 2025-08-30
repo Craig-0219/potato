@@ -1108,13 +1108,14 @@ jobs:
                   
                   deployment_msg = '✅ 系統已準備好進行生產部署' if deployment_approval else '❌ 系統尚未準備好生產部署'
                   
+                  colon = ': '
                   markdown_report = f"""# {title}
 
-生成時間: {timestamp}  
-驗證範圍: {validation_scope}  
-目標環境: {target_environment}  
-整體狀態: {overall_status}  
-準備度得分: {readiness_score_formatted}/100  
+生成時間{colon}{timestamp}  
+驗證範圍{colon}{validation_scope}  
+目標環境{colon}{target_environment}  
+整體狀態{colon}{overall_status}  
+準備度得分{colon}{readiness_score_formatted}/100  
 
 ## 🎯 執行摘要
 
@@ -1123,11 +1124,11 @@ jobs:
 ### 📊 驗證結果總覽
 
 #### 🔍 系統健康檢查
-- 狀態: {hc_status}
-- 得分: {hc_score}/100
-- 通過檢查: {hc_passed}
-- 警告: {hc_warnings}
-- 關鍵問題: {hc_critical}
+- 狀態{colon}{hc_status}
+- 得分{colon}{hc_score}/100
+- 通過檢查{colon}{hc_passed}
+- 警告{colon}{hc_warnings}
+- 關鍵問題{colon}{hc_critical}
 
 """
                   
@@ -1144,10 +1145,10 @@ jobs:
                       stress_avg_score_formatted = str(round(stress_avg_score, 1))
                       
                       markdown_report += f"""#### 🚀 壓力測試
-- 平均得分: {stress_avg_score_formatted}/100
-- 測試數量: {stress_tests_count}
-- 最佳表現: {stress_best_scenario}
-- 最差表現: {stress_worst_scenario}
+- 平均得分{colon}{stress_avg_score_formatted}/100
+- 測試數量{colon}{stress_tests_count}
+- 最佳表現{colon}{stress_best_scenario}
+- 最差表現{colon}{stress_worst_scenario}
 
 """
                   
@@ -1159,9 +1160,9 @@ jobs:
                   rb_total_tests = rollback_summary.get('total_tests', 0)
                   
                   markdown_report += f"""#### 🔄 回滾機制驗證
-- 狀態: {rb_status}
-- 得分: {rb_score}/100
-- 通過測試: {rb_tests_passed}/{rb_total_tests}
+- 狀態{colon}{rb_status}
+- 得分{colon}{rb_score}/100
+- 通過測試{colon}{rb_tests_passed}/{rb_total_tests}
 
 ## 💡 建議事項
 
@@ -1182,15 +1183,15 @@ jobs:
 ## 📋 詳細驗證數據
 
 ### Stage 3 CI/CD 優化成果驗證
-- 並行執行優化: {'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
-- 智能跳過策略: {'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
-- 動態矩陣調度: {'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
-- 效能監控系統: {'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
+- 並行執行優化{colon}{'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
+- 智能跳過策略{colon}{'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
+- 動態矩陣調度{colon}{'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
+- 效能監控系統{colon}{'✅ 運作正常' if self.report['readiness_score'] >= 70 else '⚠️ 需要關注'}
 
 ---
 
 *此報告由 Final Integration Validation 系統自動生成*  
-*版本: {self.report.get('validation_version', 'v4.0.0')}*
+*版本{colon}{self.report.get('validation_version', 'v4.0.0')}*
 """
                   
                   with open('final_validation_report.md', 'w', encoding='utf-8') as f:
