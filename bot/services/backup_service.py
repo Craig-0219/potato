@@ -325,7 +325,7 @@ class BackupService:
         """記錄備份事件"""
         try:
             event_data = {
-                "guild_id": None,  # 系統事件
+                "guild_id": 0,  # 系統事件使用 guild_id = 0
                 "user_id": None,
                 "event_type": "backup_completed",
                 "event_category": "system",
