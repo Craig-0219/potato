@@ -237,7 +237,7 @@ async def generate_report(
                 "report_id": "rpt_" + datetime.now().strftime("%Y%m%d_%H%M%S"),
                 "type": report_type,
                 "format": format,
-                "download_url": f"/api/v1/analytics/reports/download/rpt_example",
+                "download_url": "/api/v1/analytics/reports/download/rpt_example",
                 "expires_at": datetime.now() + timedelta(hours=24),
             },
         }
