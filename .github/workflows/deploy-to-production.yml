@@ -154,13 +154,13 @@ jobs:
         if: matrix.validation_type == 'tests'
         env:
           TESTING: true
-          DISCORD_TOKEN: ${{ secrets.DISCORD_TEST_TOKEN }}
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TEST_TOKEN || 'test_token_for_cd_validation_minimum_length_requirement_met_automatically_generated_token_cd_pipeline' }}
           DB_HOST: "localhost"
           DB_USER: "test_user"
-          DB_PASSWORD: ${{ secrets.DB_TEST_PASSWORD }}
+          DB_PASSWORD: ${{ secrets.DB_TEST_PASSWORD || 'test_password_for_cd_environment_only' }}
           DB_NAME: "test_database"
           DB_PORT: "3306"
-          JWT_SECRET: ${{ secrets.JWT_TEST_SECRET }}
+          JWT_SECRET: ${{ secrets.JWT_TEST_SECRET || 'test_jwt_secret_for_cd_validation_pipeline_usage_only' }}
         run: |
           echo "🧪 Running critical tests for CD..."
           # 執行我們剛才建立的測試

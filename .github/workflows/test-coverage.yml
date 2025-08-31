@@ -53,10 +53,10 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_TEST_ROOT_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_TEST_ROOT_PASSWORD || 'root_password' }}
           MYSQL_DATABASE: test_database
           MYSQL_USER: test_user
-          MYSQL_PASSWORD: ${{ secrets.DB_TEST_PASSWORD }}
+          MYSQL_PASSWORD: ${{ secrets.DB_TEST_PASSWORD || 'test_password' }}
         ports:
           - 3306:3306
         options: >-
@@ -76,22 +76,22 @@ jobs:
           --health-retries=3
 
     env:
-      # 測試環境變數
+      # 測試環境變數 (使用 fallback 值避免 secrets 缺失時失敗)
       TESTING: true
-      DISCORD_TOKEN: ${{ secrets.DISCORD_TEST_TOKEN }}
-      DATABASE_URL: mysql://test_user:${{ secrets.DB_TEST_PASSWORD }}@localhost:3306/test_database
+      DISCORD_TOKEN: ${{ secrets.DISCORD_TEST_TOKEN || 'test_token_comprehensive_validation_length_requirement_met_12345678_abcdefghijk' }}
+      DATABASE_URL: mysql://test_user:${{ secrets.DB_TEST_PASSWORD || 'test_password' }}@localhost:3306/test_database
       DB_HOST: localhost
       DB_USER: test_user
-      DB_PASSWORD: ${{ secrets.DB_TEST_PASSWORD }}
+      DB_PASSWORD: ${{ secrets.DB_TEST_PASSWORD || 'test_password' }}
       DB_NAME: test_database
       DB_PORT: 3306
-      JWT_SECRET: ${{ secrets.JWT_TEST_SECRET }}
+      JWT_SECRET: ${{ secrets.JWT_TEST_SECRET || 'test_jwt_secret_for_automated_testing_purposes_only' }}
       REDIS_URL: redis://127.0.0.1:6379/0
       # OAuth 和其他配置
-      DISCORD_CLIENT_ID: ${{ secrets.DISCORD_TEST_CLIENT_ID }}
-      DISCORD_CLIENT_SECRET: ${{ secrets.DISCORD_TEST_CLIENT_SECRET }}
+      DISCORD_CLIENT_ID: ${{ secrets.DISCORD_TEST_CLIENT_ID || 'test_client_id_12345678' }}
+      DISCORD_CLIENT_SECRET: ${{ secrets.DISCORD_TEST_CLIENT_SECRET || 'test_client_secret_testing_purposes_only' }}
       DISCORD_REDIRECT_URI: http://localhost:8080/auth/discord/callback
-      DISCORD_GUILD_ID: ${{ secrets.DISCORD_TEST_GUILD_ID }}
+      DISCORD_GUILD_ID: ${{ secrets.DISCORD_TEST_GUILD_ID || 'test_guild_id_987654321' }}
       ENABLE_API_SERVER: true
       API_EXTERNAL_ACCESS: false
 
@@ -126,7 +126,7 @@ jobs:
         sleep 15
 
         # 驗證服務連接
-        mysql -h 127.0.0.1 -u test_user -p${{ secrets.DB_TEST_PASSWORD }} -e "SELECT 1" test_database
+        mysql -h 127.0.0.1 -u test_user -p${{ secrets.DB_TEST_PASSWORD || 'test_password' }} -e "SELECT 1" test_database
         redis-cli -h 127.0.0.1 ping
 
     - name: 🧪 執行單元測試
@@ -209,10 +209,10 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_TEST_ROOT_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_TEST_ROOT_PASSWORD || 'root_password' }}
           MYSQL_DATABASE: test_database_e2e
           MYSQL_USER: test_user
-          MYSQL_PASSWORD: ${{ secrets.DB_TEST_PASSWORD }}
+          MYSQL_PASSWORD: ${{ secrets.DB_TEST_PASSWORD || 'test_password' }}
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping --silent" --health-interval=10s --health-timeout=5s --health-retries=3
@@ -226,11 +226,11 @@ jobs:
     env:
       TESTING: true
       E2E_TESTING: true
-      DISCORD_TOKEN: ${{ secrets.DISCORD_TEST_TOKEN }}
-      DATABASE_URL: mysql://test_user:${{ secrets.DB_TEST_PASSWORD }}@localhost:3306/test_database_e2e
+      DISCORD_TOKEN: ${{ secrets.DISCORD_TEST_TOKEN || 'test_token_comprehensive_validation_length_requirement_met_12345678_abcdefghijk' }}
+      DATABASE_URL: mysql://test_user:${{ secrets.DB_TEST_PASSWORD || 'test_password' }}@localhost:3306/test_database_e2e
       DB_HOST: localhost
       DB_USER: test_user
-      DB_PASSWORD: ${{ secrets.DB_TEST_PASSWORD }}
+      DB_PASSWORD: ${{ secrets.DB_TEST_PASSWORD || 'test_password' }}
       DB_NAME: test_database_e2e
       DB_PORT: 3306
       REDIS_URL: redis://127.0.0.1:6379/1
@@ -255,7 +255,7 @@ jobs:
         sleep 20
 
         # 初始化測試資料庫
-        mysql -h 127.0.0.1 -u test_user -p${{ secrets.DB_TEST_PASSWORD }} -e "CREATE DATABASE IF NOT EXISTS test_database_e2e;" || true
+        mysql -h 127.0.0.1 -u test_user -p${{ secrets.DB_TEST_PASSWORD || 'test_password' }} -e "CREATE DATABASE IF NOT EXISTS test_database_e2e;" || true
 
     - name: 🚀 執行 E2E 測試
       run: |
