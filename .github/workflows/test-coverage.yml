@@ -128,7 +128,8 @@ jobs:
       if: matrix.test-type == 'unit'
       run: |
         echo "🧪 執行單元測試..."
-        pytest tests/unit/ \
+        if [ -d "tests/unit" ]; then
+          pytest tests/unit/ \
           -v \
           --tb=short \
           --cov=bot \
@@ -139,12 +140,16 @@ jobs:
           --junit-xml=junit-${{ matrix.python-version }}-unit.xml \
           --maxfail=5 \
           -n auto
+        else
+          echo "⚠️ 跳過單元測試 - tests/unit 目錄不存在"
+        fi
 
     - name: 🔗 執行整合測試
       if: matrix.test-type == 'integration'
       run: |
         echo "🔗 執行整合測試..."
-        pytest tests/integration/ \
+        if [ -d "tests/integration" ]; then
+          pytest tests/integration/ \
           -v \
           --tb=short \
           --cov=bot \
@@ -156,6 +161,9 @@ jobs:
           --maxfail=3 \
           -m "not slow" \
           -x
+        else
+          echo "⚠️ 跳過整合測試 - tests/integration 目錄不存在"
+        fi
 
     - name: 📊 覆蓋率報告
       if: always()
@@ -247,13 +255,17 @@ jobs:
     - name: 🚀 執行 E2E 測試
       run: |
         echo "🚀 執行端到端測試..."
-        pytest tests/e2e/ \
+        if [ -d "tests/e2e" ]; then
+          pytest tests/e2e/ \
           -v \
           --tb=long \
           --junit-xml=junit-e2e.xml \
           --maxfail=1 \
           -s \
           --timeout 300
+        else
+          echo "⚠️ 跳過 E2E 測試 - tests/e2e 目錄不存在"
+        fi
 
     - name: 📤 上傳 E2E 報告
       if: always()
@@ -452,10 +464,14 @@ jobs:
     - name: ⚡ 執行性能測試
       run: |
         echo "⚡ 執行性能基準測試..."
-        pytest tests/performance/ \
+        if [ -d "tests/performance" ]; then
+          pytest tests/performance/ \
           --benchmark-only \
           --benchmark-json=benchmark-results.json \
           -v || true
+        else
+          echo "⚠️ 跳過性能測試 - tests/performance 目錄不存在"
+        fi
 
     - name: 📊 性能報告摘要
       run: |

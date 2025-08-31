@@ -114,7 +114,7 @@ class MFAManager:
                 return {
                     "success": False,
                     "error": "pyotp 模組不可用，無法設置 TOTP 認證",
-                    "fallback": "請使用其他認證方式"
+                    "fallback": "請使用其他認證方式",
                 }
 
             # 生成隨機密鑰
@@ -195,7 +195,7 @@ class MFAManager:
                 return {
                     "success": False,
                     "error": "pyotp 模組不可用，無法驗證 TOTP 代碼",
-                    "fallback": "請使用其他認證方式"
+                    "fallback": "請使用其他認證方式",
                 }
             # 檢查嘗試次數限制
             if not await self._check_attempt_limit(user_id, MFAMethod.TOTP):
