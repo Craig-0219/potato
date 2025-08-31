@@ -80,9 +80,9 @@ class SecureTicketDAO:
                     # 獲取分頁數據
                     await cursor.execute(
                         """
-                        SELECT * FROM tickets 
-                        WHERE guild_id = %s 
-                        ORDER BY created_at DESC 
+                        SELECT * FROM tickets
+                        WHERE guild_id = %s
+                        ORDER BY created_at DESC
                         LIMIT %s OFFSET %s
                         """,
                         (guild_id, per_page, offset),
@@ -126,7 +126,7 @@ class SecureTicketDAO:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
                         """
-                        INSERT INTO tickets 
+                        INSERT INTO tickets
                         (guild_id, user_id, channel_id, category, subject, description, status, priority, created_at, updated_at)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         """,
@@ -189,8 +189,8 @@ class SecureTicketDAO:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
                         f"""
-                        UPDATE tickets 
-                        SET {', '.join(set_clauses)} 
+                        UPDATE tickets
+                        SET {', '.join(set_clauses)}
                         WHERE id = %s AND guild_id = %s
                         """,
                         params,
