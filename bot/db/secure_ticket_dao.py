@@ -27,7 +27,10 @@ class SecureTicketDAO:
             self._initialized = True
 
     async def get_tickets_by_guild(
-        self, guild_id: int, user_id: Optional[int] = None, status: Optional[str] = None
+        self,
+        guild_id: int,
+        user_id: Optional[int] = None,
+        status: Optional[str] = None,
     ) -> list[Dict[str, Any]]:
         """獲取伺服器的票券列表"""
         try:
@@ -99,7 +102,13 @@ class SecureTicketDAO:
 
         except Exception as e:
             logger.error(f"❌ 分頁獲取票券失敗: {e}")
-            return {"tickets": [], "total": 0, "page": 1, "per_page": per_page, "total_pages": 0}
+            return {
+                "tickets": [],
+                "total": 0,
+                "page": 1,
+                "per_page": per_page,
+                "total_pages": 0,
+            }
 
     async def create_ticket(
         self, guild_id: int, user_id: int, ticket_data: Dict[str, Any]
@@ -149,11 +158,18 @@ class SecureTicketDAO:
                     await conn.commit()
 
                     # 返回完整票券數據
-                    await cursor.execute("SELECT * FROM tickets WHERE id = %s", (ticket_id,))
+                    await cursor.execute(
+                        "SELECT * FROM tickets WHERE id = %s", (ticket_id,)
+                    )
                     result = await cursor.fetchone()
 
                     if result:
-                        return dict(zip([desc[0] for desc in cursor.description], result))
+                        return dict(
+                            zip(
+                                [desc[0] for desc in cursor.description],
+                                result,
+                            )
+                        )
 
         except Exception as e:
             logger.error(f"❌ 建立票券失敗: {e}")

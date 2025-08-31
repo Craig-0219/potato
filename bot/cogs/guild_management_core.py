@@ -49,7 +49,9 @@ class GuildManagementCore(commands.Cog):
     # 數據管理指令
     # =========================
 
-    @app_commands.command(name="export_data", description="📤 導出伺服器數據 (GDPR)")
+    @app_commands.command(
+        name="export_data", description="📤 導出伺服器數據 (GDPR)"
+    )
     @app_commands.describe(
         format="導出格式",
         include_personal="是否包含個人數據",
@@ -72,7 +74,9 @@ class GuildManagementCore(commands.Cog):
     ):
         """導出伺服器數據"""
         try:
-            if not await SafeInteractionHandler.safe_defer(interaction, ephemeral=True):
+            if not await SafeInteractionHandler.safe_defer(
+                interaction, ephemeral=True
+            ):
                 return
 
             guild_id = interaction.guild.id
@@ -115,10 +119,14 @@ class GuildManagementCore(commands.Cog):
                 inline=False,
             )
 
-            await SafeInteractionHandler.safe_followup(interaction, embed=embed, ephemeral=True)
+            await SafeInteractionHandler.safe_followup(
+                interaction, embed=embed, ephemeral=True
+            )
 
             # 在背景執行導出
-            asyncio.create_task(self._process_data_export(interaction, export_request))
+            asyncio.create_task(
+                self._process_data_export(interaction, export_request)
+            )
 
         except Exception as e:
             logger.error(f"❌ 數據導出指令錯誤: {e}")
@@ -127,16 +135,22 @@ class GuildManagementCore(commands.Cog):
             )
 
     async def _process_data_export(
-        self, interaction: discord.Interaction, export_request: DataExportRequest
+        self,
+        interaction: discord.Interaction,
+        export_request: DataExportRequest,
     ):
         """處理數據導出"""
         try:
             # 執行導出
-            export_data = await self.data_service.export_guild_data(export_request)
+            export_data = await self.data_service.export_guild_data(
+                export_request
+            )
 
             # 轉換為文件
             if export_request.format == ExportFormat.JSON:
-                content = json.dumps(export_data, indent=2, ensure_ascii=False, default=str)
+                content = json.dumps(
+                    export_data, indent=2, ensure_ascii=False, default=str
+                )
                 filename = f"guild_data_export_{export_request.guild_id}_{datetime.now().strftime('%Y%m%d')}.json"
             else:
                 content = str(export_data)  # 簡化處理
@@ -183,7 +197,9 @@ class GuildManagementCore(commands.Cog):
             except:
                 pass  # 如果無法發送私訊，忽略錯誤
 
-    @app_commands.command(name="delete_data", description="🗑️ 刪除伺服器數據 (GDPR 被遺忘權)")
+    @app_commands.command(
+        name="delete_data", description="🗑️ 刪除伺服器數據 (GDPR 被遺忘權)"
+    )
     @app_commands.describe(
         confirm="輸入 'CONFIRM' 確認刪除",
         data_types="要刪除的數據類型",
@@ -199,12 +215,16 @@ class GuildManagementCore(commands.Cog):
     ):
         """刪除伺服器數據"""
         try:
-            if not await SafeInteractionHandler.safe_defer(interaction, ephemeral=True):
+            if not await SafeInteractionHandler.safe_defer(
+                interaction, ephemeral=True
+            ):
                 return
 
             if confirm.upper() != "CONFIRM":
                 await SafeInteractionHandler.safe_followup(
-                    interaction, "❌ 請輸入 'CONFIRM' 來確認刪除操作", ephemeral=True
+                    interaction,
+                    "❌ 請輸入 'CONFIRM' 來確認刪除操作",
+                    ephemeral=True,
                 )
                 return
 
@@ -240,15 +260,25 @@ class GuildManagementCore(commands.Cog):
 
             if deleted_tables:
                 deleted_info = "\n".join(
-                    [f"• {table}: {count} 筆" for table, count in deleted_tables.items()]
+                    [
+                        f"• {table}: {count} 筆"
+                        for table, count in deleted_tables.items()
+                    ]
                 )
-                embed.add_field(name="🗑️ 已刪除", value=deleted_info, inline=False)
+                embed.add_field(
+                    name="🗑️ 已刪除", value=deleted_info, inline=False
+                )
 
             if retained_tables:
                 retained_info = "\n".join(
-                    [f"• {table}: {info}" for table, info in retained_tables.items()]
+                    [
+                        f"• {table}: {info}"
+                        for table, info in retained_tables.items()
+                    ]
                 )
-                embed.add_field(name="📦 已保留/匿名化", value=retained_info, inline=False)
+                embed.add_field(
+                    name="📦 已保留/匿名化", value=retained_info, inline=False
+                )
 
             embed.add_field(
                 name="⚠️ 重要提醒",
@@ -256,7 +286,9 @@ class GuildManagementCore(commands.Cog):
                 inline=False,
             )
 
-            await SafeInteractionHandler.safe_followup(interaction, embed=embed, ephemeral=True)
+            await SafeInteractionHandler.safe_followup(
+                interaction, embed=embed, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"❌ 數據刪除指令錯誤: {e}")
@@ -268,13 +300,19 @@ class GuildManagementCore(commands.Cog):
     # 分析和統計指令
     # =========================
 
-    @app_commands.command(name="guild_analytics", description="📊 伺服器分析儀表板")
+    @app_commands.command(
+        name="guild_analytics", description="📊 伺服器分析儀表板"
+    )
     @app_commands.describe(days="分析天數 (1-30)")
     @app_commands.default_permissions(administrator=True)
-    async def guild_analytics(self, interaction: discord.Interaction, days: int = 7):
+    async def guild_analytics(
+        self, interaction: discord.Interaction, days: int = 7
+    ):
         """顯示伺服器分析儀表板"""
         try:
-            if not await SafeInteractionHandler.safe_defer(interaction, ephemeral=True):
+            if not await SafeInteractionHandler.safe_defer(
+                interaction, ephemeral=True
+            ):
                 return
 
             if days < 1 or days > 30:
@@ -296,8 +334,10 @@ class GuildManagementCore(commands.Cog):
                 return
 
             # 獲取分析數據
-            dashboard_data = await self.analytics_service.get_guild_analytics_dashboard(
-                guild_id, days
+            dashboard_data = (
+                await self.analytics_service.get_guild_analytics_dashboard(
+                    guild_id, days
+                )
             )
 
             if not dashboard_data:
@@ -318,37 +358,51 @@ class GuildManagementCore(commands.Cog):
             current_metrics = dashboard_data.get("current_metrics", {})
             if current_metrics:
                 metrics_text = f"```\n"
-                metrics_text += f"今日票券: {current_metrics.get('total_tickets', 0)}\n"
+                metrics_text += (
+                    f"今日票券: {current_metrics.get('total_tickets', 0)}\n"
+                )
                 metrics_text += f"開放票券: {current_metrics.get('open_tickets_count', 0)}\n"
-                metrics_text += f"投票數: {current_metrics.get('total_votes_today', 0)}\n"
-                metrics_text += f"API 調用: {current_metrics.get('api_calls_today', 0)}\n"
+                metrics_text += (
+                    f"投票數: {current_metrics.get('total_votes_today', 0)}\n"
+                )
+                metrics_text += (
+                    f"API 調用: {current_metrics.get('api_calls_today', 0)}\n"
+                )
                 metrics_text += f"活躍用戶: {current_metrics.get('daily_active_users', 0)}\n"
                 metrics_text += f"```"
 
-                embed.add_field(name="📈 今日指標", value=metrics_text, inline=True)
+                embed.add_field(
+                    name="📈 今日指標", value=metrics_text, inline=True
+                )
 
             # 性能摘要
             performance = dashboard_data.get("performance", {})
             if performance:
                 perf_text = f"```\n"
                 perf_text += f"平均響應: {performance.get('avg_response_time', 0):.1f}ms\n"
-                perf_text += f"24h 請求: {performance.get('total_requests_24h', 0)}\n"
-                perf_text += f"最大響應: {performance.get('max_response_time', 0)}ms\n"
+                perf_text += (
+                    f"24h 請求: {performance.get('total_requests_24h', 0)}\n"
+                )
+                perf_text += (
+                    f"最大響應: {performance.get('max_response_time', 0)}ms\n"
+                )
                 perf_text += f"```"
 
-                embed.add_field(name="⚡ 性能指標", value=perf_text, inline=True)
+                embed.add_field(
+                    name="⚡ 性能指標", value=perf_text, inline=True
+                )
 
             # 安全指標
             if current_metrics:
                 security_text = f"```\n"
                 security_text += f"安全事件: {current_metrics.get('security_events_today', 0)}\n"
-                security_text += (
-                    f"MFA 採用率: {current_metrics.get('mfa_adoption_rate', 0)*100:.1f}%\n"
-                )
+                security_text += f"MFA 採用率: {current_metrics.get('mfa_adoption_rate', 0)*100:.1f}%\n"
                 security_text += f"錯誤率: {current_metrics.get('error_rate', 0)*100:.2f}%\n"
                 security_text += f"```"
 
-                embed.add_field(name="🛡️ 安全指標", value=security_text, inline=True)
+                embed.add_field(
+                    name="🛡️ 安全指標", value=security_text, inline=True
+                )
 
             # 趨勢分析
             trends = dashboard_data.get("trends", {})
@@ -358,11 +412,17 @@ class GuildManagementCore(commands.Cog):
                     direction = trend_data.get("direction", "stable")
                     change_rate = trend_data.get("change_rate", 0) * 100
 
-                    emoji = "📈" if direction == "up" else "📉" if direction == "down" else "➡️"
+                    emoji = (
+                        "📈"
+                        if direction == "up"
+                        else "📉" if direction == "down" else "➡️"
+                    )
                     trend_text += f"{emoji} {metric.replace('_trend', '')}: {change_rate:+.1f}%\n"
 
                 if trend_text:
-                    embed.add_field(name="📊 趨勢分析", value=trend_text, inline=False)
+                    embed.add_field(
+                        name="📊 趨勢分析", value=trend_text, inline=False
+                    )
 
             # 最近警告
             recent_alerts = dashboard_data.get("recent_alerts", [])
@@ -371,16 +431,24 @@ class GuildManagementCore(commands.Cog):
                 for alert in recent_alerts[:3]:  # 只顯示前3個
                     timestamp = alert.get("timestamp", datetime.now())
                     if isinstance(timestamp, str):
-                        timestamp = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+                        timestamp = datetime.fromisoformat(
+                            timestamp.replace("Z", "+00:00")
+                        )
 
                     alerts_text += f"⚠️ {alert.get('event_name', 'Unknown')} "
                     alerts_text += f"(<t:{int(timestamp.timestamp())}:R>)\n"
 
-                embed.add_field(name="🚨 最近警告", value=alerts_text or "無警告", inline=False)
+                embed.add_field(
+                    name="🚨 最近警告",
+                    value=alerts_text or "無警告",
+                    inline=False,
+                )
 
             embed.set_footer(text=f"數據更新時間")
 
-            await SafeInteractionHandler.safe_followup(interaction, embed=embed, ephemeral=True)
+            await SafeInteractionHandler.safe_followup(
+                interaction, embed=embed, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"❌ 分析儀表板錯誤: {e}")
@@ -392,13 +460,17 @@ class GuildManagementCore(commands.Cog):
     async def guild_stats(self, interaction: discord.Interaction):
         """顯示伺服器基本統計"""
         try:
-            if not await SafeInteractionHandler.safe_defer(interaction, ephemeral=True):
+            if not await SafeInteractionHandler.safe_defer(
+                interaction, ephemeral=True
+            ):
                 return
 
             guild_id = interaction.guild.id
 
             # 收集當前指標
-            current_metrics = await self.analytics_service.collect_guild_metrics(guild_id)
+            current_metrics = (
+                await self.analytics_service.collect_guild_metrics(guild_id)
+            )
 
             embed = discord.Embed(
                 title="📈 伺服器統計",
@@ -456,7 +528,9 @@ class GuildManagementCore(commands.Cog):
                 inline=True,
             )
 
-            await SafeInteractionHandler.safe_followup(interaction, embed=embed, ephemeral=True)
+            await SafeInteractionHandler.safe_followup(
+                interaction, embed=embed, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"❌ 統計指令錯誤: {e}")
@@ -468,7 +542,9 @@ class GuildManagementCore(commands.Cog):
     # 權限管理指令
     # =========================
 
-    @app_commands.command(name="manage_permissions", description="👥 管理用戶權限")
+    @app_commands.command(
+        name="manage_permissions", description="👥 管理用戶權限"
+    )
     @app_commands.describe(user="目標用戶", action="操作類型", role="角色名稱")
     @app_commands.choices(
         action=[
@@ -487,7 +563,9 @@ class GuildManagementCore(commands.Cog):
     ):
         """管理用戶權限"""
         try:
-            if not await SafeInteractionHandler.safe_defer(interaction, ephemeral=True):
+            if not await SafeInteractionHandler.safe_defer(
+                interaction, ephemeral=True
+            ):
                 return
 
             guild_id = interaction.guild.id
@@ -504,7 +582,11 @@ class GuildManagementCore(commands.Cog):
 
             if action == "view":
                 # 查看用戶權限
-                user_perms = await self.permission_manager.get_user_permissions(user.id, guild_id)
+                user_perms = (
+                    await self.permission_manager.get_user_permissions(
+                        user.id, guild_id
+                    )
+                )
 
                 embed = discord.Embed(
                     title="👥 用戶權限資訊",
@@ -513,15 +595,23 @@ class GuildManagementCore(commands.Cog):
                 )
 
                 # 角色資訊
-                roles_text = ", ".join([role.value for role in user_perms.roles])
-                embed.add_field(name="🎭 角色", value=roles_text or "無", inline=False)
+                roles_text = ", ".join(
+                    [role.value for role in user_perms.roles]
+                )
+                embed.add_field(
+                    name="🎭 角色", value=roles_text or "無", inline=False
+                )
 
                 # 權限列表
                 if user_perms.permissions:
-                    perms_text = "\n".join([f"• {perm.value}" for perm in user_perms.permissions])
+                    perms_text = "\n".join(
+                        [f"• {perm.value}" for perm in user_perms.permissions]
+                    )
                     if len(perms_text) > 1000:
                         perms_text = perms_text[:1000] + "..."
-                    embed.add_field(name="🔑 權限", value=perms_text, inline=False)
+                    embed.add_field(
+                        name="🔑 權限", value=perms_text, inline=False
+                    )
 
                 # 狀態資訊
                 embed.add_field(
@@ -532,7 +622,9 @@ class GuildManagementCore(commands.Cog):
                     inline=True,
                 )
 
-                await SafeInteractionHandler.safe_followup(interaction, embed=embed, ephemeral=True)
+                await SafeInteractionHandler.safe_followup(
+                    interaction, embed=embed, ephemeral=True
+                )
 
             elif action in ["assign", "remove"]:
                 if not role:

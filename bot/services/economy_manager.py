@@ -106,7 +106,9 @@ class EconomySettings:
     minecraft_server_key: Optional[str] = None
     sync_interval: int = 300  # 5分鐘
 
-    last_updated: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    last_updated: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
 
 
 @dataclass
@@ -153,7 +155,9 @@ class EconomyManager:
 
     # ========== 用戶經濟數據管理 ==========
 
-    async def get_user_economy(self, user_id: int, guild_id: int) -> Dict[str, Any]:
+    async def get_user_economy(
+        self, user_id: int, guild_id: int
+    ) -> Dict[str, Any]:
         """獲取用戶經濟數據"""
         try:
             # 嘗試從快取獲取
@@ -196,7 +200,9 @@ class EconomyManager:
                         ) = result
 
                         # 檢查是否需要重置每日數據
-                        should_reset = await self._should_reset_daily(last_daily_reset)
+                        should_reset = await self._should_reset_daily(
+                            last_daily_reset
+                        )
 
                         economy_data = {
                             "coins": coins,
@@ -207,10 +213,14 @@ class EconomyManager:
                             "total_wins": total_wins,
                             "daily_games": 0 if should_reset else daily_games,
                             "daily_wins": 0 if should_reset else daily_wins,
-                            "daily_claimed": False if should_reset else daily_claimed,
+                            "daily_claimed": (
+                                False if should_reset else daily_claimed
+                            ),
                             "last_checkin": last_checkin,
                             "win_rate": (
-                                (total_wins / total_games * 100) if total_games > 0 else 0
+                                (total_wins / total_games * 100)
+                                if total_games > 0
+                                else 0
                             ),
                         }
 
@@ -235,7 +245,9 @@ class EconomyManager:
                         }
 
                     # 快取數據
-                    await cache_manager.set(cache_key, economy_data, 300)  # 5分鐘快取
+                    await cache_manager.set(
+                        cache_key, economy_data, 300
+                    )  # 5分鐘快取
 
                     return economy_data
 
@@ -263,13 +275,19 @@ class EconomyManager:
         except Exception as e:
             logger.error(f"❌ 創建用戶經濟數據失敗: {e}")
 
-    async def _should_reset_daily(self, last_reset: Optional[datetime]) -> bool:
+    async def _should_reset_daily(
+        self, last_reset: Optional[datetime]
+    ) -> bool:
         """檢查是否需要重置每日數據"""
         if last_reset is None:
             return True
 
         today = datetime.now(timezone.utc).date()
-        last_reset_date = last_reset.date() if isinstance(last_reset, datetime) else last_reset
+        last_reset_date = (
+            last_reset.date()
+            if isinstance(last_reset, datetime)
+            else last_reset
+        )
 
         return today > last_reset_date
 
@@ -298,7 +316,9 @@ class EconomyManager:
 
     # ========== 貨幣操作 ==========
 
-    async def add_coins(self, user_id: int, guild_id: int, amount: int) -> bool:
+    async def add_coins(
+        self, user_id: int, guild_id: int, amount: int
+    ) -> bool:
         """增加金幣"""
         try:
             async with db_pool.connection() as conn:
@@ -336,7 +356,9 @@ class EconomyManager:
             logger.error(f"❌ 增加金幣失敗: {e}")
             return False
 
-    async def subtract_coins(self, user_id: int, guild_id: int, amount: int) -> bool:
+    async def subtract_coins(
+        self, user_id: int, guild_id: int, amount: int
+    ) -> bool:
         """扣除金幣"""
         try:
             # 先檢查餘額
@@ -387,7 +409,9 @@ class EconomyManager:
             logger.error(f"❌ 增加寶石失敗: {e}")
             return False
 
-    async def add_experience(self, user_id: int, guild_id: int, amount: int) -> Dict[str, Any]:
+    async def add_experience(
+        self, user_id: int, guild_id: int, amount: int
+    ) -> Dict[str, Any]:
         """增加經驗值並檢查升級"""
         try:
             # 獲取當前經驗
@@ -452,7 +476,9 @@ class EconomyManager:
             required_exp = 0
 
             while level < self.max_level:
-                level_exp_requirement = int(self.base_exp * (self.exp_multiplier ** (level - 1)))
+                level_exp_requirement = int(
+                    self.base_exp * (self.exp_multiplier ** (level - 1))
+                )
                 if required_exp + level_exp_requirement > experience:
                     break
                 required_exp += level_exp_requirement
@@ -464,7 +490,9 @@ class EconomyManager:
                     self.base_exp * (self.exp_multiplier ** (level - 1))
                 )
                 current_level_progress = experience - required_exp
-                next_level_exp = next_level_exp_requirement - current_level_progress
+                next_level_exp = (
+                    next_level_exp_requirement - current_level_progress
+                )
             else:
                 next_level_exp_requirement = 0
                 current_level_progress = 0
@@ -511,7 +539,9 @@ class EconomyManager:
         except Exception as e:
             logger.error(f"❌ 記錄簽到失敗: {e}")
 
-    async def get_last_checkin(self, user_id: int, guild_id: int) -> Optional[datetime]:
+    async def get_last_checkin(
+        self, user_id: int, guild_id: int
+    ) -> Optional[datetime]:
         """獲取最後簽到時間"""
         try:
             economy = await self.get_user_economy(user_id, guild_id)
@@ -521,7 +551,9 @@ class EconomyManager:
             logger.error(f"❌ 獲取簽到時間失敗: {e}")
             return None
 
-    async def calculate_checkin_streak(self, user_id: int, guild_id: int) -> int:
+    async def calculate_checkin_streak(
+        self, user_id: int, guild_id: int
+    ) -> int:
         """計算連續簽到天數"""
         try:
             async with db_pool.connection() as conn:
@@ -549,10 +581,14 @@ class EconomyManager:
                     if days_diff == 1:
                         # 連續簽到，查詢歷史記錄計算完整連續天數
                         # 這裡簡化處理，返回基於一定邏輯的連續天數
-                        return await self._calculate_full_streak(user_id, guild_id)
+                        return await self._calculate_full_streak(
+                            user_id, guild_id
+                        )
                     elif days_diff == 0:
                         # 今天已經簽到過
-                        return await self._calculate_full_streak(user_id, guild_id)
+                        return await self._calculate_full_streak(
+                            user_id, guild_id
+                        )
                     else:
                         # 中斷了，重新開始
                         return 1
@@ -725,7 +761,9 @@ class EconomyManager:
                         )
 
                     # 快取結果
-                    await cache_manager.set(cache_key, leaderboard, 300)  # 5分鐘快取
+                    await cache_manager.set(
+                        cache_key, leaderboard, 300
+                    )  # 5分鐘快取
 
                     return leaderboard
 
@@ -733,7 +771,9 @@ class EconomyManager:
             logger.error(f"❌ 獲取排行榜失敗: {e}")
             return []
 
-    async def get_user_rank(self, user_id: int, guild_id: int, metric: str) -> int:
+    async def get_user_rank(
+        self, user_id: int, guild_id: int, metric: str
+    ) -> int:
         """獲取用戶排名"""
         try:
             order_by_map = {
@@ -899,10 +939,14 @@ class EconomyManager:
     async def get_economy_settings(self, guild_id: int) -> EconomySettings:
         """獲取伺服器經濟設定"""
         if guild_id not in self._economy_settings:
-            self._economy_settings[guild_id] = EconomySettings(guild_id=guild_id)
+            self._economy_settings[guild_id] = EconomySettings(
+                guild_id=guild_id
+            )
         return self._economy_settings[guild_id]
 
-    async def update_economy_settings(self, guild_id: int, **kwargs) -> EconomySettings:
+    async def update_economy_settings(
+        self, guild_id: int, **kwargs
+    ) -> EconomySettings:
         """更新伺服器經濟設定"""
         settings = await self.get_economy_settings(guild_id)
 
@@ -914,7 +958,10 @@ class EconomyManager:
         return settings
 
     async def enable_cross_platform_sync(
-        self, guild_id: int, minecraft_api_endpoint: str, minecraft_server_key: str
+        self,
+        guild_id: int,
+        minecraft_api_endpoint: str,
+        minecraft_server_key: str,
     ) -> bool:
         """啟用跨平台同步"""
         try:
@@ -935,7 +982,10 @@ class EconomyManager:
         try:
             settings = await self.get_economy_settings(guild_id)
 
-            if not settings.sync_enabled or not settings.minecraft_api_endpoint:
+            if (
+                not settings.sync_enabled
+                or not settings.minecraft_api_endpoint
+            ):
                 return
 
             # 檢查同步間隔
@@ -983,7 +1033,9 @@ class EconomyManager:
 
             # 生成請求簽名
             payload_str = json.dumps(sync_data, sort_keys=True)
-            signature = self._generate_request_signature(payload_str, settings.minecraft_server_key)
+            signature = self._generate_request_signature(
+                payload_str, settings.minecraft_server_key
+            )
             sync_data["signature"] = signature
 
             # 發送到 Zientis Discord API
@@ -1004,8 +1056,12 @@ class EconomyManager:
 
                         # 處理 Zientis 同步回應
                         if result.get("status") == "success":
-                            self._last_sync_time[user_id] = datetime.now(timezone.utc)
-                            logger.info(f"✅ Zientis 跨平台同步成功：用戶 {user_id}")
+                            self._last_sync_time[user_id] = datetime.now(
+                                timezone.utc
+                            )
+                            logger.info(
+                                f"✅ Zientis 跨平台同步成功：用戶 {user_id}"
+                            )
 
                             # 記錄同步交易
                             await self._record_sync_transaction(
@@ -1018,9 +1074,12 @@ class EconomyManager:
                             # 處理 Minecraft 獎勵加成
                             if (
                                 result.get("adjustments")
-                                and result["adjustments"].get("bonus_coins", 0) > 0
+                                and result["adjustments"].get("bonus_coins", 0)
+                                > 0
                             ):
-                                bonus_amount = int(result["adjustments"]["bonus_coins"])
+                                bonus_amount = int(
+                                    result["adjustments"]["bonus_coins"]
+                                )
                                 await self.add_currency(
                                     user_id,
                                     guild_id,
@@ -1044,12 +1103,18 @@ class EconomyManager:
                                 f"❌ Zientis 同步失敗：{result.get('message', '未知錯誤')}"
                             )
                     elif response.status == 404:
-                        logger.warning(f"⚠️ 用戶 {user_id} 尚未綁定 Minecraft 帳戶")
+                        logger.warning(
+                            f"⚠️ 用戶 {user_id} 尚未綁定 Minecraft 帳戶"
+                        )
                     elif response.status == 423:
-                        logger.warning(f"🧊 用戶 {user_id} Minecraft 帳戶已被凍結")
+                        logger.warning(
+                            f"🧊 用戶 {user_id} Minecraft 帳戶已被凍結"
+                        )
                     else:
                         error_text = await response.text()
-                        logger.error(f"❌ Zientis 同步 HTTP 錯誤：{response.status} - {error_text}")
+                        logger.error(
+                            f"❌ Zientis 同步 HTTP 錯誤：{response.status} - {error_text}"
+                        )
 
         except asyncio.CancelledError:
             logger.info(f"🔄 Zientis 跨平台同步已取消：用戶 {user_id}")
@@ -1078,11 +1143,15 @@ class EconomyManager:
                         if difference > 0:
                             await self.add_coins(user_id, guild_id, difference)
                         else:
-                            await self.subtract_coins(user_id, guild_id, abs(difference))
+                            await self.subtract_coins(
+                                user_id, guild_id, abs(difference)
+                            )
                     elif currency == "gems":
                         await self.add_gems(user_id, guild_id, difference)
                     elif currency == "experience":
-                        await self.add_experience(user_id, guild_id, difference)
+                        await self.add_experience(
+                            user_id, guild_id, difference
+                        )
 
                     # 記錄調整交易
                     await self._record_sync_transaction(
@@ -1125,7 +1194,9 @@ class EconomyManager:
 
             # 限制交易記錄數量
             if len(self._cross_platform_transactions) > 1000:
-                self._cross_platform_transactions = self._cross_platform_transactions[-500:]
+                self._cross_platform_transactions = (
+                    self._cross_platform_transactions[-500:]
+                )
 
         except Exception as e:
             logger.error(f"❌ 記錄同步交易失敗: {e}")
@@ -1137,7 +1208,9 @@ class EconomyManager:
         random_str = secrets.token_hex(4)  # 8個字符的十六進制字符串
         return f"tx_{timestamp}_{random_str}"
 
-    async def handle_minecraft_webhook(self, webhook_data: Dict[str, Any]) -> bool:
+    async def handle_minecraft_webhook(
+        self, webhook_data: Dict[str, Any]
+    ) -> bool:
         """處理來自 Minecraft 的 Webhook 請求"""
         try:
             event_type = webhook_data.get("event_type")
@@ -1183,14 +1256,18 @@ class EconomyManager:
             logger.error(f"❌ 處理Minecraft Webhook失敗: {e}")
             return False
 
-    async def get_cross_platform_statistics(self, guild_id: int) -> Dict[str, Any]:
+    async def get_cross_platform_statistics(
+        self, guild_id: int
+    ) -> Dict[str, Any]:
         """獲取跨平台統計"""
         try:
             settings = await self.get_economy_settings(guild_id)
 
             # 統計跨平台交易
             guild_transactions = [
-                t for t in self._cross_platform_transactions if t.guild_id == guild_id
+                t
+                for t in self._cross_platform_transactions
+                if t.guild_id == guild_id
             ]
 
             stats = {
@@ -1201,15 +1278,26 @@ class EconomyManager:
                     [
                         t
                         for t in guild_transactions
-                        if (datetime.now(timezone.utc) - t.timestamp).total_seconds() < 86400
+                        if (
+                            datetime.now(timezone.utc) - t.timestamp
+                        ).total_seconds()
+                        < 86400
                     ]
                 ),
                 "platform_distribution": {
                     "discord": len(
-                        [t for t in guild_transactions if "discord" in t.source_platform]
+                        [
+                            t
+                            for t in guild_transactions
+                            if "discord" in t.source_platform
+                        ]
                     ),
                     "minecraft": len(
-                        [t for t in guild_transactions if "minecraft" in t.source_platform]
+                        [
+                            t
+                            for t in guild_transactions
+                            if "minecraft" in t.source_platform
+                        ]
                     ),
                 },
             }
@@ -1234,7 +1322,9 @@ class EconomyManager:
             # 計算通膨指標（簡化）
             inflation_rate = 0.0
             if guild_id in self._inflation_data:
-                last_avg = self._inflation_data[guild_id].get("last_avg_coins", avg_coins)
+                last_avg = self._inflation_data[guild_id].get(
+                    "last_avg_coins", avg_coins
+                )
                 if last_avg > 0:
                     inflation_rate = (avg_coins - last_avg) / last_avg
 
@@ -1254,27 +1344,40 @@ class EconomyManager:
             if inflation_rate > settings.inflation_threshold:
                 # 通膨過高，降低獎勵
                 adjustment_factor = 0.9
-                settings.message_coins = max(1, int(settings.message_coins * adjustment_factor))
+                settings.message_coins = max(
+                    1, int(settings.message_coins * adjustment_factor)
+                )
                 settings.voice_coins_per_minute = max(
                     1, int(settings.voice_coins_per_minute * adjustment_factor)
                 )
 
-                logger.warning(f"⚠️ 伺服器 {guild_id} 通膨率 {inflation_rate:.2%}，調整獎勵倍率")
-
-            elif settings.deflation_enabled and inflation_rate < -settings.inflation_threshold:
-                # 通縮過多，提高獎勵
-                adjustment_factor = 1.1
-                settings.message_coins = min(10, int(settings.message_coins * adjustment_factor))
-                settings.voice_coins_per_minute = min(
-                    20, int(settings.voice_coins_per_minute * adjustment_factor)
+                logger.warning(
+                    f"⚠️ 伺服器 {guild_id} 通膨率 {inflation_rate:.2%}，調整獎勵倍率"
                 )
 
-                logger.info(f"📈 伺服器 {guild_id} 通縮率 {abs(inflation_rate):.2%}，提高獎勵倍率")
+            elif (
+                settings.deflation_enabled
+                and inflation_rate < -settings.inflation_threshold
+            ):
+                # 通縮過多，提高獎勵
+                adjustment_factor = 1.1
+                settings.message_coins = min(
+                    10, int(settings.message_coins * adjustment_factor)
+                )
+                settings.voice_coins_per_minute = min(
+                    20,
+                    int(settings.voice_coins_per_minute * adjustment_factor),
+                )
+
+                logger.info(
+                    f"📈 伺服器 {guild_id} 通縮率 {abs(inflation_rate):.2%}，提高獎勵倍率"
+                )
 
             return {
                 "inflation_rate": inflation_rate,
                 "avg_coins": avg_coins,
-                "adjustment_applied": abs(inflation_rate) > settings.inflation_threshold,
+                "adjustment_applied": abs(inflation_rate)
+                > settings.inflation_threshold,
             }
 
         except Exception as e:
@@ -1325,7 +1428,9 @@ class EconomyManager:
                     cache_key = f"user_economy:{user_id}:{guild_id}"
                     await cache_manager.delete(cache_key)
 
-                    logger.info(f"💰 從 Minecraft 更新用戶 {user_id} 金幣餘額: {amount}")
+                    logger.info(
+                        f"💰 從 Minecraft 更新用戶 {user_id} 金幣餘額: {amount}"
+                    )
 
         except Exception as e:
             logger.error(f"❌ 從 Minecraft 更新餘額失敗: {e}")
@@ -1344,7 +1449,9 @@ class EconomyManager:
                     timeout=aiohttp.ClientTimeout(total=10),
                 ) as response:
                     if response.status != 200:
-                        logger.error(f"❌ Zientis API 連接測試失敗: {response.status}")
+                        logger.error(
+                            f"❌ Zientis API 連接測試失敗: {response.status}"
+                        )
                         return False
 
                     health_data = await response.json()
@@ -1354,7 +1461,9 @@ class EconomyManager:
 
             # 更新記憶體設定
             if guild_id not in self._economy_settings:
-                self._economy_settings[guild_id] = EconomySettings(guild_id=guild_id)
+                self._economy_settings[guild_id] = EconomySettings(
+                    guild_id=guild_id
+                )
 
             settings = self._economy_settings[guild_id]
             settings.sync_enabled = True
@@ -1365,16 +1474,24 @@ class EconomyManager:
             try:
                 if not db_pool._initialized:
                     logger.warning("⚠️ 資料庫連接池未初始化，跳過資料庫保存")
-                    logger.info(f"✅ Zientis 整合設置成功 (僅記憶體)：伺服器 {guild_id}")
+                    logger.info(
+                        f"✅ Zientis 整合設置成功 (僅記憶體)：伺服器 {guild_id}"
+                    )
                     return True
 
                 async with db_pool.connection() as conn:
                     async with conn.cursor() as cursor:
                         # 檢查表是否存在
-                        await cursor.execute("SHOW TABLES LIKE 'economy_settings'")
+                        await cursor.execute(
+                            "SHOW TABLES LIKE 'economy_settings'"
+                        )
                         if not await cursor.fetchone():
-                            logger.warning("⚠️ economy_settings 表不存在，跳過資料庫保存")
-                            logger.info(f"✅ Zientis 整合設置成功 (僅記憶體)：伺服器 {guild_id}")
+                            logger.warning(
+                                "⚠️ economy_settings 表不存在，跳過資料庫保存"
+                            )
+                            logger.info(
+                                f"✅ Zientis 整合設置成功 (僅記憶體)：伺服器 {guild_id}"
+                            )
                             return True
 
                         # 執行資料庫操作
@@ -1398,11 +1515,17 @@ class EconomyManager:
                         )
                         await conn.commit()
 
-                        logger.info(f"✅ Zientis 整合設置成功 (包含資料庫)：伺服器 {guild_id}")
+                        logger.info(
+                            f"✅ Zientis 整合設置成功 (包含資料庫)：伺服器 {guild_id}"
+                        )
 
             except Exception as db_error:
-                logger.error(f"⚠️ 資料庫保存失敗但設定已儲存至記憶體: {db_error}")
-                logger.info(f"✅ Zientis 整合設置成功 (僅記憶體)：伺服器 {guild_id}")
+                logger.error(
+                    f"⚠️ 資料庫保存失敗但設定已儲存至記憶體: {db_error}"
+                )
+                logger.info(
+                    f"✅ Zientis 整合設置成功 (僅記憶體)：伺服器 {guild_id}"
+                )
 
             return True
 

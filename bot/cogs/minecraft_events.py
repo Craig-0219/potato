@@ -53,7 +53,9 @@ class MinecraftEvents(commands.Cog):
     # 活動管理指令
     # =============================================================================
 
-    @commands.hybrid_command(name="event-create", description="建立新的 Minecraft 活動")
+    @commands.hybrid_command(
+        name="event-create", description="建立新的 Minecraft 活動"
+    )
     @commands.has_permissions(manage_guild=True)
     async def create_event(
         self,
@@ -72,7 +74,9 @@ class MinecraftEvents(commands.Cog):
             # 準備活動資料
             start_time = datetime.now() + timedelta(hours=registration_hours)
             end_time = start_time + timedelta(hours=duration_hours)
-            registration_end = start_time - timedelta(minutes=30)  # 報名在活動開始前30分鐘結束
+            registration_end = start_time - timedelta(
+                minutes=30
+            )  # 報名在活動開始前30分鐘結束
 
             event_data = {
                 "title": title,
@@ -90,7 +94,9 @@ class MinecraftEvents(commands.Cog):
 
             # 建立活動
             event_id = await self.event_manager.create_event(
-                organizer_id=ctx.author.id, guild_id=ctx.guild.id, event_data=event_data
+                organizer_id=ctx.author.id,
+                guild_id=ctx.guild.id,
+                event_data=event_data,
             )
 
             if event_id:
@@ -123,7 +129,8 @@ class MinecraftEvents(commands.Cog):
 
                 embed.add_field(
                     name="📝 描述",
-                    value=description[:500] + ("..." if len(description) > 500 else ""),
+                    value=description[:500]
+                    + ("..." if len(description) > 500 else ""),
                     inline=False,
                 )
 
@@ -157,10 +164,16 @@ class MinecraftEvents(commands.Cog):
 
         except Exception as e:
             logger.error(f"create_event 指令錯誤: {e}")
-            embed = discord.Embed(title="❌ 錯誤", description="建立活動時發生錯誤", color=0xFF0000)
+            embed = discord.Embed(
+                title="❌ 錯誤",
+                description="建立活動時發生錯誤",
+                color=0xFF0000,
+            )
             await ctx.followup.send(embed=embed)
 
-    @commands.hybrid_command(name="event-list", description="查看伺服器的所有活動")
+    @commands.hybrid_command(
+        name="event-list", description="查看伺服器的所有活動"
+    )
     async def list_events(self, ctx):
         """列出伺服器活動"""
         try:
@@ -184,8 +197,12 @@ class MinecraftEvents(commands.Cog):
             )
 
             for event in events[:10]:  # 最多顯示 10 個活動
-                status_emoji = self.event_manager.get_status_emoji(event["status"])
-                type_emoji = self.event_manager.get_event_type_emoji(event["event_type"])
+                status_emoji = self.event_manager.get_status_emoji(
+                    event["status"]
+                )
+                type_emoji = self.event_manager.get_event_type_emoji(
+                    event["event_type"]
+                )
 
                 event_info = f"""
                 **類型**: {type_emoji} {self.event_type_names.get(event['event_type'], event['event_type'])}
@@ -241,7 +258,9 @@ class MinecraftEvents(commands.Cog):
                 return
 
             status_emoji = self.event_manager.get_status_emoji(event["status"])
-            type_emoji = self.event_manager.get_event_type_emoji(event["event_type"])
+            type_emoji = self.event_manager.get_event_type_emoji(
+                event["event_type"]
+            )
 
             embed = discord.Embed(
                 title=f"{type_emoji} {event['title']}",
@@ -270,7 +289,9 @@ class MinecraftEvents(commands.Cog):
                 inline=True,
             )
 
-            embed.add_field(name="\u200b", value="\u200b", inline=True)  # 空欄位用於對齊
+            embed.add_field(
+                name="\u200b", value="\u200b", inline=True
+            )  # 空欄位用於對齊
 
             # 時間資訊
             time_info = ""
@@ -282,22 +303,32 @@ class MinecraftEvents(commands.Cog):
                 time_info += f"**活動結束**: <t:{int(event['end_time'].timestamp())}:F>\n"
 
             if time_info:
-                embed.add_field(name="⏰ 時程安排", value=time_info, inline=False)
+                embed.add_field(
+                    name="⏰ 時程安排", value=time_info, inline=False
+                )
 
             # 獲取參與者清單
-            participants = await self.event_manager.get_event_participants(event_id)
+            participants = await self.event_manager.get_event_participants(
+                event_id
+            )
             if participants:
                 participant_list = []
                 for i, p in enumerate(participants[:10], 1):
                     status_icon = "✅" if p["status"] == "confirmed" else "📝"
                     mc_name = p.get("minecraft_username", "Unknown")
-                    participant_list.append(f"{i}. {status_icon} <@{p['discord_id']}> ({mc_name})")
+                    participant_list.append(
+                        f"{i}. {status_icon} <@{p['discord_id']}> ({mc_name})"
+                    )
 
                 participant_text = "\n".join(participant_list)
                 if len(participants) > 10:
-                    participant_text += f"\n... 和其他 {len(participants) - 10} 位參與者"
+                    participant_text += (
+                        f"\n... 和其他 {len(participants) - 10} 位參與者"
+                    )
 
-                embed.add_field(name="👥 參與者列表", value=participant_text, inline=False)
+                embed.add_field(
+                    name="👥 參與者列表", value=participant_text, inline=False
+                )
 
             # 管理操作提示
             if event["status"] in ["planned", "registration"]:
@@ -305,9 +336,13 @@ class MinecraftEvents(commands.Cog):
                 if event["status"] == "planned":
                     action_text = f"使用 `/event open {event_id}` 開放報名"
 
-                embed.add_field(name="🎯 可執行操作", value=action_text, inline=False)
+                embed.add_field(
+                    name="🎯 可執行操作", value=action_text, inline=False
+                )
 
-            embed.set_footer(text=f"建立時間: {event['created_at'].strftime('%Y/%m/%d %H:%M')}")
+            embed.set_footer(
+                text=f"建立時間: {event['created_at'].strftime('%Y/%m/%d %H:%M')}"
+            )
             embed.timestamp = datetime.now()
 
             await ctx.followup.send(embed=embed)
@@ -344,7 +379,9 @@ class MinecraftEvents(commands.Cog):
 
             # 檢查活動狀態
             if event["status"] != EventStatus.REGISTRATION.value:
-                status_name = self.status_names.get(event["status"], event["status"])
+                status_name = self.status_names.get(
+                    event["status"], event["status"]
+                )
                 embed = discord.Embed(
                     title="❌ 無法參加",
                     description=f"活動目前狀態為 `{status_name}`，無法參加",
@@ -388,7 +425,9 @@ class MinecraftEvents(commands.Cog):
                 await ctx.followup.send(embed=embed)
 
                 # 記錄參與
-                logger.info(f"玩家 {ctx.author.display_name} 參加活動 {event_id}")
+                logger.info(
+                    f"玩家 {ctx.author.display_name} 參加活動 {event_id}"
+                )
 
             else:
                 embed = discord.Embed(
@@ -421,7 +460,9 @@ class MinecraftEvents(commands.Cog):
                 )
                 await ctx.followup.send(embed=embed)
 
-                logger.info(f"玩家 {ctx.author.display_name} 取消參加活動 {event_id}")
+                logger.info(
+                    f"玩家 {ctx.author.display_name} 取消參加活動 {event_id}"
+                )
 
             else:
                 embed = discord.Embed(
@@ -439,7 +480,9 @@ class MinecraftEvents(commands.Cog):
     # 活動管理指令 (需要權限)
     # =============================================================================
 
-    @commands.hybrid_command(name="event-open", description="開放活動報名 (需要管理權限)")
+    @commands.hybrid_command(
+        name="event-open", description="開放活動報名 (需要管理權限)"
+    )
     @commands.has_permissions(manage_guild=True)
     async def open_registration(self, ctx, event_id: int):
         """開放活動報名"""
@@ -497,13 +540,17 @@ class MinecraftEvents(commands.Cog):
             await ctx.followup.send(embed=embed)
 
             # 可以在這裡添加公告功能，通知所有成員
-            logger.info(f"活動 {event_id} 開放報名 - 操作者: {ctx.author.display_name}")
+            logger.info(
+                f"活動 {event_id} 開放報名 - 操作者: {ctx.author.display_name}"
+            )
 
         except Exception as e:
             logger.error(f"open_registration 指令錯誤: {e}")
             await ctx.followup.send("❌ 開放報名失敗")
 
-    @commands.hybrid_command(name="event-start", description="開始活動 (需要管理權限)")
+    @commands.hybrid_command(
+        name="event-start", description="開始活動 (需要管理權限)"
+    )
     @commands.has_permissions(manage_guild=True)
     async def start_event(self, ctx, event_id: int):
         """開始活動"""
@@ -524,7 +571,9 @@ class MinecraftEvents(commands.Cog):
                     color=0x00FF00,
                 )
 
-                participants = await self.event_manager.get_event_participants(event_id)
+                participants = await self.event_manager.get_event_participants(
+                    event_id
+                )
                 if participants:
                     embed.add_field(
                         name="👥 參與者",
@@ -533,7 +582,9 @@ class MinecraftEvents(commands.Cog):
                     )
 
                 await ctx.followup.send(embed=embed)
-                logger.info(f"活動 {event_id} 開始 - 操作者: {ctx.author.display_name}")
+                logger.info(
+                    f"活動 {event_id} 開始 - 操作者: {ctx.author.display_name}"
+                )
             else:
                 await ctx.followup.send("❌ 開始活動失敗")
 

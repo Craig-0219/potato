@@ -47,15 +47,23 @@ class ContentAnalysisCog(commands.Cog):
 
     # ========== 統一內容分析界面 ==========
 
-    @app_commands.command(name="content_analysis", description="打開內容分析工具管理界面")
-    async def content_analysis_interface(self, interaction: discord.Interaction):
+    @app_commands.command(
+        name="content_analysis", description="打開內容分析工具管理界面"
+    )
+    async def content_analysis_interface(
+        self, interaction: discord.Interaction
+    ):
         """統一內容分析管理界面"""
         try:
-            from bot.views.content_analysis_views import ContentAnalysisMainView
+            from bot.views.content_analysis_views import (
+                ContentAnalysisMainView,
+            )
 
             view = ContentAnalysisMainView()
 
-            embed = EmbedBuilder.create_info_embed("📊 內容分析工具", "選擇要使用的內容分析功能。")
+            embed = EmbedBuilder.create_info_embed(
+                "📊 內容分析工具", "選擇要使用的內容分析功能。"
+            )
 
             embed.add_field(
                 name="🔧 可用功能",
@@ -88,16 +96,22 @@ class ContentAnalysisCog(commands.Cog):
 
     # ========== 情感分析 ==========
 
-    @app_commands.command(name="analyze_sentiment", description="分析文本情感傾向")
+    @app_commands.command(
+        name="analyze_sentiment", description="分析文本情感傾向"
+    )
     @app_commands.describe(text="要分析的文本內容")
-    async def analyze_sentiment(self, interaction: discord.Interaction, text: str):
+    async def analyze_sentiment(
+        self, interaction: discord.Interaction, text: str
+    ):
         """情感分析"""
         try:
             await interaction.response.defer()
 
             # 檢查文本長度
             if len(text) > 2000:
-                await interaction.followup.send("❌ 文本過長，請限制在2000字符內。", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ 文本過長，請限制在2000字符內。", ephemeral=True
+                )
                 return
 
             # 檢查使用權限
@@ -123,7 +137,9 @@ class ContentAnalysisCog(commands.Cog):
                 # 扣除費用
                 if cost_info["cost"] > 0:
                     await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, -cost_info["cost"]
+                        interaction.user.id,
+                        interaction.guild.id,
+                        -cost_info["cost"],
                     )
 
                 # 記錄使用量
@@ -154,7 +170,11 @@ class ContentAnalysisCog(commands.Cog):
 
                 # 分析的文本（截取顯示）
                 display_text = text[:200] + ("..." if len(text) > 200 else "")
-                embed.add_field(name="📝 分析文本", value=f"```{display_text}```", inline=False)
+                embed.add_field(
+                    name="📝 分析文本",
+                    value=f"```{display_text}```",
+                    inline=False,
+                )
 
                 # 詳細分數
                 embed.add_field(
@@ -176,7 +196,9 @@ class ContentAnalysisCog(commands.Cog):
                 # 關鍵詞
                 if sentiment.keywords:
                     keywords_text = ", ".join(sentiment.keywords[:5])
-                    embed.add_field(name="🔑 關鍵詞", value=keywords_text, inline=False)
+                    embed.add_field(
+                        name="🔑 關鍵詞", value=keywords_text, inline=False
+                    )
 
                 # 費用信息
                 if cost_info["cost"] > 0:
@@ -186,12 +208,15 @@ class ContentAnalysisCog(commands.Cog):
                         inline=True,
                     )
 
-                embed.set_footer(text=f"分析者: {interaction.user.display_name}")
+                embed.set_footer(
+                    text=f"分析者: {interaction.user.display_name}"
+                )
 
             else:
                 embed = EmbedBuilder.build(
                     title="❌ 情感分析失敗",
-                    description=result.error_message or "分析過程中發生未知錯誤",
+                    description=result.error_message
+                    or "分析過程中發生未知錯誤",
                     color=0xFF0000,
                 )
 
@@ -202,20 +227,28 @@ class ContentAnalysisCog(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ 情感分析錯誤: {e}")
-            await interaction.followup.send("❌ 情感分析時發生錯誤，請稍後再試。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 情感分析時發生錯誤，請稍後再試。", ephemeral=True
+            )
 
     # ========== 內容安全檢查 ==========
 
-    @app_commands.command(name="check_content", description="檢查內容安全性和毒性")
+    @app_commands.command(
+        name="check_content", description="檢查內容安全性和毒性"
+    )
     @app_commands.describe(text="要檢查的文本內容")
-    async def check_content_safety(self, interaction: discord.Interaction, text: str):
+    async def check_content_safety(
+        self, interaction: discord.Interaction, text: str
+    ):
         """內容安全檢查"""
         try:
             await interaction.response.defer()
 
             # 檢查文本長度
             if len(text) > 2000:
-                await interaction.followup.send("❌ 文本過長，請限制在2000字符內。", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ 文本過長，請限制在2000字符內。", ephemeral=True
+                )
                 return
 
             # 檢查使用權限
@@ -241,7 +274,9 @@ class ContentAnalysisCog(commands.Cog):
                 # 扣除費用
                 if cost_info["cost"] > 0:
                     await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, -cost_info["cost"]
+                        interaction.user.id,
+                        interaction.guild.id,
+                        -cost_info["cost"],
                     )
 
                 # 記錄使用量
@@ -251,10 +286,16 @@ class ContentAnalysisCog(commands.Cog):
 
                 # 設定顏色
                 if toxicity.is_toxic:
-                    color = 0xFF0000 if toxicity.toxicity_score > 0.7 else 0xFFAA00
-                    status_emoji = "⚠️" if toxicity.toxicity_score > 0.7 else "⚡"
+                    color = (
+                        0xFF0000 if toxicity.toxicity_score > 0.7 else 0xFFAA00
+                    )
+                    status_emoji = (
+                        "⚠️" if toxicity.toxicity_score > 0.7 else "⚡"
+                    )
                     status_text = (
-                        "檢測到有害內容" if toxicity.toxicity_score > 0.7 else "檢測到潛在問題"
+                        "檢測到有害內容"
+                        if toxicity.toxicity_score > 0.7
+                        else "檢測到潛在問題"
                     )
                 else:
                     color = 0x00FF00
@@ -269,7 +310,11 @@ class ContentAnalysisCog(commands.Cog):
 
                 # 分析的文本（截取顯示）
                 display_text = text[:200] + ("..." if len(text) > 200 else "")
-                embed.add_field(name="📝 檢查文本", value=f"```{display_text}```", inline=False)
+                embed.add_field(
+                    name="📝 檢查文本",
+                    value=f"```{display_text}```",
+                    inline=False,
+                )
 
                 # 毒性分數
                 embed.add_field(
@@ -293,7 +338,9 @@ class ContentAnalysisCog(commands.Cog):
                                 "spam": "垃圾信息",
                                 "aggressive": "攻擊性",
                             }.get(category, category)
-                            category_text.append(f"{category_name}: {score:.1%}")
+                            category_text.append(
+                                f"{category_name}: {score:.1%}"
+                            )
 
                     if category_text:
                         embed.add_field(
@@ -304,24 +351,37 @@ class ContentAnalysisCog(commands.Cog):
 
                 # 標記的詞彙
                 if toxicity.flagged_phrases:
-                    flagged_text = ", ".join(list(set(toxicity.flagged_phrases))[:5])
-                    embed.add_field(name="🚩 標記詞彙", value=f"```{flagged_text}```", inline=False)
+                    flagged_text = ", ".join(
+                        list(set(toxicity.flagged_phrases))[:5]
+                    )
+                    embed.add_field(
+                        name="🚩 標記詞彙",
+                        value=f"```{flagged_text}```",
+                        inline=False,
+                    )
 
                 # 處理信息
                 embed.add_field(
                     name="📈 處理信息",
                     value=f"處理時間: {result.processing_time:.2f}秒\n"
                     f"分析信心度: {result.confidence:.1%}"
-                    + (f"\n消耗金幣: {cost_info['cost']}🪙" if cost_info["cost"] > 0 else ""),
+                    + (
+                        f"\n消耗金幣: {cost_info['cost']}🪙"
+                        if cost_info["cost"] > 0
+                        else ""
+                    ),
                     inline=True,
                 )
 
-                embed.set_footer(text=f"檢查者: {interaction.user.display_name}")
+                embed.set_footer(
+                    text=f"檢查者: {interaction.user.display_name}"
+                )
 
             else:
                 embed = EmbedBuilder.build(
                     title="❌ 內容檢查失敗",
-                    description=result.error_message or "檢查過程中發生未知錯誤",
+                    description=result.error_message
+                    or "檢查過程中發生未知錯誤",
                     color=0xFF0000,
                 )
 
@@ -332,11 +392,15 @@ class ContentAnalysisCog(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ 內容檢查錯誤: {e}")
-            await interaction.followup.send("❌ 內容檢查時發生錯誤，請稍後再試。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 內容檢查時發生錯誤，請稍後再試。", ephemeral=True
+            )
 
     # ========== 連結安全分析 ==========
 
-    @app_commands.command(name="analyze_links", description="分析文本中連結的安全性")
+    @app_commands.command(
+        name="analyze_links", description="分析文本中連結的安全性"
+    )
     @app_commands.describe(text="包含連結的文本")
     async def analyze_links(self, interaction: discord.Interaction, text: str):
         """連結安全分析"""
@@ -366,7 +430,9 @@ class ContentAnalysisCog(commands.Cog):
                 # 扣除費用
                 if cost_info["cost"] > 0:
                     await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, -cost_info["cost"]
+                        interaction.user.id,
+                        interaction.guild.id,
+                        -cost_info["cost"],
                     )
 
                 # 記錄使用量
@@ -380,7 +446,9 @@ class ContentAnalysisCog(commands.Cog):
                     )
                 else:
                     # 計算整體安全性
-                    safe_links = sum(1 for link in result.links if link.is_safe)
+                    safe_links = sum(
+                        1 for link in result.links if link.is_safe
+                    )
                     total_links = len(result.links)
                     safety_rate = safe_links / total_links
 
@@ -430,7 +498,11 @@ class ContentAnalysisCog(commands.Cog):
                         link_info += f"域名信譽: {link.domain_reputation:.1%}"
 
                         # 截取URL顯示
-                        display_url = link.url if len(link.url) <= 50 else link.url[:47] + "..."
+                        display_url = (
+                            link.url
+                            if len(link.url) <= 50
+                            else link.url[:47] + "..."
+                        )
 
                         embed.add_field(
                             name=f"🔗 連結 {i+1}: {display_url}",
@@ -449,16 +521,23 @@ class ContentAnalysisCog(commands.Cog):
                 embed.add_field(
                     name="📈 處理信息",
                     value=f"處理時間: {result.processing_time:.2f}秒"
-                    + (f"\n消耗金幣: {cost_info['cost']}🪙" if cost_info["cost"] > 0 else ""),
+                    + (
+                        f"\n消耗金幣: {cost_info['cost']}🪙"
+                        if cost_info["cost"] > 0
+                        else ""
+                    ),
                     inline=True,
                 )
 
-                embed.set_footer(text=f"分析者: {interaction.user.display_name}")
+                embed.set_footer(
+                    text=f"分析者: {interaction.user.display_name}"
+                )
 
             else:
                 embed = EmbedBuilder.build(
                     title="❌ 連結分析失敗",
-                    description=result.error_message or "分析過程中發生未知錯誤",
+                    description=result.error_message
+                    or "分析過程中發生未知錯誤",
                     color=0xFF0000,
                 )
 
@@ -469,20 +548,28 @@ class ContentAnalysisCog(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ 連結分析錯誤: {e}")
-            await interaction.followup.send("❌ 連結分析時發生錯誤，請稍後再試。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 連結分析時發生錯誤，請稍後再試。", ephemeral=True
+            )
 
     # ========== 綜合分析 ==========
 
-    @app_commands.command(name="comprehensive_analysis", description="對文本進行全面分析")
+    @app_commands.command(
+        name="comprehensive_analysis", description="對文本進行全面分析"
+    )
     @app_commands.describe(text="要分析的文本內容")
-    async def comprehensive_analysis(self, interaction: discord.Interaction, text: str):
+    async def comprehensive_analysis(
+        self, interaction: discord.Interaction, text: str
+    ):
         """綜合分析"""
         try:
             await interaction.response.defer()
 
             # 檢查文本長度
             if len(text) > 1500:
-                await interaction.followup.send("❌ 文本過長，請限制在1500字符內。", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ 文本過長，請限制在1500字符內。", ephemeral=True
+                )
                 return
 
             # 檢查使用權限
@@ -516,7 +603,9 @@ class ContentAnalysisCog(commands.Cog):
                 # 扣除費用
                 if cost_info["cost"] > 0:
                     await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, -cost_info["cost"]
+                        interaction.user.id,
+                        interaction.guild.id,
+                        -cost_info["cost"],
                     )
 
                 # 記錄使用量
@@ -539,7 +628,11 @@ class ContentAnalysisCog(commands.Cog):
 
                 # 分析的文本（截取顯示）
                 display_text = text[:300] + ("..." if len(text) > 300 else "")
-                embed.add_field(name="📝 分析文本", value=f"```{display_text}```", inline=False)
+                embed.add_field(
+                    name="📝 分析文本",
+                    value=f"```{display_text}```",
+                    inline=False,
+                )
 
                 # 情感分析結果
                 if result.sentiment:
@@ -560,7 +653,9 @@ class ContentAnalysisCog(commands.Cog):
 
                 # 安全性檢查
                 if result.toxicity:
-                    safety_status = "⚠️ 有問題" if result.toxicity.is_toxic else "✅ 安全"
+                    safety_status = (
+                        "⚠️ 有問題" if result.toxicity.is_toxic else "✅ 安全"
+                    )
                     embed.add_field(
                         name="🛡️ 安全檢查",
                         value=f"狀態: {safety_status}\n"
@@ -589,11 +684,15 @@ class ContentAnalysisCog(commands.Cog):
                 # 關鍵詞
                 if result.keywords:
                     keywords_text = ", ".join(result.keywords[:8])
-                    embed.add_field(name="🔑 主要關鍵詞", value=keywords_text, inline=False)
+                    embed.add_field(
+                        name="🔑 主要關鍵詞", value=keywords_text, inline=False
+                    )
 
                 # 連結安全性
                 if result.links:
-                    safe_links = sum(1 for link in result.links if link.is_safe)
+                    safe_links = sum(
+                        1 for link in result.links if link.is_safe
+                    )
                     embed.add_field(
                         name="🔗 連結安全",
                         value=f"總數: {len(result.links)}\n"
@@ -607,33 +706,48 @@ class ContentAnalysisCog(commands.Cog):
                     name="📈 分析詳情",
                     value=f"處理時間: {result.processing_time:.2f}秒\n"
                     f"分析信心度: {result.confidence:.1%}"
-                    + (f"\n消耗金幣: {cost_info['cost']}🪙" if cost_info["cost"] > 0 else ""),
+                    + (
+                        f"\n消耗金幣: {cost_info['cost']}🪙"
+                        if cost_info["cost"] > 0
+                        else ""
+                    ),
                     inline=True,
                 )
 
-                embed.set_footer(text=f"分析者: {interaction.user.display_name}")
+                embed.set_footer(
+                    text=f"分析者: {interaction.user.display_name}"
+                )
 
             else:
                 embed = EmbedBuilder.build(
                     title="❌ 綜合分析失敗",
-                    description=result.error_message or "分析過程中發生未知錯誤",
+                    description=result.error_message
+                    or "分析過程中發生未知錯誤",
                     color=0xFF0000,
                 )
 
             await interaction.followup.send(embed=embed)
 
             # 記錄指標
-            track_command_execution("comprehensive_analysis", interaction.guild.id)
+            track_command_execution(
+                "comprehensive_analysis", interaction.guild.id
+            )
 
         except Exception as e:
             logger.error(f"❌ 綜合分析錯誤: {e}")
-            await interaction.followup.send("❌ 綜合分析時發生錯誤，請稍後再試。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 綜合分析時發生錯誤，請稍後再試。", ephemeral=True
+            )
 
     # ========== 統計功能 ==========
 
-    @app_commands.command(name="content_stats", description="查看伺服器內容分析統計")
+    @app_commands.command(
+        name="content_stats", description="查看伺服器內容分析統計"
+    )
     @app_commands.describe(days="統計天數 (1-30)")
-    async def content_statistics(self, interaction: discord.Interaction, days: int = 7):
+    async def content_statistics(
+        self, interaction: discord.Interaction, days: int = 7
+    ):
         """內容統計"""
         try:
             await interaction.response.defer()
@@ -656,13 +770,17 @@ class ContentAnalysisCog(commands.Cog):
                 return
 
             # 獲取統計數據
-            stats = await content_analyzer.get_content_statistics(interaction.guild.id, days)
+            stats = await content_analyzer.get_content_statistics(
+                interaction.guild.id, days
+            )
 
             if stats:
                 # 扣除費用
                 if cost_info["cost"] > 0:
                     await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, -cost_info["cost"]
+                        interaction.user.id,
+                        interaction.guild.id,
+                        -cost_info["cost"],
                     )
 
                 # 記錄使用量
@@ -726,7 +844,11 @@ class ContentAnalysisCog(commands.Cog):
 
                 # 熱門關鍵詞
                 keywords = stats["top_keywords"]
-                embed.add_field(name="🔑 熱門關鍵詞", value=", ".join(keywords[:10]), inline=False)
+                embed.add_field(
+                    name="🔑 熱門關鍵詞",
+                    value=", ".join(keywords[:10]),
+                    inline=False,
+                )
 
                 # 費用信息
                 if cost_info["cost"] > 0:
@@ -736,7 +858,9 @@ class ContentAnalysisCog(commands.Cog):
                         inline=True,
                     )
 
-                embed.set_footer(text=f"統計生成者: {interaction.user.display_name}")
+                embed.set_footer(
+                    text=f"統計生成者: {interaction.user.display_name}"
+                )
 
             else:
                 embed = EmbedBuilder.build(
@@ -758,7 +882,9 @@ class ContentAnalysisCog(commands.Cog):
 
     # ========== 使用統計 ==========
 
-    @app_commands.command(name="analysis_usage", description="查看內容分析服務使用統計")
+    @app_commands.command(
+        name="analysis_usage", description="查看內容分析服務使用統計"
+    )
     async def analysis_usage_stats(self, interaction: discord.Interaction):
         """分析使用統計"""
         try:
@@ -768,7 +894,9 @@ class ContentAnalysisCog(commands.Cog):
             daily_usage = await self._get_daily_usage(user_id)
 
             # 獲取經濟狀態
-            economy = await self.economy_manager.get_user_economy(user_id, interaction.guild.id)
+            economy = await self.economy_manager.get_user_economy(
+                user_id, interaction.guild.id
+            )
 
             embed = EmbedBuilder.build(
                 title="📊 內容分析使用統計",
@@ -790,7 +918,8 @@ class ContentAnalysisCog(commands.Cog):
             # 經濟狀態
             embed.add_field(
                 name="💰 經濟狀態",
-                value=f"金幣餘額: {economy.get('coins', 0):,}🪙\n" f"可用於分析服務",
+                value=f"金幣餘額: {economy.get('coins', 0):,}🪙\n"
+                f"可用於分析服務",
                 inline=True,
             )
 
@@ -807,7 +936,9 @@ class ContentAnalysisCog(commands.Cog):
 
                 cost_text.append(f"{service_name}: {cost}🪙")
 
-            embed.add_field(name="💳 服務費用", value="\n".join(cost_text), inline=True)
+            embed.add_field(
+                name="💳 服務費用", value="\n".join(cost_text), inline=True
+            )
 
             embed.add_field(
                 name="💡 費用說明",
@@ -827,11 +958,15 @@ class ContentAnalysisCog(commands.Cog):
                 inline=False,
             )
 
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"❌ 分析使用統計錯誤: {e}")
-            await interaction.response.send_message("❌ 獲取使用統計時發生錯誤。", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 獲取使用統計時發生錯誤。", ephemeral=True
+            )
 
     # ========== 輔助方法 ==========
 
@@ -847,7 +982,9 @@ class ContentAnalysisCog(commands.Cog):
                 return True, {"cost": 0, "message": "免費額度內"}
 
             # 檢查金幣餘額
-            economy = await self.economy_manager.get_user_economy(user_id, guild_id)
+            economy = await self.economy_manager.get_user_economy(
+                user_id, guild_id
+            )
             cost = self.analysis_costs.get(service_type, 5)
 
             if economy.get("coins", 0) >= cost:
@@ -882,7 +1019,9 @@ class ContentAnalysisCog(commands.Cog):
             # 設置到明天零點過期
             from datetime import timedelta
 
-            tomorrow = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+            tomorrow = datetime.now(timezone.utc).replace(
+                hour=0, minute=0, second=0, microsecond=0
+            )
             tomorrow += timedelta(days=1)
             ttl = int((tomorrow - datetime.now(timezone.utc)).total_seconds())
 

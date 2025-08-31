@@ -20,7 +20,11 @@ from bot.services.security_audit_manager import (
     security_audit_manager,
 )
 from bot.utils.embed_builder import EmbedBuilder
-from bot.views.security_views import AlertView, ComplianceReportView, SecurityView
+from bot.views.security_views import (
+    AlertView,
+    ComplianceReportView,
+    SecurityView,
+)
 from shared.logger import logger
 
 
@@ -35,9 +39,13 @@ class SecurityCore(commands.Cog):
 
     # ========== 安全監控指令 ==========
 
-    @app_commands.command(name="security_dashboard", description="查看安全監控儀表板")
+    @app_commands.command(
+        name="security_dashboard", description="查看安全監控儀表板"
+    )
     @app_commands.describe(days="統計天數")
-    async def security_dashboard(self, interaction: discord.Interaction, days: int = 30):
+    async def security_dashboard(
+        self, interaction: discord.Interaction, days: int = 30
+    ):
         """查看安全監控儀表板"""
         try:
             # 檢查權限
@@ -48,16 +56,22 @@ class SecurityCore(commands.Cog):
                 return
 
             if not 1 <= days <= 365:
-                await interaction.response.send_message("❌ 天數必須在1-365之間", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 天數必須在1-365之間", ephemeral=True
+                )
                 return
 
             await interaction.response.defer(ephemeral=True)
 
             # 獲取安全統計
-            stats = await self.security_dao.get_security_statistics(interaction.guild.id, days)
+            stats = await self.security_dao.get_security_statistics(
+                interaction.guild.id, days
+            )
 
             # 獲取活躍警報
-            alerts = await self.security_dao.get_active_alerts(interaction.guild.id)
+            alerts = await self.security_dao.get_active_alerts(
+                interaction.guild.id
+            )
 
             # 創建儀表板嵌入式訊息
             embed = EmbedBuilder.build(
@@ -73,7 +87,9 @@ class SecurityCore(commands.Cog):
             elif stats.get("high_risk_events", 0) > 10:
                 security_level = "🟡 警戒"
 
-            embed.add_field(name="🛡️ 安全等級", value=security_level, inline=True)
+            embed.add_field(
+                name="🛡️ 安全等級", value=security_level, inline=True
+            )
 
             # 事件統計
             embed.add_field(
@@ -90,14 +106,20 @@ class SecurityCore(commands.Cog):
             if stats.get("active_alerts", 0) > 0:
                 alert_status = f"⚠️ {stats.get('active_alerts')} 個待處理"
 
-            embed.add_field(name="🚨 警報狀態", value=alert_status, inline=True)
+            embed.add_field(
+                name="🚨 警報狀態", value=alert_status, inline=True
+            )
 
             # 事件類型分佈
             if stats.get("event_type_distribution"):
                 event_types_text = []
                 for event_type in stats["event_type_distribution"][:5]:
-                    event_name = self._get_event_display_name(event_type["type"])
-                    event_types_text.append(f"• {event_name}: {event_type['count']}")
+                    event_name = self._get_event_display_name(
+                        event_type["type"]
+                    )
+                    event_types_text.append(
+                        f"• {event_name}: {event_type['count']}"
+                    )
 
                 embed.add_field(
                     name="📈 主要事件類型",
@@ -133,15 +155,24 @@ class SecurityCore(commands.Cog):
             # 創建互動視圖
             view = SecurityView(interaction.user.id, stats)
 
-            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+            await interaction.followup.send(
+                embed=embed, view=view, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"查看安全儀表板失敗: {e}")
-            await interaction.followup.send(f"❌ 獲取安全儀表板失敗: {str(e)}", ephemeral=True)
+            await interaction.followup.send(
+                f"❌ 獲取安全儀表板失敗: {str(e)}", ephemeral=True
+            )
 
-    @app_commands.command(name="security_events", description="查看安全事件記錄")
+    @app_commands.command(
+        name="security_events", description="查看安全事件記錄"
+    )
     @app_commands.describe(
-        event_type="事件類型", risk_level="風險等級", user="指定用戶", days="查看天數"
+        event_type="事件類型",
+        risk_level="風險等級",
+        user="指定用戶",
+        days="查看天數",
     )
     @app_commands.choices(
         event_type=[
@@ -178,7 +209,9 @@ class SecurityCore(commands.Cog):
                 return
 
             if not 1 <= days <= 90:
-                await interaction.response.send_message("❌ 天數必須在1-90之間", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 天數必須在1-90之間", ephemeral=True
+                )
                 return
 
             await interaction.response.defer(ephemeral=True)
@@ -237,7 +270,9 @@ class SecurityCore(commands.Cog):
                         "critical": "🔴",
                     }.get(event["risk_level"], "⚪")
 
-                    event_name = self._get_event_display_name(event["event_type"])
+                    event_name = self._get_event_display_name(
+                        event["event_type"]
+                    )
                     time_str = event["timestamp"].strftime("%m-%d %H:%M")
 
                     events_text.append(
@@ -246,12 +281,18 @@ class SecurityCore(commands.Cog):
                         f"資源: {event['resource'][:30]}{'...' if len(event['resource']) > 30 else ''}"
                     )
 
-                embed.add_field(name="🕐 最新事件", value="\n\n".join(events_text), inline=False)
+                embed.add_field(
+                    name="🕐 最新事件",
+                    value="\n\n".join(events_text),
+                    inline=False,
+                )
 
             # 篩選條件摘要
             filters = []
             if query_event_type:
-                filters.append(f"類型: {self._get_event_display_name(query_event_type)}")
+                filters.append(
+                    f"類型: {self._get_event_display_name(query_event_type)}"
+                )
             if query_risk_level:
                 filters.append(f"風險: {query_risk_level}")
             if user:
@@ -264,7 +305,9 @@ class SecurityCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"查看安全事件失敗: {e}")
-            await interaction.followup.send(f"❌ 獲取安全事件失敗: {str(e)}", ephemeral=True)
+            await interaction.followup.send(
+                f"❌ 獲取安全事件失敗: {str(e)}", ephemeral=True
+            )
 
     @app_commands.command(name="security_alerts", description="查看安全警報")
     @app_commands.describe(severity="警報嚴重程度")
@@ -277,7 +320,9 @@ class SecurityCore(commands.Cog):
             app_commands.Choice(name="嚴重", value="critical"),
         ]
     )
-    async def security_alerts(self, interaction: discord.Interaction, severity: str = "all"):
+    async def security_alerts(
+        self, interaction: discord.Interaction, severity: str = "all"
+    ):
         """查看安全警報"""
         try:
             # 檢查權限
@@ -291,7 +336,9 @@ class SecurityCore(commands.Cog):
 
             # 獲取活躍警報
             query_severity = severity if severity != "all" else None
-            alerts = await self.security_dao.get_active_alerts(interaction.guild.id, query_severity)
+            alerts = await self.security_dao.get_active_alerts(
+                interaction.guild.id, query_severity
+            )
 
             # 創建嵌入式訊息
             embed = EmbedBuilder.build(
@@ -338,7 +385,9 @@ class SecurityCore(commands.Cog):
 
                         alerts_text = []
                         for alert in sev_alerts[:5]:
-                            time_str = alert["created_at"].strftime("%m-%d %H:%M")
+                            time_str = alert["created_at"].strftime(
+                                "%m-%d %H:%M"
+                            )
                             status_emoji = {
                                 "open": "🔓",
                                 "investigating": "🔍",
@@ -351,7 +400,9 @@ class SecurityCore(commands.Cog):
                             )
 
                         if len(sev_alerts) > 5:
-                            alerts_text.append(f"...還有 {len(sev_alerts) - 5} 個警報")
+                            alerts_text.append(
+                                f"...還有 {len(sev_alerts) - 5} 個警報"
+                            )
 
                         embed.add_field(
                             name=f"{emoji} {name}警報 ({len(sev_alerts)})",
@@ -362,13 +413,19 @@ class SecurityCore(commands.Cog):
             embed.set_footer(text=f"總計 {len(alerts)} 個活躍警報")
 
             # 創建警報管理視圖
-            view = AlertView(interaction.user.id, alerts[:10]) if alerts else None
+            view = (
+                AlertView(interaction.user.id, alerts[:10]) if alerts else None
+            )
 
-            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+            await interaction.followup.send(
+                embed=embed, view=view, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"查看安全警報失敗: {e}")
-            await interaction.followup.send(f"❌ 獲取安全警報失敗: {str(e)}", ephemeral=True)
+            await interaction.followup.send(
+                f"❌ 獲取安全警報失敗: {str(e)}", ephemeral=True
+            )
 
     # ========== 合規報告指令 ==========
 
@@ -378,9 +435,15 @@ class SecurityCore(commands.Cog):
         standard=[
             app_commands.Choice(name="GDPR - 一般資料保護規範", value="gdpr"),
             app_commands.Choice(name="SOX - 薩班斯-奧克斯利法案", value="sox"),
-            app_commands.Choice(name="ISO27001 - 資訊安全管理", value="iso27001"),
-            app_commands.Choice(name="HIPAA - 健康保險便利和責任法案", value="hipaa"),
-            app_commands.Choice(name="PCI DSS - 支付卡行業數據安全標準", value="pci_dss"),
+            app_commands.Choice(
+                name="ISO27001 - 資訊安全管理", value="iso27001"
+            ),
+            app_commands.Choice(
+                name="HIPAA - 健康保險便利和責任法案", value="hipaa"
+            ),
+            app_commands.Choice(
+                name="PCI DSS - 支付卡行業數據安全標準", value="pci_dss"
+            ),
         ]
     )
     async def compliance_report(
@@ -454,7 +517,9 @@ class SecurityCore(commands.Cog):
             if report.violations:
                 compliance_status = f"⚠️ {len(report.violations)} 個違規"
 
-            embed.add_field(name="🛡️ 合規狀態", value=compliance_status, inline=True)
+            embed.add_field(
+                name="🛡️ 合規狀態", value=compliance_status, inline=True
+            )
 
             # 風險評級
             risk_score = 0
@@ -469,7 +534,9 @@ class SecurityCore(commands.Cog):
 
             risk_levels = {1: "🟢 低", 2: "🟡 中", 3: "🟠 高", 4: "🔴 嚴重"}
 
-            embed.add_field(name="⚡ 風險評級", value=risk_levels[risk_score], inline=True)
+            embed.add_field(
+                name="⚡ 風險評級", value=risk_levels[risk_score], inline=True
+            )
 
             # 違規情況
             if report.violations:
@@ -481,12 +548,20 @@ class SecurityCore(commands.Cog):
                         "high": "🟠",
                         "critical": "🔴",
                     }.get(violation["severity"], "⚪")
-                    violation_text.append(f"{sev_emoji} {violation['description']}")
+                    violation_text.append(
+                        f"{sev_emoji} {violation['description']}"
+                    )
 
                 if len(report.violations) > 3:
-                    violation_text.append(f"...還有 {len(report.violations) - 3} 個違規")
+                    violation_text.append(
+                        f"...還有 {len(report.violations) - 3} 個違規"
+                    )
 
-                embed.add_field(name="⚠️ 主要違規", value="\n".join(violation_text), inline=False)
+                embed.add_field(
+                    name="⚠️ 主要違規",
+                    value="\n".join(violation_text),
+                    inline=False,
+                )
 
             # 建議
             if report.recommendations:
@@ -507,13 +582,19 @@ class SecurityCore(commands.Cog):
             # 創建報告操作視圖
             view = ComplianceReportView(interaction.user.id, report)
 
-            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
+            await interaction.followup.send(
+                embed=embed, view=view, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"生成合規報告失敗: {e}")
-            await interaction.followup.send(f"❌ 生成合規報告失敗: {str(e)}", ephemeral=True)
+            await interaction.followup.send(
+                f"❌ 生成合規報告失敗: {str(e)}", ephemeral=True
+            )
 
-    @app_commands.command(name="compliance_history", description="查看合規報告歷史")
+    @app_commands.command(
+        name="compliance_history", description="查看合規報告歷史"
+    )
     @app_commands.describe(standard="合規標準")
     @app_commands.choices(
         standard=[
@@ -525,7 +606,9 @@ class SecurityCore(commands.Cog):
             app_commands.Choice(name="PCI DSS", value="pci_dss"),
         ]
     )
-    async def compliance_history(self, interaction: discord.Interaction, standard: str = "all"):
+    async def compliance_history(
+        self, interaction: discord.Interaction, standard: str = "all"
+    ):
         """查看合規報告歷史"""
         try:
             # 檢查權限
@@ -545,7 +628,9 @@ class SecurityCore(commands.Cog):
 
             # 創建嵌入式訊息
             embed = EmbedBuilder.build(
-                title="📚 合規報告歷史", description="歷史合規報告記錄", color=0x9B59B6
+                title="📚 合規報告歷史",
+                description="歷史合規報告記錄",
+                color=0x9B59B6,
             )
 
             if not reports:
@@ -577,11 +662,17 @@ class SecurityCore(commands.Cog):
 
                     reports_text = []
                     for report in std_reports[:5]:
-                        generated_time = report["generated_at"].strftime("%m-%d %H:%M")
+                        generated_time = report["generated_at"].strftime(
+                            "%m-%d %H:%M"
+                        )
                         period = f"{report['period_start']} 至 {report['period_end']}"
 
                         violation_count = len(report["violations"])
-                        status_emoji = "✅" if violation_count == 0 else f"⚠️({violation_count})"
+                        status_emoji = (
+                            "✅"
+                            if violation_count == 0
+                            else f"⚠️({violation_count})"
+                        )
 
                         reports_text.append(
                             f"{status_emoji} **{period}**\n"
@@ -589,7 +680,9 @@ class SecurityCore(commands.Cog):
                         )
 
                     if len(std_reports) > 5:
-                        reports_text.append(f"...還有 {len(std_reports) - 5} 個報告")
+                        reports_text.append(
+                            f"...還有 {len(std_reports) - 5} 個報告"
+                        )
 
                     embed.add_field(
                         name=f"📋 {std_name} ({len(std_reports)})",
@@ -603,7 +696,9 @@ class SecurityCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"查看合規歷史失敗: {e}")
-            await interaction.followup.send(f"❌ 獲取合規歷史失敗: {str(e)}", ephemeral=True)
+            await interaction.followup.send(
+                f"❌ 獲取合規歷史失敗: {str(e)}", ephemeral=True
+            )
 
     # ========== 輔助方法 ==========
 
@@ -642,7 +737,9 @@ class SecurityCore(commands.Cog):
                 resource=f"role:{role.id}",
                 details={
                     "role_name": role.name,
-                    "role_permissions": [perm for perm, value in role.permissions if value],
+                    "role_permissions": [
+                        perm for perm, value in role.permissions if value
+                    ],
                     "created_at": datetime.now(timezone.utc).isoformat(),
                 },
                 risk_level=RiskLevel.MEDIUM,
@@ -727,7 +824,9 @@ class SecurityCore(commands.Cog):
     # ========== 錯誤處理 ==========
 
     async def cog_app_command_error(
-        self, interaction: discord.Interaction, error: app_commands.AppCommandError
+        self,
+        interaction: discord.Interaction,
+        error: app_commands.AppCommandError,
     ):
         """處理應用指令錯誤"""
         logger.error(f"安全管理指令錯誤: {error}")
@@ -737,7 +836,9 @@ class SecurityCore(commands.Cog):
                 "❌ 安全指令執行時發生錯誤，請稍後再試", ephemeral=True
             )
         else:
-            await interaction.followup.send("❌ 操作失敗，請檢查系統狀態", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 操作失敗，請檢查系統狀態", ephemeral=True
+            )
 
 
 async def setup(bot):

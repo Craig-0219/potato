@@ -30,10 +30,15 @@ class TicketPermissionChecker:
         """檢查是否為管理員"""
         if not user:
             return False
-        return user.guild_permissions.manage_guild or user.guild_permissions.administrator
+        return (
+            user.guild_permissions.manage_guild
+            or user.guild_permissions.administrator
+        )
 
     @staticmethod
-    def is_support_staff(user: discord.Member, support_roles: List[int]) -> bool:
+    def is_support_staff(
+        user: discord.Member, support_roles: List[int]
+    ) -> bool:
         """檢查是否為客服人員"""
         if not user:
             return False
@@ -48,7 +53,9 @@ class TicketPermissionChecker:
 
     @staticmethod
     def can_manage_ticket(
-        user: discord.Member, ticket_info: Dict[str, Any], support_roles: List[int]
+        user: discord.Member,
+        ticket_info: Dict[str, Any],
+        support_roles: List[int],
     ) -> bool:
         """檢查是否可以管理票券"""
         if not user or not ticket_info:
@@ -63,13 +70,19 @@ class TicketPermissionChecker:
 
     @staticmethod
     def can_close_ticket(
-        user: discord.Member, ticket_info: Dict[str, Any], support_roles: List[int]
+        user: discord.Member,
+        ticket_info: Dict[str, Any],
+        support_roles: List[int],
     ) -> bool:
         """檢查是否可以關閉票券"""
-        return TicketPermissionChecker.can_manage_ticket(user, ticket_info, support_roles)
+        return TicketPermissionChecker.can_manage_ticket(
+            user, ticket_info, support_roles
+        )
 
     @staticmethod
-    def can_rate_ticket(user: discord.Member, ticket_info: Dict[str, Any]) -> bool:
+    def can_rate_ticket(
+        user: discord.Member, ticket_info: Dict[str, Any]
+    ) -> bool:
         """檢查是否可以評分票券"""
         if not user or not ticket_info:
             return False
@@ -89,13 +102,17 @@ class TicketPermissionChecker:
         return True
 
     @staticmethod
-    def can_assign_ticket(user: discord.Member, support_roles: List[int]) -> bool:
+    def can_assign_ticket(
+        user: discord.Member, support_roles: List[int]
+    ) -> bool:
         """檢查是否可以指派票券"""
         return TicketPermissionChecker.is_support_staff(user, support_roles)
 
     @staticmethod
     def can_view_ticket(
-        user: discord.Member, ticket_info: Dict[str, Any], support_roles: List[int]
+        user: discord.Member,
+        ticket_info: Dict[str, Any],
+        support_roles: List[int],
     ) -> bool:
         """檢查是否可以查看票券"""
         if not user or not ticket_info:
@@ -109,7 +126,9 @@ class TicketPermissionChecker:
         return TicketPermissionChecker.is_support_staff(user, support_roles)
 
     @staticmethod
-    def get_permission_level(user: discord.Member, support_roles: List[int]) -> str:
+    def get_permission_level(
+        user: discord.Member, support_roles: List[int]
+    ) -> str:
         """取得權限等級"""
         if not user:
             return "none"
@@ -134,7 +153,9 @@ def is_ticket_channel(channel: discord.TextChannel) -> bool:
     return channel.name.startswith("ticket-")
 
 
-def parse_ticket_id_from_channel(channel: discord.TextChannel) -> Optional[int]:
+def parse_ticket_id_from_channel(
+    channel: discord.TextChannel,
+) -> Optional[int]:
     """從頻道名稱解析票券ID"""
     if not is_ticket_channel(channel):
         return None
@@ -226,7 +247,9 @@ def parse_channel_mention(
     return None
 
 
-def parse_role_mention(role_input: str, guild: discord.Guild) -> Optional[discord.Role]:
+def parse_role_mention(
+    role_input: str, guild: discord.Guild
+) -> Optional[discord.Role]:
     """解析身分組提及"""
     if not role_input or not guild:
         return None
@@ -254,7 +277,9 @@ def parse_role_mention(role_input: str, guild: discord.Guild) -> Optional[discor
 # ===== Embed 建構器 =====
 
 
-def build_ticket_embed(ticket_info: Dict[str, Any], include_stats: bool = False) -> discord.Embed:
+def build_ticket_embed(
+    ticket_info: Dict[str, Any], include_stats: bool = False
+) -> discord.Embed:
     """建立票券資訊嵌入"""
     priority = ticket_info.get("priority", "medium")
     status = ticket_info.get("status", "open")
@@ -324,7 +349,9 @@ def build_ticket_embed(ticket_info: Dict[str, Any], include_stats: bool = False)
                 else ticket_info["tags"]
             )
             if tags:
-                tags_text = " ".join([f"`{tag}`" for tag in tags[:10]])  # 限制顯示數量
+                tags_text = " ".join(
+                    [f"`{tag}`" for tag in tags[:10]]
+                )  # 限制顯示數量
                 embed.add_field(name="🏷️ 標籤", value=tags_text, inline=False)
         except:
             pass
@@ -390,7 +417,9 @@ def build_stats_embed(
     return embed
 
 
-def build_sla_embed(sla_stats: Dict[str, Any], guild: discord.Guild) -> discord.Embed:
+def build_sla_embed(
+    sla_stats: Dict[str, Any], guild: discord.Guild
+) -> discord.Embed:
     """建立SLA統計嵌入"""
     embed = discord.Embed(title="📈 SLA 監控面板", color=discord.Color.blue())
 
@@ -451,7 +480,9 @@ def build_staff_performance_embed(
     period_names = {"today": "今日", "week": "本週", "month": "本月"}
     period_name = period_names.get(period, period)
 
-    embed = discord.Embed(title=f"👥 客服團隊表現 - {period_name}", color=discord.Color.green())
+    embed = discord.Embed(
+        title=f"👥 客服團隊表現 - {period_name}", color=discord.Color.green()
+    )
 
     if not staff_stats:
         embed.description = "📊 此期間尚無客服活動記錄。"
@@ -459,7 +490,9 @@ def build_staff_performance_embed(
 
     # 排序客服（按處理票券數）
     sorted_staff = sorted(
-        staff_stats.items(), key=lambda x: x[1].get("handled_tickets", 0), reverse=True
+        staff_stats.items(),
+        key=lambda x: x[1].get("handled_tickets", 0),
+        reverse=True,
     )
 
     # 顯示前10名客服
@@ -505,7 +538,9 @@ def build_user_tickets_embed(
     total_pages: int = 1,
 ) -> discord.Embed:
     """建立用戶票券列表嵌入"""
-    embed = discord.Embed(title=f"🎫 {user.display_name} 的票券", color=discord.Color.blue())
+    embed = discord.Embed(
+        title=f"🎫 {user.display_name} 的票券", color=discord.Color.blue()
+    )
 
     if not tickets:
         embed.description = "📭 沒有找到票券記錄。"
@@ -528,7 +563,9 @@ def build_user_tickets_embed(
 
         field_value = f"**狀態：** {status_text}\n"
         field_value += f"**優先級：** {priority_emoji} {ticket.get('priority', 'medium').upper()}\n"
-        field_value += f"**建立：** {get_time_ago_chinese(ticket['created_at'])}"
+        field_value += (
+            f"**建立：** {get_time_ago_chinese(ticket['created_at'])}"
+        )
 
         # 添加評分資訊
         if ticket.get("rating"):
@@ -555,7 +592,9 @@ def build_user_tickets_embed(
 # ===== 自動回覆系統 =====
 
 
-def check_auto_reply_keywords(message_content: str, keywords: List[str]) -> bool:
+def check_auto_reply_keywords(
+    message_content: str, keywords: List[str]
+) -> bool:
     """檢查訊息是否匹配自動回覆關鍵字"""
     if not message_content or not keywords:
         return False
@@ -581,19 +620,29 @@ def process_auto_reply_message(
     processed_message = reply_template
 
     if user:
-        processed_message = processed_message.replace("{user}", user.display_name)
-        processed_message = processed_message.replace("{mention}", user.mention)
+        processed_message = processed_message.replace(
+            "{user}", user.display_name
+        )
+        processed_message = processed_message.replace(
+            "{mention}", user.mention
+        )
 
     # 替換時間變數
     now = datetime.now(timezone.utc)
-    processed_message = processed_message.replace("{time}", now.strftime("%H:%M"))
-    processed_message = processed_message.replace("{date}", now.strftime("%Y-%m-%d"))
+    processed_message = processed_message.replace(
+        "{time}", now.strftime("%H:%M")
+    )
+    processed_message = processed_message.replace(
+        "{date}", now.strftime("%Y-%m-%d")
+    )
 
     return processed_message
 
 
 async def get_best_auto_reply(
-    message_content: str, rules: List[Dict[str, Any]], user: discord.Member = None
+    message_content: str,
+    rules: List[Dict[str, Any]],
+    user: discord.Member = None,
 ) -> Optional[str]:
     """取得最佳自動回覆"""
     if not message_content or not rules:
@@ -625,7 +674,9 @@ async def get_best_auto_reply(
 # ===== 格式化工具 =====
 
 
-def format_settings_value(field_name: str, value: Any, guild: discord.Guild = None) -> str:
+def format_settings_value(
+    field_name: str, value: Any, guild: discord.Guild = None
+) -> str:
     """格式化設定值顯示"""
     if value is None:
         return "未設定"
@@ -672,7 +723,9 @@ def format_settings_value(field_name: str, value: Any, guild: discord.Guild = No
         return str(value)
 
 
-def format_ticket_status_summary(tickets: List[Dict[str, Any]]) -> Dict[str, Any]:
+def format_ticket_status_summary(
+    tickets: List[Dict[str, Any]],
+) -> Dict[str, Any]:
     """格式化票券狀態摘要"""
     summary = {
         "total": len(tickets),
@@ -717,7 +770,9 @@ def format_ticket_status_summary(tickets: List[Dict[str, Any]]) -> Dict[str, Any
 # format_duration 函數已移至 bot.utils.helper 模組以避免重複
 
 
-def format_timestamp(timestamp: datetime, format_type: str = "relative") -> str:
+def format_timestamp(
+    timestamp: datetime, format_type: str = "relative"
+) -> str:
     """格式化時間戳"""
     if format_type == "relative":
         return get_time_ago_chinese(timestamp)
@@ -794,7 +849,9 @@ class TicketCache:
             return True
 
         last_access = self.access_times[key]
-        return (datetime.now(timezone.utc) - last_access).total_seconds() > self.timeout_seconds
+        return (
+            datetime.now(timezone.utc) - last_access
+        ).total_seconds() > self.timeout_seconds
 
     async def _expire_key(self, key: str, timeout: int) -> None:
         """延遲刪除快取鍵"""
@@ -804,7 +861,9 @@ class TicketCache:
     def get_stats(self) -> Dict[str, Any]:
         """取得快取統計"""
         total_keys = len(self.cache)
-        expired_keys = sum(1 for key in self.cache.keys() if self._is_expired(key))
+        expired_keys = sum(
+            1 for key in self.cache.keys() if self._is_expired(key)
+        )
 
         return {
             "total_keys": total_keys,
@@ -815,7 +874,9 @@ class TicketCache:
 
     def cleanup_expired(self) -> int:
         """清理過期快取"""
-        expired_keys = [key for key in self.cache.keys() if self._is_expired(key)]
+        expired_keys = [
+            key for key in self.cache.keys() if self._is_expired(key)
+        ]
         for key in expired_keys:
             self.delete(key)
         return len(expired_keys)
@@ -832,7 +893,9 @@ async def send_ticket_notification(
 ) -> bool:
     """發送票券通知"""
     try:
-        embed = discord.Embed(title=title, description=description, color=color)
+        embed = discord.Embed(
+            title=title, description=description, color=color
+        )
         embed.set_footer(text="票券系統通知")
 
         await user.send(embed=embed)
@@ -843,11 +906,15 @@ async def send_ticket_notification(
 
 
 async def send_sla_alert(
-    channel: discord.TextChannel, ticket_info: Dict[str, Any], overdue_minutes: float
+    channel: discord.TextChannel,
+    ticket_info: Dict[str, Any],
+    overdue_minutes: float,
 ) -> bool:
     """發送SLA超時警告"""
     try:
-        priority_emoji = get_priority_emoji(ticket_info.get("priority", "medium"))
+        priority_emoji = get_priority_emoji(
+            ticket_info.get("priority", "medium")
+        )
 
         embed = discord.Embed(
             title="⚠️ SLA 超時警告",
@@ -882,7 +949,13 @@ async def send_sla_alert(
 
 def validate_ticket_data(ticket_data: Dict[str, Any]) -> Tuple[bool, str]:
     """驗證票券資料完整性"""
-    required_fields = ["discord_id", "username", "type", "channel_id", "guild_id"]
+    required_fields = [
+        "discord_id",
+        "username",
+        "type",
+        "channel_id",
+        "guild_id",
+    ]
 
     for field in required_fields:
         if field not in ticket_data or not ticket_data[field]:
@@ -949,18 +1022,26 @@ def calculate_ticket_metrics(tickets: List[Dict[str, Any]]) -> Dict[str, Any]:
             if created_at.tzinfo is None:
                 created_at = created_at.replace(tzinfo=timezone.utc)
             resolution_time = closed_at - created_at
-            resolution_times.append(resolution_time.total_seconds() / 3600)  # 轉換為小時
+            resolution_times.append(
+                resolution_time.total_seconds() / 3600
+            )  # 轉換為小時
 
         # 收集評分
         if ticket.get("rating"):
             ratings.append(ticket["rating"])
 
     # 計算平均解決時間
-    avg_resolution_time = sum(resolution_times) / len(resolution_times) if resolution_times else 0
+    avg_resolution_time = (
+        sum(resolution_times) / len(resolution_times)
+        if resolution_times
+        else 0
+    )
 
     # 計算滿意度（4星以上視為滿意）
     satisfied_count = sum(1 for rating in ratings if rating >= 4)
-    satisfaction_rate = (satisfied_count / len(ratings)) * 100 if ratings else 0
+    satisfaction_rate = (
+        (satisfied_count / len(ratings)) * 100 if ratings else 0
+    )
 
     return {
         "total_count": total_count,
@@ -971,7 +1052,9 @@ def calculate_ticket_metrics(tickets: List[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
-def generate_ticket_report(tickets: List[Dict[str, Any]], period: str = "week") -> str:
+def generate_ticket_report(
+    tickets: List[Dict[str, Any]], period: str = "week"
+) -> str:
     """生成票券報告"""
     metrics = calculate_ticket_metrics(tickets)
     status_summary = format_ticket_status_summary(tickets)

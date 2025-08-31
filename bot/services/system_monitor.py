@@ -65,28 +65,40 @@ class SystemMonitor:
         try:
             # CPU 使用率
             cpu_percent = psutil.cpu_percent(interval=1)
-            await self._record_metric("system", "cpu_usage", cpu_percent, "percent", "system")
+            await self._record_metric(
+                "system", "cpu_usage", cpu_percent, "percent", "system"
+            )
 
             # 記憶體使用率
             memory = psutil.virtual_memory()
             memory_percent = memory.percent
             memory_mb = memory.used / 1024 / 1024
-            await self._record_metric("system", "memory_usage", memory_percent, "percent", "system")
-            await self._record_metric("system", "memory_mb", memory_mb, "mb", "system")
+            await self._record_metric(
+                "system", "memory_usage", memory_percent, "percent", "system"
+            )
+            await self._record_metric(
+                "system", "memory_mb", memory_mb, "mb", "system"
+            )
 
             # 磁碟使用率
             disk = psutil.disk_usage("/")
             disk_percent = (disk.used / disk.total) * 100
-            await self._record_metric("system", "disk_usage", disk_percent, "percent", "system")
+            await self._record_metric(
+                "system", "disk_usage", disk_percent, "percent", "system"
+            )
 
             # 系統運行時間
             uptime_seconds = (datetime.now() - self.start_time).total_seconds()
-            await self._record_metric("system", "uptime", uptime_seconds, "seconds", "system")
+            await self._record_metric(
+                "system", "uptime", uptime_seconds, "seconds", "system"
+            )
 
             # 負載平均
             if hasattr(psutil, "getloadavg"):
                 load_avg = psutil.getloadavg()[0]  # 1分鐘負載
-                await self._record_metric("system", "load_average", load_avg, "ratio", "system")
+                await self._record_metric(
+                    "system", "load_average", load_avg, "ratio", "system"
+                )
 
         except Exception as e:
             logger.error(f"收集系統指標失敗: {e}")
@@ -96,15 +108,21 @@ class SystemMonitor:
         try:
             # Bot 延遲
             latency_ms = self.bot.latency * 1000
-            await self._record_metric("bot", "latency", latency_ms, "ms", "performance")
+            await self._record_metric(
+                "bot", "latency", latency_ms, "ms", "performance"
+            )
 
             # 伺服器數量
             guild_count = len(self.bot.guilds)
-            await self._record_metric("bot", "guild_count", guild_count, "count", "bot")
+            await self._record_metric(
+                "bot", "guild_count", guild_count, "count", "bot"
+            )
 
             # 用戶數量
             user_count = len(self.bot.users)
-            await self._record_metric("bot", "user_count", user_count, "count", "bot")
+            await self._record_metric(
+                "bot", "user_count", user_count, "count", "bot"
+            )
 
             # 快取統計
             if hasattr(self.bot, "_connection"):
@@ -112,21 +130,35 @@ class SystemMonitor:
                 if hasattr(connection, "_messages"):
                     cached_messages = len(connection._messages)
                     await self._record_metric(
-                        "bot", "cached_messages", cached_messages, "count", "cache"
+                        "bot",
+                        "cached_messages",
+                        cached_messages,
+                        "count",
+                        "cache",
                     )
 
             # 每個伺服器的統計
             for guild in self.bot.guilds:
                 guild_id = str(guild.id)
                 member_count = guild.member_count
-                await self._record_metric(guild_id, "member_count", member_count, "count", "guild")
+                await self._record_metric(
+                    guild_id, "member_count", member_count, "count", "guild"
+                )
 
                 # 在線成員數
                 online_members = len(
-                    [m for m in guild.members if m.status != discord.Status.offline]
+                    [
+                        m
+                        for m in guild.members
+                        if m.status != discord.Status.offline
+                    ]
                 )
                 await self._record_metric(
-                    guild_id, "online_members", online_members, "count", "guild"
+                    guild_id,
+                    "online_members",
+                    online_members,
+                    "count",
+                    "guild",
                 )
 
         except Exception as e:
@@ -144,7 +176,11 @@ class SystemMonitor:
                     result = await cursor.fetchone()
                     active_tickets = result["count"] if result else 0
                     await self._record_metric(
-                        "tickets", "active_tickets", active_tickets, "count", "tickets"
+                        "tickets",
+                        "active_tickets",
+                        active_tickets,
+                        "count",
+                        "tickets",
                     )
 
                     # 今日新建票券數
@@ -193,7 +229,9 @@ class SystemMonitor:
                     )
                     result = await cursor.fetchone()
                     avg_response = (
-                        result["avg_response"] if result and result["avg_response"] else 0
+                        result["avg_response"]
+                        if result and result["avg_response"]
+                        else 0
                     )
                     await self._record_metric(
                         "tickets",
@@ -214,7 +252,9 @@ class SystemMonitor:
                     )
                     result = await cursor.fetchone()
                     avg_resolution = (
-                        result["avg_resolution"] if result and result["avg_resolution"] else 0
+                        result["avg_resolution"]
+                        if result and result["avg_resolution"]
+                        else 0
                     )
                     await self._record_metric(
                         "tickets",
@@ -282,7 +322,11 @@ class SystemMonitor:
                         VALUES (%s, %s, %s, %s, %s, NOW())
                     """,
                         (
-                            (None if guild_id in ["system", "bot", "tickets"] else int(guild_id)),
+                            (
+                                None
+                                if guild_id in ["system", "bot", "tickets"]
+                                else int(guild_id)
+                            ),
                             metric_name,
                             value,
                             unit,
@@ -298,7 +342,11 @@ class SystemMonitor:
                         AND guild_id = %s AND metric_name = %s
                     """,
                         (
-                            (None if guild_id in ["system", "bot", "tickets"] else int(guild_id)),
+                            (
+                                None
+                                if guild_id in ["system", "bot", "tickets"]
+                                else int(guild_id)
+                            ),
                             metric_name,
                         ),
                     )
@@ -308,7 +356,9 @@ class SystemMonitor:
         except Exception as e:
             logger.error(f"記錄指標失敗 ({guild_id}:{metric_name}): {e}")
 
-    async def get_current_metrics(self, guild_id: Optional[str] = None) -> Dict[str, Any]:
+    async def get_current_metrics(
+        self, guild_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """獲取當前系統指標"""
         try:
             metrics = {}
@@ -355,8 +405,16 @@ class SystemMonitor:
                         ORDER BY recorded_at ASC
                     """,
                         (
-                            (None if guild_id in ["system", "bot", "tickets"] else guild_id),
-                            (None if guild_id in ["system", "bot", "tickets"] else int(guild_id)),
+                            (
+                                None
+                                if guild_id in ["system", "bot", "tickets"]
+                                else guild_id
+                            ),
+                            (
+                                None
+                                if guild_id in ["system", "bot", "tickets"]
+                                else int(guild_id)
+                            ),
                             metric_name,
                             hours,
                         ),
@@ -394,7 +452,9 @@ class SystemMonitor:
                 issues.append(f"CPU 使用率較高: {cpu_usage:.1f}%")
 
             # 記憶體檢查
-            memory_usage = system_metrics.get("memory_usage", {}).get("value", 0)
+            memory_usage = system_metrics.get("memory_usage", {}).get(
+                "value", 0
+            )
             if memory_usage > 85:
                 health_score -= 20
                 issues.append(f"記憶體使用率過高: {memory_usage:.1f}%")
@@ -414,7 +474,9 @@ class SystemMonitor:
 
             # 票券系統檢查
             ticket_metrics = current_metrics.get("tickets", {})
-            avg_response = ticket_metrics.get("avg_response_time", {}).get("value", 0)
+            avg_response = ticket_metrics.get("avg_response_time", {}).get(
+                "value", 0
+            )
             if avg_response > 60:  # 超過 60 分鐘
                 health_score -= 15
                 issues.append(f"平均回應時間過長: {avg_response:.1f} 分鐘")
@@ -445,7 +507,9 @@ class SystemMonitor:
                 "timestamp": datetime.now().isoformat(),
             }
 
-    async def generate_performance_report(self, hours: int = 24) -> Dict[str, Any]:
+    async def generate_performance_report(
+        self, hours: int = 24
+    ) -> Dict[str, Any]:
         """生成效能報告"""
         try:
             report = {
@@ -467,7 +531,9 @@ class SystemMonitor:
             ]
 
             for guild_id, metric_name in key_metrics:
-                history = await self.get_metric_history(guild_id, metric_name, hours)
+                history = await self.get_metric_history(
+                    guild_id, metric_name, hours
+                )
                 if history:
                     values = [h["value"] for h in history]
                     report["metrics_summary"][f"{guild_id}_{metric_name}"] = {
@@ -479,7 +545,9 @@ class SystemMonitor:
                             "up"
                             if len(values) > 1 and values[-1] > values[0]
                             else (
-                                "down" if len(values) > 1 and values[-1] < values[0] else "stable"
+                                "down"
+                                if len(values) > 1 and values[-1] < values[0]
+                                else "stable"
                             )
                         ),
                     }

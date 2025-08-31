@@ -369,7 +369,9 @@ class RBACManager:
                     )
 
                     if await cursor.fetchone():
-                        logger.warning(f"⚠️ 用戶已有此角色: user_id={user_id}, role_id={role_id}")
+                        logger.warning(
+                            f"⚠️ 用戶已有此角色: user_id={user_id}, role_id={role_id}"
+                        )
                         return False
 
                     # 分配角色
@@ -405,18 +407,24 @@ class RBACManager:
                 {
                     "role_id": role_id,
                     "assigned_by": assigned_by,
-                    "expires_at": expires_at.isoformat() if expires_at else None,
+                    "expires_at": (
+                        expires_at.isoformat() if expires_at else None
+                    ),
                 },
             )
 
-            logger.info(f"✅ 角色分配成功: user_id={user_id}, role_id={role_id}")
+            logger.info(
+                f"✅ 角色分配成功: user_id={user_id}, role_id={role_id}"
+            )
             return True
 
         except Exception as e:
             logger.error(f"❌ 角色分配失敗: {e}")
             return False
 
-    async def revoke_role(self, user_id: int, guild_id: int, role_id: int, revoked_by: int) -> bool:
+    async def revoke_role(
+        self, user_id: int, guild_id: int, role_id: int, revoked_by: int
+    ) -> bool:
         """
         撤銷用戶角色
 
@@ -439,14 +447,22 @@ class RBACManager:
                         SET is_active = FALSE, revoked_by = %s, revoked_at = %s
                         WHERE user_id = %s AND guild_id = %s AND role_id = %s AND is_active = TRUE
                     """,
-                        (revoked_by, datetime.now(), user_id, guild_id, role_id),
+                        (
+                            revoked_by,
+                            datetime.now(),
+                            user_id,
+                            guild_id,
+                            role_id,
+                        ),
                     )
 
                     affected_rows = cursor.rowcount
                     await conn.commit()
 
             if affected_rows == 0:
-                logger.warning(f"⚠️ 未找到要撤銷的角色: user_id={user_id}, role_id={role_id}")
+                logger.warning(
+                    f"⚠️ 未找到要撤銷的角色: user_id={user_id}, role_id={role_id}"
+                )
                 return False
 
             # 清除快取
@@ -462,14 +478,18 @@ class RBACManager:
                 {"role_id": role_id, "revoked_by": revoked_by},
             )
 
-            logger.info(f"✅ 角色撤銷成功: user_id={user_id}, role_id={role_id}")
+            logger.info(
+                f"✅ 角色撤銷成功: user_id={user_id}, role_id={role_id}"
+            )
             return True
 
         except Exception as e:
             logger.error(f"❌ 角色撤銷失敗: {e}")
             return False
 
-    async def check_permission(self, user_id: int, guild_id: int, permission: Permission) -> bool:
+    async def check_permission(
+        self, user_id: int, guild_id: int, permission: Permission
+    ) -> bool:
         """
         檢查用戶是否有特定權限
 
@@ -482,14 +502,18 @@ class RBACManager:
             bool: 是否有權限
         """
         try:
-            user_permissions = await self.get_user_permissions(user_id, guild_id)
+            user_permissions = await self.get_user_permissions(
+                user_id, guild_id
+            )
             return permission in user_permissions
 
         except Exception as e:
             logger.error(f"❌ 權限檢查失敗: {e}")
             return False
 
-    async def get_user_permissions(self, user_id: int, guild_id: int) -> Set[Permission]:
+    async def get_user_permissions(
+        self, user_id: int, guild_id: int
+    ) -> Set[Permission]:
         """
         獲取用戶所有權限
 
@@ -653,7 +677,9 @@ class RBACManager:
             async with db_pool.connection() as conn:
                 async with conn.cursor() as cursor:
                     if include_inactive:
-                        await cursor.execute("SELECT id FROM rbac_roles ORDER BY level DESC, name")
+                        await cursor.execute(
+                            "SELECT id FROM rbac_roles ORDER BY level DESC, name"
+                        )
                     else:
                         await cursor.execute(
                             "SELECT id FROM rbac_roles WHERE is_active = TRUE ORDER BY level DESC, name"
@@ -674,7 +700,9 @@ class RBACManager:
             logger.error(f"❌ 列出角色失敗: {e}")
             return []
 
-    async def get_user_role_assignments(self, user_id: int, guild_id: int) -> List[Dict[str, Any]]:
+    async def get_user_role_assignments(
+        self, user_id: int, guild_id: int
+    ) -> List[Dict[str, Any]]:
         """
         獲取用戶角色分配詳情
 
@@ -709,7 +737,9 @@ class RBACManager:
                                 "role_description": row[2],
                                 "assigned_by": row[3],
                                 "assigned_at": row[4].isoformat(),
-                                "expires_at": row[5].isoformat() if row[5] else None,
+                                "expires_at": (
+                                    row[5].isoformat() if row[5] else None
+                                ),
                                 "is_active": row[6],
                             }
                         )
@@ -728,7 +758,9 @@ class RBACManager:
                 user_id = interaction.user.id
                 guild_id = interaction.guild.id if interaction.guild else 0
 
-                if not await self.check_permission(user_id, guild_id, permission):
+                if not await self.check_permission(
+                    user_id, guild_id, permission
+                ):
                     await interaction.response.send_message(
                         f"❌ 您沒有執行此操作的權限 ({permission.value})",
                         ephemeral=True,
@@ -753,7 +785,11 @@ class RBACManager:
         ).total_seconds() < self.cache_ttl
 
     async def _log_rbac_event(
-        self, user_id: int, guild_id: int, event_type: str, details: Dict[str, Any]
+        self,
+        user_id: int,
+        guild_id: int,
+        event_type: str,
+        details: Dict[str, Any],
     ):
         """記錄 RBAC 事件"""
         try:

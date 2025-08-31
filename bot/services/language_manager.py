@@ -41,7 +41,9 @@ class LanguageManager:
     def _load_all_language_packs(self):
         """載入所有語言包"""
         try:
-            language_dir = os.path.join(os.path.dirname(__file__), "..", "locales")
+            language_dir = os.path.join(
+                os.path.dirname(__file__), "..", "locales"
+            )
 
             # 如果目錄不存在，創建預設語言包
             if not os.path.exists(language_dir):
@@ -166,8 +168,12 @@ class LanguageManager:
                 "题",
             ]
 
-            traditional_score = sum(1 for char in traditional_indicators if char in text)
-            simplified_score = sum(1 for char in simplified_indicators if char in text)
+            traditional_score = sum(
+                1 for char in traditional_indicators if char in text
+            )
+            simplified_score = sum(
+                1 for char in simplified_indicators if char in text
+            )
 
             if traditional_score > simplified_score:
                 return "zh-TW"
@@ -200,7 +206,9 @@ class LanguageManager:
             "his",
             "they",
         ]
-        english_score = sum(1 for word in english_words if f" {word} " in f" {text} ")
+        english_score = sum(
+            1 for word in english_words if f" {word} " in f" {text} "
+        )
         if english_score >= 2:
             return "en"
 
@@ -247,19 +255,25 @@ class LanguageManager:
 
             # 嘗試獲取指定語言的字串
             if lang_code in self.language_packs:
-                text = self._get_nested_string(self.language_packs[lang_code], key)
+                text = self._get_nested_string(
+                    self.language_packs[lang_code], key
+                )
                 if text:
                     return self._format_string(text, **kwargs)
 
             # 後備語言
             if self.fallback_language in self.language_packs:
-                text = self._get_nested_string(self.language_packs[self.fallback_language], key)
+                text = self._get_nested_string(
+                    self.language_packs[self.fallback_language], key
+                )
                 if text:
                     return self._format_string(text, **kwargs)
 
             # 預設語言
             if self.default_language in self.language_packs:
-                text = self._get_nested_string(self.language_packs[self.default_language], key)
+                text = self._get_nested_string(
+                    self.language_packs[self.default_language], key
+                )
                 if text:
                     return self._format_string(text, **kwargs)
 
@@ -271,7 +285,9 @@ class LanguageManager:
             logger.error(f"獲取本地化字串錯誤: {e}")
             return key
 
-    def _get_nested_string(self, language_pack: Dict[str, Any], key: str) -> Optional[str]:
+    def _get_nested_string(
+        self, language_pack: Dict[str, Any], key: str
+    ) -> Optional[str]:
         """獲取嵌套的字串"""
         try:
             keys = key.split(".")
@@ -300,7 +316,9 @@ class LanguageManager:
 
     # ========== 語言設定管理 ==========
 
-    async def set_user_language(self, user_id: int, guild_id: int, lang_code: str) -> bool:
+    async def set_user_language(
+        self, user_id: int, guild_id: int, lang_code: str
+    ) -> bool:
         """設定用戶語言"""
         try:
             if lang_code not in self.supported_languages:
@@ -308,7 +326,9 @@ class LanguageManager:
 
             # 這裡可以將用戶語言設定存儲到資料庫
             # 暫時先記錄日誌
-            logger.info(f"用戶 {user_id} 在伺服器 {guild_id} 設定語言為: {lang_code}")
+            logger.info(
+                f"用戶 {user_id} 在伺服器 {guild_id} 設定語言為: {lang_code}"
+            )
             return True
 
         except Exception as e:
@@ -770,6 +790,8 @@ class LanguageManager:
         """獲取語言名稱"""
         return self.supported_languages.get(lang_code, lang_code)
 
-    def format_message(self, template_key: str, lang_code: str = None, **kwargs) -> str:
+    def format_message(
+        self, template_key: str, lang_code: str = None, **kwargs
+    ) -> str:
         """格式化訊息"""
         return self.get_string(template_key, lang_code, **kwargs)

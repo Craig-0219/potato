@@ -200,10 +200,14 @@ class DatabaseOptimizer:
 
     # ========== 查詢分析和監控 ==========
 
-    async def analyze_query(self, query: str, params: tuple = None) -> QueryAnalysis:
+    async def analyze_query(
+        self, query: str, params: tuple = None
+    ) -> QueryAnalysis:
         """分析單個查詢"""
         start_time = time.time()
-        query_hash = hashlib.sha256(query.encode()).hexdigest()[:32]  # 使用 SHA256
+        query_hash = hashlib.sha256(query.encode()).hexdigest()[
+            :32
+        ]  # 使用 SHA256
 
         try:
             # 執行 EXPLAIN 分析
@@ -213,8 +217,8 @@ class DatabaseOptimizer:
             query_type = self._detect_query_type(query)
 
             # 執行查詢並測量性能
-            execution_time, rows_examined, rows_sent = await self._execute_and_measure(
-                query, params
+            execution_time, rows_examined, rows_sent = (
+                await self._execute_and_measure(query, params)
             )
 
             # 提取表格和索引信息
@@ -222,8 +226,10 @@ class DatabaseOptimizer:
             indexes_used = self._extract_indexes_from_explain(explain_result)
 
             # 生成優化建議
-            optimization_level, suggestions = await self._generate_optimization_suggestions(
-                explain_result, execution_time, query_type, query
+            optimization_level, suggestions = (
+                await self._generate_optimization_suggestions(
+                    explain_result, execution_time, query_type, query
+                )
             )
 
             # 創建分析結果
@@ -247,7 +253,9 @@ class DatabaseOptimizer:
 
             # 如果是慢查詢，記錄警告
             if execution_time > self.slow_query_threshold:
-                logger.warning(f"🐌 慢查詢檢測: {execution_time:.3f}s - {query[:100]}...")
+                logger.warning(
+                    f"🐌 慢查詢檢測: {execution_time:.3f}s - {query[:100]}..."
+                )
 
             return analysis
 
@@ -269,7 +277,9 @@ class DatabaseOptimizer:
                 timestamp=datetime.now(timezone.utc),
             )
 
-    async def _explain_query(self, query: str, params: tuple = None) -> Dict[str, Any]:
+    async def _explain_query(
+        self, query: str, params: tuple = None
+    ) -> Dict[str, Any]:
         """執行 EXPLAIN 分析"""
         try:
             async with db_pool.connection() as conn:
@@ -300,7 +310,9 @@ class DatabaseOptimizer:
                     await cursor.execute(query, params)
 
                     # 獲取執行統計
-                    await cursor.execute("SHOW SESSION STATUS LIKE 'Handler_read%'")
+                    await cursor.execute(
+                        "SHOW SESSION STATUS LIKE 'Handler_read%'"
+                    )
                     handler_stats = await cursor.fetchall()
 
                     for stat_name, stat_value in handler_stats:
@@ -351,7 +363,9 @@ class DatabaseOptimizer:
 
             # 處理複雜查詢（嵌套、聯接等）
             if "nested_loop" in query_block:
-                nested_tables = self._extract_nested_tables(query_block["nested_loop"])
+                nested_tables = self._extract_nested_tables(
+                    query_block["nested_loop"]
+                )
                 tables.extend(nested_tables)
 
         except Exception as e:
@@ -423,30 +437,44 @@ class DatabaseOptimizer:
             # 檢查是否使用了索引
             if self._has_full_table_scan(query_block):
                 suggestions.append("檢測到全表掃描，建議添加適當的索引")
-                optimization_level = max(optimization_level, OptimizationLevel.HIGH)
+                optimization_level = max(
+                    optimization_level, OptimizationLevel.HIGH
+                )
 
             # 檢查是否使用了臨時表
             if self._uses_temporary_table(query_block):
                 suggestions.append("查詢使用了臨時表，考慮優化排序或分組條件")
-                optimization_level = max(optimization_level, OptimizationLevel.MEDIUM)
+                optimization_level = max(
+                    optimization_level, OptimizationLevel.MEDIUM
+                )
 
             # 檢查是否使用了檔案排序
             if self._uses_filesort(query_block):
                 suggestions.append("檢測到檔案排序，建議為排序欄位添加索引")
-                optimization_level = max(optimization_level, OptimizationLevel.MEDIUM)
+                optimization_level = max(
+                    optimization_level, OptimizationLevel.MEDIUM
+                )
 
             # 檢查查詢結構
             if query_type == QueryType.SELECT:
                 if re.search(r'\bLIKE\s+[\'"]%.*%[\'"]', query, re.IGNORECASE):
-                    suggestions.append("避免使用前導萬用字元的 LIKE 查詢，考慮使用全文搜索")
+                    suggestions.append(
+                        "避免使用前導萬用字元的 LIKE 查詢，考慮使用全文搜索"
+                    )
 
-                if re.search(r"\bORDER BY\b.*\bRAND\(\)", query, re.IGNORECASE):
-                    suggestions.append("避免使用 ORDER BY RAND()，考慮其他隨機化方案")
+                if re.search(
+                    r"\bORDER BY\b.*\bRAND\(\)", query, re.IGNORECASE
+                ):
+                    suggestions.append(
+                        "避免使用 ORDER BY RAND()，考慮其他隨機化方案"
+                    )
 
             # 預設建議
             if not suggestions:
                 if execution_time > self.slow_query_threshold:
-                    suggestions.append("查詢執行時間較長，建議檢查表結構和索引使用")
+                    suggestions.append(
+                        "查詢執行時間較長，建議檢查表結構和索引使用"
+                    )
                 else:
                     suggestions.append("查詢性能良好")
 
@@ -462,11 +490,16 @@ class DatabaseOptimizer:
 
             def check_block(block):
                 if isinstance(block, dict):
-                    if "access_type" in block and block["access_type"] == "ALL":
+                    if (
+                        "access_type" in block
+                        and block["access_type"] == "ALL"
+                    ):
                         return True
 
                     for value in block.values():
-                        if isinstance(value, (dict, list)) and check_block(value):
+                        if isinstance(value, (dict, list)) and check_block(
+                            value
+                        ):
                             return True
                 elif isinstance(block, list):
                     for item in block:
@@ -526,7 +559,9 @@ class DatabaseOptimizer:
 
     # ========== 索引管理 ==========
 
-    async def analyze_index_usage(self, table_name: str = None) -> List[IndexRecommendation]:
+    async def analyze_index_usage(
+        self, table_name: str = None
+    ) -> List[IndexRecommendation]:
         """分析索引使用並生成建議"""
         try:
             recommendations = []
@@ -542,8 +577,10 @@ class DatabaseOptimizer:
                 query_patterns = await self._get_query_patterns(table)
 
                 # 生成索引建議
-                table_recommendations = await self._generate_index_recommendations(
-                    table, index_stats, query_patterns
+                table_recommendations = (
+                    await self._generate_index_recommendations(
+                        table, index_stats, query_patterns
+                    )
                 )
 
                 recommendations.extend(table_recommendations)
@@ -620,13 +657,18 @@ class DatabaseOptimizer:
 
                     usage_stats = dict(await cursor.fetchall())
 
-                    return {"index_info": index_info, "usage_stats": usage_stats}
+                    return {
+                        "index_info": index_info,
+                        "usage_stats": usage_stats,
+                    }
 
         except Exception as e:
             logger.error(f"❌ 獲取索引統計失敗 {table_name}: {e}")
             return {}
 
-    async def _get_query_patterns(self, table_name: str) -> List[Dict[str, Any]]:
+    async def _get_query_patterns(
+        self, table_name: str
+    ) -> List[Dict[str, Any]]:
         """獲取查詢模式"""
         try:
             async with db_pool.connection() as conn:
@@ -699,7 +741,9 @@ class DatabaseOptimizer:
                     recommendations.append(recommendation)
 
             # 生成複合索引建議
-            composite_candidates = self._identify_composite_index_candidates(query_patterns)
+            composite_candidates = self._identify_composite_index_candidates(
+                query_patterns
+            )
             for columns in composite_candidates:
                 if not self._has_composite_index(existing_indexes, columns):
                     columns_str = "_".join(columns)
@@ -718,7 +762,9 @@ class DatabaseOptimizer:
 
         return recommendations
 
-    def _extract_where_columns(self, query_patterns: List[Dict]) -> Dict[str, int]:
+    def _extract_where_columns(
+        self, query_patterns: List[Dict]
+    ) -> Dict[str, int]:
         """提取 WHERE 條件中的欄位"""
         columns = {}
 
@@ -735,7 +781,9 @@ class DatabaseOptimizer:
 
         return columns
 
-    def _extract_order_columns(self, query_patterns: List[Dict]) -> Dict[str, int]:
+    def _extract_order_columns(
+        self, query_patterns: List[Dict]
+    ) -> Dict[str, int]:
         """提取 ORDER BY 中的欄位"""
         columns = {}
 
@@ -750,7 +798,9 @@ class DatabaseOptimizer:
 
         return columns
 
-    def _extract_join_columns(self, query_patterns: List[Dict]) -> Dict[str, int]:
+    def _extract_join_columns(
+        self, query_patterns: List[Dict]
+    ) -> Dict[str, int]:
         """提取 JOIN 條件中的欄位"""
         columns = {}
 
@@ -776,11 +826,17 @@ class DatabaseOptimizer:
             for info in index_info:
                 index_name, column_name = info[0], info[1]
 
-                if current_index is None or current_index["name"] != index_name:
+                if (
+                    current_index is None
+                    or current_index["name"] != index_name
+                ):
                     if current_index:
                         indexes.append(current_index)
 
-                    current_index = {"name": index_name, "columns": [column_name]}
+                    current_index = {
+                        "name": index_name,
+                        "columns": [column_name],
+                    }
                 else:
                     current_index["columns"].append(column_name)
 
@@ -792,21 +848,27 @@ class DatabaseOptimizer:
 
         return indexes
 
-    def _has_index_on_column(self, existing_indexes: List[Dict], column: str) -> bool:
+    def _has_index_on_column(
+        self, existing_indexes: List[Dict], column: str
+    ) -> bool:
         """檢查是否已存在該欄位的索引"""
         for index in existing_indexes:
             if column in index["columns"]:
                 return True
         return False
 
-    def _has_composite_index(self, existing_indexes: List[Dict], columns: List[str]) -> bool:
+    def _has_composite_index(
+        self, existing_indexes: List[Dict], columns: List[str]
+    ) -> bool:
         """檢查是否已存在複合索引"""
         for index in existing_indexes:
             if set(columns).issubset(set(index["columns"])):
                 return True
         return False
 
-    def _identify_composite_index_candidates(self, query_patterns: List[Dict]) -> List[List[str]]:
+    def _identify_composite_index_candidates(
+        self, query_patterns: List[Dict]
+    ) -> List[List[str]]:
         """識別複合索引候選"""
         candidates = []
 
@@ -814,7 +876,9 @@ class DatabaseOptimizer:
             query = pattern["query"].upper()
 
             # 找出同時出現在 WHERE 條件中的欄位
-            where_pattern = r"WHERE\s+(.*?)(?:ORDER\s+BY|GROUP\s+BY|HAVING|LIMIT|$)"
+            where_pattern = (
+                r"WHERE\s+(.*?)(?:ORDER\s+BY|GROUP\s+BY|HAVING|LIMIT|$)"
+            )
             where_match = re.search(where_pattern, query)
 
             if where_match:
@@ -880,24 +944,40 @@ class DatabaseOptimizer:
                             result = await cursor.fetchone()
 
                             if metric_name == "connections":
-                                metrics_data["connections_used"] = int(result[0]) if result else 0
-                                metrics_data["max_connections"] = int(result[1]) if result else 0
+                                metrics_data["connections_used"] = (
+                                    int(result[0]) if result else 0
+                                )
+                                metrics_data["max_connections"] = (
+                                    int(result[1]) if result else 0
+                                )
                             else:
                                 metrics_data[metric_name] = (
-                                    float(result[0]) if result and result[0] else 0.0
+                                    float(result[0])
+                                    if result and result[0]
+                                    else 0.0
                                 )
 
                         except Exception as e:
-                            logger.warning(f"⚠️ 收集指標失敗 {metric_name}: {e}")
+                            logger.warning(
+                                f"⚠️ 收集指標失敗 {metric_name}: {e}"
+                            )
                             metrics_data[metric_name] = 0.0
 
                     # 創建指標物件
                     metrics = DatabaseMetrics(
-                        query_cache_hit_rate=metrics_data.get("query_cache_hit_rate", 0.0),
-                        slow_query_count=int(metrics_data.get("slow_queries", 0)),
-                        connections_used=metrics_data.get("connections_used", 0),
+                        query_cache_hit_rate=metrics_data.get(
+                            "query_cache_hit_rate", 0.0
+                        ),
+                        slow_query_count=int(
+                            metrics_data.get("slow_queries", 0)
+                        ),
+                        connections_used=metrics_data.get(
+                            "connections_used", 0
+                        ),
                         max_connections=metrics_data.get("max_connections", 0),
-                        innodb_buffer_pool_hit_rate=metrics_data.get("innodb_buffer_pool", 0.0),
+                        innodb_buffer_pool_hit_rate=metrics_data.get(
+                            "innodb_buffer_pool", 0.0
+                        ),
                         table_scan_rate=0.0,  # 需要額外計算
                         temp_table_rate=0.0,  # 需要額外計算
                         key_read_hit_rate=0.0,  # 需要額外計算
@@ -999,7 +1079,9 @@ class DatabaseOptimizer:
                     return {
                         "period_days": days,
                         "slow_queries": {
-                            "total": slow_query_stats[0] if slow_query_stats else 0,
+                            "total": (
+                                slow_query_stats[0] if slow_query_stats else 0
+                            ),
                             "avg_time": (
                                 float(slow_query_stats[1])
                                 if slow_query_stats and slow_query_stats[1]
@@ -1010,12 +1092,18 @@ class DatabaseOptimizer:
                                 if slow_query_stats and slow_query_stats[2]
                                 else 0
                             ),
-                            "unique_count": (slow_query_stats[3] if slow_query_stats else 0),
+                            "unique_count": (
+                                slow_query_stats[3] if slow_query_stats else 0
+                            ),
                         },
                         "optimization_levels": optimization_levels,
                         "frequent_queries": [
                             {
-                                "query": (query[:100] + "..." if len(query) > 100 else query),
+                                "query": (
+                                    query[:100] + "..."
+                                    if len(query) > 100
+                                    else query
+                                ),
                                 "frequency": freq,
                                 "avg_time": float(avg_time),
                                 "level": level,
@@ -1064,7 +1152,9 @@ def query_analyzed(func):
             execution_time = time.time() - start_time
             if execution_time > db_optimizer.slow_query_threshold:
                 # 這裡需要獲取實際的查詢語句，可能需要修改函數簽名
-                logger.warning(f"慢查詢檢測: {func.__name__} - {execution_time:.3f}s")
+                logger.warning(
+                    f"慢查詢檢測: {func.__name__} - {execution_time:.3f}s"
+                )
 
             return result
 

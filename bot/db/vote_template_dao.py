@@ -89,7 +89,9 @@ class VoteTemplateDAO:
             logger.error(f"初始化投票模板資料表失敗: {e}")
             raise
 
-    async def create_template(self, template_data: Dict[str, Any]) -> Optional[int]:
+    async def create_template(
+        self, template_data: Dict[str, Any]
+    ) -> Optional[int]:
         """創建投票模板"""
         try:
             async with self.db.connection() as conn:
@@ -142,7 +144,9 @@ class VoteTemplateDAO:
                     params = [category]
 
                     if guild_id:
-                        conditions.append("(guild_id = %s OR guild_id IS NULL OR is_public = TRUE)")
+                        conditions.append(
+                            "(guild_id = %s OR guild_id IS NULL OR is_public = TRUE)"
+                        )
                         params.append(guild_id)
                     else:
                         conditions.append("guild_id IS NULL")
@@ -173,7 +177,9 @@ class VoteTemplateDAO:
                             "creator_id": row[5],
                             "is_public": bool(row[6]),
                             "title_template": row[7],
-                            "options_template": json.loads(row[8]) if row[8] else [],
+                            "options_template": (
+                                json.loads(row[8]) if row[8] else []
+                            ),
                             "default_duration": row[9],
                             "default_is_multi": bool(row[10]),
                             "default_anonymous": bool(row[11]),
@@ -191,7 +197,9 @@ class VoteTemplateDAO:
             logger.error(f"取得模板列表失敗: {e}")
             return []
 
-    async def get_template_by_id(self, template_id: int) -> Optional[Dict[str, Any]]:
+    async def get_template_by_id(
+        self, template_id: int
+    ) -> Optional[Dict[str, Any]]:
         """根據ID取得模板詳細資訊"""
         try:
             async with self.db.connection() as conn:
@@ -220,7 +228,9 @@ class VoteTemplateDAO:
                         "creator_id": row[5],
                         "is_public": bool(row[6]),
                         "title_template": row[7],
-                        "options_template": json.loads(row[8]) if row[8] else [],
+                        "options_template": (
+                            json.loads(row[8]) if row[8] else []
+                        ),
                         "default_duration": row[9],
                         "default_is_multi": bool(row[10]),
                         "default_anonymous": bool(row[11]),
@@ -252,7 +262,9 @@ class VoteTemplateDAO:
         except Exception as e:
             logger.error(f"更新模板使用次數失敗: {e}")
 
-    async def add_template_favorite(self, template_id: int, user_id: int, guild_id: int) -> bool:
+    async def add_template_favorite(
+        self, template_id: int, user_id: int, guild_id: int
+    ) -> bool:
         """加入模板收藏"""
         try:
             async with self.db.connection() as conn:
@@ -275,7 +287,9 @@ class VoteTemplateDAO:
             logger.error(f"加入模板收藏失敗: {e}")
             return False
 
-    async def remove_template_favorite(self, template_id: int, user_id: int) -> bool:
+    async def remove_template_favorite(
+        self, template_id: int, user_id: int
+    ) -> bool:
         """移除模板收藏"""
         try:
             async with self.db.connection() as conn:
@@ -330,7 +344,9 @@ class VoteTemplateDAO:
                             "creator_id": row[5],
                             "is_public": bool(row[6]),
                             "title_template": row[7],
-                            "options_template": json.loads(row[8]) if row[8] else [],
+                            "options_template": (
+                                json.loads(row[8]) if row[8] else []
+                            ),
                             "default_duration": row[9],
                             "default_is_multi": bool(row[10]),
                             "default_anonymous": bool(row[11]),

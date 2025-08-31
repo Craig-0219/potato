@@ -35,7 +35,9 @@ class AIDAO:
                         exists = (await cursor.fetchone())[0] > 0
 
                 if not exists:
-                    logger.warning("📋 檢測到 AI 表格不存在，開始自動初始化...")
+                    logger.warning(
+                        "📋 檢測到 AI 表格不存在，開始自動初始化..."
+                    )
                     await self._create_ai_tables()
 
                 self._initialized = True
@@ -156,7 +158,11 @@ class AIDAO:
                             original_content,
                             suggested_content,
                             confidence_score,
-                            json.dumps(analysis_data) if analysis_data else None,
+                            (
+                                json.dumps(analysis_data)
+                                if analysis_data
+                                else None
+                            ),
                         ),
                     )
 
@@ -192,7 +198,11 @@ class AIDAO:
                             is_accepted,
                             feedback_rating,
                             feedback_comment,
-                            datetime.now(timezone.utc) if is_accepted else None,
+                            (
+                                datetime.now(timezone.utc)
+                                if is_accepted
+                                else None
+                            ),
                             suggestion_id,
                         ),
                     )
@@ -250,7 +260,9 @@ class AIDAO:
                             "original_content": row[4],
                             "suggested_content": row[5],
                             "confidence_score": float(row[6]),
-                            "analysis_data": json.loads(row[7]) if row[7] else {},
+                            "analysis_data": (
+                                json.loads(row[7]) if row[7] else {}
+                            ),
                             "is_accepted": bool(row[8]),
                             "feedback_rating": row[9],
                             "feedback_comment": row[10],
@@ -296,7 +308,11 @@ class AIDAO:
                             expected_output,
                             actual_output,
                             success_rate,
-                            json.dumps(learning_context) if learning_context else None,
+                            (
+                                json.dumps(learning_context)
+                                if learning_context
+                                else None
+                            ),
                         ),
                     )
 
@@ -351,7 +367,9 @@ class AIDAO:
                             "expected_output": row[3],
                             "actual_output": row[4],
                             "success_rate": float(row[5]) if row[5] else None,
-                            "learning_context": json.loads(row[6]) if row[6] else {},
+                            "learning_context": (
+                                json.loads(row[6]) if row[6] else {}
+                            ),
                             "created_at": row[7],
                             "updated_at": row[8],
                         }
@@ -365,7 +383,9 @@ class AIDAO:
 
     # ========== AI 統計 ==========
 
-    async def update_daily_statistics(self, guild_id: int, stat_date: str = None) -> bool:
+    async def update_daily_statistics(
+        self, guild_id: int, stat_date: str = None
+    ) -> bool:
         """更新每日統計"""
         await self._ensure_initialized()
         try:
@@ -400,7 +420,8 @@ class AIDAO:
                     total_suggestions = sum(row[0] for row in results)
                     total_accepted = sum(row[1] for row in results)
                     avg_confidence = (
-                        sum(row[2] * row[0] for row in results if row[2]) / total_suggestions
+                        sum(row[2] * row[0] for row in results if row[2])
+                        / total_suggestions
                         if total_suggestions > 0
                         else 0.0
                     )
@@ -418,7 +439,9 @@ class AIDAO:
                     # 計算性能指標
                     performance_metrics = {
                         "acceptance_rate": (
-                            total_accepted / total_suggestions if total_suggestions > 0 else 0.0
+                            total_accepted / total_suggestions
+                            if total_suggestions > 0
+                            else 0.0
                         ),
                         "avg_confidence": float(avg_confidence),
                         "total_suggestions": total_suggestions,
@@ -458,7 +481,9 @@ class AIDAO:
             logger.error(f"更新每日統計錯誤: {e}")
             return False
 
-    async def get_statistics(self, guild_id: int, days: int = 30) -> Dict[str, Any]:
+    async def get_statistics(
+        self, guild_id: int, days: int = 30
+    ) -> Dict[str, Any]:
         """取得 AI 統計數據"""
         await self._ensure_initialized()
         try:
@@ -495,9 +520,13 @@ class AIDAO:
                     total_accepted = sum(row[2] for row in rows)
 
                     # 計算平均置信度（加權平均）
-                    weighted_confidence = sum(row[3] * row[1] for row in rows if row[3] and row[1])
+                    weighted_confidence = sum(
+                        row[3] * row[1] for row in rows if row[3] and row[1]
+                    )
                     avg_confidence = (
-                        weighted_confidence / total_suggestions if total_suggestions > 0 else 0.0
+                        weighted_confidence / total_suggestions
+                        if total_suggestions > 0
+                        else 0.0
                     )
 
                     # 合併分類統計
@@ -511,8 +540,12 @@ class AIDAO:
                                         "total": 0,
                                         "accepted": 0,
                                     }
-                                combined_categories[category]["total"] += stats["total"]
-                                combined_categories[category]["accepted"] += stats["accepted"]
+                                combined_categories[category][
+                                    "total"
+                                ] += stats["total"]
+                                combined_categories[category][
+                                    "accepted"
+                                ] += stats["accepted"]
 
                     # 生成最終統計
                     statistics = {
@@ -520,7 +553,9 @@ class AIDAO:
                         "total_suggestions": total_suggestions,
                         "total_accepted": total_accepted,
                         "acceptance_rate": (
-                            total_accepted / total_suggestions if total_suggestions > 0 else 0.0
+                            total_accepted / total_suggestions
+                            if total_suggestions > 0
+                            else 0.0
                         ),
                         "avg_confidence": round(avg_confidence, 3),
                         "daily_average": round(total_suggestions / days, 1),

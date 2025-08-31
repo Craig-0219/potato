@@ -98,7 +98,9 @@ class APIManager:
 
             expires_at = None
             if expires_days:
-                expires_at = datetime.now(timezone.utc) + timedelta(days=expires_days)
+                expires_at = datetime.now(timezone.utc) + timedelta(
+                    days=expires_days
+                )
 
             api_key = APIKey(
                 key_id=key_id,
@@ -132,7 +134,9 @@ class APIManager:
             logger.error(f"撤銷 API 金鑰錯誤: {e}")
             return False
 
-    def validate_api_key(self, key_id: str, signature: str, request_data: str) -> Optional[APIKey]:
+    def validate_api_key(
+        self, key_id: str, signature: str, request_data: str
+    ) -> Optional[APIKey]:
         """驗證 API 金鑰和簽名"""
         try:
             if key_id not in self.api_keys:
@@ -145,12 +149,17 @@ class APIManager:
                 return None
 
             # 檢查是否過期
-            if api_key.expires_at and datetime.now(timezone.utc) > api_key.expires_at:
+            if (
+                api_key.expires_at
+                and datetime.now(timezone.utc) > api_key.expires_at
+            ):
                 api_key.is_active = False
                 return None
 
             # 驗證簽名
-            expected_signature = self._generate_signature(api_key.key_secret, request_data)
+            expected_signature = self._generate_signature(
+                api_key.key_secret, request_data
+            )
             if not hmac.compare_digest(signature, expected_signature):
                 return None
 
@@ -176,7 +185,10 @@ class APIManager:
             window_start = now.replace(minute=0, second=0, microsecond=0)
 
             if key_id not in self.rate_limits:
-                self.rate_limits[key_id] = {"count": 0, "window_start": window_start}
+                self.rate_limits[key_id] = {
+                    "count": 0,
+                    "window_start": window_start,
+                }
 
             rate_data = self.rate_limits[key_id]
 
@@ -303,7 +315,9 @@ class APIManager:
                 signature = request.headers.get("X-Signature", "")
                 request_data = json.dumps(request.parameters, sort_keys=True)
 
-                api_key = self.validate_api_key(request.api_key_id, signature, request_data)
+                api_key = self.validate_api_key(
+                    request.api_key_id, signature, request_data
+                )
                 if not api_key:
                     return APIResponse(
                         status_code=401,
@@ -314,7 +328,9 @@ class APIManager:
 
                 # 3. 檢查權限
                 required_permissions = endpoint_config.get("permissions", [])
-                if not self._check_permissions(api_key.permissions, required_permissions):
+                if not self._check_permissions(
+                    api_key.permissions, required_permissions
+                ):
                     return APIResponse(
                         status_code=403,
                         data=None,
@@ -371,32 +387,45 @@ class APIManager:
 
     # ========== API 處理器 ==========
 
-    async def _handle_statistics_overview(self, request: APIRequest) -> Dict[str, Any]:
+    async def _handle_statistics_overview(
+        self, request: APIRequest
+    ) -> Dict[str, Any]:
         """處理統計概覽請求"""
         days = request.parameters.get("days", 30)
-        return await self.statistics_manager.get_system_overview(request.guild_id, days)
+        return await self.statistics_manager.get_system_overview(
+            request.guild_id, days
+        )
 
-    async def _handle_statistics_performance(self, request: APIRequest) -> Dict[str, Any]:
+    async def _handle_statistics_performance(
+        self, request: APIRequest
+    ) -> Dict[str, Any]:
         """處理性能報告請求"""
         request.parameters.get("days", 30)
         # 需要在 StatisticsManager 中實現 get_performance_report 方法
         return {"message": "Performance report not implemented yet"}
 
-    async def _handle_statistics_trends(self, request: APIRequest) -> Dict[str, Any]:
+    async def _handle_statistics_trends(
+        self, request: APIRequest
+    ) -> Dict[str, Any]:
         """處理趨勢分析請求"""
         request.parameters.get("metric", "tickets")
         request.parameters.get("days", 30)
         # 需要在 StatisticsManager 中實現 get_trend_analysis 方法
         return {"message": "Trend analysis not implemented yet"}
 
-    async def _handle_tickets_list(self, request: APIRequest) -> Dict[str, Any]:
+    async def _handle_tickets_list(
+        self, request: APIRequest
+    ) -> Dict[str, Any]:
         """處理票券列表請求"""
         page = request.parameters.get("page", 1)
         page_size = request.parameters.get("page_size", 50)
         status = request.parameters.get("status")
 
         tickets, total_count = await self.ticket_manager.dao.paginate_tickets(
-            guild_id=request.guild_id, page=page, page_size=page_size, status=status
+            guild_id=request.guild_id,
+            page=page,
+            page_size=page_size,
+            status=status,
         )
 
         return {
@@ -421,12 +450,16 @@ class APIManager:
 
         return ticket
 
-    async def _handle_tickets_create(self, request: APIRequest) -> Dict[str, Any]:
+    async def _handle_tickets_create(
+        self, request: APIRequest
+    ) -> Dict[str, Any]:
         """處理創建票券請求"""
         # 這裡需要實現票券創建邏輯
         return {"message": "Ticket creation via API not implemented yet"}
 
-    async def _handle_tickets_update(self, request: APIRequest) -> Dict[str, Any]:
+    async def _handle_tickets_update(
+        self, request: APIRequest
+    ) -> Dict[str, Any]:
         """處理更新票券請求"""
         # 這裡需要實現票券更新邏輯
         return {"message": "Ticket update via API not implemented yet"}
@@ -441,17 +474,23 @@ class APIManager:
 
         return await self.ai_manager.suggest_reply(content, context)
 
-    async def _handle_ai_statistics(self, request: APIRequest) -> Dict[str, Any]:
+    async def _handle_ai_statistics(
+        self, request: APIRequest
+    ) -> Dict[str, Any]:
         """處理 AI 統計請求"""
         days = request.parameters.get("days", 30)
         return await self.ai_manager.get_ai_statistics(request.guild_id, days)
 
-    async def _handle_language_stats(self, request: APIRequest) -> Dict[str, Any]:
+    async def _handle_language_stats(
+        self, request: APIRequest
+    ) -> Dict[str, Any]:
         """處理語言統計請求"""
         # 需要實現語言統計邏輯
         return {"message": "Language statistics not implemented yet"}
 
-    async def _handle_language_detect(self, request: APIRequest) -> Dict[str, Any]:
+    async def _handle_language_detect(
+        self, request: APIRequest
+    ) -> Dict[str, Any]:
         """處理語言偵測請求"""
         text = request.parameters.get("text")
         if not text:
@@ -496,7 +535,10 @@ class APIManager:
                 "type": "API Key + Signature",
                 "description": "使用 API Key 和 HMAC 簽名進行認證",
             },
-            "rate_limits": {"description": "每小時限制請求次數", "default_limit": 100},
+            "rate_limits": {
+                "description": "每小時限制請求次數",
+                "default_limit": 100,
+            },
             "endpoints": {},
         }
 
@@ -518,10 +560,18 @@ class APIManager:
         # 這裡可以根據不同端點返回參數描述
         parameter_docs = {
             "GET /api/v1/statistics/overview": {
-                "days": {"type": "integer", "default": 30, "description": "統計天數"}
+                "days": {
+                    "type": "integer",
+                    "default": 30,
+                    "description": "統計天數",
+                }
             },
             "GET /api/v1/tickets": {
-                "page": {"type": "integer", "default": 1, "description": "頁碼"},
+                "page": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "頁碼",
+                },
                 "page_size": {
                     "type": "integer",
                     "default": 50,
@@ -560,7 +610,9 @@ class APIManager:
             "permissions": api_key.permissions,
             "rate_limit": api_key.rate_limit,
             "created_at": api_key.created_at.isoformat(),
-            "expires_at": (api_key.expires_at.isoformat() if api_key.expires_at else None),
+            "expires_at": (
+                api_key.expires_at.isoformat() if api_key.expires_at else None
+            ),
             "is_active": api_key.is_active,
             "current_usage": self.rate_limits.get(key_id, {}).get("count", 0),
         }

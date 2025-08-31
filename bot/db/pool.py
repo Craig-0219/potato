@@ -32,7 +32,13 @@ class MariaDBPool:
         self._tasks = set()  # 追蹤活躍的任務
 
     async def initialize(
-        self, host: str, port: int, user: str, password: str, database: str, **kwargs
+        self,
+        host: str,
+        port: int,
+        user: str,
+        password: str,
+        database: str,
+        **kwargs,
     ):
         """初始化連線池（修復版）"""
         async with self._lock:
@@ -63,7 +69,9 @@ class MariaDBPool:
                     del self._connection_params["loop"]
 
                 # 建立連線池
-                self.pool = await aiomysql.create_pool(**self._connection_params)
+                self.pool = await aiomysql.create_pool(
+                    **self._connection_params
+                )
                 self._initialized = True
                 logger.info("✅ 資料庫連線池已建立")
 
@@ -153,7 +161,9 @@ class MariaDBPool:
                     logger.error(f"關閉舊連線池失敗：{e}")
 
             try:
-                self.pool = await aiomysql.create_pool(**self._connection_params)
+                self.pool = await aiomysql.create_pool(
+                    **self._connection_params
+                )
                 logger.info("✅ 資料庫連線池重新建立成功")
             except Exception as e:
                 logger.error(f"❌ 資料庫重連失敗：{e}")
@@ -176,17 +186,29 @@ class MariaDBPool:
 
             # 修復：添加連線池狀態檢查
             pool_info = {
-                "size": getattr(self.pool, "_size", getattr(self.pool, "size", 0)),
-                "used": getattr(self.pool, "_used_size", getattr(self.pool, "used_size", 0)),
-                "free": getattr(self.pool, "_free_size", getattr(self.pool, "free_size", 0)),
-                "minsize": getattr(self.pool, "_minsize", getattr(self.pool, "minsize", 0)),
-                "maxsize": getattr(self.pool, "_maxsize", getattr(self.pool, "maxsize", 0)),
+                "size": getattr(
+                    self.pool, "_size", getattr(self.pool, "size", 0)
+                ),
+                "used": getattr(
+                    self.pool, "_used_size", getattr(self.pool, "used_size", 0)
+                ),
+                "free": getattr(
+                    self.pool, "_free_size", getattr(self.pool, "free_size", 0)
+                ),
+                "minsize": getattr(
+                    self.pool, "_minsize", getattr(self.pool, "minsize", 0)
+                ),
+                "maxsize": getattr(
+                    self.pool, "_maxsize", getattr(self.pool, "maxsize", 0)
+                ),
             }
 
             # 快速測試查詢
             async with self.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute("SELECT DATABASE(), NOW(), CONNECTION_ID()")
+                    await cursor.execute(
+                        "SELECT DATABASE(), NOW(), CONNECTION_ID()"
+                    )
                     db_name, now, connection_id = await cursor.fetchone()
 
             # 計算延遲
@@ -194,7 +216,9 @@ class MariaDBPool:
             latency_ms = round((end_time - start_time) * 1000, 2)
 
             # 建構連線池狀態描述
-            pool_status = f"{pool_info['used']}/{pool_info['maxsize']} (已使用/最大)"
+            pool_status = (
+                f"{pool_info['used']}/{pool_info['maxsize']} (已使用/最大)"
+            )
 
             return {
                 "status": "healthy",
@@ -254,7 +278,9 @@ db_pool = MariaDBPool()
 async def init_database(host, port, user, password, database, **kwargs):
     """初始化資料庫連線池（修復版）"""
     try:
-        await db_pool.initialize(host, port, user, password, database, **kwargs)
+        await db_pool.initialize(
+            host, port, user, password, database, **kwargs
+        )
         logger.info("✅ 資料庫初始化完成")
     except Exception as e:
         logger.error(f"❌ 資料庫初始化失敗：{e}")
@@ -294,7 +320,10 @@ def with_db_connection(func):
 
 
 async def execute_query(
-    query: str, params: tuple = None, fetch_one: bool = False, fetch_all: bool = False
+    query: str,
+    params: tuple = None,
+    fetch_one: bool = False,
+    fetch_all: bool = False,
 ):
     """執行查詢的便捷函數"""
     async with db_pool.connection() as conn:

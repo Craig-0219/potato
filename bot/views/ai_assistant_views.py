@@ -8,7 +8,12 @@ import traceback
 
 import discord
 
-from bot.services.ai_assistant import AIProvider, AIRequest, AITaskType, ai_assistant
+from bot.services.ai_assistant import (
+    AIProvider,
+    AIRequest,
+    AITaskType,
+    ai_assistant,
+)
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 
@@ -61,7 +66,12 @@ class AIModelSelector(discord.ui.Select):
                 )
             )
 
-        super().__init__(placeholder="選擇 AI 模型...", min_values=1, max_values=1, options=options)
+        super().__init__(
+            placeholder="選擇 AI 模型...",
+            min_values=1,
+            max_values=1,
+            options=options,
+        )
 
     async def callback(self, interaction: discord.Interaction):
         """模型選擇回調"""
@@ -70,7 +80,9 @@ class AIModelSelector(discord.ui.Select):
                 embed = EmbedBuilder.create_error_embed(
                     "❌ 無可用模型", "請聯繫管理員配置 AI API 密鑰"
                 )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.response.send_message(
+                    embed=embed, ephemeral=True
+                )
                 return
 
             selected_provider = AIProvider(self.values[0])
@@ -88,8 +100,12 @@ class AIModelSelector(discord.ui.Select):
 
         except Exception as e:
             logger.error(f"AI 模型選擇錯誤: {e}")
-            embed = EmbedBuilder.create_error_embed("❌ 選擇失敗", "模型選擇出現錯誤")
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            embed = EmbedBuilder.create_error_embed(
+                "❌ 選擇失敗", "模型選擇出現錯誤"
+            )
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
 
 
 class AITaskSelector(discord.ui.Select):
@@ -141,7 +157,12 @@ class AITaskSelector(discord.ui.Select):
             ),
         ]
 
-        super().__init__(placeholder="選擇任務類型...", min_values=1, max_values=1, options=options)
+        super().__init__(
+            placeholder="選擇任務類型...",
+            min_values=1,
+            max_values=1,
+            options=options,
+        )
 
     async def callback(self, interaction: discord.Interaction):
         """任務類型選擇回調"""
@@ -172,8 +193,12 @@ class AITaskSelector(discord.ui.Select):
 
         except Exception as e:
             logger.error(f"AI 任務選擇錯誤: {e}")
-            embed = EmbedBuilder.create_error_embed("❌ 選擇失敗", "任務類型選擇出現錯誤")
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            embed = EmbedBuilder.create_error_embed(
+                "❌ 選擇失敗", "任務類型選擇出現錯誤"
+            )
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
 
 
 class AIAssistantControlView(discord.ui.View):
@@ -188,8 +213,12 @@ class AIAssistantControlView(discord.ui.View):
         self.add_item(AIModelSelector())
         self.add_item(AITaskSelector())
 
-    @discord.ui.button(label="📊 使用統計", style=discord.ButtonStyle.secondary, emoji="📊")
-    async def usage_stats_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="📊 使用統計", style=discord.ButtonStyle.secondary, emoji="📊"
+    )
+    async def usage_stats_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """顯示使用統計"""
         try:
             interaction.user.id
@@ -213,14 +242,22 @@ class AIAssistantControlView(discord.ui.View):
 
             embed.add_field(name="⏱️ 最近活動", value="暫無記錄", inline=True)
 
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"使用統計顯示錯誤: {e}")
-            embed = EmbedBuilder.create_error_embed("❌ 統計錯誤", "無法獲取使用統計")
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            embed = EmbedBuilder.create_error_embed(
+                "❌ 統計錯誤", "無法獲取使用統計"
+            )
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
 
-    @discord.ui.button(label="⚙️ 模型設定", style=discord.ButtonStyle.secondary, emoji="⚙️")
+    @discord.ui.button(
+        label="⚙️ 模型設定", style=discord.ButtonStyle.secondary, emoji="⚙️"
+    )
     async def model_settings_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
@@ -228,7 +265,9 @@ class AIAssistantControlView(discord.ui.View):
         try:
             settings_view = AIModelSettingsView()
 
-            embed = EmbedBuilder.create_info_embed("⚙️ AI 模型設定", "調整 AI 模型的參數和行為")
+            embed = EmbedBuilder.create_info_embed(
+                "⚙️ AI 模型設定", "調整 AI 模型的參數和行為"
+            )
 
             embed.add_field(
                 name="🎛️ 可調整參數",
@@ -239,29 +278,43 @@ class AIAssistantControlView(discord.ui.View):
                 inline=False,
             )
 
-            await interaction.response.send_message(embed=embed, view=settings_view, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, view=settings_view, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"模型設定錯誤: {e}")
-            embed = EmbedBuilder.create_error_embed("❌ 設定錯誤", "無法打開模型設定")
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            embed = EmbedBuilder.create_error_embed(
+                "❌ 設定錯誤", "無法打開模型設定"
+            )
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
 
-    @discord.ui.button(label="🗨️ 開始對話", style=discord.ButtonStyle.primary, emoji="🗨️")
-    async def start_chat_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="🗨️ 開始對話", style=discord.ButtonStyle.primary, emoji="🗨️"
+    )
+    async def start_chat_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """開始 AI 對話"""
         try:
             if not self.selected_provider:
                 embed = EmbedBuilder.create_warning_embed(
                     "⚠️ 請先選擇模型", "請先從上方下拉選單選擇 AI 模型"
                 )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.response.send_message(
+                    embed=embed, ephemeral=True
+                )
                 return
 
             if not self.selected_task:
                 embed = EmbedBuilder.create_warning_embed(
                     "⚠️ 請先選擇任務類型", "請先從上方下拉選單選擇任務類型"
                 )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.response.send_message(
+                    embed=embed, ephemeral=True
+                )
                 return
 
             # 創建對話輸入模態框
@@ -270,8 +323,12 @@ class AIAssistantControlView(discord.ui.View):
 
         except Exception as e:
             logger.error(f"開始對話錯誤: {e}")
-            embed = EmbedBuilder.create_error_embed("❌ 對話錯誤", "無法開始 AI 對話")
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            embed = EmbedBuilder.create_error_embed(
+                "❌ 對話錯誤", "無法開始 AI 對話"
+            )
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
 
 
 class AIModelSettingsView(discord.ui.View):
@@ -282,7 +339,9 @@ class AIModelSettingsView(discord.ui.View):
         self.temperature = 0.7
         self.max_tokens = 1000
 
-    @discord.ui.button(label="🔥 提高創意度", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(
+        label="🔥 提高創意度", style=discord.ButtonStyle.secondary
+    )
     async def increase_temperature(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
@@ -290,7 +349,9 @@ class AIModelSettingsView(discord.ui.View):
         self.temperature = min(1.0, self.temperature + 0.1)
         await self._update_settings_display(interaction)
 
-    @discord.ui.button(label="❄️ 降低創意度", style=discord.ButtonStyle.secondary)
+    @discord.ui.button(
+        label="❄️ 降低創意度", style=discord.ButtonStyle.secondary
+    )
     async def decrease_temperature(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
@@ -298,14 +359,22 @@ class AIModelSettingsView(discord.ui.View):
         self.temperature = max(0.0, self.temperature - 0.1)
         await self._update_settings_display(interaction)
 
-    @discord.ui.button(label="📏 增加長度", style=discord.ButtonStyle.secondary)
-    async def increase_tokens(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="📏 增加長度", style=discord.ButtonStyle.secondary
+    )
+    async def increase_tokens(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """增加回應長度"""
         self.max_tokens = min(4000, self.max_tokens + 200)
         await self._update_settings_display(interaction)
 
-    @discord.ui.button(label="📐 減少長度", style=discord.ButtonStyle.secondary)
-    async def decrease_tokens(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="📐 減少長度", style=discord.ButtonStyle.secondary
+    )
+    async def decrease_tokens(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """減少回應長度"""
         self.max_tokens = max(100, self.max_tokens - 200)
         await self._update_settings_display(interaction)
@@ -341,7 +410,9 @@ class AIChatModal(discord.ui.Modal, title="🤖 AI 助手對話"):
             AITaskType.AD_COPY: "描述產品/服務和目標受眾...",
         }
 
-        self.chat_input.placeholder = placeholders.get(task_type, "輸入您的請求...")
+        self.chat_input.placeholder = placeholders.get(
+            task_type, "輸入您的請求..."
+        )
 
     chat_input = discord.ui.TextInput(
         label="您的訊息",
@@ -421,7 +492,9 @@ class AIMainMenuView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=300)
 
-    @discord.ui.button(label="🤖 AI 助手", style=discord.ButtonStyle.primary, emoji="🤖")
+    @discord.ui.button(
+        label="🤖 AI 助手", style=discord.ButtonStyle.primary, emoji="🤖"
+    )
     async def ai_assistant_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
@@ -430,7 +503,8 @@ class AIMainMenuView(discord.ui.View):
             control_view = AIAssistantControlView()
 
             embed = EmbedBuilder.create_info_embed(
-                "🤖 AI 智能助手", "歡迎使用 AI 智能助手！請選擇模型和任務類型開始使用。"
+                "🤖 AI 智能助手",
+                "歡迎使用 AI 智能助手！請選擇模型和任務類型開始使用。",
             )
 
             # 顯示可用的 AI 提供商
@@ -443,7 +517,11 @@ class AIMainMenuView(discord.ui.View):
                 available_models.append("✅ Google Gemini")
 
             if available_models:
-                embed.add_field(name="🔧 可用模型", value="\\n".join(available_models), inline=True)
+                embed.add_field(
+                    name="🔧 可用模型",
+                    value="\\n".join(available_models),
+                    inline=True,
+                )
             else:
                 embed.add_field(
                     name="⚠️ 模型狀態",
@@ -457,14 +535,22 @@ class AIMainMenuView(discord.ui.View):
                 inline=True,
             )
 
-            await interaction.response.send_message(embed=embed, view=control_view, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, view=control_view, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"AI 助手按鈕錯誤: {e}")
-            embed = EmbedBuilder.create_error_embed("❌ 系統錯誤", "無法啟動 AI 助手")
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            embed = EmbedBuilder.create_error_embed(
+                "❌ 系統錯誤", "無法啟動 AI 助手"
+            )
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
 
-    @discord.ui.button(label="📊 系統狀態", style=discord.ButtonStyle.secondary, emoji="📊")
+    @discord.ui.button(
+        label="📊 系統狀態", style=discord.ButtonStyle.secondary, emoji="📊"
+    )
     async def system_status_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
@@ -476,13 +562,19 @@ class AIMainMenuView(discord.ui.View):
 
             # 檢查各個 AI 服務的狀態
             status_info = []
-            for provider in [AIProvider.OPENAI, AIProvider.CLAUDE, AIProvider.GEMINI]:
+            for provider in [
+                AIProvider.OPENAI,
+                AIProvider.CLAUDE,
+                AIProvider.GEMINI,
+            ]:
                 if provider in ai_assistant.available_providers:
                     status_info.append(f"✅ {provider.value}: 可用")
                 else:
                     status_info.append(f"❌ {provider.value}: 未配置")
 
-            embed.add_field(name="🔧 服務狀態", value="\\n".join(status_info), inline=True)
+            embed.add_field(
+                name="🔧 服務狀態", value="\\n".join(status_info), inline=True
+            )
 
             embed.add_field(
                 name="📈 使用統計 (今日)",
@@ -496,9 +588,15 @@ class AIMainMenuView(discord.ui.View):
                 inline=True,
             )
 
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"系統狀態錯誤: {e}")
-            embed = EmbedBuilder.create_error_embed("❌ 狀態錯誤", "無法獲取系統狀態")
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            embed = EmbedBuilder.create_error_embed(
+                "❌ 狀態錯誤", "無法獲取系統狀態"
+            )
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
