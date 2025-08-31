@@ -1,5 +1,10 @@
 name: 🎨 Code Quality Checks
 
+# 並發控制 - 同一分支同時只執行一個品質檢查
+concurrency:
+  group: code-quality-${{ github.ref }}
+  cancel-in-progress: true  # 可以取消舊的檢查，執行最新的
+
 on:
   pull_request:
     branches: [main, dev]

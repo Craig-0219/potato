@@ -154,13 +154,13 @@ jobs:
         if: matrix.validation_type == 'tests'
         env:
           TESTING: true
-          DISCORD_TOKEN: "test_token_for_cd_validation_minimum_length_requirement_met_automatically_generated_token_cd_pipeline" # pragma: allowlist secret
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TEST_TOKEN }}
           DB_HOST: "localhost"
           DB_USER: "test_user"
-          DB_PASSWORD: "test_password_for_cd_environment_only" # pragma: allowlist secret
+          DB_PASSWORD: ${{ secrets.DB_TEST_PASSWORD }}
           DB_NAME: "test_database"
           DB_PORT: "3306"
-          JWT_SECRET: "test_jwt_secret_for_cd_validation_pipeline_usage_only" # pragma: allowlist secret
+          JWT_SECRET: ${{ secrets.JWT_TEST_SECRET }}
         run: |
           echo "🧪 Running critical tests for CD..."
           # 執行我們剛才建立的測試
