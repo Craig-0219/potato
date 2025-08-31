@@ -522,7 +522,7 @@ class GuildManager:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
                         """
-                        UPDATE guild_info 
+                        UPDATE guild_info
                         SET name = %s, member_count = %s, features = %s, last_activity = %s
                         WHERE guild_id = %s
                         """,

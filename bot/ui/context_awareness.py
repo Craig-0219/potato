@@ -399,6 +399,93 @@ class ContextAwarenessEngine:
 
         self.cleanup_task = asyncio.create_task(cleanup_old_data())
 
+    async def record_user_action(self, user_id: str, guild_id: str, action: str) -> bool:
+        """記錄用戶行為"""
+        try:
+            user_key = f"{guild_id}_{user_id}"
+            current_time = time.time()
+
+            # 初始化用戶偏好列表
+            if user_key not in self.user_preferences:
+                self.user_preferences[user_key] = []
+
+            # 查找現有偏好或創建新的
+            existing_pref = None
+            for pref in self.user_preferences[user_key]:
+                if pref.feature == action:
+                    existing_pref = pref
+                    break
+
+            if existing_pref:
+                # 更新現有偏好
+                existing_pref.usage_count += 1
+                existing_pref.last_used = current_time
+                existing_pref.preference_score = min(1.0, existing_pref.preference_score + 0.1)
+            else:
+                # 創建新的偏好記錄
+                new_pref = UserPreference(
+                    user_id=user_id,
+                    feature=action,
+                    usage_count=1,
+                    last_used=current_time,
+                    preference_score=0.1,
+                )
+                self.user_preferences[user_key].append(new_pref)
+
+            logger.debug(f"📊 記錄用戶行為: {user_id} -> {action}")
+            return True
+
+        except Exception as e:
+            logger.error(f"❌ 記錄用戶行為失敗: {e}")
+            return False
+
+    async def get_contextual_menu_options(
+        self, user_id: str, guild_id: str
+    ) -> List[Dict[str, Any]]:
+        """獲取情境化選單選項"""
+        try:
+            # 獲取用戶行為分析
+            user_behavior = await self.analyze_user_behavior(user_id, guild_id)
+
+            # 獲取智能推薦
+            recommendations = await self.generate_smart_recommendations(user_id, guild_id)
+
+            # 構建情境化選項
+            contextual_options = []
+
+            # 添加基於推薦的選項
+            for rec in recommendations[:3]:  # 最多顯示3個推薦
+                contextual_options.append(
+                    {
+                        "action": rec.action,
+                        "title": rec.title,
+                        "description": rec.description,
+                        "priority": rec.level.value,
+                        "confidence": rec.confidence,
+                        "reason": rec.reason,
+                    }
+                )
+
+            # 添加基於用戶偏好的快速選項
+            top_features = user_behavior.get("most_used_features", [])
+            for feature in top_features[:2]:  # 最多顯示2個常用功能
+                contextual_options.append(
+                    {
+                        "action": feature,
+                        "title": f"⚡ {feature}",
+                        "description": "您的常用功能",
+                        "priority": "medium",
+                        "confidence": 0.8,
+                        "reason": "用戶偏好",
+                    }
+                )
+
+            return contextual_options
+
+        except Exception as e:
+            logger.error(f"❌ 獲取情境化選單選項失敗: {e}")
+            return []
+
     async def shutdown(self):
         """關閉情境感知引擎"""
         if self.cleanup_task:

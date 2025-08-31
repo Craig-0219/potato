@@ -154,7 +154,7 @@ class GuildPermissionManager:
                 "features": guild.features,
             }
 
-# Register tenant functionality removed with multi-tenant security framework
+            # Register tenant functionality removed with multi-tenant security framework
 
             # 初始化擁有者權限
             if guild.owner_id:
@@ -250,7 +250,7 @@ class GuildPermissionManager:
                 async with conn.cursor(aiomysql.DictCursor) as cursor:
                     await cursor.execute(
                         """
-                        SELECT * FROM guild_user_permissions 
+                        SELECT * FROM guild_user_permissions
                         WHERE guild_id = %s AND user_id = %s AND is_active = %s
                         """,
                         (guild_id, user_id, True),
@@ -427,8 +427,8 @@ class GuildPermissionManager:
                     async with conn.cursor() as cursor:
                         await cursor.execute(
                             """
-                            UPDATE guild_user_permissions 
-                            SET roles = %s, updated_at = %s 
+                            UPDATE guild_user_permissions
+                            SET roles = %s, updated_at = %s
                             WHERE user_id = %s AND guild_id = %s
                             """,
                             (role_data, datetime.now(), user_id, guild_id),

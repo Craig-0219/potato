@@ -163,31 +163,8 @@ jobs:
           JWT_SECRET: "test_jwt_secret_for_cd_validation_pipeline_usage_only" # pragma: allowlist secret
         run: |
           echo "🧪 Running critical tests for CD..."
-          
-          # 基本配置和導入測試
-          python3 -c "
-          import sys
-          sys.path.append('.')
-          try:
-              # 測試配置模組載入
-              import shared.config
-              print('✅ Config module loads successfully')
-              
-              # 測試資料庫模組載入
-              from bot.db.pool import init_database
-              print('✅ Database module loads successfully')
-              
-              # 測試核心 bot 模組載入
-              from bot.main import main
-              print('✅ Bot main module loads successfully')
-              
-              print('✅ All critical imports successful')
-              
-          except Exception as e:
-              print(f'❌ Critical test failed: {e}')
-              sys.exit(1)
-          "
-          
+          # 執行我們剛才建立的測試
+          python3 test_config_validation.py
           echo "✅ Critical tests passed"
 
   # ==========================================
