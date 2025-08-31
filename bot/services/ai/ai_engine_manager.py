@@ -18,6 +18,7 @@ import openai
 # 條件式導入 anthropic (可選依賴)
 try:
     from anthropic import AsyncAnthropic
+
     ANTHROPIC_AVAILABLE = True
 except ImportError:
     AsyncAnthropic = None
