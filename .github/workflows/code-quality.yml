@@ -64,7 +64,11 @@ jobs:
     - name: 🔍 語法和風格檢查 (flake8)
       run: |
         echo "🔍 執行語法和風格檢查..."
-        flake8 . --statistics --tee --output-file=flake8-report.txt
+        # 使用內聯配置，避免依賴 .flake8 檔案
+        flake8 . --statistics --tee --output-file=flake8-report.txt \
+          --max-line-length=88 \
+          --extend-ignore=E203,E501,W503 \
+          --exclude=.git,__pycache__,build,dist,.venv
 
     - name: 🔬 類型檢查 (mypy)
       run: |
