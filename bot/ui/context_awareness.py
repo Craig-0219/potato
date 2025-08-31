@@ -428,7 +428,7 @@ class ContextAwarenessEngine:
                     feature=action,
                     usage_count=1,
                     last_used=current_time,
-                    preference_score=0.1
+                    preference_score=0.1,
                 )
                 self.user_preferences[user_key].append(new_pref)
 
@@ -439,40 +439,46 @@ class ContextAwarenessEngine:
             logger.error(f"❌ 記錄用戶行為失敗: {e}")
             return False
 
-    async def get_contextual_menu_options(self, user_id: str, guild_id: str) -> List[Dict[str, Any]]:
+    async def get_contextual_menu_options(
+        self, user_id: str, guild_id: str
+    ) -> List[Dict[str, Any]]:
         """獲取情境化選單選項"""
         try:
             # 獲取用戶行為分析
             user_behavior = await self.analyze_user_behavior(user_id, guild_id)
-            
+
             # 獲取智能推薦
             recommendations = await self.generate_smart_recommendations(user_id, guild_id)
-            
+
             # 構建情境化選項
             contextual_options = []
-            
+
             # 添加基於推薦的選項
             for rec in recommendations[:3]:  # 最多顯示3個推薦
-                contextual_options.append({
-                    "action": rec.action,
-                    "title": rec.title,
-                    "description": rec.description,
-                    "priority": rec.level.value,
-                    "confidence": rec.confidence,
-                    "reason": rec.reason
-                })
-            
+                contextual_options.append(
+                    {
+                        "action": rec.action,
+                        "title": rec.title,
+                        "description": rec.description,
+                        "priority": rec.level.value,
+                        "confidence": rec.confidence,
+                        "reason": rec.reason,
+                    }
+                )
+
             # 添加基於用戶偏好的快速選項
             top_features = user_behavior.get("most_used_features", [])
             for feature in top_features[:2]:  # 最多顯示2個常用功能
-                contextual_options.append({
-                    "action": feature,
-                    "title": f"⚡ {feature}",
-                    "description": "您的常用功能",
-                    "priority": "medium",
-                    "confidence": 0.8,
-                    "reason": "用戶偏好"
-                })
+                contextual_options.append(
+                    {
+                        "action": feature,
+                        "title": f"⚡ {feature}",
+                        "description": "您的常用功能",
+                        "priority": "medium",
+                        "confidence": 0.8,
+                        "reason": "用戶偏好",
+                    }
+                )
 
             return contextual_options
 

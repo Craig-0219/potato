@@ -23,9 +23,9 @@ class GitHubUpdateChecker:
         self.base_url = "https://api.github.com"
         self.headers = {
             "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "Potato-Bot-Auto-Updater/1.0"
+            "User-Agent": "Potato-Bot-Auto-Updater/1.0",
         }
-        
+
         if self.token:
             self.headers["Authorization"] = f"token {token}"
 
@@ -33,7 +33,7 @@ class GitHubUpdateChecker:
         """獲取最新發布版本"""
         try:
             url = f"{self.base_url}/repos/{self.owner}/{self.repo}/releases/latest"
-            
+
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, headers=self.headers) as response:
                     if response.status == 200:
@@ -46,7 +46,7 @@ class GitHubUpdateChecker:
                             "html_url": data.get("html_url"),
                             "download_url": data.get("tarball_url"),
                             "prerelease": data.get("prerelease", False),
-                            "draft": data.get("draft", False)
+                            "draft": data.get("draft", False),
                         }
                     else:
                         logger.error(f"❌ GitHub API 錯誤: {response.status}")
@@ -61,7 +61,7 @@ class GitHubUpdateChecker:
         try:
             url = f"{self.base_url}/repos/{self.owner}/{self.repo}/releases"
             params = {"per_page": per_page}
-            
+
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, headers=self.headers, params=params) as response:
                     if response.status == 200:
@@ -71,7 +71,7 @@ class GitHubUpdateChecker:
                                 "tag_name": release.get("tag_name"),
                                 "name": release.get("name"),
                                 "published_at": release.get("published_at"),
-                                "prerelease": release.get("prerelease", False)
+                                "prerelease": release.get("prerelease", False),
                             }
                             for release in data
                         ]
@@ -83,12 +83,14 @@ class GitHubUpdateChecker:
             logger.error(f"❌ 獲取版本列表失敗: {e}")
             return []
 
-    async def get_latest_commits(self, branch: str = "main", per_page: int = 10) -> List[Dict[str, Any]]:
+    async def get_latest_commits(
+        self, branch: str = "main", per_page: int = 10
+    ) -> List[Dict[str, Any]]:
         """獲取最新提交"""
         try:
             url = f"{self.base_url}/repos/{self.owner}/{self.repo}/commits"
             params = {"sha": branch, "per_page": per_page}
-            
+
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, headers=self.headers, params=params) as response:
                     if response.status == 200:
@@ -99,7 +101,7 @@ class GitHubUpdateChecker:
                                 "message": commit["commit"]["message"],
                                 "author": commit["commit"]["author"]["name"],
                                 "date": commit["commit"]["author"]["date"],
-                                "url": commit["html_url"]
+                                "url": commit["html_url"],
                             }
                             for commit in data
                         ]
@@ -115,24 +117,24 @@ class GitHubUpdateChecker:
         """比較版本差異"""
         try:
             # 使用 packaging 庫比較版本
-            current_ver = version.parse(current_version.lstrip('v'))
-            target_ver = version.parse(target_version.lstrip('v'))
-            
+            current_ver = version.parse(current_version.lstrip("v"))
+            target_ver = version.parse(target_version.lstrip("v"))
+
             comparison = {
                 "current": current_version,
                 "target": target_version,
                 "needs_update": target_ver > current_ver,
                 "is_major_update": target_ver.major > current_ver.major,
                 "is_minor_update": target_ver.minor > current_ver.minor,
-                "is_patch_update": target_ver.micro > current_ver.micro
+                "is_patch_update": target_ver.micro > current_ver.micro,
             }
-            
+
             # 獲取版本間的差異
             if comparison["needs_update"]:
                 commits_diff = await self.get_commits_between_tags(current_version, target_version)
                 comparison["commits_count"] = len(commits_diff)
                 comparison["commits"] = commits_diff[:5]  # 限制顯示 5 個提交
-            
+
             return comparison
 
         except Exception as e:
@@ -143,7 +145,7 @@ class GitHubUpdateChecker:
         """獲取兩個標籤之間的提交"""
         try:
             url = f"{self.base_url}/repos/{self.owner}/{self.repo}/compare/{base}...{head}"
-            
+
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, headers=self.headers) as response:
                     if response.status == 200:
@@ -152,9 +154,9 @@ class GitHubUpdateChecker:
                         return [
                             {
                                 "sha": commit["sha"][:8],
-                                "message": commit["commit"]["message"].split('\n')[0][:80],
+                                "message": commit["commit"]["message"].split("\n")[0][:80],
                                 "author": commit["commit"]["author"]["name"],
-                                "date": commit["commit"]["author"]["date"]
+                                "date": commit["commit"]["author"]["date"],
                             }
                             for commit in commits
                         ]
@@ -170,7 +172,7 @@ class GitHubUpdateChecker:
         """檢查 API 使用限制"""
         try:
             url = f"{self.base_url}/rate_limit"
-            
+
             async with aiohttp.ClientSession() as session:
                 async with session.get(url, headers=self.headers) as response:
                     if response.status == 200:
@@ -180,7 +182,7 @@ class GitHubUpdateChecker:
                             "limit": core_limit.get("limit", 0),
                             "remaining": core_limit.get("remaining", 0),
                             "reset_at": datetime.fromtimestamp(core_limit.get("reset", 0)),
-                            "used": core_limit.get("limit", 0) - core_limit.get("remaining", 0)
+                            "used": core_limit.get("limit", 0) - core_limit.get("remaining", 0),
                         }
                     else:
                         logger.error(f"❌ GitHub API 錯誤: {response.status}")
@@ -201,10 +203,10 @@ class GitHubUpdateChecker:
             async with aiohttp.ClientSession() as session:
                 async with session.get(download_url, headers=self.headers) as response:
                     if response.status == 200:
-                        with open(download_path, 'wb') as f:
+                        with open(download_path, "wb") as f:
                             async for chunk in response.content.iter_chunked(8192):
                                 f.write(chunk)
-                        
+
                         logger.info(f"✅ 下載完成: {download_path}")
                         return True
                     else:
@@ -228,7 +230,7 @@ class AutoUpdateManager:
     async def check_for_updates(self, force: bool = False) -> Optional[Dict[str, Any]]:
         """檢查更新"""
         now = datetime.now()
-        
+
         # 檢查是否需要更新檢查
         if not force and self.last_check:
             if now - self.last_check < self.update_check_interval:
@@ -236,7 +238,7 @@ class AutoUpdateManager:
                 return None
 
         self.last_check = now
-        
+
         try:
             # 獲取最新版本
             latest_release = await self.checker.get_latest_release()
@@ -245,8 +247,7 @@ class AutoUpdateManager:
 
             # 比較版本
             comparison = await self.checker.compare_versions(
-                self.current_version, 
-                latest_release["tag_name"]
+                self.current_version, latest_release["tag_name"]
             )
 
             if comparison.get("needs_update"):
@@ -257,14 +258,14 @@ class AutoUpdateManager:
                     "latest_version": latest_release["tag_name"],
                     "release_info": latest_release,
                     "comparison": comparison,
-                    "checked_at": now.isoformat()
+                    "checked_at": now.isoformat(),
                 }
             else:
                 logger.info(f"✅ 已是最新版本: {self.current_version}")
                 return {
                     "has_update": False,
                     "current_version": self.current_version,
-                    "checked_at": now.isoformat()
+                    "checked_at": now.isoformat(),
                 }
 
         except Exception as e:
@@ -281,10 +282,10 @@ class AutoUpdateManager:
 
             release_info = update_info["release_info"]
             comparison = update_info["comparison"]
-            
+
             # 獲取速率限制資訊
             rate_limit = await self.checker.check_rate_limit()
-            
+
             return {
                 "update_available": True,
                 "current_version": self.current_version,
@@ -293,9 +294,13 @@ class AutoUpdateManager:
                 "published_at": release_info["published_at"],
                 "is_major_update": comparison.get("is_major_update", False),
                 "commits_count": comparison.get("commits_count", 0),
-                "release_notes": release_info["body"][:500] + "..." if len(release_info["body"]) > 500 else release_info["body"],
+                "release_notes": (
+                    release_info["body"][:500] + "..."
+                    if len(release_info["body"]) > 500
+                    else release_info["body"]
+                ),
                 "download_url": release_info["html_url"],
-                "rate_limit": rate_limit
+                "rate_limit": rate_limit,
             }
 
         except Exception as e:
@@ -309,15 +314,15 @@ async def example_usage():
     # 初始化更新管理器
     updater = AutoUpdateManager(
         owner="Craig-0219",
-        repo="potato", 
+        repo="potato",
         current_version="v2025.08.30",
-        token="your_github_token_here"  # 可選，但建議使用以避免速率限制
+        token="your_github_token_here",  # 可選，但建議使用以避免速率限制
     )
-    
+
     # 檢查更新
     update_info = await updater.check_for_updates()
     print(json.dumps(update_info, indent=2, ensure_ascii=False))
-    
+
     # 獲取更新摘要
     summary = await updater.get_update_summary()
     print(json.dumps(summary, indent=2, ensure_ascii=False))
