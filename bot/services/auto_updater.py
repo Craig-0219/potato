@@ -33,6 +33,20 @@ class AutoUpdater:
         self.current_commit = self._get_current_commit()
         self.update_channel_id = self.config.get("update_channel_id")
         self.authorized_users = self.config.get("authorized_users", [])
+        
+        # GitHub API 認證
+        self.github_token = os.getenv("GITHUB_TOKEN")
+        if not self.github_token:
+            logger.warning("⚠️ 未配置 GITHUB_TOKEN 環境變數，GitHub API 請求可能受速率限制影響")
+        else:
+            # 驗證 token 格式
+            if self.github_token.startswith(('ghp_', 'github_pat_')):
+                logger.info(f"✅ 已載入 GITHUB_TOKEN (類型: {self.github_token[:4]}...)")
+            else:
+                logger.warning(f"⚠️ GITHUB_TOKEN 格式可能不正確 (開頭: {self.github_token[:4]}...)")
+            
+            # 記錄 token 長度（用於除錯）
+            logger.debug(f"🔍 GITHUB_TOKEN 長度: {len(self.github_token)} 字符")
 
         # 啟動自動檢查任務
         if self.config.get("auto_check_enabled", True):
@@ -92,21 +106,94 @@ class AutoUpdater:
         """從 GitHub API 獲取最新提交信息"""
         try:
             url = f"https://api.github.com/repos/{self.config['github_repo']}/commits/{self.config['branch']}"
+            
+            # 準備請求標頭
+            headers = {
+                "Accept": "application/vnd.github.v3+json",
+                "User-Agent": "Potato-Bot-Auto-Updater/1.0"
+            }
+            
+            if self.github_token:
+                headers["Authorization"] = f"token {self.github_token}"
+                logger.debug("🔑 使用認證的 GitHub API 請求")
+            else:
+                logger.debug("🔓 使用未認證的 GitHub API 請求")
 
             async with aiohttp.ClientSession() as session:
-                async with session.get(url) as response:
+                async with session.get(url, headers=headers) as response:
                     if response.status == 200:
                         commit_info = await response.json()
                         return commit_info["sha"], commit_info
+                    elif response.status == 401:
+                        if self.github_token:
+                            logger.error("❌ GitHub API 認證失敗 (401)：GITHUB_TOKEN 無效或已過期")
+                            # 嘗試不使用 token 重新請求
+                            logger.info("🔄 嘗試使用未認證請求...")
+                            headers_no_auth = {k: v for k, v in headers.items() if k != "Authorization"}
+                            async with session.get(url, headers=headers_no_auth) as retry_response:
+                                if retry_response.status == 200:
+                                    commit_info = await retry_response.json()
+                                    logger.info("✅ 未認證請求成功")
+                                    return commit_info["sha"], commit_info
+                                else:
+                                    logger.error(f"❌ 未認證請求也失敗: {retry_response.status}")
+                        else:
+                            logger.error("❌ GitHub API 認證失敗 (401)：可能需要訪問私有倉庫")
+                    elif response.status == 403:
+                        logger.error("❌ GitHub API 速率限制 (403)：請配置有效的 GITHUB_TOKEN 以提高限制")
+                    elif response.status == 404:
+                        logger.error("❌ GitHub 倉庫或分支不存在 (404)")
                     else:
-                        logger.error(f"GitHub API 請求失敗: {response.status}")
+                        logger.error(f"❌ GitHub API 請求失敗: {response.status}")
+                        
+                    # 記錄詳細的錯誤資訊
+                    error_text = await response.text()
+                    logger.debug(f"🔍 API 錯誤詳情: {error_text[:200]}...")
         except Exception as e:
-            logger.error(f"獲取最新提交失敗: {e}")
+            logger.error(f"❌ 獲取最新提交失敗: {e}")
 
         return None, None
 
+    async def _validate_github_token(self) -> bool:
+        """驗證 GitHub Token 是否有效"""
+        if not self.github_token:
+            return False
+            
+        try:
+            # 測試 token 有效性 - 調用用戶資訊 API
+            headers = {
+                "Accept": "application/vnd.github.v3+json",
+                "User-Agent": "Potato-Bot-Auto-Updater/1.0",
+                "Authorization": f"token {self.github_token}"
+            }
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.get("https://api.github.com/user", headers=headers) as response:
+                    if response.status == 200:
+                        user_data = await response.json()
+                        logger.info(f"✅ GitHub Token 驗證成功 (用戶: {user_data.get('login', 'unknown')})")
+                        return True
+                    elif response.status == 401:
+                        logger.error("❌ GitHub Token 無效或已過期")
+                        return False
+                    elif response.status == 403:
+                        logger.warning("⚠️ GitHub Token 權限不足或達到速率限制")
+                        return False
+                    else:
+                        logger.warning(f"⚠️ GitHub Token 驗證異常: {response.status}")
+                        return False
+        except Exception as e:
+            logger.error(f"❌ GitHub Token 驗證失敗: {e}")
+            return False
+
     async def check_for_updates(self) -> Tuple[bool, Optional[Dict[str, Any]]]:
         """檢查是否有可用更新"""
+        # 如果有 token，先驗證其有效性
+        if self.github_token:
+            token_valid = await self._validate_github_token()
+            if not token_valid:
+                logger.error("🚫 GitHub Token 驗證失敗，將使用未認證請求 (可能有速率限制)")
+        
         latest_commit, commit_info = await self._get_latest_commit()
 
         if not latest_commit:
