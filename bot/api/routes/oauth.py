@@ -122,7 +122,7 @@ async def discord_callback(
 
     except Exception as e:
         logger.error(f"Discord OAuth 回調錯誤: {e}")
-        return RedirectResponse(url=f"http://36.50.249.118:3000/auth/error?error=callback_failed")
+        return RedirectResponse(url="http://36.50.249.118:3000/auth/error?error=callback_failed")
 
 
 async def exchange_code_for_token(code: str) -> Optional[dict]:
