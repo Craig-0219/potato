@@ -14,7 +14,14 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 import openai
-from anthropic import AsyncAnthropic
+
+# 條件式導入 anthropic (可選依賴)
+try:
+    from anthropic import AsyncAnthropic
+    ANTHROPIC_AVAILABLE = True
+except ImportError:
+    AsyncAnthropic = None
+    ANTHROPIC_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -110,8 +117,8 @@ class AIEngineManager:
                     "priority": 2,
                 }
 
-            # Anthropic Claude
-            if self.config.get("anthropic_api_key"):
+            # Anthropic Claude (僅在依賴可用時)
+            if ANTHROPIC_AVAILABLE and self.config.get("anthropic_api_key"):
                 self.providers[AIProvider.CLAUDE_3_OPUS] = {
                     "client": AsyncAnthropic(
                         api_key=self.config["anthropic_api_key"]

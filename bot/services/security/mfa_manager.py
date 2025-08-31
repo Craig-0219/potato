@@ -11,7 +11,14 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List
 
-import pyotp
+# 條件式導入 pyotp (可選依賴)
+try:
+    import pyotp
+    PYOTP_AVAILABLE = True
+except ImportError:
+    pyotp = None
+    PYOTP_AVAILABLE = False
+
 import qrcode
 
 # 設置臨時日誌以處理導入錯誤
@@ -103,6 +110,13 @@ class MFAManager:
             Dict[str, Any]: 包含 QR Code 和密鑰的設置資訊
         """
         try:
+            if not PYOTP_AVAILABLE:
+                return {
+                    "success": False,
+                    "error": "pyotp 模組不可用，無法設置 TOTP 認證",
+                    "fallback": "請使用其他認證方式"
+                }
+
             # 生成隨機密鑰
             secret = pyotp.random_base32()
 
@@ -177,6 +191,12 @@ class MFAManager:
             Dict[str, Any]: 驗證結果
         """
         try:
+            if not PYOTP_AVAILABLE:
+                return {
+                    "success": False,
+                    "error": "pyotp 模組不可用，無法驗證 TOTP 代碼",
+                    "fallback": "請使用其他認證方式"
+                }
             # 檢查嘗試次數限制
             if not await self._check_attempt_limit(user_id, MFAMethod.TOTP):
                 return {
