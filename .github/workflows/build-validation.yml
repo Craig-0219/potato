@@ -224,7 +224,7 @@ jobs:
     name: 🌐 Web UI 建構驗證
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: (github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'web-ui') && hashFiles('web-ui/**') != ''
+    if: github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'web-ui'
     
     defaults:
       run:
