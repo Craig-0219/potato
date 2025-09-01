@@ -35,14 +35,20 @@ class LanguageCore(commands.Cog):
     @app_commands.describe(language="選擇語言 | Choose language")
     @app_commands.choices(
         language=[
-            app_commands.Choice(name="繁體中文 | Traditional Chinese", value="zh-TW"),
-            app_commands.Choice(name="简体中文 | Simplified Chinese", value="zh-CN"),
+            app_commands.Choice(
+                name="繁體中文 | Traditional Chinese", value="zh-TW"
+            ),
+            app_commands.Choice(
+                name="简体中文 | Simplified Chinese", value="zh-CN"
+            ),
             app_commands.Choice(name="English", value="en"),
             app_commands.Choice(name="日本語 | Japanese", value="ja"),
             app_commands.Choice(name="한국어 | Korean", value="ko"),
         ]
     )
-    async def set_user_language(self, interaction: discord.Interaction, language: str):
+    async def set_user_language(
+        self, interaction: discord.Interaction, language: str
+    ):
         """設定用戶語言偏好"""
         await interaction.response.defer(ephemeral=True)
 
@@ -64,24 +70,27 @@ class LanguageCore(commands.Cog):
                 )
 
                 embed = discord.Embed(
-                    title="✅ " + self.language_manager.get_string("common.success", language),
+                    title="✅ "
+                    + self.language_manager.get_string(
+                        "common.success", language
+                    ),
                     description=message,
                     color=0x28A745,
                 )
 
                 # 添加指令更新提示
                 if language == "zh-TW":
-                    update_hint = "💡 **提示**: 指令描述將在下次使用時自動更新為新語言"
+                    update_hint = (
+                        "💡 **提示**: 指令描述將在下次使用時自動更新為新語言"
+                    )
                 elif language == "zh-CN":
-                    update_hint = "💡 **提示**: 命令描述将在下次使用时自动更新为新语言"
+                    update_hint = (
+                        "💡 **提示**: 命令描述将在下次使用时自动更新为新语言"
+                    )
                 elif language == "ja":
-                    update_hint = (
-                        "💡 **ヒント**: コマンドの説明は次回使用時に新しい言語に自動更新されます"
-                    )
+                    update_hint = "💡 **ヒント**: コマンドの説明は次回使用時に新しい言語に自動更新されます"
                 elif language == "ko":
-                    update_hint = (
-                        "💡 **힌트**: 명령어 설명은 다음 사용 시 새 언어로 자동 업데이트됩니다"
-                    )
+                    update_hint = "💡 **힌트**: 명령어 설명은 다음 사용 시 새 언어로 자동 업데이트됩니다"
                 else:
                     update_hint = "💡 **Hint**: Command descriptions will auto-update to the new language on next use"
 
@@ -96,7 +105,10 @@ class LanguageCore(commands.Cog):
                 )
             else:
                 embed = discord.Embed(
-                    title="❌ " + self.language_manager.get_string("common.error", language),
+                    title="❌ "
+                    + self.language_manager.get_string(
+                        "common.error", language
+                    ),
                     description=self.language_manager.get_string(
                         "common.operation_failed", language
                     ),
@@ -107,10 +119,13 @@ class LanguageCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"設定用戶語言錯誤: {e}")
-            await interaction.followup.send(f"❌ 設定語言時發生錯誤：{str(e)}", ephemeral=True)
+            await interaction.followup.send(
+                f"❌ 設定語言時發生錯誤：{str(e)}", ephemeral=True
+            )
 
     @app_commands.command(
-        name="my_language", description="查看您的語言設定 | View your language settings"
+        name="my_language",
+        description="查看您的語言設定 | View your language settings",
     )
     async def get_user_language(self, interaction: discord.Interaction):
         """查看用戶語言設定"""
@@ -128,44 +143,62 @@ class LanguageCore(commands.Cog):
 
                 embed = discord.Embed(
                     title="🌐 "
-                    + self.language_manager.get_string("language.your_setting", lang_code),
+                    + self.language_manager.get_string(
+                        "language.your_setting", lang_code
+                    ),
                     color=0x007BFF,
                 )
 
                 embed.add_field(
-                    name=self.language_manager.get_string("language.current_language", lang_code),
+                    name=self.language_manager.get_string(
+                        "language.current_language", lang_code
+                    ),
                     value=f"**{lang_name}** (`{lang_code}`)",
                     inline=True,
                 )
 
                 if language_info["auto_detected"]:
                     embed.add_field(
-                        name=self.language_manager.get_string("language.detection_type", lang_code),
-                        value=self.language_manager.get_string("language.auto_detected", lang_code),
+                        name=self.language_manager.get_string(
+                            "language.detection_type", lang_code
+                        ),
+                        value=self.language_manager.get_string(
+                            "language.auto_detected", lang_code
+                        ),
                         inline=True,
                     )
 
                     if language_info["confidence"]:
                         embed.add_field(
-                            name=self.language_manager.get_string("language.confidence", lang_code),
+                            name=self.language_manager.get_string(
+                                "language.confidence", lang_code
+                            ),
                             value=f"{language_info['confidence']:.1%}",
                             inline=True,
                         )
                 else:
                     embed.add_field(
-                        name=self.language_manager.get_string("language.detection_type", lang_code),
-                        value=self.language_manager.get_string("language.manually_set", lang_code),
+                        name=self.language_manager.get_string(
+                            "language.detection_type", lang_code
+                        ),
+                        value=self.language_manager.get_string(
+                            "language.manually_set", lang_code
+                        ),
                         inline=True,
                     )
 
                 embed.add_field(
-                    name=self.language_manager.get_string("common.set_at", lang_code),
+                    name=self.language_manager.get_string(
+                        "common.set_at", lang_code
+                    ),
                     value=f"<t:{int(language_info['created_at'].timestamp())}:F>",
                     inline=False,
                 )
 
                 embed.set_footer(
-                    text=self.language_manager.get_string("language.change_hint", lang_code)
+                    text=self.language_manager.get_string(
+                        "language.change_hint", lang_code
+                    )
                 )
 
             else:
@@ -174,11 +207,15 @@ class LanguageCore(commands.Cog):
 
                 embed = discord.Embed(
                     title="🌐 "
-                    + self.language_manager.get_string("language.no_setting", default_lang),
+                    + self.language_manager.get_string(
+                        "language.no_setting", default_lang
+                    ),
                     description=self.language_manager.get_string(
                         "language.using_default",
                         default_lang,
-                        default=self.language_manager.get_language_name(default_lang),
+                        default=self.language_manager.get_language_name(
+                            default_lang
+                        ),
                     ),
                     color=0x6C757D,
                 )
@@ -193,7 +230,9 @@ class LanguageCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"查看用戶語言錯誤: {e}")
-            await interaction.followup.send(f"❌ 查看語言設定時發生錯誤：{str(e)}", ephemeral=True)
+            await interaction.followup.send(
+                f"❌ 查看語言設定時發生錯誤：{str(e)}", ephemeral=True
+            )
 
     @app_commands.command(
         name="reset_language",
@@ -216,11 +255,16 @@ class LanguageCore(commands.Cog):
             )
 
             # 刪除用戶語言設定
-            success = await self.language_dao.delete_user_language(interaction.user.id)
+            success = await self.language_dao.delete_user_language(
+                interaction.user.id
+            )
 
             if success:
                 embed = discord.Embed(
-                    title="✅ " + self.language_manager.get_string("common.success", lang_code),
+                    title="✅ "
+                    + self.language_manager.get_string(
+                        "common.success", lang_code
+                    ),
                     description=self.language_manager.get_string(
                         "language.reset_success", lang_code
                     ),
@@ -228,13 +272,18 @@ class LanguageCore(commands.Cog):
                 )
 
                 embed.add_field(
-                    name=self.language_manager.get_string("language.now_using", lang_code),
+                    name=self.language_manager.get_string(
+                        "language.now_using", lang_code
+                    ),
                     value=f"**{self.language_manager.get_language_name(self.language_manager.default_language)}** (預設)",
                     inline=False,
                 )
             else:
                 embed = discord.Embed(
-                    title="❌ " + self.language_manager.get_string("common.error", lang_code),
+                    title="❌ "
+                    + self.language_manager.get_string(
+                        "common.error", lang_code
+                    ),
                     description=self.language_manager.get_string(
                         "common.operation_failed", lang_code
                     ),
@@ -245,7 +294,9 @@ class LanguageCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"重置用戶語言錯誤: {e}")
-            await interaction.followup.send(f"❌ 重置語言設定時發生錯誤：{str(e)}", ephemeral=True)
+            await interaction.followup.send(
+                f"❌ 重置語言設定時發生錯誤：{str(e)}", ephemeral=True
+            )
 
     # ========== 伺服器語言管理指令 ==========
 
@@ -293,15 +344,21 @@ class LanguageCore(commands.Cog):
     async def set_server_language(self, ctx, language_code: str):
         """設定伺服器預設語言"""
         if not self.language_manager.is_supported_language(language_code):
-            supported = ", ".join(self.language_manager.supported_languages.keys())
+            supported = ", ".join(
+                self.language_manager.supported_languages.keys()
+            )
             await ctx.send(f"❌ 不支援的語言代碼。支援的語言：{supported}")
             return
 
         try:
-            success = await self.language_dao.set_guild_language(ctx.guild.id, language_code)
+            success = await self.language_dao.set_guild_language(
+                ctx.guild.id, language_code
+            )
 
             if success:
-                lang_name = self.language_manager.get_language_name(language_code)
+                lang_name = self.language_manager.get_language_name(
+                    language_code
+                )
                 embed = discord.Embed(
                     title="✅ 伺服器語言已設定",
                     description=f"伺服器預設語言已設定為：**{lang_name}** (`{language_code}`)",
@@ -337,20 +394,28 @@ class LanguageCore(commands.Cog):
             return
 
         try:
-            stats = await self.language_dao.get_language_usage_stats(ctx.guild.id, days)
+            stats = await self.language_dao.get_language_usage_stats(
+                ctx.guild.id, days
+            )
 
             if not stats:
                 await ctx.send("📭 沒有找到語言使用統計數據")
                 return
 
-            embed = discord.Embed(title=f"📊 語言使用統計 (過去 {days} 天)", color=0x007BFF)
+            embed = discord.Embed(
+                title=f"📊 語言使用統計 (過去 {days} 天)", color=0x007BFF
+            )
 
             total_messages = sum(stat["total_messages"] for stat in stats)
 
             for i, stat in enumerate(stats[:10], 1):
-                lang_name = self.language_manager.get_language_name(stat["language_code"])
+                lang_name = self.language_manager.get_language_name(
+                    stat["language_code"]
+                )
                 percentage = (
-                    (stat["total_messages"] / total_messages * 100) if total_messages > 0 else 0
+                    (stat["total_messages"] / total_messages * 100)
+                    if total_messages > 0
+                    else 0
                 )
 
                 value = f"訊息: {stat['total_messages']} ({percentage:.1f}%)\n"
@@ -382,7 +447,9 @@ class LanguageCore(commands.Cog):
             return
 
         try:
-            popular = await self.language_dao.get_popular_languages(ctx.guild.id, limit)
+            popular = await self.language_dao.get_popular_languages(
+                ctx.guild.id, limit
+            )
 
             if not popular:
                 await ctx.send("📭 沒有找到語言使用數據")
@@ -391,7 +458,9 @@ class LanguageCore(commands.Cog):
             embed = discord.Embed(title="🔥 熱門語言排行榜", color=0xFF6B35)
 
             for i, lang in enumerate(popular, 1):
-                lang_name = self.language_manager.get_language_name(lang["language_code"])
+                lang_name = self.language_manager.get_language_name(
+                    lang["language_code"]
+                )
 
                 # 排名 Emoji
                 rank_emoji = {1: "🥇", 2: "🥈", 3: "🥉"}.get(i, "📍")
@@ -419,9 +488,13 @@ class LanguageCore(commands.Cog):
             return
 
         try:
-            accuracy = await self.language_dao.get_detection_accuracy(ctx.guild.id, days=days)
+            accuracy = await self.language_dao.get_detection_accuracy(
+                ctx.guild.id, days=days
+            )
 
-            embed = discord.Embed(title=f"🎯 語言偵測準確率 (過去 {days} 天)", color=0x28A745)
+            embed = discord.Embed(
+                title=f"🎯 語言偵測準確率 (過去 {days} 天)", color=0x28A745
+            )
 
             if accuracy["total_detections"] == 0:
                 embed.description = "📭 沒有足夠的偵測數據"
@@ -479,7 +552,8 @@ class LanguageCore(commands.Cog):
             # 發送完成訊息
             embed = discord.Embed(
                 title="✅ 同步完成",
-                description=f"已成功同步 {len(synced)} 個指令\n" "指令描述現在會顯示伺服器預設語言",
+                description=f"已成功同步 {len(synced)} 個指令\n"
+                "指令描述現在會顯示伺服器預設語言",
                 color=0x28A745,
             )
 
@@ -533,7 +607,9 @@ class LanguageCore(commands.Cog):
                 await interaction.response.defer()
 
                 # 執行清理
-                cleaned_count = await self.language_dao.cleanup_old_detection_logs(days)
+                cleaned_count = (
+                    await self.language_dao.cleanup_old_detection_logs(days)
+                )
 
                 result_embed = discord.Embed(
                     title="✅ 清理完成",
@@ -541,7 +617,9 @@ class LanguageCore(commands.Cog):
                     color=0x28A745,
                 )
 
-                await interaction.edit_original_response(embed=result_embed, view=None)
+                await interaction.edit_original_response(
+                    embed=result_embed, view=None
+                )
 
             async def cancel_callback(interaction):
                 if interaction.user != ctx.author:
@@ -550,14 +628,20 @@ class LanguageCore(commands.Cog):
                     )
                     return
 
-                cancel_embed = discord.Embed(title="❌ 清理已取消", color=0x6C757D)
+                cancel_embed = discord.Embed(
+                    title="❌ 清理已取消", color=0x6C757D
+                )
 
-                await interaction.response.edit_message(embed=cancel_embed, view=None)
+                await interaction.response.edit_message(
+                    embed=cancel_embed, view=None
+                )
 
             confirm_btn = discord.ui.Button(
                 label="確認清理", style=discord.ButtonStyle.green, emoji="✅"
             )
-            cancel_btn = discord.ui.Button(label="取消", style=discord.ButtonStyle.red, emoji="❌")
+            cancel_btn = discord.ui.Button(
+                label="取消", style=discord.ButtonStyle.red, emoji="❌"
+            )
 
             confirm_btn.callback = confirm_callback
             cancel_btn.callback = cancel_callback
@@ -577,7 +661,11 @@ class LanguageCore(commands.Cog):
     async def on_message(self, message):
         """監聽訊息進行語言偵測和統計"""
         # 忽略機器人訊息和私訊
-        if message.author.bot or not message.guild or len(message.content.strip()) < 10:
+        if (
+            message.author.bot
+            or not message.guild
+            or len(message.content.strip()) < 10
+        ):
             return
 
         try:
@@ -596,7 +684,9 @@ class LanguageCore(commands.Cog):
                 )
             else:
                 # 偵測語言
-                detected_lang = self.language_manager.detect_language(message.content)
+                detected_lang = self.language_manager.detect_language(
+                    message.content
+                )
 
                 if detected_lang:
                     # 記錄偵測結果

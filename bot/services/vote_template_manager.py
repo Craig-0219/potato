@@ -167,7 +167,9 @@ class VoteTemplateManager:
             await vote_template_dao.initialize_tables()
 
             # 檢查是否已經初始化過
-            existing_templates = await vote_template_dao.get_templates_by_category("poll")
+            existing_templates = (
+                await vote_template_dao.get_templates_by_category("poll")
+            )
             if existing_templates:
                 logger.info("預定義模板已存在，跳過初始化")
                 return
@@ -178,17 +180,23 @@ class VoteTemplateManager:
                 template_data["creator_id"] = 0  # 系統創建
                 template_data["guild_id"] = None  # 全域模板
 
-                template_id = await vote_template_dao.create_template(template_data)
+                template_id = await vote_template_dao.create_template(
+                    template_data
+                )
                 if template_id:
                     created_count += 1
-                    logger.info(f"創建預定義模板: {template_data['name']} (ID: {template_id})")
+                    logger.info(
+                        f"創建預定義模板: {template_data['name']} (ID: {template_id})"
+                    )
 
             logger.info(f"成功創建 {created_count} 個預定義投票模板")
 
         except Exception as e:
             logger.error(f"初始化預定義模板失敗: {e}")
 
-    async def create_custom_template(self, template_data: Dict[str, Any]) -> Optional[int]:
+    async def create_custom_template(
+        self, template_data: Dict[str, Any]
+    ) -> Optional[int]:
         """創建自定義模板"""
         try:
             # 驗證必要欄位
@@ -265,7 +273,9 @@ class VoteTemplateManager:
         user_id: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
         """根據類別取得模板"""
-        return await vote_template_dao.get_templates_by_category(category, guild_id, user_id)
+        return await vote_template_dao.get_templates_by_category(
+            category, guild_id, user_id
+        )
 
     async def get_all_categories(self) -> List[Dict[str, str]]:
         """取得所有模板類別"""
@@ -279,15 +289,27 @@ class VoteTemplateManager:
         ]
 
     async def search_templates(
-        self, query: str, guild_id: Optional[int] = None, user_id: Optional[int] = None
+        self,
+        query: str,
+        guild_id: Optional[int] = None,
+        user_id: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
         """搜尋模板"""
         try:
             all_templates = []
-            categories = ["poll", "schedule", "food", "rating", "game", "custom"]
+            categories = [
+                "poll",
+                "schedule",
+                "food",
+                "rating",
+                "game",
+                "custom",
+            ]
 
             for category in categories:
-                templates = await self.get_templates_by_category(category, guild_id, user_id)
+                templates = await self.get_templates_by_category(
+                    category, guild_id, user_id
+                )
                 all_templates.extend(templates)
 
             # 簡單的關鍵字搜尋
@@ -298,12 +320,16 @@ class VoteTemplateManager:
                 if (
                     query_lower in template["name"].lower()
                     or query_lower in template.get("description", "").lower()
-                    or any(query_lower in tag.lower() for tag in template["tags"])
+                    or any(
+                        query_lower in tag.lower() for tag in template["tags"]
+                    )
                 ):
                     filtered_templates.append(template)
 
             # 按使用次數排序
-            filtered_templates.sort(key=lambda x: x["usage_count"], reverse=True)
+            filtered_templates.sort(
+                key=lambda x: x["usage_count"], reverse=True
+            )
             return filtered_templates[:10]  # 限制結果數量
 
         except Exception as e:

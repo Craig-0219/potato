@@ -305,12 +305,16 @@ class SecurityDAO(BaseDAO):
                 conditions.append("timestamp <= %s")
                 params.append(end_date)
 
-            where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
+            where_clause = (
+                "WHERE " + " AND ".join(conditions) if conditions else ""
+            )
 
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     # 獲取總數
-                    count_sql = f"SELECT COUNT(*) FROM security_events {where_clause}"
+                    count_sql = (
+                        f"SELECT COUNT(*) FROM security_events {where_clause}"
+                    )
                     await cursor.execute(count_sql, params)
                     total_count = (await cursor.fetchone())[0]
 
@@ -342,7 +346,9 @@ class SecurityDAO(BaseDAO):
                                 "risk_level": result[5],
                                 "action": result[6],
                                 "resource": result[7],
-                                "details": json.loads(result[8]) if result[8] else {},
+                                "details": (
+                                    json.loads(result[8]) if result[8] else {}
+                                ),
                                 "ip_address": result[9],
                                 "user_agent": result[10],
                                 "session_id": result[11],
@@ -391,7 +397,9 @@ class SecurityDAO(BaseDAO):
             logger.error(f"創建安全規則失敗: {e}")
             raise
 
-    async def get_security_rules(self, enabled_only: bool = False) -> List[Dict[str, Any]]:
+    async def get_security_rules(
+        self, enabled_only: bool = False
+    ) -> List[Dict[str, Any]]:
         """獲取安全規則列表"""
         try:
             async with self.db.connection() as conn:
@@ -611,7 +619,9 @@ class SecurityDAO(BaseDAO):
 
     # ========== 合規報告操作 ==========
 
-    async def create_compliance_report(self, report_data: Dict[str, Any]) -> str:
+    async def create_compliance_report(
+        self, report_data: Dict[str, Any]
+    ) -> str:
         """創建合規報告"""
         try:
             async with self.db.connection() as conn:
@@ -683,9 +693,15 @@ class SecurityDAO(BaseDAO):
                                 "period_end": result[3],
                                 "generated_by": result[4],
                                 "generated_at": result[5],
-                                "summary": json.loads(result[6]) if result[6] else {},
-                                "violations": (json.loads(result[7]) if result[7] else []),
-                                "recommendations": (json.loads(result[8]) if result[8] else []),
+                                "summary": (
+                                    json.loads(result[6]) if result[6] else {}
+                                ),
+                                "violations": (
+                                    json.loads(result[7]) if result[7] else []
+                                ),
+                                "recommendations": (
+                                    json.loads(result[8]) if result[8] else []
+                                ),
                                 "status": result[9],
                             }
                         )
@@ -764,7 +780,9 @@ class SecurityDAO(BaseDAO):
 
     # ========== 統計和分析 ==========
 
-    async def get_security_statistics(self, guild_id: int, days: int = 30) -> Dict[str, Any]:
+    async def get_security_statistics(
+        self, guild_id: int, days: int = 30
+    ) -> Dict[str, Any]:
         """獲取安全統計"""
         try:
             start_date = datetime.now(timezone.utc) - timedelta(days=days)
@@ -822,7 +840,8 @@ class SecurityDAO(BaseDAO):
                         "critical_events": overall_stats[3] or 0,
                         "active_alerts": active_alerts or 0,
                         "event_type_distribution": [
-                            {"type": event[0], "count": event[1]} for event in event_types
+                            {"type": event[0], "count": event[1]}
+                            for event in event_types
                         ],
                     }
 

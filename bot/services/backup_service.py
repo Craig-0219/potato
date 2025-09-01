@@ -75,13 +75,17 @@ class BackupService:
             logger.info("🗓️ 開始每日備份")
 
             backup_time = datetime.now(timezone.utc)
-            backup_name = f"daily_backup_{backup_time.strftime('%Y%m%d_%H%M%S')}"
+            backup_name = (
+                f"daily_backup_{backup_time.strftime('%Y%m%d_%H%M%S')}"
+            )
 
             # 獲取所有活躍伺服器
             guild_ids = await self._get_active_guilds()
 
             # 執行備份
-            backup_result = await self._backup_guild_data(guild_ids, backup_name, "daily")
+            backup_result = await self._backup_guild_data(
+                guild_ids, backup_name, "daily"
+            )
 
             # 記錄備份結果
             await self._log_backup_event(backup_name, "daily", backup_result)
@@ -100,7 +104,9 @@ class BackupService:
             backup_name = f"weekly_backup_{backup_time.strftime('%Y_W%U')}"
 
             guild_ids = await self._get_active_guilds()
-            backup_result = await self._backup_guild_data(guild_ids, backup_name, "weekly")
+            backup_result = await self._backup_guild_data(
+                guild_ids, backup_name, "weekly"
+            )
 
             await self._log_backup_event(backup_name, "weekly", backup_result)
 
@@ -118,7 +124,9 @@ class BackupService:
             backup_name = f"monthly_backup_{backup_time.strftime('%Y_%m')}"
 
             guild_ids = await self._get_active_guilds()
-            backup_result = await self._backup_guild_data(guild_ids, backup_name, "monthly")
+            backup_result = await self._backup_guild_data(
+                guild_ids, backup_name, "monthly"
+            )
 
             await self._log_backup_event(backup_name, "monthly", backup_result)
 
@@ -183,10 +191,22 @@ class BackupService:
             if self.backup_config["compression_enabled"]:
                 backup_file = backup_file.with_suffix(".json.gz")
                 with gzip.open(backup_file, "wt", encoding="utf-8") as f:
-                    json.dump(backup_data, f, indent=2, ensure_ascii=False, default=str)
+                    json.dump(
+                        backup_data,
+                        f,
+                        indent=2,
+                        ensure_ascii=False,
+                        default=str,
+                    )
             else:
                 with open(backup_file, "w", encoding="utf-8") as f:
-                    json.dump(backup_data, f, indent=2, ensure_ascii=False, default=str)
+                    json.dump(
+                        backup_data,
+                        f,
+                        indent=2,
+                        ensure_ascii=False,
+                        default=str,
+                    )
 
             # 計算檔案大小
             file_size_mb = backup_file.stat().st_size / 1024 / 1024
@@ -202,14 +222,18 @@ class BackupService:
                 "compressed": self.backup_config["compression_enabled"],
             }
 
-            logger.info(f"📦 備份檔案已建立: {backup_file} ({file_size_mb:.1f}MB)")
+            logger.info(
+                f"📦 備份檔案已建立: {backup_file} ({file_size_mb:.1f}MB)"
+            )
             return backup_result
 
         except Exception as e:
             logger.error(f"❌ 備份伺服器數據失敗: {e}")
             return {}
 
-    async def _backup_single_guild(self, guild_id: int) -> Optional[Dict[str, Any]]:
+    async def _backup_single_guild(
+        self, guild_id: int
+    ) -> Optional[Dict[str, Any]]:
         """備份單一伺服器數據"""
         try:
             guild_data = {
@@ -243,13 +267,17 @@ class BackupService:
                                 continue
 
                             # 檢查是否有 guild_id 欄位
-                            await cursor.execute(f"SHOW COLUMNS FROM {table} LIKE 'guild_id'")
+                            await cursor.execute(
+                                f"SHOW COLUMNS FROM {table} LIKE 'guild_id'"
+                            )
                             has_guild_id = await cursor.fetchone() is not None
 
                             if has_guild_id:
                                 # 有 guild_id 的表格，使用安全查詢
-                                query, params = self.query_builder.build_select(
-                                    table=table, guild_id=guild_id
+                                query, params = (
+                                    self.query_builder.build_select(
+                                        table=table, guild_id=guild_id
+                                    )
                                 )
                                 await cursor.execute(query, params)
                             else:
@@ -259,8 +287,12 @@ class BackupService:
                             results = await cursor.fetchall()
                             if results:
                                 # 轉換為字典格式
-                                columns = [desc[0] for desc in cursor.description]
-                                table_data = [dict(zip(columns, row)) for row in results]
+                                columns = [
+                                    desc[0] for desc in cursor.description
+                                ]
+                                table_data = [
+                                    dict(zip(columns, row)) for row in results
+                                ]
 
                                 guild_data["tables"][table] = table_data
                                 guild_data["record_count"] += len(table_data)
@@ -293,13 +325,20 @@ class BackupService:
                     should_delete = False
 
                     if "daily_backup" in backup_file.name:
-                        if file_age.days > self.backup_config["daily_backups_retain"]:
+                        if (
+                            file_age.days
+                            > self.backup_config["daily_backups_retain"]
+                        ):
                             should_delete = True
                     elif "weekly_backup" in backup_file.name:
-                        if file_age.days > (self.backup_config["weekly_backups_retain"] * 7):
+                        if file_age.days > (
+                            self.backup_config["weekly_backups_retain"] * 7
+                        ):
                             should_delete = True
                     elif "monthly_backup" in backup_file.name:
-                        if file_age.days > (self.backup_config["monthly_backups_retain"] * 30):
+                        if file_age.days > (
+                            self.backup_config["monthly_backups_retain"] * 30
+                        ):
                             should_delete = True
 
                     if should_delete:
@@ -308,11 +347,15 @@ class BackupService:
                         logger.info(f"🗑️ 已刪除過期備份: {backup_file.name}")
 
                 except Exception as e:
-                    logger.warning(f"⚠️ 清理備份檔案 {backup_file.name} 失敗: {e}")
+                    logger.warning(
+                        f"⚠️ 清理備份檔案 {backup_file.name} 失敗: {e}"
+                    )
                     continue
 
             if cleaned_files > 0:
-                logger.info(f"✅ 清理完成，共刪除 {cleaned_files} 個過期備份檔案")
+                logger.info(
+                    f"✅ 清理完成，共刪除 {cleaned_files} 個過期備份檔案"
+                )
             else:
                 logger.info("✅ 沒有需要清理的過期備份")
 
@@ -375,7 +418,9 @@ class BackupService:
                     backup_data = json.load(f)
 
             # 還原指定伺服器或所有伺服器
-            guilds_to_restore = [str(guild_id)] if guild_id else backup_data["guilds"].keys()
+            guilds_to_restore = (
+                [str(guild_id)] if guild_id else backup_data["guilds"].keys()
+            )
 
             for guild_id_str in guilds_to_restore:
                 if guild_id_str in backup_data["guilds"]:
@@ -390,7 +435,9 @@ class BackupService:
             logger.error(f"❌ 備份還原失敗: {e}")
             return False
 
-    async def _restore_single_guild(self, guild_id: int, guild_data: Dict[str, Any]):
+    async def _restore_single_guild(
+        self, guild_id: int, guild_data: Dict[str, Any]
+    ):
         """還原單一伺服器數據 (謹慎使用)"""
         try:
             logger.info(f"📋 還原伺服器 {guild_id} 的數據")
@@ -423,7 +470,9 @@ class BackupService:
                                     list(record.values()),
                                 )
 
-                            logger.info(f"✅ 還原表格 {table_name}: {len(records)} 筆記錄")
+                            logger.info(
+                                f"✅ 還原表格 {table_name}: {len(records)} 筆記錄"
+                            )
 
                         except Exception as e:
                             logger.error(f"❌ 還原表格 {table_name} 失敗: {e}")

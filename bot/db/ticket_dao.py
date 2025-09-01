@@ -37,7 +37,9 @@ class TicketDAO:
                         exists = (await cursor.fetchone())[0] > 0
 
                 if not exists:
-                    logger.warning("📋 檢測到票券表格不存在，開始自動初始化...")
+                    logger.warning(
+                        "📋 檢測到票券表格不存在，開始自動初始化..."
+                    )
                     from bot.db.database_manager import DatabaseManager
 
                     db_manager = DatabaseManager()
@@ -70,7 +72,8 @@ class TicketDAO:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
-                        "DELETE FROM ticket_logs WHERE created_at < %s", (cutoff_date,)
+                        "DELETE FROM ticket_logs WHERE created_at < %s",
+                        (cutoff_date,),
                     )
                     await conn.commit()
 
@@ -210,7 +213,9 @@ class TicketDAO:
             logger.error(f"查詢無活動票券錯誤：{e}")
             return []
 
-    async def save_panel_message(self, guild_id: int, message_id: int, channel_id: int):
+    async def save_panel_message(
+        self, guild_id: int, message_id: int, channel_id: int
+    ):
         """保存面板訊息 - 新增方法"""
         await self._ensure_initialized()
         try:
@@ -226,7 +231,9 @@ class TicketDAO:
                         (guild_id,),
                     )
                     await conn.commit()
-                    logger.info(f"保存面板訊息 - 伺服器: {guild_id}, 訊息: {message_id}")
+                    logger.info(
+                        f"保存面板訊息 - 伺服器: {guild_id}, 訊息: {message_id}"
+                    )
 
         except Exception as e:
             logger.error(f"保存面板訊息錯誤：{e}")
@@ -289,7 +296,10 @@ class TicketDAO:
 
                     # 建立票券 - 提供預設值避免NULL錯誤
                     ticket_title = title or f"{ticket_type.title()} 票券"
-                    ticket_description = description or f"由 {username} 建立的 {ticket_type} 票券"
+                    ticket_description = (
+                        description
+                        or f"由 {username} 建立的 {ticket_type} 票券"
+                    )
 
                     await cursor.execute(
                         """
@@ -320,20 +330,26 @@ class TicketDAO:
                     )
 
                     await conn.commit()
-                    logger.info(f"建立票券 #{ticket_id:04d} - 用戶: {username}")
+                    logger.info(
+                        f"建立票券 #{ticket_id:04d} - 用戶: {username}"
+                    )
                     return ticket_id
 
         except Exception as e:
             logger.error(f"建立票券錯誤：{e}")
             return None
 
-    async def get_ticket_by_id(self, ticket_id: int) -> Optional[Dict[str, Any]]:
+    async def get_ticket_by_id(
+        self, ticket_id: int
+    ) -> Optional[Dict[str, Any]]:
         """根據 ID 取得票券 - 修復異步"""
         await self._ensure_initialized()
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute("SELECT * FROM tickets WHERE id = %s", (ticket_id,))
+                    await cursor.execute(
+                        "SELECT * FROM tickets WHERE id = %s", (ticket_id,)
+                    )
                     result = await cursor.fetchone()
                     if result:
                         columns = [desc[0] for desc in cursor.description]
@@ -343,14 +359,17 @@ class TicketDAO:
             logger.error(f"查詢票券錯誤：{e}")
             return None
 
-    async def get_ticket_by_channel(self, channel_id: int) -> Optional[Dict[str, Any]]:
+    async def get_ticket_by_channel(
+        self, channel_id: int
+    ) -> Optional[Dict[str, Any]]:
         """根據頻道 ID 取得票券 - 修復異步"""
         await self._ensure_initialized()
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
-                        "SELECT * FROM tickets WHERE channel_id = %s", (channel_id,)
+                        "SELECT * FROM tickets WHERE channel_id = %s",
+                        (channel_id,),
                     )
                     result = await cursor.fetchone()
                     if result:
@@ -389,7 +408,8 @@ class TicketDAO:
                 async with conn.cursor() as cursor:
                     # 總數查詢
                     await cursor.execute(
-                        f"SELECT COUNT(*) FROM tickets WHERE {where_clause}", params
+                        f"SELECT COUNT(*) FROM tickets WHERE {where_clause}",
+                        params,
                     )
                     total_result = await cursor.fetchone()
                     total = total_result[0] if total_result else 0
@@ -418,7 +438,9 @@ class TicketDAO:
             logger.error(f"查詢票券列表錯誤：{e}")
             return [], 0
 
-    async def close_ticket(self, ticket_id: int, closed_by: int, reason: str = None) -> bool:
+    async def close_ticket(
+        self, ticket_id: int, closed_by: int, reason: str = None
+    ) -> bool:
         """關閉票券 - 修復參數"""
         await self._ensure_initialized()
         try:
@@ -457,7 +479,9 @@ class TicketDAO:
             logger.error(f"關閉票券錯誤：{e}")
             return False
 
-    async def assign_ticket(self, ticket_id: int, assigned_to: int, assigned_by: int) -> bool:
+    async def assign_ticket(
+        self, ticket_id: int, assigned_to: int, assigned_by: int
+    ) -> bool:
         """指派票券 - 修復異步"""
         await self._ensure_initialized()
         try:
@@ -583,7 +607,9 @@ class TicketDAO:
 
             where_clause = " AND ".join(where_conditions)
 
-            query = f"SELECT COUNT(*) as count FROM tickets WHERE {where_clause}"
+            query = (
+                f"SELECT COUNT(*) as count FROM tickets WHERE {where_clause}"
+            )
 
             async with self.db.connection() as conn:
                 async with conn.cursor(aiomysql.DictCursor) as cursor:
@@ -595,7 +621,9 @@ class TicketDAO:
             logger.error(f"統計票券數量失敗: {e}")
             return 0
 
-    async def update_ticket(self, ticket_id: int, update_data: Dict[str, Any]) -> bool:
+    async def update_ticket(
+        self, ticket_id: int, update_data: Dict[str, Any]
+    ) -> bool:
         """更新票券資料"""
         try:
             await self._ensure_initialized()
@@ -645,7 +673,9 @@ class TicketDAO:
             logger.error(f"更新票券失敗: {e}")
             return False
 
-    async def update_ticket_priority(self, ticket_id: int, priority: str) -> bool:
+    async def update_ticket_priority(
+        self, ticket_id: int, priority: str
+    ) -> bool:
         """更新票券優先級 - 修復異步"""
         await self._ensure_initialized()
         try:
@@ -674,7 +704,9 @@ class TicketDAO:
             logger.error(f"更新優先級錯誤：{e}")
             return False
 
-    async def save_rating(self, ticket_id: int, rating: int, feedback: str = None) -> bool:
+    async def save_rating(
+        self, ticket_id: int, rating: int, feedback: str = None
+    ) -> bool:
         """保存評分 - 修復異步"""
         await self._ensure_initialized()
         try:
@@ -756,7 +788,9 @@ class TicketDAO:
             logger.error(f"取得統計錯誤：{e}")
             return {}
 
-    async def get_user_ticket_count(self, user_id: int, guild_id: int, status: str = "open") -> int:
+    async def get_user_ticket_count(
+        self, user_id: int, guild_id: int, status: str = "open"
+    ) -> int:
         """取得用戶票券數量 - 修復異步"""
         await self._ensure_initialized()
         try:
@@ -854,7 +888,8 @@ class TicketDAO:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
-                        "SELECT * FROM ticket_settings WHERE guild_id = %s", (guild_id,)
+                        "SELECT * FROM ticket_settings WHERE guild_id = %s",
+                        (guild_id,),
                     )
 
                     result = await cursor.fetchone()
@@ -870,7 +905,9 @@ class TicketDAO:
                     # 解析 JSON 欄位
                     if settings.get("support_roles"):
                         try:
-                            settings["support_roles"] = json.loads(settings["support_roles"])
+                            settings["support_roles"] = json.loads(
+                                settings["support_roles"]
+                            )
                         except:
                             settings["support_roles"] = []
                     else:
@@ -922,7 +959,9 @@ class TicketDAO:
 
         return default_settings
 
-    async def update_setting(self, guild_id: int, setting: str, value: Any) -> bool:
+    async def update_setting(
+        self, guild_id: int, setting: str, value: Any
+    ) -> bool:
         """更新設定 - 修復異步"""
         await self._ensure_initialized()
         try:
@@ -967,7 +1006,9 @@ class TicketDAO:
             logger.error(f"更新設定錯誤：{e}")
             return False
 
-    async def update_settings(self, guild_id: int, settings: Dict[str, Any]) -> bool:
+    async def update_settings(
+        self, guild_id: int, settings: Dict[str, Any]
+    ) -> bool:
         """批量更新設定"""
         await self._ensure_initialized()
         try:
@@ -1146,7 +1187,9 @@ class TicketDAO:
                         LIMIT %s OFFSET %s
                     """
 
-                    await cursor.execute(tickets_sql, params + [page_size, offset])
+                    await cursor.execute(
+                        tickets_sql, params + [page_size, offset]
+                    )
                     rows = await cursor.fetchall()
 
                     # 格式化結果
@@ -1156,7 +1199,9 @@ class TicketDAO:
                             "id": row[0],
                             "ticket_id": row[0],  # 添加 ticket_id 別名
                             "guild_id": row[1],
-                            "user_id": row[2],  # discord_id mapped to user_id for compatibility
+                            "user_id": row[
+                                2
+                            ],  # discord_id mapped to user_id for compatibility
                             "discord_id": row[2],  # 原始 discord_id 欄位
                             "username": row[3],
                             "channel_id": row[4],
@@ -1242,7 +1287,9 @@ class TicketDAO:
                                 "created_count": row[1],
                                 "closed_count": row[2],
                                 "open_count": row[3],
-                                "avg_resolution_time": float(row[4]) if row[4] else 0.0,
+                                "avg_resolution_time": (
+                                    float(row[4]) if row[4] else 0.0
+                                ),
                             }
                         )
 
@@ -1252,7 +1299,9 @@ class TicketDAO:
             logger.error(f"獲取每日票券統計失敗: {e}")
             return []
 
-    async def get_ticket_performance_metrics(self, guild_id: int, days: int = 30) -> Dict[str, Any]:
+    async def get_ticket_performance_metrics(
+        self, guild_id: int, days: int = 30
+    ) -> Dict[str, Any]:
         """獲取票券性能指標"""
         try:
             await self._ensure_initialized()
@@ -1286,10 +1335,14 @@ class TicketDAO:
                     if row:
                         metrics = {
                             "total_tickets": row[0],
-                            "avg_resolution_time": float(row[1]) if row[1] else 0.0,
+                            "avg_resolution_time": (
+                                float(row[1]) if row[1] else 0.0
+                            ),
                             "closed_tickets": row[2],
                             "open_tickets": row[3],
-                            "resolution_rate": ((row[2] / row[0] * 100) if row[0] > 0 else 0),
+                            "resolution_rate": (
+                                (row[2] / row[0] * 100) if row[0] > 0 else 0
+                            ),
                             "priority_distribution": {
                                 "high": row[4],
                                 "medium": row[5],
@@ -1305,7 +1358,11 @@ class TicketDAO:
                             "closed_tickets": 0,
                             "open_tickets": 0,
                             "resolution_rate": 0,
-                            "priority_distribution": {"high": 0, "medium": 0, "low": 0},
+                            "priority_distribution": {
+                                "high": 0,
+                                "medium": 0,
+                                "low": 0,
+                            },
                         }
 
         except Exception as e:

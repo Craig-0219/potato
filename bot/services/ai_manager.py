@@ -42,10 +42,14 @@ class AIManager:
             context_analysis = await self._analyze_context(ticket_context)
 
             # 3. 生成回覆建議
-            suggestions = await self._generate_reply_suggestions(analysis, context_analysis)
+            suggestions = await self._generate_reply_suggestions(
+                analysis, context_analysis
+            )
 
             # 4. 計算置信度
-            confidence_score = self._calculate_confidence(analysis, context_analysis)
+            confidence_score = self._calculate_confidence(
+                analysis, context_analysis
+            )
 
             return {
                 "success": True,
@@ -79,27 +83,45 @@ class AIManager:
         content_lower = content.lower()
 
         # 類型識別
-        if any(word in content_lower for word in ["bug", "錯誤", "壞了", "不能", "無法"]):
+        if any(
+            word in content_lower
+            for word in ["bug", "錯誤", "壞了", "不能", "無法"]
+        ):
             analysis["type"] = "bug_report"
             analysis["priority"] = "high"
-        elif any(word in content_lower for word in ["建議", "feature", "功能", "新增"]):
+        elif any(
+            word in content_lower
+            for word in ["建議", "feature", "功能", "新增"]
+        ):
             analysis["type"] = "feature_request"
             analysis["priority"] = "low"
-        elif any(word in content_lower for word in ["問題", "如何", "怎麼", "教學"]):
+        elif any(
+            word in content_lower for word in ["問題", "如何", "怎麼", "教學"]
+        ):
             analysis["type"] = "question"
             analysis["priority"] = "medium"
-        elif any(word in content_lower for word in ["申訴", "檢舉", "投訴", "不滿"]):
+        elif any(
+            word in content_lower for word in ["申訴", "檢舉", "投訴", "不滿"]
+        ):
             analysis["type"] = "complaint"
             analysis["priority"] = "high"
 
         # 情感分析
-        if any(word in content_lower for word in ["急", "緊急", "馬上", "立即", "火急"]):
+        if any(
+            word in content_lower
+            for word in ["急", "緊急", "馬上", "立即", "火急"]
+        ):
             analysis["sentiment"] = "urgent"
             analysis["urgency_level"] = 3
             analysis["priority"] = "high"
-        elif any(word in content_lower for word in ["謝謝", "感謝", "很好", "棒"]):
+        elif any(
+            word in content_lower for word in ["謝謝", "感謝", "很好", "棒"]
+        ):
             analysis["sentiment"] = "positive"
-        elif any(word in content_lower for word in ["生氣", "憤怒", "爛", "糟糕", "討厭"]):
+        elif any(
+            word in content_lower
+            for word in ["生氣", "憤怒", "爛", "糟糕", "討厭"]
+        ):
             analysis["sentiment"] = "negative"
             analysis["urgency_level"] = 2
 
@@ -115,7 +137,9 @@ class AIManager:
 
         return analysis
 
-    async def _analyze_context(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    async def _analyze_context(
+        self, context: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """分析票券上下文"""
         context_analysis = {
             "user_history": "new_user",
@@ -169,14 +193,20 @@ class AIManager:
 
         for template in templates:
             # 根據情感調整語調
-            adjusted_template = self._adjust_tone_by_sentiment(template, sentiment)
+            adjusted_template = self._adjust_tone_by_sentiment(
+                template, sentiment
+            )
 
             # 根據緊急度調整回覆
             if urgency >= 2:
-                adjusted_template = self._add_urgency_response(adjusted_template)
+                adjusted_template = self._add_urgency_response(
+                    adjusted_template
+                )
 
             # 個人化回覆
-            personalized = self._personalize_response(adjusted_template, context)
+            personalized = self._personalize_response(
+                adjusted_template, context
+            )
 
             suggestions.append(
                 {
@@ -192,7 +222,9 @@ class AIManager:
 
         return suggestions[:3]  # 返回前3個建議
 
-    def _calculate_confidence(self, analysis: Dict[str, Any], context: Dict[str, Any]) -> float:
+    def _calculate_confidence(
+        self, analysis: Dict[str, Any], context: Dict[str, Any]
+    ) -> float:
         """計算整體置信度"""
         base_confidence = 0.5
 
@@ -272,7 +304,8 @@ class AIManager:
                 tag_name = suggestion["tag_name"]
                 if (
                     tag_name not in unique_suggestions
-                    or suggestion["confidence"] > unique_suggestions[tag_name]["confidence"]
+                    or suggestion["confidence"]
+                    > unique_suggestions[tag_name]["confidence"]
                 ):
                     unique_suggestions[tag_name] = suggestion
 
@@ -408,28 +441,40 @@ class AIManager:
 
         return []
 
-    def _adjust_tone_by_sentiment(self, template: Dict[str, Any], sentiment: str) -> Dict[str, Any]:
+    def _adjust_tone_by_sentiment(
+        self, template: Dict[str, Any], sentiment: str
+    ) -> Dict[str, Any]:
         """根據情感調整語調"""
         adjusted = template.copy()
 
         if sentiment == "negative":
             # 對負面情感使用更同理心的語調
-            adjusted["text"] = adjusted["text"].replace("你好", "您好，很抱歉您遇到了困擾")
+            adjusted["text"] = adjusted["text"].replace(
+                "你好", "您好，很抱歉您遇到了困擾"
+            )
             adjusted["confidence"] = adjusted.get("base_confidence", 0.7) + 0.1
         elif sentiment == "urgent":
             # 對緊急情況表示重視
             adjusted["text"] = "我們已收到您的緊急請求。" + adjusted["text"]
-            adjusted["confidence"] = adjusted.get("base_confidence", 0.7) + 0.05
+            adjusted["confidence"] = (
+                adjusted.get("base_confidence", 0.7) + 0.05
+            )
 
         return adjusted
 
-    def _add_urgency_response(self, template: Dict[str, Any]) -> Dict[str, Any]:
+    def _add_urgency_response(
+        self, template: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """添加緊急回覆元素"""
         adjusted = template.copy()
-        adjusted["text"] = adjusted["text"] + "\\n\\n我們會優先處理您的問題，感謝您的耐心。"
+        adjusted["text"] = (
+            adjusted["text"] + "\\n\\n我們會優先處理您的問題，感謝您的耐心。"
+        )
         return adjusted
 
-    def _personalize_response(self, template: Dict[str, Any], context: Dict[str, Any]) -> str:
+    def _personalize_response(
+        self, template: Dict[str, Any], context: Dict[str, Any]
+    ) -> str:
         """個人化回覆"""
         response = template["text"]
 
@@ -579,7 +624,9 @@ class AIManager:
 
     # ========== 統計和分析 ==========
 
-    async def get_ai_statistics(self, guild_id: int, days: int = 30) -> Dict[str, Any]:
+    async def get_ai_statistics(
+        self, guild_id: int, days: int = 30
+    ) -> Dict[str, Any]:
         """取得 AI 系統使用統計"""
         try:
             # 這裡暫時返回模擬數據，後續可以加入實際的使用記錄
@@ -599,7 +646,11 @@ class AIManager:
                     "medium": 67,  # 0.5-0.8
                     "low": 16,  # < 0.5
                 },
-                "tag_suggestions": {"total": 156, "accepted": 112, "rate": 0.72},
+                "tag_suggestions": {
+                    "total": 156,
+                    "accepted": 112,
+                    "rate": 0.72,
+                },
             }
 
             return stats

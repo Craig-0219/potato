@@ -136,7 +136,9 @@ class WebhookDAO(BaseDAO):
                             config.name,
                             config.url,
                             config.type.value,
-                            json.dumps([event.value for event in config.events]),
+                            json.dumps(
+                                [event.value for event in config.events]
+                            ),
                             config.secret,
                             json.dumps(config.headers),
                             config.timeout,
@@ -155,7 +157,9 @@ class WebhookDAO(BaseDAO):
             logger.error(f"創建Webhook配置失敗: {e}")
             raise
 
-    async def update_webhook(self, webhook_id: str, updates: Dict[str, Any]) -> bool:
+    async def update_webhook(
+        self, webhook_id: str, updates: Dict[str, Any]
+    ) -> bool:
         """更新Webhook配置"""
         try:
             async with self.db.connection() as conn:
@@ -277,7 +281,9 @@ class WebhookDAO(BaseDAO):
                 conditions.append("status = %s")
                 params.append(status)
 
-            where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
+            where_clause = (
+                "WHERE " + " AND ".join(conditions) if conditions else ""
+            )
 
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
@@ -302,7 +308,9 @@ class WebhookDAO(BaseDAO):
                                 "name": result[1],
                                 "url": result[2],
                                 "type": result[3],
-                                "events": json.loads(result[4]) if result[4] else [],
+                                "events": (
+                                    json.loads(result[4]) if result[4] else []
+                                ),
                                 "status": result[5],
                                 "guild_id": result[6],
                                 "created_by": result[7],
@@ -329,7 +337,9 @@ class WebhookDAO(BaseDAO):
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute("DELETE FROM webhooks WHERE id = %s", (webhook_id,))
+                    await cursor.execute(
+                        "DELETE FROM webhooks WHERE id = %s", (webhook_id,)
+                    )
                     await conn.commit()
 
                     return cursor.rowcount > 0
@@ -395,12 +405,16 @@ class WebhookDAO(BaseDAO):
                 conditions.append("created_at >= %s")
                 params.append(start_date)
 
-            where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
+            where_clause = (
+                "WHERE " + " AND ".join(conditions) if conditions else ""
+            )
 
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     # 獲取總數
-                    count_sql = f"SELECT COUNT(*) FROM webhook_logs {where_clause}"
+                    count_sql = (
+                        f"SELECT COUNT(*) FROM webhook_logs {where_clause}"
+                    )
                     await cursor.execute(count_sql, params)
                     total_count = (await cursor.fetchone())[0]
 
@@ -504,7 +518,9 @@ class WebhookDAO(BaseDAO):
         except Exception as e:
             logger.error(f"更新Webhook統計失敗: {e}")
 
-    async def get_webhook_statistics(self, webhook_id: str, days: int = 30) -> Dict[str, Any]:
+    async def get_webhook_statistics(
+        self, webhook_id: str, days: int = 30
+    ) -> Dict[str, Any]:
         """獲取Webhook統計"""
         try:
             end_date = datetime.now(timezone.utc).date()
@@ -533,8 +549,12 @@ class WebhookDAO(BaseDAO):
                         "total_requests": result[0] or 0,
                         "successful_requests": result[1] or 0,
                         "failed_requests": result[2] or 0,
-                        "success_rate": ((result[1] / result[0] * 100) if result[0] else 0),
-                        "avg_response_time": float(result[3]) if result[3] else 0.0,
+                        "success_rate": (
+                            (result[1] / result[0] * 100) if result[0] else 0
+                        ),
+                        "avg_response_time": (
+                            float(result[3]) if result[3] else 0.0
+                        ),
                     }
 
         except Exception as e:

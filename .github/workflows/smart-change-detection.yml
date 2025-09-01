@@ -32,6 +32,9 @@ jobs:
       test_strategy: ${{ steps.classify.outputs.test_strategy }}
       cache_strategy: ${{ steps.classify.outputs.cache_strategy }}
       skip_workflows: ${{ steps.classify.outputs.skip_workflows }}
+      run_quality: ${{ steps.classify.outputs.run_quality }}
+      run_security: ${{ steps.classify.outputs.run_security }}
+      run_tests: ${{ steps.classify.outputs.run_tests }}
       changed_files: ${{ steps.collect.outputs.changed_files }}
       
     steps:
@@ -69,180 +72,17 @@ jobs:
         TOTAL_FILES=$(echo "$CHANGED_FILES" | wc -l)
         echo "total_files=$TOTAL_FILES" >> $GITHUB_OUTPUT
 
+    - name: 🐍 設置 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
     - name: 🧠 智能變更分類
       id: classify
       run: |
-        cat << 'EOF' > classify_changes.py
-        import os
-        import re
-        
-        def classify_changes():
-            """智能變更分類和影響分析"""
-            
-            changed_files = os.environ.get('CHANGED_FILES', '').strip().split('\n')
-            changed_files = [f for f in changed_files if f.strip()]
-            
-            if not changed_files:
-                return {
-                    'change_type': 'none',
-                    'impact_level': 'none',
-                    'test_strategy': 'skip',
-                    'cache_strategy': 'standard',
-                    'skip_workflows': 'all'
-                }
-            
-            # 文件分類規則
-            categories = {
-                'critical': [
-                    r'^bot/main\.py$',
-                    r'^shared/config\.py$', 
-                    r'^requirements.*\.txt$',
-                    r'^\.github/workflows/.*\.yml$'
-                ],
-                'core_logic': [
-                    r'^bot/cogs/.*\.py$',
-                    r'^bot/services/.*\.py$',
-                    r'^bot/db/.*\.py$',
-                    r'^shared/.*\.py$'
-                ],
-                'api': [
-                    r'^bot/api/.*\.py$',
-                    r'^bot/views/.*\.py$'
-                ],
-                'tests': [
-                    r'^tests/.*\.py$'
-                ],
-                'docs': [
-                    r'.*\.md$',
-                    r'^docs/.*',
-                    r'README.*',
-                    r'CHANGELOG.*'
-                ],
-                'config': [
-                    r'^\..*rc$',
-                    r'^\..*\.yaml$',
-                    r'^\..*\.yml$',
-                    r'^pyproject\.toml$',
-                    r'^pytest\.ini$'
-                ],
-                'scripts': [
-                    r'^scripts/.*\.py$',
-                    r'^scripts/.*\.sh$'
-                ]
-            }
-            
-            # 分析每個文件
-            file_categories = {}
-            for file_path in changed_files:
-                file_categories[file_path] = []
-                for category, patterns in categories.items():
-                    for pattern in patterns:
-                        if re.match(pattern, file_path):
-                            file_categories[file_path].append(category)
-                            break
-                
-                # 如果沒有匹配任何類別，歸類為 other
-                if not file_categories[file_path]:
-                    file_categories[file_path] = ['other']
-            
-            # 統計各類別文件數量
-            category_counts = {}
-            for categories_list in file_categories.values():
-                for cat in categories_list:
-                    category_counts[cat] = category_counts.get(cat, 0) + 1
-            
-            print(f"📊 變更文件分類統計:")
-            for cat, count in category_counts.items():
-                print(f"  • {cat}: {count} 個文件")
-            
-            # 決定變更類型和影響等級
-            change_type = 'minor'
-            impact_level = 'low'
-            
-            if category_counts.get('critical', 0) > 0:
-                change_type = 'critical'
-                impact_level = 'high'
-            elif category_counts.get('core_logic', 0) > 0:
-                change_type = 'code'
-                impact_level = 'medium'
-            elif category_counts.get('api', 0) > 0:
-                change_type = 'api'
-                impact_level = 'medium'
-            elif category_counts.get('tests', 0) > 0:
-                change_type = 'test'
-                impact_level = 'low'
-            elif category_counts.get('docs', 0) > 0 and len(category_counts) == 1:
-                change_type = 'docs'
-                impact_level = 'none'
-            elif category_counts.get('config', 0) > 0:
-                change_type = 'config'
-                impact_level = 'medium'
-            
-            # 決定測試策略
-            test_strategies = {
-                'critical': 'full',      # 完整測試套件
-                'code': 'targeted',      # 針對性測試
-                'api': 'api_focused',    # API 重點測試
-                'test': 'test_only',     # 僅執行新的測試
-                'docs': 'skip',          # 跳過測試
-                'config': 'basic',       # 基礎測試
-                'minor': 'quick'         # 快速測試
-            }
-            
-            test_strategy = test_strategies.get(change_type, 'quick')
-            
-            # 決定快取策略
-            cache_strategies = {
-                'critical': 'refresh',   # 刷新所有快取
-                'code': 'selective',     # 選擇性快取
-                'api': 'selective',      # 選擇性快取
-                'docs': 'preserve',      # 保留所有快取
-                'config': 'refresh',     # 刷新配置快取
-                'minor': 'standard'      # 標準快取
-            }
-            
-            cache_strategy = cache_strategies.get(change_type, 'standard')
-            
-            # 決定可跳過的 workflows
-            skip_workflows_map = {
-                'docs': 'tests,security,quality',  # 文檔變更可跳過大部分檢查
-                'test': 'security',                 # 測試變更可跳過安全掃描  
-                'minor': 'none',                    # 小變更不跳過任何檢查
-                'critical': 'none'                  # 關鍵變更不跳過任何檢查
-            }
-            
-            skip_workflows = skip_workflows_map.get(change_type, 'none')
-            
-            result = {
-                'change_type': change_type,
-                'impact_level': impact_level,
-                'test_strategy': test_strategy,
-                'cache_strategy': cache_strategy,
-                'skip_workflows': skip_workflows
-            }
-            
-            print(f"\n🎯 智能分析結果:")
-            print(f"  • 變更類型: {change_type}")
-            print(f"  • 影響等級: {impact_level}")
-            print(f"  • 測試策略: {test_strategy}")
-            print(f"  • 快取策略: {cache_strategy}")
-            print(f"  • 可跳過檢查: {skip_workflows}")
-            
-            return result
-        
-        # 主執行邏輯
-        if __name__ == '__main__':
-            import os
-            result = classify_changes()
-            
-            # 輸出到 GitHub Actions
-            for key, value in result.items():
-                print(f"{key}={value}", file=open(os.environ['GITHUB_OUTPUT'], 'a'))
-        EOF
-        
         # 設置環境變數並執行分類
         export CHANGED_FILES="${{ steps.collect.outputs.changed_files }}"
-        python classify_changes.py
+        python .github/scripts/classify-changes.py
 
     - name: 📋 輸出分析結果摘要
       run: |
@@ -257,90 +97,37 @@ jobs:
         echo ""
         echo "🎯 後續 workflows 將根據此分析結果調整執行策略"
 
-  # 根據分析結果決定是否觸發其他 workflows
-  trigger-conditional-workflows:
-    name: 🚀 條件觸發後續檢查
+  # 提供其他 workflows 可以使用的條件輸出
+  provide-conditions:
+    name: 📋 提供智能執行條件
     needs: analyze-changes
     runs-on: ubuntu-latest
     if: needs.analyze-changes.outputs.change_type != 'none'
-    timeout-minutes: 2
+    timeout-minutes: 1
+    
+    outputs:
+      run_quality: ${{ needs.analyze-changes.outputs.run_quality }}
+      run_security: ${{ needs.analyze-changes.outputs.run_security }}
+      run_tests: ${{ needs.analyze-changes.outputs.run_tests }}
+      change_type: ${{ needs.analyze-changes.outputs.change_type }}
+      impact_level: ${{ needs.analyze-changes.outputs.impact_level }}
     
     steps:
-    - name: 📋 記錄觸發決策
+    - name: 📋 記錄智能決策
       run: |
-        echo "📈 根據變更分析結果觸發相應檢查:"
+        echo "🧠 智能變更檢測分析完成"
+        echo "=============================="
         echo ""
-        
-        CHANGE_TYPE="${{ needs.analyze-changes.outputs.change_type }}"
-        IMPACT_LEVEL="${{ needs.analyze-changes.outputs.impact_level }}"
-        SKIP_WORKFLOWS="${{ needs.analyze-changes.outputs.skip_workflows }}"
-        
-        case "$CHANGE_TYPE" in
-          "critical")
-            echo "🚨 關鍵變更 - 觸發完整檢查套件"
-            echo "  ✅ 代碼品質檢查"
-            echo "  ✅ 安全掃描"
-            echo "  ✅ 完整測試套件"
-            ;;
-          "code"|"api")
-            echo "⚡ 代碼變更 - 觸發針對性檢查"
-            echo "  ✅ 代碼品質檢查" 
-            echo "  ✅ 安全掃描"
-            echo "  ✅ 相關測試"
-            ;;
-          "docs")
-            echo "📚 文檔變更 - 僅觸發格式檢查"
-            echo "  ✅ 文檔格式檢查"
-            echo "  ⏭️  跳過: 測試、安全掃描"
-            ;;
-          "test")
-            echo "🧪 測試變更 - 觸發測試驗證"
-            echo "  ✅ 新測試執行"
-            echo "  ⏭️  跳過: 安全掃描"
-            ;;
-          *)
-            echo "🔧 其他變更 - 標準檢查流程"
-            ;;
-        esac
-        
+        echo "📊 分析結果:"
+        echo "• 變更類型: ${{ needs.analyze-changes.outputs.change_type }}"
+        echo "• 影響等級: ${{ needs.analyze-changes.outputs.impact_level }}"
+        echo "• 測試策略: ${{ needs.analyze-changes.outputs.test_strategy }}"
+        echo "• 快取策略: ${{ needs.analyze-changes.outputs.cache_strategy }}"
         echo ""
-        echo "💡 智能跳過機制已啟動，預估節省 40-60% 執行時間"
-
-    - name: 🎯 設置後續 workflow 條件
-      id: conditions
-      run: |
-        # 根據分析結果設置條件
-        CHANGE_TYPE="${{ needs.analyze-changes.outputs.change_type }}"
-        SKIP_WORKFLOWS="${{ needs.analyze-changes.outputs.skip_workflows }}"
-        
-        # 決定是否執行各種檢查
-        RUN_QUALITY="true"
-        RUN_SECURITY="true" 
-        RUN_TESTS="true"
-        
-        if [[ "$SKIP_WORKFLOWS" == *"quality"* ]]; then
-          RUN_QUALITY="false"
-        fi
-        
-        if [[ "$SKIP_WORKFLOWS" == *"security"* ]]; then
-          RUN_SECURITY="false"
-        fi
-        
-        if [[ "$SKIP_WORKFLOWS" == *"tests"* ]]; then
-          RUN_TESTS="false"
-        fi
-        
-        # 特殊情況處理
-        if [ "$CHANGE_TYPE" = "docs" ]; then
-          RUN_SECURITY="false"
-          RUN_TESTS="false"
-        fi
-        
-        echo "run_quality=$RUN_QUALITY" >> $GITHUB_OUTPUT
-        echo "run_security=$RUN_SECURITY" >> $GITHUB_OUTPUT  
-        echo "run_tests=$RUN_TESTS" >> $GITHUB_OUTPUT
-        
-        echo "📋 後續執行決策:"
-        echo "  • 代碼品質檢查: $RUN_QUALITY"
-        echo "  • 安全掃描: $RUN_SECURITY"
-        echo "  • 測試執行: $RUN_TESTS"
+        echo "🎯 執行建議:"
+        echo "• 品質檢查: ${{ needs.analyze-changes.outputs.run_quality }}"
+        echo "• 安全掃描: ${{ needs.analyze-changes.outputs.run_security }}"
+        echo "• 測試執行: ${{ needs.analyze-changes.outputs.run_tests }}"
+        echo ""
+        echo "💡 其他 workflows 可以使用這些條件來智能跳過不必要的步驟"
+        echo "   例如: if: needs.change-detection.outputs.run_tests == 'true'"

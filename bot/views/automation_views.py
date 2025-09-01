@@ -23,9 +23,13 @@ class AutomationView(discord.ui.View):
 
         # 如果有規則，添加選擇器
         if rules:
-            self.add_item(RuleSelectDropdown(rules[:25]))  # Discord限制25個選項
+            self.add_item(
+                RuleSelectDropdown(rules[:25])
+            )  # Discord限制25個選項
 
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+    async def interaction_check(
+        self, interaction: discord.Interaction
+    ) -> bool:
         """檢查互動權限"""
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
@@ -34,28 +38,46 @@ class AutomationView(discord.ui.View):
             return False
         return True
 
-    @discord.ui.button(label="📊 查看統計", style=discord.ButtonStyle.secondary, row=1)
-    async def view_statistics(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="📊 查看統計", style=discord.ButtonStyle.secondary, row=1
+    )
+    async def view_statistics(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """查看統計資訊"""
         await interaction.response.send_message(
             "請使用 `/automation_stats` 指令查看詳細統計", ephemeral=True
         )
 
-    @discord.ui.button(label="📜 執行記錄", style=discord.ButtonStyle.secondary, row=1)
-    async def view_history(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="📜 執行記錄", style=discord.ButtonStyle.secondary, row=1
+    )
+    async def view_history(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """查看執行記錄"""
         await interaction.response.send_message(
             "請使用 `/automation_history` 指令查看執行記錄", ephemeral=True
         )
 
-    @discord.ui.button(label="➕ 創建規則", style=discord.ButtonStyle.primary, row=1)
-    async def create_rule(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="➕ 創建規則", style=discord.ButtonStyle.primary, row=1
+    )
+    async def create_rule(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """創建新規則"""
-        modal = RuleBuilderModal("", "", interaction.guild.id, interaction.user.id)
+        modal = RuleBuilderModal(
+            "", "", interaction.guild.id, interaction.user.id
+        )
         await interaction.response.send_modal(modal)
 
-    @discord.ui.button(label="🔄 刷新", style=discord.ButtonStyle.secondary, row=1)
-    async def refresh(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="🔄 刷新", style=discord.ButtonStyle.secondary, row=1
+    )
+    async def refresh(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """刷新列表"""
         await interaction.response.send_message(
             "請重新使用 `/automation_list` 指令獲取最新資料", ephemeral=True
@@ -117,14 +139,20 @@ class RuleSelectDropdown(discord.ui.Select):
             view = RuleOperationsView(interaction.user.id, rule_id)
 
             embed = discord.Embed(
-                title="🤖 規則操作", description=f"請選擇對規則的操作", color=0x9B59B6
+                title="🤖 規則操作",
+                description=f"請選擇對規則的操作",
+                color=0x9B59B6,
             )
 
-            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, view=view, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"處理規則選擇失敗: {e}")
-            await interaction.response.send_message("❌ 操作失敗", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 操作失敗", ephemeral=True
+            )
 
 
 class RuleOperationsView(discord.ui.View):
@@ -135,22 +163,33 @@ class RuleOperationsView(discord.ui.View):
         self.user_id = user_id
         self.rule_id = rule_id
 
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+    async def interaction_check(
+        self, interaction: discord.Interaction
+    ) -> bool:
         """檢查互動權限"""
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message("❌ 只有命令執行者可以操作", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 只有命令執行者可以操作", ephemeral=True
+            )
             return False
         return True
 
-    @discord.ui.button(label="📋 查看詳情", style=discord.ButtonStyle.secondary)
-    async def view_details(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="📋 查看詳情", style=discord.ButtonStyle.secondary
+    )
+    async def view_details(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """查看規則詳情"""
         await interaction.response.send_message(
-            f"請使用 `/automation_detail {self.rule_id}` 查看詳細資訊", ephemeral=True
+            f"請使用 `/automation_detail {self.rule_id}` 查看詳細資訊",
+            ephemeral=True,
         )
 
     @discord.ui.button(label="🟢 啟用", style=discord.ButtonStyle.success)
-    async def enable_rule(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def enable_rule(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """啟用規則"""
         await interaction.response.send_message(
             f"請使用 `/automation_toggle {self.rule_id} active` 啟用規則",
@@ -158,7 +197,9 @@ class RuleOperationsView(discord.ui.View):
         )
 
     @discord.ui.button(label="🟡 暫停", style=discord.ButtonStyle.secondary)
-    async def pause_rule(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def pause_rule(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """暫停規則"""
         await interaction.response.send_message(
             f"請使用 `/automation_toggle {self.rule_id} paused` 暫停規則",
@@ -166,7 +207,9 @@ class RuleOperationsView(discord.ui.View):
         )
 
     @discord.ui.button(label="🔴 停用", style=discord.ButtonStyle.danger)
-    async def disable_rule(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def disable_rule(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """停用規則"""
         await interaction.response.send_message(
             f"請使用 `/automation_toggle {self.rule_id} disabled` 停用規則",
@@ -177,7 +220,9 @@ class RuleOperationsView(discord.ui.View):
 class RuleBuilderModal(discord.ui.Modal):
     """規則建構器模態框"""
 
-    def __init__(self, name: str, description: str, guild_id: int, user_id: int):
+    def __init__(
+        self, name: str, description: str, guild_id: int, user_id: int
+    ):
         super().__init__(title="🤖 創建自動化規則")
         self.guild_id = guild_id
         self.user_id = user_id
@@ -230,16 +275,22 @@ class RuleBuilderModal(discord.ui.Modal):
                 trigger_data = json.loads(self.trigger_input.value)
                 actions_data = json.loads(self.actions_input.value)
             except json.JSONDecodeError as e:
-                await interaction.followup.send(f"❌ JSON格式錯誤: {str(e)}", ephemeral=True)
+                await interaction.followup.send(
+                    f"❌ JSON格式錯誤: {str(e)}", ephemeral=True
+                )
                 return
 
             # 驗證必要欄位
             if "type" not in trigger_data:
-                await interaction.followup.send("❌ 觸發條件必須包含 'type' 欄位", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ 觸發條件必須包含 'type' 欄位", ephemeral=True
+                )
                 return
 
             if not isinstance(actions_data, list) or not actions_data:
-                await interaction.followup.send("❌ 動作必須是非空的陣列", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ 動作必須是非空的陣列", ephemeral=True
+                )
                 return
 
             for action in actions_data:
@@ -306,7 +357,9 @@ class RuleBuilderModal(discord.ui.Modal):
 
         except Exception as e:
             logger.error(f"創建規則失敗: {e}")
-            await interaction.followup.send(f"❌ 創建規則失敗: {str(e)}", ephemeral=True)
+            await interaction.followup.send(
+                f"❌ 創建規則失敗: {str(e)}", ephemeral=True
+            )
 
 
 class RuleExecutionView(discord.ui.View):
@@ -323,20 +376,32 @@ class RuleExecutionView(discord.ui.View):
         else:
             self.add_item(self.view_results)
 
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+    async def interaction_check(
+        self, interaction: discord.Interaction
+    ) -> bool:
         """檢查互動權限"""
         if interaction.user.id != self.user_id:
-            await interaction.response.send_message("❌ 只有命令執行者可以操作", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 只有命令執行者可以操作", ephemeral=True
+            )
             return False
         return True
 
     @discord.ui.button(label="🛑 停止執行", style=discord.ButtonStyle.danger)
-    async def stop_execution(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def stop_execution(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """停止執行"""
-        await interaction.response.send_message("❌ 執行停止功能尚未實現", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ 執行停止功能尚未實現", ephemeral=True
+        )
 
-    @discord.ui.button(label="📋 查看結果", style=discord.ButtonStyle.secondary)
-    async def view_results(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="📋 查看結果", style=discord.ButtonStyle.secondary
+    )
+    async def view_results(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """查看執行結果"""
         try:
             execution_id = self.execution_data.get("id")
@@ -344,7 +409,11 @@ class RuleExecutionView(discord.ui.View):
             embed = discord.Embed(
                 title="📋 執行結果",
                 description=f"執行ID: {execution_id}",
-                color=0x2ECC71 if self.execution_data.get("success") else 0xE74C3C,
+                color=(
+                    0x2ECC71
+                    if self.execution_data.get("success")
+                    else 0xE74C3C
+                ),
             )
 
             # 基本資訊
@@ -366,7 +435,9 @@ class RuleExecutionView(discord.ui.View):
                 if completed_at:
                     time_info += f"\n完成: {completed_at.strftime('%H:%M:%S')}"
 
-                embed.add_field(name="🕐 時間資訊", value=time_info, inline=True)
+                embed.add_field(
+                    name="🕐 時間資訊", value=time_info, inline=True
+                )
 
             # 錯誤資訊
             if self.execution_data.get("error_message"):
@@ -376,16 +447,24 @@ class RuleExecutionView(discord.ui.View):
                     inline=False,
                 )
 
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"查看執行結果失敗: {e}")
-            await interaction.response.send_message("❌ 查看結果失敗", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 查看結果失敗", ephemeral=True
+            )
 
     @discord.ui.button(label="🔄 重新執行", style=discord.ButtonStyle.primary)
-    async def re_execute(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def re_execute(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """重新執行規則"""
-        await interaction.response.send_message("❌ 重新執行功能尚未實現", ephemeral=True)
+        await interaction.response.send_message(
+            "❌ 重新執行功能尚未實現", ephemeral=True
+        )
 
 
 class TriggerBuilderModal(discord.ui.Modal):
@@ -462,13 +541,19 @@ class TriggerBuilderModal(discord.ui.Modal):
                 inline=False,
             )
 
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
 
         except json.JSONDecodeError as e:
-            await interaction.response.send_message(f"❌ JSON格式錯誤: {str(e)}", ephemeral=True)
+            await interaction.response.send_message(
+                f"❌ JSON格式錯誤: {str(e)}", ephemeral=True
+            )
         except Exception as e:
             logger.error(f"設定觸發器失敗: {e}")
-            await interaction.response.send_message(f"❌ 設定失敗: {str(e)}", ephemeral=True)
+            await interaction.response.send_message(
+                f"❌ 設定失敗: {str(e)}", ephemeral=True
+            )
 
 
 class ActionBuilderModal(discord.ui.Modal):
@@ -494,7 +579,9 @@ class ActionBuilderModal(discord.ui.Modal):
             actions_data = json.loads(self.actions.value)
 
             if not isinstance(actions_data, list):
-                await interaction.response.send_message("❌ 動作必須是陣列格式", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 動作必須是陣列格式", ephemeral=True
+                )
                 return
 
             # 驗證動作格式
@@ -525,9 +612,15 @@ class ActionBuilderModal(discord.ui.Modal):
                 action_summary.append(f"{i+1}. {action_name}")
 
             if len(actions_data) > 5:
-                action_summary.append(f"...還有 {len(actions_data) - 5} 個動作")
+                action_summary.append(
+                    f"...還有 {len(actions_data) - 5} 個動作"
+                )
 
-            embed.add_field(name="📋 動作列表", value="\n".join(action_summary), inline=False)
+            embed.add_field(
+                name="📋 動作列表",
+                value="\n".join(action_summary),
+                inline=False,
+            )
 
             embed.add_field(
                 name="📝 JSON配置",
@@ -535,13 +628,19 @@ class ActionBuilderModal(discord.ui.Modal):
                 inline=False,
             )
 
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
 
         except json.JSONDecodeError as e:
-            await interaction.response.send_message(f"❌ JSON格式錯誤: {str(e)}", ephemeral=True)
+            await interaction.response.send_message(
+                f"❌ JSON格式錯誤: {str(e)}", ephemeral=True
+            )
         except Exception as e:
             logger.error(f"設定動作失敗: {e}")
-            await interaction.response.send_message(f"❌ 設定失敗: {str(e)}", ephemeral=True)
+            await interaction.response.send_message(
+                f"❌ 設定失敗: {str(e)}", ephemeral=True
+            )
 
     def _get_action_display_name(self, action_type: str) -> str:
         """獲取動作類型顯示名稱"""

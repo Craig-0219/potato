@@ -216,13 +216,22 @@ class AutomationEngine:
                 ConditionOperator.EQUALS: lambda x, y: x == y,
                 ConditionOperator.NOT_EQUALS: lambda x, y: x != y,
                 ConditionOperator.CONTAINS: lambda x, y: str(y) in str(x),
-                ConditionOperator.NOT_CONTAINS: lambda x, y: str(y) not in str(x),
-                ConditionOperator.STARTS_WITH: lambda x, y: str(x).startswith(str(y)),
-                ConditionOperator.ENDS_WITH: lambda x, y: str(x).endswith(str(y)),
-                ConditionOperator.GREATER_THAN: lambda x, y: float(x) > float(y),
+                ConditionOperator.NOT_CONTAINS: lambda x, y: str(y)
+                not in str(x),
+                ConditionOperator.STARTS_WITH: lambda x, y: str(x).startswith(
+                    str(y)
+                ),
+                ConditionOperator.ENDS_WITH: lambda x, y: str(x).endswith(
+                    str(y)
+                ),
+                ConditionOperator.GREATER_THAN: lambda x, y: float(x)
+                > float(y),
                 ConditionOperator.LESS_THAN: lambda x, y: float(x) < float(y),
-                ConditionOperator.REGEX_MATCH: lambda x, y: bool(re.search(str(y), str(x))),
-                ConditionOperator.IN_LIST: lambda x, y: x in (y if isinstance(y, list) else [y]),
+                ConditionOperator.REGEX_MATCH: lambda x, y: bool(
+                    re.search(str(y), str(x))
+                ),
+                ConditionOperator.IN_LIST: lambda x, y: x
+                in (y if isinstance(y, list) else [y]),
                 ConditionOperator.NOT_IN_LIST: lambda x, y: x
                 not in (y if isinstance(y, list) else [y]),
             }
@@ -284,7 +293,9 @@ class AutomationEngine:
             logger.error(f"創建自動化規則失敗: {e}")
             raise
 
-    async def update_rule(self, rule_id: str, updates: Dict[str, Any]) -> Optional[AutomationRule]:
+    async def update_rule(
+        self, rule_id: str, updates: Dict[str, Any]
+    ) -> Optional[AutomationRule]:
         """更新自動化規則"""
         try:
             if rule_id not in self.rules:
@@ -356,7 +367,9 @@ class AutomationEngine:
 
         try:
             # 查找匹配的規則
-            matching_rules = await self._find_matching_rules(event_type, event_data)
+            matching_rules = await self._find_matching_rules(
+                event_type, event_data
+            )
 
             # 按優先級執行規則
             for rule in matching_rules:
@@ -364,7 +377,9 @@ class AutomationEngine:
                     result = await self._execute_rule(rule, event_data)
                     results.append(result)
 
-            logger.info(f"事件處理完成: {event_type.value}, 執行了 {len(results)} 個規則")
+            logger.info(
+                f"事件處理完成: {event_type.value}, 執行了 {len(results)} 個規則"
+            )
             return results
 
         except Exception as e:
@@ -388,7 +403,9 @@ class AutomationEngine:
                 continue
 
             # 檢查觸發條件
-            if await self._evaluate_trigger_conditions(rule.trigger, event_data):
+            if await self._evaluate_trigger_conditions(
+                rule.trigger, event_data
+            ):
                 matching_rules.append(rule)
 
         # 按優先級排序
@@ -404,7 +421,9 @@ class AutomationEngine:
                 return True  # 沒有條件時總是觸發
 
             for condition in trigger.conditions:
-                field_value = self._get_field_value(event_data, condition.field)
+                field_value = self._get_field_value(
+                    event_data, condition.field
+                )
 
                 if not self._evaluate_condition(condition, field_value):
                     return False
@@ -428,7 +447,9 @@ class AutomationEngine:
         except:
             return None
 
-    def _evaluate_condition(self, condition: Condition, actual_value: Any) -> bool:
+    def _evaluate_condition(
+        self, condition: Condition, actual_value: Any
+    ) -> bool:
         """評估單個條件"""
         try:
             evaluator = self.condition_evaluators.get(condition.operator)
@@ -442,11 +463,15 @@ class AutomationEngine:
             logger.error(f"評估條件失敗: {e}")
             return False
 
-    async def _can_execute_rule(self, rule: AutomationRule, event_data: Dict[str, Any]) -> bool:
+    async def _can_execute_rule(
+        self, rule: AutomationRule, event_data: Dict[str, Any]
+    ) -> bool:
         """檢查規則是否可以執行"""
         # 檢查冷卻期
         if rule.trigger.cooldown_seconds > 0 and rule.last_executed:
-            cooldown_end = rule.last_executed + timedelta(seconds=rule.trigger.cooldown_seconds)
+            cooldown_end = rule.last_executed + timedelta(
+                seconds=rule.trigger.cooldown_seconds
+            )
             if datetime.now(timezone.utc) < cooldown_end:
                 return False
 
@@ -498,7 +523,9 @@ class AutomationEngine:
                 rule.failure_count += 1
 
             # 計算執行時間
-            execution_time = (datetime.now(timezone.utc) - start_time).total_seconds()
+            execution_time = (
+                datetime.now(timezone.utc) - start_time
+            ).total_seconds()
 
             # 創建執行結果
             result = ExecutionResult(
@@ -534,7 +561,9 @@ class AutomationEngine:
 
     # ========== 動作處理器 ==========
 
-    async def _execute_action(self, action: Action, context: ExecutionContext) -> bool:
+    async def _execute_action(
+        self, action: Action, context: ExecutionContext
+    ) -> bool:
         """執行單個動作"""
         handler = self.action_handlers.get(action.type)
         if not handler:
@@ -549,7 +578,9 @@ class AutomationEngine:
                     return True
 
             except Exception as e:
-                logger.error(f"執行動作失敗 (嘗試 {retry_count + 1}/{action.retry_count + 1}): {e}")
+                logger.error(
+                    f"執行動作失敗 (嘗試 {retry_count + 1}/{action.retry_count + 1}): {e}"
+                )
 
             retry_count += 1
             if retry_count <= action.retry_count:
@@ -559,7 +590,9 @@ class AutomationEngine:
 
     # ========== 默認動作處理器實現 ==========
 
-    async def _handle_send_message(self, params: Dict[str, Any], context: ExecutionContext) -> bool:
+    async def _handle_send_message(
+        self, params: Dict[str, Any], context: ExecutionContext
+    ) -> bool:
         """發送訊息"""
         try:
             # 這裡應該集成 Discord bot 實例來發送訊息
@@ -570,7 +603,9 @@ class AutomationEngine:
             logger.error(f"發送訊息失敗: {e}")
             return False
 
-    async def _handle_assign_role(self, params: Dict[str, Any], context: ExecutionContext) -> bool:
+    async def _handle_assign_role(
+        self, params: Dict[str, Any], context: ExecutionContext
+    ) -> bool:
         """分配角色"""
         try:
             logger.info(f"模擬分配角色: {params}")
@@ -579,7 +614,9 @@ class AutomationEngine:
             logger.error(f"分配角色失敗: {e}")
             return False
 
-    async def _handle_remove_role(self, params: Dict[str, Any], context: ExecutionContext) -> bool:
+    async def _handle_remove_role(
+        self, params: Dict[str, Any], context: ExecutionContext
+    ) -> bool:
         """移除角色"""
         try:
             logger.info(f"模擬移除角色: {params}")
@@ -588,7 +625,9 @@ class AutomationEngine:
             logger.error(f"移除角色失敗: {e}")
             return False
 
-    async def _handle_send_dm(self, params: Dict[str, Any], context: ExecutionContext) -> bool:
+    async def _handle_send_dm(
+        self, params: Dict[str, Any], context: ExecutionContext
+    ) -> bool:
         """發送私訊"""
         try:
             logger.info(f"模擬發送私訊: {params}")
@@ -619,7 +658,9 @@ class AutomationEngine:
             logger.error(f"刪除頻道失敗: {e}")
             return False
 
-    async def _handle_move_ticket(self, params: Dict[str, Any], context: ExecutionContext) -> bool:
+    async def _handle_move_ticket(
+        self, params: Dict[str, Any], context: ExecutionContext
+    ) -> bool:
         """移動票券"""
         try:
             logger.info(f"模擬移動票券: {params}")
@@ -628,7 +669,9 @@ class AutomationEngine:
             logger.error(f"移動票券失敗: {e}")
             return False
 
-    async def _handle_close_ticket(self, params: Dict[str, Any], context: ExecutionContext) -> bool:
+    async def _handle_close_ticket(
+        self, params: Dict[str, Any], context: ExecutionContext
+    ) -> bool:
         """關閉票券"""
         try:
             logger.info(f"模擬關閉票券: {params}")
@@ -637,7 +680,9 @@ class AutomationEngine:
             logger.error(f"關閉票券失敗: {e}")
             return False
 
-    async def _handle_send_webhook(self, params: Dict[str, Any], context: ExecutionContext) -> bool:
+    async def _handle_send_webhook(
+        self, params: Dict[str, Any], context: ExecutionContext
+    ) -> bool:
         """發送 Webhook"""
         try:
             logger.info(f"模擬發送 Webhook: {params}")
@@ -668,7 +713,9 @@ class AutomationEngine:
             logger.error(f"更新資料庫失敗: {e}")
             return False
 
-    async def _handle_send_email(self, params: Dict[str, Any], context: ExecutionContext) -> bool:
+    async def _handle_send_email(
+        self, params: Dict[str, Any], context: ExecutionContext
+    ) -> bool:
         """發送郵件"""
         try:
             logger.info(f"模擬發送郵件: {params}")
@@ -679,18 +726,26 @@ class AutomationEngine:
 
     # ========== 統計和監控 ==========
 
-    async def get_execution_stats(self, guild_id: int = None) -> Dict[str, Any]:
+    async def get_execution_stats(
+        self, guild_id: int = None
+    ) -> Dict[str, Any]:
         """獲取執行統計"""
         try:
             rules = await self.get_rules(guild_id)
 
             total_rules = len(rules)
-            active_rules = len([r for r in rules if r.status == RuleStatus.ACTIVE])
+            active_rules = len(
+                [r for r in rules if r.status == RuleStatus.ACTIVE]
+            )
             total_executions = sum(r.execution_count for r in rules)
             total_success = sum(r.success_count for r in rules)
             total_failures = sum(r.failure_count for r in rules)
 
-            success_rate = (total_success / total_executions * 100) if total_executions > 0 else 0
+            success_rate = (
+                (total_success / total_executions * 100)
+                if total_executions > 0
+                else 0
+            )
 
             return {
                 "total_rules": total_rules,
@@ -706,9 +761,13 @@ class AutomationEngine:
             logger.error(f"獲取執行統計失敗: {e}")
             return {}
 
-    async def get_recent_executions(self, limit: int = 50) -> List[ExecutionResult]:
+    async def get_recent_executions(
+        self, limit: int = 50
+    ) -> List[ExecutionResult]:
         """獲取最近執行記錄"""
-        return sorted(self.execution_history, key=lambda x: x.completed_at, reverse=True)[:limit]
+        return sorted(
+            self.execution_history, key=lambda x: x.completed_at, reverse=True
+        )[:limit]
 
     async def cleanup_old_history(self, days: int = 30):
         """清理舊的執行記錄"""
@@ -717,7 +776,9 @@ class AutomationEngine:
             old_count = len(self.execution_history)
 
             self.execution_history = [
-                record for record in self.execution_history if record.completed_at > cutoff_date
+                record
+                for record in self.execution_history
+                if record.completed_at > cutoff_date
             ]
 
             cleaned_count = old_count - len(self.execution_history)

@@ -55,7 +55,9 @@ async def get_security_overview(
         raise HTTPException(status_code=500, detail="獲取安全狀況失敗")
 
 
-@router.get("/audit-log", response_model=PaginatedResponse, summary="獲取審計日誌")
+@router.get(
+    "/audit-log", response_model=PaginatedResponse, summary="獲取審計日誌"
+)
 # @limiter.limit("20/minute")
 async def get_audit_log(
     guild_id: Optional[int] = Query(None),
@@ -123,7 +125,10 @@ async def get_compliance_report(
                 "compliance_score": 0.95,
                 "last_assessment": datetime.now(),
                 "status": "compliant",
-                "recommendations": ["定期更新數據保護政策", "加強訪問控制監控"],
+                "recommendations": [
+                    "定期更新數據保護政策",
+                    "加強訪問控制監控",
+                ],
                 "report_url": f"/api/v1/security/reports/{standard.lower()}_report.{format}",
             },
         }

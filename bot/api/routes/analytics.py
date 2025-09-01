@@ -25,7 +25,9 @@ router = APIRouter()
 # @limiter.limit("20/minute")
 async def get_dashboard_data(
     guild_id: Optional[int] = Query(None, description="伺服器 ID"),
-    period: str = Query("30d", pattern="^(1d|7d|30d|90d|1y)$", description="統計期間"),
+    period: str = Query(
+        "30d", pattern="^(1d|7d|30d|90d|1y)$", description="統計期間"
+    ),
     user: APIUser = Depends(require_read_permission),
 ):
     """
@@ -40,7 +42,9 @@ async def get_dashboard_data(
 # @limiter.limit("30/minute")
 async def get_public_dashboard_data(
     guild_id: Optional[int] = Query(None, description="伺服器 ID"),
-    period: str = Query("30d", pattern="^(1d|7d|30d|90d|1y)$", description="統計期間"),
+    period: str = Query(
+        "30d", pattern="^(1d|7d|30d|90d|1y)$", description="統計期間"
+    ),
 ):
     """
     獲取分析儀表板數據（無需認證）
@@ -140,36 +144,63 @@ async def _get_dashboard_data_internal(guild_id: Optional[int], period: str):
                 def convert_decimal(value):
                     if value is None:
                         return 0
-                    return float(value) if isinstance(value, decimal.Decimal) else value
+                    return (
+                        float(value)
+                        if isinstance(value, decimal.Decimal)
+                        else value
+                    )
 
                 return {
                     "success": True,
                     "data": {
-                        "daily_tickets": convert_decimal(ticket_stats["total_tickets"]),
+                        "daily_tickets": convert_decimal(
+                            ticket_stats["total_tickets"]
+                        ),
                         "resolution_rate": round(
                             (
-                                convert_decimal(ticket_stats["resolved_tickets"])
-                                / max(convert_decimal(ticket_stats["total_tickets"]), 1)
+                                convert_decimal(
+                                    ticket_stats["resolved_tickets"]
+                                )
+                                / max(
+                                    convert_decimal(
+                                        ticket_stats["total_tickets"]
+                                    ),
+                                    1,
+                                )
                             )
                             * 100,
                             1,
                         ),
                         "satisfaction_score": 4.2,  # 暫時使用固定值
                         "response_time": (
-                            round(convert_decimal(ticket_stats["avg_resolution_hours"]), 1)
+                            round(
+                                convert_decimal(
+                                    ticket_stats["avg_resolution_hours"]
+                                ),
+                                1,
+                            )
                             if ticket_stats["avg_resolution_hours"]
                             else 0
                         ),
                         "active_agents": 8,  # 暫時使用固定值
-                        "pending_tickets": convert_decimal(ticket_stats["active_tickets"]),
+                        "pending_tickets": convert_decimal(
+                            ticket_stats["active_tickets"]
+                        ),
                         "vote_statistics": {
-                            "total_votes": convert_decimal(vote_stats["total_votes"]),
-                            "active_votes": convert_decimal(vote_stats["active_votes"]),
-                            "completed_votes": convert_decimal(vote_stats["completed_votes"]),
+                            "total_votes": convert_decimal(
+                                vote_stats["total_votes"]
+                            ),
+                            "active_votes": convert_decimal(
+                                vote_stats["active_votes"]
+                            ),
+                            "completed_votes": convert_decimal(
+                                vote_stats["completed_votes"]
+                            ),
                         },
                         "trends": {
                             "daily_counts": [
-                                convert_decimal(item["count"]) for item in daily_tickets[::-1]
+                                convert_decimal(item["count"])
+                                for item in daily_tickets[::-1]
                             ]  # 反轉以顯示時間順序
                         },
                     },
@@ -186,7 +217,9 @@ async def _get_dashboard_data_internal(guild_id: Optional[int], period: str):
 @router.get("/reports", summary="生成分析報告")
 # @limiter.limit("5/minute")
 async def generate_report(
-    report_type: str = Query(..., pattern="^(summary|detailed|performance|trend)$"),
+    report_type: str = Query(
+        ..., pattern="^(summary|detailed|performance|trend)$"
+    ),
     format: str = Query("json", pattern="^(json|csv|pdf)$"),
     guild_id: Optional[int] = Query(None),
     start_date: Optional[datetime] = Query(None),

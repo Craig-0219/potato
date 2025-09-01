@@ -24,7 +24,9 @@ class ContentAnalysisMainView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=300)
 
-    @discord.ui.button(label="📊 情感分析", style=discord.ButtonStyle.primary, emoji="📊")
+    @discord.ui.button(
+        label="📊 情感分析", style=discord.ButtonStyle.primary, emoji="📊"
+    )
     async def sentiment_analysis_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
@@ -35,9 +37,13 @@ class ContentAnalysisMainView(discord.ui.View):
 
         except Exception as e:
             logger.error(f"❌ 情感分析按鈕錯誤: {e}")
-            await interaction.response.send_message("❌ 啟動情感分析時發生錯誤。", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 啟動情感分析時發生錯誤。", ephemeral=True
+            )
 
-    @discord.ui.button(label="🔒 安全檢測", style=discord.ButtonStyle.secondary, emoji="🔒")
+    @discord.ui.button(
+        label="🔒 安全檢測", style=discord.ButtonStyle.secondary, emoji="🔒"
+    )
     async def safety_check_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
@@ -48,10 +54,16 @@ class ContentAnalysisMainView(discord.ui.View):
 
         except Exception as e:
             logger.error(f"❌ 安全檢測按鈕錯誤: {e}")
-            await interaction.response.send_message("❌ 啟動安全檢測時發生錯誤。", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 啟動安全檢測時發生錯誤。", ephemeral=True
+            )
 
-    @discord.ui.button(label="🔗 連結檢測", style=discord.ButtonStyle.secondary, emoji="🔗")
-    async def link_check_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="🔗 連結檢測", style=discord.ButtonStyle.secondary, emoji="🔗"
+    )
+    async def link_check_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """連結檢測按鈕"""
         try:
             modal = LinkCheckModal()
@@ -59,9 +71,13 @@ class ContentAnalysisMainView(discord.ui.View):
 
         except Exception as e:
             logger.error(f"❌ 連結檢測按鈕錯誤: {e}")
-            await interaction.response.send_message("❌ 啟動連結檢測時發生錯誤。", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 啟動連結檢測時發生錯誤。", ephemeral=True
+            )
 
-    @discord.ui.button(label="📈 內容統計", style=discord.ButtonStyle.success, emoji="📈")
+    @discord.ui.button(
+        label="📈 內容統計", style=discord.ButtonStyle.success, emoji="📈"
+    )
     async def content_stats_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
@@ -70,10 +86,13 @@ class ContentAnalysisMainView(discord.ui.View):
             await interaction.response.defer()
 
             # 獲取內容統計
-            stats = await content_analyzer.get_content_statistics(interaction.guild.id)
+            stats = await content_analyzer.get_content_statistics(
+                interaction.guild.id
+            )
 
             embed = EmbedBuilder.create_info_embed(
-                "📈 內容分析統計", f"{interaction.guild.name} 的內容分析統計報告"
+                "📈 內容分析統計",
+                f"{interaction.guild.name} 的內容分析統計報告",
             )
 
             # 基本統計
@@ -130,11 +149,17 @@ class ContentAnalysisMainView(discord.ui.View):
             if top_keywords:
                 embed.add_field(
                     name="🏷️ 熱門關鍵詞",
-                    value=" • ".join(f"**{keyword}**" for keyword in top_keywords[:8]),
+                    value=" • ".join(
+                        f"**{keyword}**" for keyword in top_keywords[:8]
+                    ),
                     inline=False,
                 )
 
-            embed.add_field(name="📊 統計期間", value="最近 7 天的數據分析結果", inline=False)
+            embed.add_field(
+                name="📊 統計期間",
+                value="最近 7 天的數據分析結果",
+                inline=False,
+            )
 
             embed.set_footer(
                 text=f"更新時間: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC"
@@ -144,10 +169,16 @@ class ContentAnalysisMainView(discord.ui.View):
 
         except Exception as e:
             logger.error(f"❌ 內容統計錯誤: {e}")
-            await interaction.followup.send("❌ 獲取內容統計時發生錯誤。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 獲取內容統計時發生錯誤。", ephemeral=True
+            )
 
-    @discord.ui.button(label="ℹ️ 使用說明", style=discord.ButtonStyle.secondary, emoji="ℹ️")
-    async def usage_guide_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="ℹ️ 使用說明", style=discord.ButtonStyle.secondary, emoji="ℹ️"
+    )
+    async def usage_guide_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """使用說明按鈕"""
         try:
             embed = EmbedBuilder.create_info_embed(
@@ -190,11 +221,15 @@ class ContentAnalysisMainView(discord.ui.View):
                 inline=False,
             )
 
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"❌ 使用說明錯誤: {e}")
-            await interaction.response.send_message("❌ 顯示使用說明時發生錯誤。", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 顯示使用說明時發生錯誤。", ephemeral=True
+            )
 
 
 class SentimentAnalysisModal(discord.ui.Modal):
@@ -218,7 +253,9 @@ class SentimentAnalysisModal(discord.ui.Modal):
 
             text = self.text_input.value.strip()
             if not text:
-                await interaction.followup.send("❌ 請輸入要分析的文本內容。", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ 請輸入要分析的文本內容。", ephemeral=True
+                )
                 return
 
             # 執行情感分析
@@ -277,7 +314,9 @@ class SentimentAnalysisModal(discord.ui.Modal):
             if result.keywords:
                 embed.add_field(
                     name="🏷️ 關鍵詞",
-                    value=" • ".join(f"**{kw}**" for kw in result.keywords[:8]),
+                    value=" • ".join(
+                        f"**{kw}**" for kw in result.keywords[:8]
+                    ),
                     inline=False,
                 )
 
@@ -297,7 +336,9 @@ class SentimentAnalysisModal(discord.ui.Modal):
                 )
 
             embed.add_field(
-                name="⏱️ 處理時間", value=f"{result.processing_time:.3f} 秒", inline=True
+                name="⏱️ 處理時間",
+                value=f"{result.processing_time:.3f} 秒",
+                inline=True,
             )
 
             embed.set_footer(text=f"分析者: {interaction.user.display_name}")
@@ -306,7 +347,9 @@ class SentimentAnalysisModal(discord.ui.Modal):
 
         except Exception as e:
             logger.error(f"❌ 情感分析錯誤: {e}")
-            await interaction.followup.send("❌ 執行情感分析時發生錯誤。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 執行情感分析時發生錯誤。", ephemeral=True
+            )
 
 
 class SafetyCheckModal(discord.ui.Modal):
@@ -330,7 +373,9 @@ class SafetyCheckModal(discord.ui.Modal):
 
             text = self.text_input.value.strip()
             if not text:
-                await interaction.followup.send("❌ 請輸入要檢測的文本內容。", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ 請輸入要檢測的文本內容。", ephemeral=True
+                )
                 return
 
             # 執行安全檢測
@@ -403,7 +448,8 @@ class SafetyCheckModal(discord.ui.Modal):
                     embed.add_field(
                         name="⚠️ 檢測到的問題",
                         value=" • ".join(
-                            f"**{phrase}**" for phrase in toxicity.flagged_phrases[:5]
+                            f"**{phrase}**"
+                            for phrase in toxicity.flagged_phrases[:5]
                         ),
                         inline=False,
                     )
@@ -433,7 +479,9 @@ class SafetyCheckModal(discord.ui.Modal):
                         )
 
             embed.add_field(
-                name="⏱️ 處理時間", value=f"{result.processing_time:.3f} 秒", inline=True
+                name="⏱️ 處理時間",
+                value=f"{result.processing_time:.3f} 秒",
+                inline=True,
             )
 
             embed.set_footer(text=f"檢測者: {interaction.user.display_name}")
@@ -442,7 +490,9 @@ class SafetyCheckModal(discord.ui.Modal):
 
         except Exception as e:
             logger.error(f"❌ 安全檢測錯誤: {e}")
-            await interaction.followup.send("❌ 執行安全檢測時發生錯誤。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 執行安全檢測時發生錯誤。", ephemeral=True
+            )
 
 
 class LinkCheckModal(discord.ui.Modal):
@@ -466,7 +516,9 @@ class LinkCheckModal(discord.ui.Modal):
 
             text = self.text_input.value.strip()
             if not text:
-                await interaction.followup.send("❌ 請輸入要檢測的內容。", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ 請輸入要檢測的內容。", ephemeral=True
+                )
                 return
 
             # 執行連結分析
@@ -483,7 +535,9 @@ class LinkCheckModal(discord.ui.Modal):
                 return
 
             if not result.links:
-                await interaction.followup.send("❌ 未在文本中檢測到任何連結。", ephemeral=True)
+                await interaction.followup.send(
+                    "❌ 未在文本中檢測到任何連結。", ephemeral=True
+                )
                 return
 
             # 創建結果嵌入
@@ -521,9 +575,13 @@ class LinkCheckModal(discord.ui.Modal):
                         link_info += f"**展開**: {link.expanded_url[:40]}...\n"
 
                 if link.risk_factors:
-                    link_info += f"**風險因子**: {', '.join(link.risk_factors[:3])}"
+                    link_info += (
+                        f"**風險因子**: {', '.join(link.risk_factors[:3])}"
+                    )
 
-                embed.add_field(name=f"🔗 連結 {i + 1}", value=link_info, inline=False)
+                embed.add_field(
+                    name=f"🔗 連結 {i + 1}", value=link_info, inline=False
+                )
 
             if len(result.links) > 3:
                 embed.add_field(
@@ -533,7 +591,9 @@ class LinkCheckModal(discord.ui.Modal):
                 )
 
             embed.add_field(
-                name="⏱️ 處理時間", value=f"{result.processing_time:.3f} 秒", inline=True
+                name="⏱️ 處理時間",
+                value=f"{result.processing_time:.3f} 秒",
+                inline=True,
             )
 
             embed.set_footer(text=f"檢測者: {interaction.user.display_name}")
@@ -542,4 +602,6 @@ class LinkCheckModal(discord.ui.Modal):
 
         except Exception as e:
             logger.error(f"❌ 連結檢測錯誤: {e}")
-            await interaction.followup.send("❌ 執行連結檢測時發生錯誤。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 執行連結檢測時發生錯誤。", ephemeral=True
+            )

@@ -17,7 +17,13 @@ if not os.getenv("TESTING"):
     load_dotenv()
 
 # 檢查必填變數
-required_vars = ["DISCORD_TOKEN", "DB_HOST", "DB_USER", "DB_PASSWORD", "DB_NAME"]
+required_vars = [
+    "DISCORD_TOKEN",
+    "DB_HOST",
+    "DB_USER",
+    "DB_PASSWORD",
+    "DB_NAME",
+]
 missing = [v for v in required_vars if os.getenv(v) is None]
 
 if missing and not os.getenv("TESTING"):
@@ -49,9 +55,15 @@ REDIS_URL = os.getenv("REDIS_URL")  # 可選的 Redis 連接
 SYNC_COMMANDS = os.getenv("SYNC_COMMANDS", "true").lower() == "true"
 
 # 票券系統配置
-TICKET_AUTO_ASSIGNMENT = os.getenv("TICKET_AUTO_ASSIGNMENT", "true").lower() == "true"
-TICKET_SLA_MONITORING = os.getenv("TICKET_SLA_MONITORING", "true").lower() == "true"
-TICKET_AUTO_REPLIES = os.getenv("TICKET_AUTO_REPLIES", "true").lower() == "true"
+TICKET_AUTO_ASSIGNMENT = (
+    os.getenv("TICKET_AUTO_ASSIGNMENT", "true").lower() == "true"
+)
+TICKET_SLA_MONITORING = (
+    os.getenv("TICKET_SLA_MONITORING", "true").lower() == "true"
+)
+TICKET_AUTO_REPLIES = (
+    os.getenv("TICKET_AUTO_REPLIES", "true").lower() == "true"
+)
 
 # AI 助手配置 - Phase 5 新增
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -61,7 +73,9 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # AI 使用限制
 AI_MAX_TOKENS = int(os.getenv("AI_MAX_TOKENS", "4000"))
 AI_RATE_LIMIT_USER = int(os.getenv("AI_RATE_LIMIT_USER", "10"))  # 每小時每用戶
-AI_RATE_LIMIT_GUILD = int(os.getenv("AI_RATE_LIMIT_GUILD", "100"))  # 每小時每伺服器
+AI_RATE_LIMIT_GUILD = int(
+    os.getenv("AI_RATE_LIMIT_GUILD", "100")
+)  # 每小時每伺服器
 
 # 圖片處理配置
 IMAGE_MAX_SIZE = int(os.getenv("IMAGE_MAX_SIZE", "50"))  # MB
@@ -73,8 +87,12 @@ IMAGE_STORAGE_PATH = os.getenv(
 CLOUD_STORAGE_BUCKET = os.getenv("CLOUD_STORAGE_BUCKET")  # 可選的雲端存儲
 
 # 內容分析配置
-CONTENT_ANALYSIS_ENABLED = os.getenv("CONTENT_ANALYSIS_ENABLED", "true").lower() == "true"
-SENTIMENT_ANALYSIS_THRESHOLD = float(os.getenv("SENTIMENT_ANALYSIS_THRESHOLD", "0.5"))
+CONTENT_ANALYSIS_ENABLED = (
+    os.getenv("CONTENT_ANALYSIS_ENABLED", "true").lower() == "true"
+)
+SENTIMENT_ANALYSIS_THRESHOLD = float(
+    os.getenv("SENTIMENT_ANALYSIS_THRESHOLD", "0.5")
+)
 
 # 經濟系統配置
 ECONOMY_ENABLED = os.getenv("ECONOMY_ENABLED", "true").lower() == "true"
@@ -85,13 +103,21 @@ MINECRAFT_SERVER_PORT = int(os.getenv("MINECRAFT_SERVER_PORT", "25565"))
 MINECRAFT_RCON_HOST = os.getenv("MINECRAFT_RCON_HOST", "localhost")
 MINECRAFT_RCON_PORT = int(os.getenv("MINECRAFT_RCON_PORT", "25575"))
 MINECRAFT_RCON_PASSWORD = os.getenv("MINECRAFT_RCON_PASSWORD", "")
-MINECRAFT_NOTIFICATION_CHANNEL = os.getenv("MINECRAFT_NOTIFICATION_CHANNEL")  # Discord 頻道 ID
-TICKET_RATING_SYSTEM = os.getenv("TICKET_RATING_SYSTEM", "true").lower() == "true"
-TICKET_ADVANCED_STATS = os.getenv("TICKET_ADVANCED_STATS", "true").lower() == "true"
+MINECRAFT_NOTIFICATION_CHANNEL = os.getenv(
+    "MINECRAFT_NOTIFICATION_CHANNEL"
+)  # Discord 頻道 ID
+TICKET_RATING_SYSTEM = (
+    os.getenv("TICKET_RATING_SYSTEM", "true").lower() == "true"
+)
+TICKET_ADVANCED_STATS = (
+    os.getenv("TICKET_ADVANCED_STATS", "true").lower() == "true"
+)
 
 # 系統參數
 TICKET_DEFAULT_SLA_MINUTES = int(os.getenv("TICKET_DEFAULT_SLA_MINUTES", 60))
-TICKET_DEFAULT_AUTO_CLOSE_HOURS = int(os.getenv("TICKET_DEFAULT_AUTO_CLOSE_HOURS", 24))
+TICKET_DEFAULT_AUTO_CLOSE_HOURS = int(
+    os.getenv("TICKET_DEFAULT_AUTO_CLOSE_HOURS", 24)
+)
 TICKET_MAX_PER_USER = int(os.getenv("TICKET_MAX_PER_USER", 3))
 
 # v2.2.0 創意內容生成功能配置
@@ -107,7 +133,9 @@ JWT_SECRET = os.getenv("JWT_SECRET", "default_jwt_secret_for_development_only")
 # Image Processing Configuration
 IMAGE_DAILY_FREE_QUOTA = int(os.getenv("IMAGE_DAILY_FREE_QUOTA", 5))
 IMAGE_MAX_SIZE_MB = int(os.getenv("IMAGE_MAX_SIZE_MB", 10))
-IMAGE_SUPPORTED_FORMATS = os.getenv("IMAGE_SUPPORTED_FORMATS", "jpg,jpeg,png,gif,webp").split(",")
+IMAGE_SUPPORTED_FORMATS = os.getenv(
+    "IMAGE_SUPPORTED_FORMATS", "jpg,jpeg,png,gif,webp"
+).split(",")
 
 # Music System Configuration
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
@@ -122,12 +150,16 @@ CONTENT_ANALYSIS_CACHE_TTL = int(os.getenv("CONTENT_ANALYSIS_CACHE_TTL", 1800))
 # Cross-Platform Economy Configuration
 MINECRAFT_SERVER_API_URL = os.getenv("MINECRAFT_SERVER_API_URL")
 MINECRAFT_SERVER_API_KEY = os.getenv("MINECRAFT_SERVER_API_KEY")
-CROSS_PLATFORM_SYNC_INTERVAL = int(os.getenv("CROSS_PLATFORM_SYNC_INTERVAL", 300))
+CROSS_PLATFORM_SYNC_INTERVAL = int(
+    os.getenv("CROSS_PLATFORM_SYNC_INTERVAL", 300)
+)
 
 # Economic System Configuration
 ECONOMY_STARTING_COINS = int(os.getenv("ECONOMY_STARTING_COINS", 1000))
 ECONOMY_DAILY_BONUS = int(os.getenv("ECONOMY_DAILY_BONUS", 100))
-ECONOMY_SERVICE_COSTS = os.getenv("ECONOMY_SERVICE_COSTS", "true").lower() == "true"
+ECONOMY_SERVICE_COSTS = (
+    os.getenv("ECONOMY_SERVICE_COSTS", "true").lower() == "true"
+)
 
 
 def validate_config_enhanced():
@@ -148,7 +180,11 @@ def validate_config_enhanced():
         value = os.getenv(var)
         if not value:
             errors.append(f"缺少{desc}環境變數：{var}")
-        elif var == "DISCORD_TOKEN" and len(value) < 50 and not os.getenv("TESTING"):
+        elif (
+            var == "DISCORD_TOKEN"
+            and len(value) < 50
+            and not os.getenv("TESTING")
+        ):
             errors.append(f"Discord Token格式可能不正確（長度過短）")
 
     # 檢查可選變數的預設值

@@ -113,7 +113,9 @@ async def _get_system_health_internal():
         raise HTTPException(status_code=500, detail="系統健康檢查失敗")
 
 
-@router.get("/metrics", response_model=SystemMetrics, summary="獲取系統性能指標")
+@router.get(
+    "/metrics", response_model=SystemMetrics, summary="獲取系統性能指標"
+)
 # @limiter.limit("20/minute")
 async def get_system_metrics(user: APIUser = Depends(require_read_permission)):
     """獲取詳細的系統性能指標（需要認證）"""
@@ -146,9 +148,13 @@ async def _get_system_metrics_internal():
             mysql_connections = sum(
                 1
                 for conn in connections
-                if conn.laddr and conn.laddr.port == 3306 and conn.status == "ESTABLISHED"
+                if conn.laddr
+                and conn.laddr.port == 3306
+                and conn.status == "ESTABLISHED"
             )
-            database_connections = max(1, mysql_connections)  # 至少顯示 1 個連線
+            database_connections = max(
+                1, mysql_connections
+            )  # 至少顯示 1 個連線
         except Exception as e:
             logger.warning(f"無法獲取連線數: {e}")
             database_connections = 1  # 預設值
@@ -186,7 +192,9 @@ async def get_system_info(user: APIUser = Depends(require_read_permission)):
                 "version": "1.8.0",
                 "python_version": f"{os.sys.version_info.major}.{os.sys.version_info.minor}.{os.sys.version_info.micro}",
                 "platform": os.name,
-                "architecture": psutil.WINDOWS if os.name == "nt" else psutil.LINUX,
+                "architecture": (
+                    psutil.WINDOWS if os.name == "nt" else psutil.LINUX
+                ),
                 "start_time": datetime.now(),  # TODO: 實際啟動時間
                 "timezone": str(datetime.now().astimezone().tzinfo),
                 "features": [
@@ -205,9 +213,15 @@ async def get_system_info(user: APIUser = Depends(require_read_permission)):
 
 
 # API 金鑰管理端點
-@router.get("/api-keys", response_model=List[APIKeyResponse], summary="獲取 API 金鑰列表")
+@router.get(
+    "/api-keys",
+    response_model=List[APIKeyResponse],
+    summary="獲取 API 金鑰列表",
+)
 # @limiter.limit("10/minute")
-async def get_api_keys(user: APIUser = Depends(require_super_admin_permission)):
+async def get_api_keys(
+    user: APIUser = Depends(require_super_admin_permission),
+):
     """獲取所有 API 金鑰（不包含實際金鑰值）"""
     try:
         from ..auth import get_api_key_manager
@@ -238,10 +252,16 @@ async def get_api_keys(user: APIUser = Depends(require_super_admin_permission)):
         raise HTTPException(status_code=500, detail="獲取 API 金鑰列表失敗")
 
 
-@router.post("/api-keys", response_model=BaseResponse, summary="創建 API 金鑰", status_code=201)
+@router.post(
+    "/api-keys",
+    response_model=BaseResponse,
+    summary="創建 API 金鑰",
+    status_code=201,
+)
 # @limiter.limit("5/minute")
 async def create_api_key(
-    key_data: APIKeyCreate, user: APIUser = Depends(require_super_admin_permission)
+    key_data: APIKeyCreate,
+    user: APIUser = Depends(require_super_admin_permission),
 ):
     """創建新的 API 金鑰"""
     try:
@@ -274,9 +294,13 @@ async def create_api_key(
         raise HTTPException(status_code=500, detail="創建 API 金鑰失敗")
 
 
-@router.delete("/api-keys/{key_id}", response_model=BaseResponse, summary="撤銷 API 金鑰")
+@router.delete(
+    "/api-keys/{key_id}", response_model=BaseResponse, summary="撤銷 API 金鑰"
+)
 # @limiter.limit("10/minute")
-async def revoke_api_key(key_id: str, user: APIUser = Depends(require_super_admin_permission)):
+async def revoke_api_key(
+    key_id: str, user: APIUser = Depends(require_super_admin_permission)
+):
     """撤銷指定的 API 金鑰"""
     try:
         from ..auth import get_api_key_manager
@@ -296,11 +320,15 @@ async def revoke_api_key(key_id: str, user: APIUser = Depends(require_super_admi
         raise HTTPException(status_code=500, detail="撤銷 API 金鑰失敗")
 
 
-@router.post("/maintenance", response_model=BaseResponse, summary="進入維護模式")
+@router.post(
+    "/maintenance", response_model=BaseResponse, summary="進入維護模式"
+)
 # @limiter.limit("2/hour")
 async def enter_maintenance_mode(
     reason: Optional[str] = Query(None, description="維護原因"),
-    duration_minutes: Optional[int] = Query(None, description="預計維護時間（分鐘）"),
+    duration_minutes: Optional[int] = Query(
+        None, description="預計維護時間（分鐘）"
+    ),
     user: APIUser = Depends(require_super_admin_permission),
 ):
     """將系統設置為維護模式"""
@@ -312,7 +340,9 @@ async def enter_maintenance_mode(
             "message": "系統已進入維護模式",
             "data": {
                 "maintenance_start": datetime.now(),
-                "estimated_end": (datetime.now() if not duration_minutes else datetime.now()),
+                "estimated_end": (
+                    datetime.now() if not duration_minutes else datetime.now()
+                ),
                 "reason": reason or "系統維護",
             },
         }
@@ -325,7 +355,9 @@ async def enter_maintenance_mode(
 # ========== Bot 設定管理端點 ==========
 
 
-@router.get("/bot-settings", response_model=Dict[str, Any], summary="獲取 Bot 設定")
+@router.get(
+    "/bot-settings", response_model=Dict[str, Any], summary="獲取 Bot 設定"
+)
 async def get_bot_settings(user: APIUser = Depends(require_admin_permission)):
     """獲取 Discord Bot 的各項設定"""
     try:
@@ -405,7 +437,11 @@ async def get_bot_settings(user: APIUser = Depends(require_admin_permission)):
         raise HTTPException(status_code=500, detail="獲取 Bot 設定失敗")
 
 
-@router.post("/bot-settings/{section}", response_model=BaseResponse, summary="更新 Bot 設定")
+@router.post(
+    "/bot-settings/{section}",
+    response_model=BaseResponse,
+    summary="更新 Bot 設定",
+)
 async def update_bot_settings(
     section: str,
     settings: Dict[str, Any],
@@ -466,7 +502,9 @@ async def update_bot_settings(
         raise HTTPException(status_code=500, detail="更新 Bot 設定失敗")
 
 
-@router.get("/bot-commands", response_model=Dict[str, Any], summary="獲取 Bot 指令列表")
+@router.get(
+    "/bot-commands", response_model=Dict[str, Any], summary="獲取 Bot 指令列表"
+)
 async def get_bot_commands(user: APIUser = Depends(require_read_permission)):
     """獲取當前 Discord Bot 載入的指令列表"""
     try:
@@ -496,8 +534,12 @@ async def get_bot_commands(user: APIUser = Depends(require_read_permission)):
                     "name": command.name,
                     "description": command.help or "無描述",
                     "type": "text",
-                    "module": command.cog_name if command.cog_name else "unknown",
-                    "aliases": list(command.aliases) if command.aliases else [],
+                    "module": (
+                        command.cog_name if command.cog_name else "unknown"
+                    ),
+                    "aliases": (
+                        list(command.aliases) if command.aliases else []
+                    ),
                 }
             )
 
@@ -517,7 +559,11 @@ async def get_bot_commands(user: APIUser = Depends(require_read_permission)):
         raise HTTPException(status_code=500, detail="獲取 Bot 指令列表失敗")
 
 
-@router.post("/bot-reload-extension", response_model=BaseResponse, summary="重新載入 Bot 擴展")
+@router.post(
+    "/bot-reload-extension",
+    response_model=BaseResponse,
+    summary="重新載入 Bot 擴展",
+)
 async def reload_bot_extension(
     extension_name: str, user: APIUser = Depends(require_admin_permission)
 ):
@@ -531,14 +577,21 @@ async def reload_bot_extension(
         # 重新載入擴展
         await bot.reload_extension(extension_name)
 
-        logger.info(f"Bot 擴展已重新載入: {extension_name}, 操作用戶: {user.username}")
+        logger.info(
+            f"Bot 擴展已重新載入: {extension_name}, 操作用戶: {user.username}"
+        )
 
         return {
             "success": True,
             "message": f"擴展 {extension_name} 已成功重新載入",
-            "data": {"extension": extension_name, "reloaded_at": datetime.now()},
+            "data": {
+                "extension": extension_name,
+                "reloaded_at": datetime.now(),
+            },
         }
 
     except Exception as e:
         logger.error(f"重新載入 Bot 擴展錯誤 ({extension_name}): {e}")
-        raise HTTPException(status_code=500, detail=f"重新載入擴展失敗: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"重新載入擴展失敗: {str(e)}"
+        )

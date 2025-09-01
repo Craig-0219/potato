@@ -18,7 +18,6 @@ import openai
 # 條件式導入 anthropic (可選依賴)
 try:
     from anthropic import AsyncAnthropic
-
     ANTHROPIC_AVAILABLE = True
 except ImportError:
     AsyncAnthropic = None
@@ -121,7 +120,9 @@ class AIEngineManager:
             # Anthropic Claude (僅在依賴可用時)
             if ANTHROPIC_AVAILABLE and self.config.get("anthropic_api_key"):
                 self.providers[AIProvider.CLAUDE_3_OPUS] = {
-                    "client": AsyncAnthropic(api_key=self.config["anthropic_api_key"]),
+                    "client": AsyncAnthropic(
+                        api_key=self.config["anthropic_api_key"]
+                    ),
                     "model": "claude-3-opus-20240229",
                     "max_tokens": 4000,
                     "cost_per_1k_tokens": 0.015,
@@ -130,7 +131,9 @@ class AIEngineManager:
                 }
 
                 self.providers[AIProvider.CLAUDE_3_SONNET] = {
-                    "client": AsyncAnthropic(api_key=self.config["anthropic_api_key"]),
+                    "client": AsyncAnthropic(
+                        api_key=self.config["anthropic_api_key"]
+                    ),
                     "model": "claude-3-sonnet-20240229",
                     "max_tokens": 4000,
                     "cost_per_1k_tokens": 0.003,
@@ -138,7 +141,9 @@ class AIEngineManager:
                     "priority": 2,
                 }
 
-            logger.info(f"✅ AI 引擎初始化完成，支援 {len(self.providers)} 個提供商")
+            logger.info(
+                f"✅ AI 引擎初始化完成，支援 {len(self.providers)} 個提供商"
+            )
 
         except Exception as e:
             logger.error(f"❌ AI 引擎初始化失敗: {e}")
@@ -169,13 +174,17 @@ class AIEngineManager:
 
         try:
             # 選擇最佳 AI 提供商
-            provider = await self._select_best_provider(prompt, context, preferred_provider)
+            provider = await self._select_best_provider(
+                prompt, context, preferred_provider
+            )
 
             # 建構完整提示詞
             full_prompt = await self._build_full_prompt(prompt, context)
 
             # 生成回應
-            response = await self._call_ai_provider(provider, full_prompt, max_tokens, temperature)
+            response = await self._call_ai_provider(
+                provider, full_prompt, max_tokens, temperature
+            )
 
             # 記錄使用統計
             await self._update_usage_stats(provider, response)
@@ -187,7 +196,9 @@ class AIEngineManager:
                 tokens_used=response.get("tokens_used", 0),
                 response_time=time.time() - start_time,
                 confidence=response.get("confidence", 0.8),
-                cost=self._calculate_cost(provider, response.get("tokens_used", 0)),
+                cost=self._calculate_cost(
+                    provider, response.get("tokens_used", 0)
+                ),
                 metadata=response.get("metadata", {}),
             )
 
@@ -210,7 +221,9 @@ class AIEngineManager:
                 return preferred_provider
 
         # 根據提示詞複雜度選擇
-        complexity_score = await self._analyze_prompt_complexity(prompt, context)
+        complexity_score = await self._analyze_prompt_complexity(
+            prompt, context
+        )
 
         # 排序提供商（優先級、可用性、成本）
         available_providers = []
@@ -232,12 +245,17 @@ class AIEngineManager:
         # 對於複雜問題，優先使用高級模型
         if complexity_score > 0.7:
             for provider, _ in available_providers:
-                if provider in [AIProvider.OPENAI_GPT4, AIProvider.CLAUDE_3_OPUS]:
+                if provider in [
+                    AIProvider.OPENAI_GPT4,
+                    AIProvider.CLAUDE_3_OPUS,
+                ]:
                     return provider
 
         return available_providers[0][0]
 
-    async def _build_full_prompt(self, user_prompt: str, context: ConversationContext) -> str:
+    async def _build_full_prompt(
+        self, user_prompt: str, context: ConversationContext
+    ) -> str:
         """建構完整的提示詞"""
 
         system_prompt = f"""你是 Potato Bot 的 AI 智能助手，專門協助用戶管理 Discord 伺服器。
@@ -273,7 +291,9 @@ class AIEngineManager:
 
         return system_prompt
 
-    def _format_conversation_history(self, history: List[Dict[str, str]]) -> str:
+    def _format_conversation_history(
+        self, history: List[Dict[str, str]]
+    ) -> str:
         """格式化對話歷史"""
         if not history:
             return "（這是新的對話）"
@@ -300,9 +320,16 @@ class AIEngineManager:
 
         try:
             if provider in [AIProvider.OPENAI_GPT4, AIProvider.OPENAI_GPT35]:
-                return await self._call_openai(provider_config, prompt, max_tokens, temperature)
-            elif provider in [AIProvider.CLAUDE_3_OPUS, AIProvider.CLAUDE_3_SONNET]:
-                return await self._call_claude(provider_config, prompt, max_tokens, temperature)
+                return await self._call_openai(
+                    provider_config, prompt, max_tokens, temperature
+                )
+            elif provider in [
+                AIProvider.CLAUDE_3_OPUS,
+                AIProvider.CLAUDE_3_SONNET,
+            ]:
+                return await self._call_claude(
+                    provider_config, prompt, max_tokens, temperature
+                )
             else:
                 raise ValueError(f"不支援的 AI 提供商: {provider}")
 
@@ -311,7 +338,11 @@ class AIEngineManager:
             raise
 
     async def _call_openai(
-        self, config: Dict[str, Any], prompt: str, max_tokens: int, temperature: float
+        self,
+        config: Dict[str, Any],
+        prompt: str,
+        max_tokens: int,
+        temperature: float,
     ) -> Dict[str, Any]:
         """呼叫 OpenAI API"""
 
@@ -339,7 +370,11 @@ class AIEngineManager:
             raise
 
     async def _call_claude(
-        self, config: Dict[str, Any], prompt: str, max_tokens: int, temperature: float
+        self,
+        config: Dict[str, Any],
+        prompt: str,
+        max_tokens: int,
+        temperature: float,
     ) -> Dict[str, Any]:
         """呼叫 Claude API"""
 
@@ -354,7 +389,8 @@ class AIEngineManager:
 
             return {
                 "content": response.content[0].text,
-                "tokens_used": response.usage.input_tokens + response.usage.output_tokens,
+                "tokens_used": response.usage.input_tokens
+                + response.usage.output_tokens,
                 "confidence": 0.85,  # Claude 不提供信心分數，設為固定值
                 "metadata": {
                     "model": config["model"],
@@ -366,7 +402,9 @@ class AIEngineManager:
             logger.error(f"❌ Claude API 調用失敗: {e}")
             raise
 
-    async def _analyze_prompt_complexity(self, prompt: str, context: ConversationContext) -> float:
+    async def _analyze_prompt_complexity(
+        self, prompt: str, context: ConversationContext
+    ) -> float:
         """分析提示詞複雜度"""
 
         complexity_score = 0.0
@@ -394,7 +432,9 @@ class AIEngineManager:
             "自動化",
         ]
 
-        technical_count = sum(1 for keyword in technical_keywords if keyword in prompt.lower())
+        technical_count = sum(
+            1 for keyword in technical_keywords if keyword in prompt.lower()
+        )
         complexity_score += min(technical_count * 0.1, 0.3)
 
         # 對話歷史複雜度
@@ -435,7 +475,9 @@ class AIEngineManager:
 
         return True
 
-    async def _update_usage_stats(self, provider: AIProvider, response: Dict[str, Any]):
+    async def _update_usage_stats(
+        self, provider: AIProvider, response: Dict[str, Any]
+    ):
         """更新使用統計"""
         current_time = time.time()
 
@@ -510,9 +552,13 @@ class AIEngineManager:
             "usage_stats": self.usage_stats,
             "rate_limits": self.rate_limits,
             "total_requests": sum(
-                stats.get("total_requests", 0) for stats in self.usage_stats.values()
+                stats.get("total_requests", 0)
+                for stats in self.usage_stats.values()
             ),
-            "total_cost": sum(stats.get("total_cost", 0.0) for stats in self.usage_stats.values()),
+            "total_cost": sum(
+                stats.get("total_cost", 0.0)
+                for stats in self.usage_stats.values()
+            ),
         }
 
     async def health_check(self) -> Dict[str, Any]:
@@ -538,6 +584,9 @@ class AIEngineManager:
                     "response_time": test_response.response_time,
                 }
             except Exception as e:
-                health_status[provider.value] = {"status": "unhealthy", "error": str(e)}
+                health_status[provider.value] = {
+                    "status": "unhealthy",
+                    "error": str(e),
+                }
 
         return health_status

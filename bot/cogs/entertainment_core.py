@@ -72,7 +72,9 @@ class EntertainmentCore(commands.Cog):
             }
         return self.user_stats[user_id]
 
-    async def update_user_stats(self, user_id: int, game_type: str, won: bool, points: int = 0):
+    async def update_user_stats(
+        self, user_id: int, game_type: str, won: bool, points: int = 0
+    ):
         """更新用戶統計"""
         stats = await self.get_user_stats(user_id)
         stats["total_games"] += 1
@@ -134,7 +136,8 @@ class EntertainmentCore(commands.Cog):
     # ========== 主要娛樂指令 ==========
 
     @app_commands.command(
-        name="entertainment", description="🎮 開啟娛樂中心 - 各種小遊戲等你來玩！"
+        name="entertainment",
+        description="🎮 開啟娛樂中心 - 各種小遊戲等你來玩！",
     )
     async def entertainment_center(self, interaction: discord.Interaction):
         """娛樂中心主菜單"""
@@ -145,7 +148,9 @@ class EntertainmentCore(commands.Cog):
                     "每日遊戲次數已達上限",
                     f"您今天已經玩了 {self.game_config['daily_limit']} 次遊戲，請明天再來！",
                 )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.response.send_message(
+                    embed=embed, ephemeral=True
+                )
                 return
 
             # 獲取用戶統計
@@ -153,7 +158,8 @@ class EntertainmentCore(commands.Cog):
 
             # 創建主菜單嵌入
             embed = EmbedBuilder.create_info_embed(
-                "🎮 娛樂中心", "歡迎來到 Potato Bot 娛樂中心！選擇您想要的遊戲："
+                "🎮 娛樂中心",
+                "歡迎來到 Potato Bot 娛樂中心！選擇您想要的遊戲：",
             )
 
             # 添加用戶統計信息
@@ -180,34 +186,52 @@ class EntertainmentCore(commands.Cog):
             )
 
             # 添加每日限制信息
-            remaining = self.game_config["daily_limit"] - self.daily_limits.get(
-                interaction.user.id, 0
+            remaining = self.game_config[
+                "daily_limit"
+            ] - self.daily_limits.get(interaction.user.id, 0)
+            embed.add_field(
+                name="⏰ 今日剩餘",
+                value=f"{remaining} 次遊戲機會",
+                inline=True,
             )
-            embed.add_field(name="⏰ 今日剩餘", value=f"{remaining} 次遊戲機會", inline=True)
 
             # 創建互動視圖
             view = EntertainmentMenuView(self, interaction.user.id)
 
-            await interaction.response.send_message(embed=embed, view=view, ephemeral=False)
+            await interaction.response.send_message(
+                embed=embed, view=view, ephemeral=False
+            )
             logger.info(f"娛樂中心已為用戶 {interaction.user.name} 開啟")
 
         except Exception as e:
             logger.error(f"娛樂中心錯誤: {e}")
-            embed = EmbedBuilder.create_error_embed("系統錯誤", "娛樂中心暫時無法使用，請稍後再試")
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            embed = EmbedBuilder.create_error_embed(
+                "系統錯誤", "娛樂中心暫時無法使用，請稍後再試"
+            )
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
 
     @app_commands.command(name="game_stats", description="📊 查看您的遊戲統計")
     async def game_stats(
-        self, interaction: discord.Interaction, user: Optional[discord.Member] = None
+        self,
+        interaction: discord.Interaction,
+        user: Optional[discord.Member] = None,
     ):
         """查看遊戲統計"""
         target_user = user or interaction.user
         stats = await self.get_user_stats(target_user.id)
 
-        embed = EmbedBuilder.create_info_embed(f"📊 {target_user.display_name} 的遊戲統計", "")
+        embed = EmbedBuilder.create_info_embed(
+            f"📊 {target_user.display_name} 的遊戲統計", ""
+        )
 
         # 基本統計
-        win_rate = (stats["wins"] / stats["total_games"] * 100) if stats["total_games"] > 0 else 0
+        win_rate = (
+            (stats["wins"] / stats["total_games"] * 100)
+            if stats["total_games"] > 0
+            else 0
+        )
         embed.add_field(
             name="🎮 基本統計",
             value=f"總遊戲: {stats['total_games']}\n"
@@ -225,21 +249,31 @@ class EntertainmentCore(commands.Cog):
         else:
             achievements_text = "暫無成就"
 
-        embed.add_field(name="🏆 獲得成就", value=achievements_text, inline=True)
+        embed.add_field(
+            name="🏆 獲得成就", value=achievements_text, inline=True
+        )
 
         # 遊戲歷史
         if stats["game_history"]:
             history_text = ""
             for game, data in stats["game_history"].items():
-                rate = (data["won"] / data["played"] * 100) if data["played"] > 0 else 0
-                history_text += f"{game}: {data['played']}場 ({rate:.1f}%勝率)\n"
+                rate = (
+                    (data["won"] / data["played"] * 100)
+                    if data["played"] > 0
+                    else 0
+                )
+                history_text += (
+                    f"{game}: {data['played']}場 ({rate:.1f}%勝率)\n"
+                )
         else:
             history_text = "暫無遊戲記錄"
 
         embed.add_field(name="📈 遊戲記錄", value=history_text, inline=False)
 
         if stats["last_played"]:
-            embed.set_footer(text=f"上次遊戲: {stats['last_played'].strftime('%Y-%m-%d %H:%M')}")
+            embed.set_footer(
+                text=f"上次遊戲: {stats['last_played'].strftime('%Y-%m-%d %H:%M')}"
+            )
 
         await interaction.response.send_message(embed=embed)
 
@@ -253,7 +287,9 @@ class EntertainmentCore(commands.Cog):
             reverse=True,
         )
 
-        embed = EmbedBuilder.create_info_embed("🏆 遊戲排行榜", "最強玩家排名（按積分排序）")
+        embed = EmbedBuilder.create_info_embed(
+            "🏆 遊戲排行榜", "最強玩家排名（按積分排序）"
+        )
 
         leaderboard_text = ""
         for i, (user_id, stats) in enumerate(sorted_users[:10], 1):
@@ -261,7 +297,11 @@ class EntertainmentCore(commands.Cog):
                 user = self.bot.get_user(user_id)
                 username = user.display_name if user else f"User#{user_id}"
 
-                medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}."
+                medal = (
+                    "🥇"
+                    if i == 1
+                    else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}."
+                )
                 leaderboard_text += f"{medal} {username}\n"
                 leaderboard_text += f"   💎 {stats['points']}分 | 🏆 {stats['wins']}勝 | 🎮 {stats['total_games']}場\n\n"
 
@@ -301,7 +341,9 @@ class EntertainmentCore(commands.Cog):
             embed = EmbedBuilder.create_warning_embed(
                 "已領取今日獎勵", "您今天已經領取過每日獎勵了，明天再來吧！"
             )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
             return
 
         # 計算獎勵
@@ -326,7 +368,11 @@ class EntertainmentCore(commands.Cog):
             inline=True,
         )
 
-        embed.add_field(name="連續天數", value=f"🔥 {stats['daily_streak']} 天", inline=True)
+        embed.add_field(
+            name="連續天數",
+            value=f"🔥 {stats['daily_streak']} 天",
+            inline=True,
+        )
 
         await interaction.response.send_message(embed=embed)
 

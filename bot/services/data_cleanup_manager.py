@@ -100,7 +100,9 @@ class DataCleanupManager:
             results["closed_tickets"] = await self._cleanup_old_tickets()
 
             # 清理統計資料
-            results["statistics_cache"] = await self._cleanup_statistics_cache()
+            results["statistics_cache"] = (
+                await self._cleanup_statistics_cache()
+            )
 
             # 清理安全事件
             results["security_events"] = await self._cleanup_security_events()
@@ -145,7 +147,9 @@ class DataCleanupManager:
         except Exception as e:
             logger.error(f"❌ 系統清理過程中發生錯誤: {e}", exc_info=True)
             duration = (datetime.now() - start_time).total_seconds()
-            return CleanupSummary(success=False, duration_seconds=duration, error=str(e))
+            return CleanupSummary(
+                success=False, duration_seconds=duration, error=str(e)
+            )
 
     async def run_basic_cleanup(self) -> CleanupSummary:
         """執行基礎清理（快速清理常見的過期資料）"""
@@ -165,7 +169,9 @@ class DataCleanupManager:
             basic_results["ticket_logs"] = await self._cleanup_ticket_logs()
 
             # 清理統計快取
-            basic_results["statistics_cache"] = await self._cleanup_statistics_cache()
+            basic_results["statistics_cache"] = (
+                await self._cleanup_statistics_cache()
+            )
 
             # 計算結果
             success_count = 0
@@ -193,12 +199,16 @@ class DataCleanupManager:
         except Exception as e:
             logger.error(f"❌ 基礎清理過程中發生錯誤: {e}", exc_info=True)
             duration = (datetime.now() - start_time).total_seconds()
-            return CleanupSummary(success=False, duration_seconds=duration, error=str(e))
+            return CleanupSummary(
+                success=False, duration_seconds=duration, error=str(e)
+            )
 
     async def _cleanup_system_logs(self) -> CleanupResult:
         """清理系統日誌 - 檢查表是否存在"""
         table_name = "system_logs"
-        cutoff_date = datetime.now() - timedelta(days=self.config.log_retention_days)
+        cutoff_date = datetime.now() - timedelta(
+            days=self.config.log_retention_days
+        )
 
         try:
             async with self.db.connection() as conn:
@@ -236,7 +246,9 @@ class DataCleanupManager:
                     result = await cursor.fetchone()
 
                     if not result or result["count"] == 0:
-                        logger.warning(f"⚠️ 表 {table_name} 沒有 created_at 欄位，跳過清理")
+                        logger.warning(
+                            f"⚠️ 表 {table_name} 沒有 created_at 欄位，跳過清理"
+                        )
                         return CleanupResult(
                             table_name=table_name,
                             records_before=0,
@@ -247,28 +259,32 @@ class DataCleanupManager:
                         )
 
                     # 計算清理前記錄數
-                    count_query = (
-                        f"SELECT COUNT(*) as count FROM {table_name} WHERE created_at < %s"
-                    )
+                    count_query = f"SELECT COUNT(*) as count FROM {table_name} WHERE created_at < %s"
                     await cursor.execute(count_query, (cutoff_date,))
                     result = await cursor.fetchone()
                     records_to_delete = result["count"] if result else 0
 
                     # 獲取總記錄數
-                    await cursor.execute(f"SELECT COUNT(*) as count FROM {table_name}")
+                    await cursor.execute(
+                        f"SELECT COUNT(*) as count FROM {table_name}"
+                    )
                     result = await cursor.fetchone()
                     total_records = result["count"] if result else 0
 
                     # 執行清理
                     if records_to_delete > 0:
-                        delete_query = f"DELETE FROM {table_name} WHERE created_at < %s"
+                        delete_query = (
+                            f"DELETE FROM {table_name} WHERE created_at < %s"
+                        )
                         await cursor.execute(delete_query, (cutoff_date,))
                         await conn.commit()
 
                     # 計算清理後記錄數
                     records_after = total_records - records_to_delete
 
-                    logger.info(f"🗑️ 系統日誌清理: 刪除 {records_to_delete} 條記錄")
+                    logger.info(
+                        f"🗑️ 系統日誌清理: 刪除 {records_to_delete} 條記錄"
+                    )
 
                     return CleanupResult(
                         table_name=table_name,
@@ -329,11 +345,15 @@ class DataCleanupManager:
                     AND table_name = %s
                     AND column_name = %s
                     """
-                    await cursor.execute(check_column_query, (table_name, date_column))
+                    await cursor.execute(
+                        check_column_query, (table_name, date_column)
+                    )
                     result = await cursor.fetchone()
 
                     if not result or result["count"] == 0:
-                        logger.warning(f"⚠️ 表 {table_name} 沒有 {date_column} 欄位，跳過清理")
+                        logger.warning(
+                            f"⚠️ 表 {table_name} 沒有 {date_column} 欄位，跳過清理"
+                        )
                         return CleanupResult(
                             table_name=table_name,
                             records_before=0,
@@ -344,14 +364,14 @@ class DataCleanupManager:
                         )
 
                     # 獲取總記錄數
-                    await cursor.execute(f"SELECT COUNT(*) as count FROM {table_name}")
+                    await cursor.execute(
+                        f"SELECT COUNT(*) as count FROM {table_name}"
+                    )
                     result = await cursor.fetchone()
                     total_records = result["count"] if result else 0
 
                     # 計算要刪除的記錄數
-                    count_query = (
-                        f"SELECT COUNT(*) as count FROM {table_name} WHERE {date_column} < %s"
-                    )
+                    count_query = f"SELECT COUNT(*) as count FROM {table_name} WHERE {date_column} < %s"
                     await cursor.execute(count_query, (cutoff_date,))
                     result = await cursor.fetchone()
                     records_to_delete = result["count"] if result else 0
@@ -364,7 +384,9 @@ class DataCleanupManager:
 
                     records_after = total_records - records_to_delete
 
-                    logger.info(f"🗑️ {table_name} 清理: 刪除 {records_to_delete} 條記錄")
+                    logger.info(
+                        f"🗑️ {table_name} 清理: 刪除 {records_to_delete} 條記錄"
+                    )
 
                     return CleanupResult(
                         table_name=table_name,
@@ -396,7 +418,9 @@ class DataCleanupManager:
     async def _cleanup_old_tickets(self) -> CleanupResult:
         """清理舊的已關閉票券"""
         table_name = "tickets"
-        cutoff_date = datetime.now() - timedelta(days=self.config.closed_ticket_retention_days)
+        cutoff_date = datetime.now() - timedelta(
+            days=self.config.closed_ticket_retention_days
+        )
 
         try:
             async with self.db.connection() as conn:
@@ -423,7 +447,9 @@ class DataCleanupManager:
                         )
 
                     # 獲取總記錄數
-                    await cursor.execute(f"SELECT COUNT(*) as count FROM {table_name}")
+                    await cursor.execute(
+                        f"SELECT COUNT(*) as count FROM {table_name}"
+                    )
                     result = await cursor.fetchone()
                     total_records = result["count"] if result else 0
 
@@ -474,7 +500,9 @@ class DataCleanupManager:
 
                     records_after = total_records - records_to_delete
 
-                    logger.info(f"🗑️ 已關閉票券清理: 刪除 {records_to_delete} 條記錄")
+                    logger.info(
+                        f"🗑️ 已關閉票券清理: 刪除 {records_to_delete} 條記錄"
+                    )
 
                     return CleanupResult(
                         table_name=table_name,
@@ -547,16 +575,22 @@ class DataCleanupManager:
                                 continue  # 表不存在，跳過
 
                             # 查找日期欄位並執行清理
-                            date_column = await self._find_date_column(cursor, table)
+                            date_column = await self._find_date_column(
+                                cursor, table
+                            )
                             if date_column:
-                                cleanup_result = await self._generic_cleanup_by_date(
-                                    table, date_column, 1
+                                cleanup_result = (
+                                    await self._generic_cleanup_by_date(
+                                        table, date_column, 1
+                                    )
                                 )
                                 total_deleted += cleanup_result.deleted_count
                                 total_before += cleanup_result.records_before
 
                         except Exception as table_error:
-                            logger.warning(f"清理表 {table} 時發生錯誤: {table_error}")
+                            logger.warning(
+                                f"清理表 {table} 時發生錯誤: {table_error}"
+                            )
                             continue
 
             return CleanupResult(
@@ -580,7 +614,9 @@ class DataCleanupManager:
                 error_message=str(e),
             )
 
-    async def _find_date_column(self, cursor, table_name: str) -> Optional[str]:
+    async def _find_date_column(
+        self, cursor, table_name: str
+    ) -> Optional[str]:
         """查找表中可用的日期欄位"""
         date_columns = [
             "created_at",
@@ -653,7 +689,9 @@ class DataCleanupManager:
 
                     await conn.commit()
 
-                    logger.info(f"🧹 孤立資料清理: 刪除 {total_deleted} 條記錄")
+                    logger.info(
+                        f"🧹 孤立資料清理: 刪除 {total_deleted} 條記錄"
+                    )
 
                     return CleanupResult(
                         table_name="orphaned_data",
@@ -709,7 +747,9 @@ class DataCleanupManager:
                             optimized_tables += 1
 
                         except Exception as table_error:
-                            logger.warning(f"優化表 {table} 時出現問題: {table_error}")
+                            logger.warning(
+                                f"優化表 {table} 時出現問題: {table_error}"
+                            )
                             continue
 
                     # 分析表統計
@@ -720,7 +760,9 @@ class DataCleanupManager:
                         except Exception:
                             continue
 
-                    logger.info(f"⚡ 資料庫優化: 優化了 {optimized_tables} 個表")
+                    logger.info(
+                        f"⚡ 資料庫優化: 優化了 {optimized_tables} 個表"
+                    )
 
                     return CleanupResult(
                         table_name="database_optimization",
@@ -746,8 +788,12 @@ class DataCleanupManager:
     async def _log_cleanup_results(self, results: Dict[str, CleanupResult]):
         """記錄清理結果"""
         try:
-            total_deleted = sum(result.deleted_count for result in results.values())
-            successful_cleanups = sum(1 for result in results.values() if result.success)
+            total_deleted = sum(
+                result.deleted_count for result in results.values()
+            )
+            successful_cleanups = sum(
+                1 for result in results.values() if result.success
+            )
             total_cleanups = len(results)
 
             logger.info("📋 清理結果摘要:")
@@ -761,7 +807,9 @@ class DataCleanupManager:
                         f"  ✅ {operation}: 刪除 {result.deleted_count} 條 ({percentage:.1f}%)"
                     )
                 else:
-                    logger.error(f"  ❌ {operation}: 失敗 - {result.error_message}")
+                    logger.error(
+                        f"  ❌ {operation}: 失敗 - {result.error_message}"
+                    )
 
             # 將結果保存到資料庫
             await self._save_cleanup_log(results)

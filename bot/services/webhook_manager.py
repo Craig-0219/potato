@@ -70,7 +70,9 @@ class WebhookConfig:
     status: WebhookStatus = WebhookStatus.ACTIVE
     guild_id: int = 0
     created_by: int = 0
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
     last_triggered: Optional[datetime] = None
     success_count: int = 0
     failure_count: int = 0
@@ -152,7 +154,11 @@ class WebhookManager:
         try:
             # 生成Webhook ID和密鑰
             webhook_id = secrets.token_urlsafe(16)
-            secret = secrets.token_urlsafe(32) if config_data.get("use_secret", True) else None
+            secret = (
+                secrets.token_urlsafe(32)
+                if config_data.get("use_secret", True)
+                else None
+            )
 
             # 創建配置
             config = WebhookConfig(
@@ -160,7 +166,10 @@ class WebhookManager:
                 name=config_data["name"],
                 url=config_data["url"],
                 type=WebhookType(config_data.get("type", "outgoing")),
-                events=[WebhookEvent(event) for event in config_data.get("events", [])],
+                events=[
+                    WebhookEvent(event)
+                    for event in config_data.get("events", [])
+                ],
                 secret=secret,
                 headers=config_data.get("headers", {}),
                 timeout=config_data.get("timeout", 30),
@@ -184,7 +193,9 @@ class WebhookManager:
             logger.error(f"❌ 創建Webhook失敗: {e}")
             raise
 
-    async def update_webhook(self, webhook_id: str, updates: Dict[str, Any]) -> bool:
+    async def update_webhook(
+        self, webhook_id: str, updates: Dict[str, Any]
+    ) -> bool:
         """更新Webhook配置"""
         try:
             if webhook_id not in self.webhooks:
@@ -201,7 +212,9 @@ class WebhookManager:
             if "url" in updates:
                 config.url = updates["url"]
             if "events" in updates:
-                config.events = [WebhookEvent(event) for event in updates["events"]]
+                config.events = [
+                    WebhookEvent(event) for event in updates["events"]
+                ]
             if "headers" in updates:
                 config.headers = updates["headers"]
             if "timeout" in updates:
@@ -246,7 +259,9 @@ class WebhookManager:
 
     # ========== 事件觸發 ==========
 
-    async def trigger_webhook_event(self, event: WebhookEvent, guild_id: int, data: Dict[str, Any]):
+    async def trigger_webhook_event(
+        self, event: WebhookEvent, guild_id: int, data: Dict[str, Any]
+    ):
         """觸發Webhook事件"""
         try:
             # 找到匹配的Webhook
@@ -257,12 +272,15 @@ class WebhookManager:
                     config.guild_id == guild_id
                     and event in config.events
                     and config.status == WebhookStatus.ACTIVE
-                    and config.type in [WebhookType.OUTGOING, WebhookType.BIDIRECTIONAL]
+                    and config.type
+                    in [WebhookType.OUTGOING, WebhookType.BIDIRECTIONAL]
                 ):
                     matching_webhooks.append(config)
 
             if not matching_webhooks:
-                logger.debug(f"沒有匹配的Webhook用於事件: {event.value} (伺服器: {guild_id})")
+                logger.debug(
+                    f"沒有匹配的Webhook用於事件: {event.value} (伺服器: {guild_id})"
+                )
                 return
 
             # 併發發送到所有匹配的Webhook
@@ -277,7 +295,9 @@ class WebhookManager:
             # 記錄結果
             for config, result in zip(matching_webhooks, results):
                 if isinstance(result, Exception):
-                    logger.error(f"❌ Webhook發送失敗 ({config.name}): {result}")
+                    logger.error(
+                        f"❌ Webhook發送失敗 ({config.name}): {result}"
+                    )
                 else:
                     logger.info(f"✅ Webhook發送成功 ({config.name})")
 
@@ -287,7 +307,10 @@ class WebhookManager:
     # ========== 接收Webhook ==========
 
     async def process_incoming_webhook(
-        self, webhook_id: str, payload: Dict[str, Any], signature: Optional[str] = None
+        self,
+        webhook_id: str,
+        payload: Dict[str, Any],
+        signature: Optional[str] = None,
     ) -> Dict[str, Any]:
         """處理接收的Webhook"""
         try:
@@ -297,7 +320,10 @@ class WebhookManager:
             config = self.webhooks[webhook_id]
 
             # 檢查Webhook類型
-            if config.type not in [WebhookType.INCOMING, WebhookType.BIDIRECTIONAL]:
+            if config.type not in [
+                WebhookType.INCOMING,
+                WebhookType.BIDIRECTIONAL,
+            ]:
                 raise ValueError("此Webhook不接受入站請求")
 
             # 檢查狀態
@@ -306,8 +332,12 @@ class WebhookManager:
 
             # 驗證簽名
             if config.secret and signature:
-                expected_signature = self._generate_signature(json.dumps(payload), config.secret)
-                if not hmac.compare_digest(signature.replace("sha256=", ""), expected_signature):
+                expected_signature = self._generate_signature(
+                    json.dumps(payload), config.secret
+                )
+                if not hmac.compare_digest(
+                    signature.replace("sha256=", ""), expected_signature
+                ):
                     raise ValueError("簽名驗證失敗")
 
             # 處理事件
@@ -325,7 +355,10 @@ class WebhookManager:
             self.execution_stats["total_received"] += 1
             self.execution_stats["success_count"] += 1
 
-            return {"status": "success", "message": "Webhook processed successfully"}
+            return {
+                "status": "success",
+                "message": "Webhook processed successfully",
+            }
 
         except Exception as e:
             logger.error(f"❌ 處理接收Webhook失敗: {e}")
@@ -335,12 +368,17 @@ class WebhookManager:
             return {"status": "error", "message": str(e)}
 
     async def _process_webhook_event(
-        self, config: WebhookConfig, event: WebhookEvent, payload: Dict[str, Any]
+        self,
+        config: WebhookConfig,
+        event: WebhookEvent,
+        payload: Dict[str, Any],
     ):
         """處理Webhook事件"""
         try:
             # 這裡可以根據不同的事件類型執行不同的處理邏輯
-            logger.info(f"🔗 處理Webhook事件: {event.value} from {config.name}")
+            logger.info(
+                f"🔗 處理Webhook事件: {event.value} from {config.name}"
+            )
 
             # 觸發相應的系統事件
             if event == WebhookEvent.TICKET_CREATED:
@@ -358,7 +396,9 @@ class WebhookManager:
 
     def _generate_signature(self, payload: str, secret: str) -> str:
         """生成Webhook簽名"""
-        return hmac.new(secret.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+        return hmac.new(
+            secret.encode("utf-8"), payload.encode("utf-8"), hashlib.sha256
+        ).hexdigest()
 
     def _register_webhook_events(self, config: WebhookConfig):
         """註冊Webhook事件處理器"""
@@ -386,7 +426,9 @@ class WebhookManager:
                     name=webhook_data["name"],
                     url=webhook_data["url"],
                     type=WebhookType(webhook_data["type"]),
-                    events=[WebhookEvent(event) for event in webhook_data["events"]],
+                    events=[
+                        WebhookEvent(event) for event in webhook_data["events"]
+                    ],
                     secret=webhook_data.get("secret"),
                     headers=webhook_data.get("headers", {}),
                     timeout=webhook_data.get("timeout", 30),
@@ -409,7 +451,9 @@ class WebhookManager:
 
     # ========== 統計和查詢 ==========
 
-    def get_webhooks(self, guild_id: Optional[int] = None) -> List[Dict[str, Any]]:
+    def get_webhooks(
+        self, guild_id: Optional[int] = None
+    ) -> List[Dict[str, Any]]:
         """獲取Webhook列表"""
         webhooks = []
 
@@ -426,7 +470,9 @@ class WebhookManager:
                         "success_count": config.success_count,
                         "failure_count": config.failure_count,
                         "last_triggered": (
-                            config.last_triggered.isoformat() if config.last_triggered else None
+                            config.last_triggered.isoformat()
+                            if config.last_triggered
+                            else None
                         ),
                         "created_at": config.created_at.isoformat(),
                     }
@@ -437,7 +483,9 @@ class WebhookManager:
     def get_webhook_statistics(self) -> Dict[str, Any]:
         """獲取Webhook統計信息"""
         active_webhooks = sum(
-            1 for config in self.webhooks.values() if config.status == WebhookStatus.ACTIVE
+            1
+            for config in self.webhooks.values()
+            if config.status == WebhookStatus.ACTIVE
         )
 
         return {
@@ -450,7 +498,8 @@ class WebhookManager:
             "success_rate": (
                 self.execution_stats["success_count"]
                 / max(
-                    self.execution_stats["total_sent"] + self.execution_stats["total_received"],
+                    self.execution_stats["total_sent"]
+                    + self.execution_stats["total_received"],
                     1,
                 )
             )

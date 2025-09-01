@@ -234,7 +234,9 @@ def create_progress_bar(
     return filled_char * filled_length + empty_char * (length - filled_length)
 
 
-def format_percentage(current: int, total: int, decimal_places: int = 1) -> str:
+def format_percentage(
+    current: int, total: int, decimal_places: int = 1
+) -> str:
     """格式化百分比"""
     if total <= 0:
         return "0%"
@@ -266,7 +268,9 @@ def parse_time_string(time_str: str) -> Optional[int]:
     time_str = time_str.lower().strip()
 
     # 匹配數字和單位
-    match = re.match(r"(\d+)\s*(m|min|mins|minutes?|h|hr|hrs|hours?|d|day|days?)", time_str)
+    match = re.match(
+        r"(\d+)\s*(m|min|mins|minutes?|h|hr|hrs|hours?|d|day|days?)", time_str
+    )
 
     if not match:
         # 嘗試只匹配數字（默認分鐘）
@@ -304,7 +308,9 @@ def format_time_remaining(end_time: datetime) -> str:
     return format_duration(diff)
 
 
-def create_embed_field_value(items: Dict[str, Any], max_length: int = 1024) -> str:
+def create_embed_field_value(
+    items: Dict[str, Any], max_length: int = 1024
+) -> str:
     """建立嵌入欄位值"""
     lines = []
     current_length = 0
@@ -334,7 +340,9 @@ def is_ticket_channel(channel: discord.TextChannel) -> bool:
     return channel.name.startswith("ticket-")
 
 
-def extract_ticket_id_from_channel(channel: discord.TextChannel) -> Optional[int]:
+def extract_ticket_id_from_channel(
+    channel: discord.TextChannel,
+) -> Optional[int]:
     """從頻道名稱提取票券ID"""
     if not is_ticket_channel(channel):
         return None
@@ -348,7 +356,9 @@ def extract_ticket_id_from_channel(channel: discord.TextChannel) -> Optional[int
 
 
 def check_permissions(
-    member: discord.Member, channel: discord.TextChannel, permissions: List[str]
+    member: discord.Member,
+    channel: discord.TextChannel,
+    permissions: List[str],
 ) -> Dict[str, bool]:
     """檢查用戶權限"""
     if not member or not channel:
@@ -423,22 +433,30 @@ def create_simple_embed(
 
 def create_error_embed(message: str) -> discord.Embed:
     """建立錯誤嵌入"""
-    return discord.Embed(title="❌ 錯誤", description=message, color=discord.Color.red())
+    return discord.Embed(
+        title="❌ 錯誤", description=message, color=discord.Color.red()
+    )
 
 
 def create_success_embed(message: str) -> discord.Embed:
     """建立成功嵌入"""
-    return discord.Embed(title="✅ 成功", description=message, color=discord.Color.green())
+    return discord.Embed(
+        title="✅ 成功", description=message, color=discord.Color.green()
+    )
 
 
 def create_warning_embed(message: str) -> discord.Embed:
     """建立警告嵌入"""
-    return discord.Embed(title="⚠️ 警告", description=message, color=discord.Color.orange())
+    return discord.Embed(
+        title="⚠️ 警告", description=message, color=discord.Color.orange()
+    )
 
 
 def create_info_embed(message: str) -> discord.Embed:
     """建立資訊嵌入"""
-    return discord.Embed(title="ℹ️ 資訊", description=message, color=discord.Color.blue())
+    return discord.Embed(
+        title="ℹ️ 資訊", description=message, color=discord.Color.blue()
+    )
 
 
 async def safe_send_message(
@@ -461,7 +479,10 @@ async def safe_send_message(
 
 
 async def safe_edit_message(
-    message: discord.Message, content: str = None, embed: discord.Embed = None, **kwargs
+    message: discord.Message,
+    content: str = None,
+    embed: discord.Embed = None,
+    **kwargs,
 ) -> bool:
     """安全編輯訊息"""
     try:
@@ -479,7 +500,9 @@ async def safe_edit_message(
     return False
 
 
-async def safe_delete_message(message: discord.Message, delay: float = 0) -> bool:
+async def safe_delete_message(
+    message: discord.Message, delay: float = 0
+) -> bool:
     """安全刪除訊息"""
     try:
         if delay > 0:
@@ -543,7 +566,13 @@ def get_datetime_timestamp(timestamp: datetime) -> str:
 
 def validate_ticket_data(data: Dict[str, Any]) -> Tuple[bool, str]:
     """驗證票券資料"""
-    required_fields = ["discord_id", "username", "type", "channel_id", "guild_id"]
+    required_fields = [
+        "discord_id",
+        "username",
+        "type",
+        "channel_id",
+        "guild_id",
+    ]
 
     for field in required_fields:
         if field not in data or not data[field]:
@@ -627,7 +656,9 @@ class SimpleCache:
 
     def cleanup(self) -> int:
         """清理過期項目"""
-        expired_keys = [key for key in self.cache.keys() if self._is_expired(key)]
+        expired_keys = [
+            key for key in self.cache.keys() if self._is_expired(key)
+        ]
 
         for key in expired_keys:
             self.delete(key)

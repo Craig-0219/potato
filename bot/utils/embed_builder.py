@@ -56,11 +56,15 @@ class EmbedBuilder:
                 color = EmbedBuilder.COLORS[color]
 
             # 建立 Embed
-            embed = discord.Embed(title=title, description=description, color=color, **kwargs)
+            embed = discord.Embed(
+                title=title, description=description, color=color, **kwargs
+            )
 
             # 添加時間戳
             if timestamp:
-                embed.timestamp = datetime.now(timezone.utc)  # 修復：使用 timezone.utc
+                embed.timestamp = datetime.now(
+                    timezone.utc
+                )  # 修復：使用 timezone.utc
 
             return embed
 
@@ -74,24 +78,37 @@ class EmbedBuilder:
             )
 
     @staticmethod
-    def success(title: str, description: str = None, **kwargs) -> discord.Embed:
+    def success(
+        title: str, description: str = None, **kwargs
+    ) -> discord.Embed:
         """建立成功嵌入"""
         return EmbedBuilder.build(
-            title=f"✅ {title}", description=description, color="success", **kwargs
+            title=f"✅ {title}",
+            description=description,
+            color="success",
+            **kwargs,
         )
 
     @staticmethod
     def error(title: str, description: str = None, **kwargs) -> discord.Embed:
         """建立錯誤嵌入"""
         return EmbedBuilder.build(
-            title=f"❌ {title}", description=description, color="error", **kwargs
+            title=f"❌ {title}",
+            description=description,
+            color="error",
+            **kwargs,
         )
 
     @staticmethod
-    def warning(title: str, description: str = None, **kwargs) -> discord.Embed:
+    def warning(
+        title: str, description: str = None, **kwargs
+    ) -> discord.Embed:
         """建立警告嵌入"""
         return EmbedBuilder.build(
-            title=f"⚠️ {title}", description=description, color="warning", **kwargs
+            title=f"⚠️ {title}",
+            description=description,
+            color="warning",
+            **kwargs,
         )
 
     @staticmethod
@@ -102,9 +119,13 @@ class EmbedBuilder:
         )
 
     @staticmethod
-    def loading(title: str = "處理中", description: str = "請稍候...") -> discord.Embed:
+    def loading(
+        title: str = "處理中", description: str = "請稍候..."
+    ) -> discord.Embed:
         """建立載入中嵌入"""
-        return EmbedBuilder.build(title=f"⏳ {title}", description=description, color="secondary")
+        return EmbedBuilder.build(
+            title=f"⏳ {title}", description=description, color="secondary"
+        )
 
     @staticmethod
     def ticket_embed(ticket_info: Dict[str, Any], **kwargs) -> discord.Embed:
@@ -149,7 +170,9 @@ class EmbedBuilder:
 
         except Exception as e:
             logger.error(f"建立票券 Embed 失敗：{e}")
-            return EmbedBuilder.error("票券資訊載入失敗", "無法顯示票券詳細資訊")
+            return EmbedBuilder.error(
+                "票券資訊載入失敗", "無法顯示票券詳細資訊"
+            )
 
     @staticmethod
     def vote_embed(vote_info: Dict[str, Any], **kwargs) -> discord.Embed:
@@ -188,17 +211,25 @@ class EmbedBuilder:
 
         except Exception as e:
             logger.error(f"建立投票 Embed 失敗：{e}")
-            return EmbedBuilder.error("投票資訊載入失敗", "無法顯示投票詳細資訊")
+            return EmbedBuilder.error(
+                "投票資訊載入失敗", "無法顯示投票詳細資訊"
+            )
 
     @staticmethod
-    def stats_embed(stats: Dict[str, Any], title: str = "📊 統計資訊", **kwargs) -> discord.Embed:
+    def stats_embed(
+        stats: Dict[str, Any], title: str = "📊 統計資訊", **kwargs
+    ) -> discord.Embed:
         """建立統計嵌入"""
         try:
             embed = EmbedBuilder.build(title=title, color="info", **kwargs)
 
             # 基本統計
             if "total" in stats:
-                embed.add_field(name="📈 總計", value=f"**總數：** {stats['total']:,}", inline=True)
+                embed.add_field(
+                    name="📈 總計",
+                    value=f"**總數：** {stats['total']:,}",
+                    inline=True,
+                )
 
             # 處理其他統計數據
             for key, value in stats.items():
@@ -215,7 +246,9 @@ class EmbedBuilder:
                 else:
                     field_value = str(value)
 
-                embed.add_field(name=field_name, value=field_value, inline=True)
+                embed.add_field(
+                    name=field_name, value=field_value, inline=True
+                )
 
             return embed
 
@@ -225,7 +258,9 @@ class EmbedBuilder:
 
     @staticmethod
     def help_embed(
-        commands_data: List[Dict[str, Any]], title: str = "📋 命令幫助", **kwargs
+        commands_data: List[Dict[str, Any]],
+        title: str = "📋 命令幫助",
+        **kwargs,
     ) -> discord.Embed:
         """建立幫助嵌入"""
         try:
@@ -240,7 +275,9 @@ class EmbedBuilder:
                 if usage:
                     field_value += f"\n**用法：** `{usage}`"
 
-                embed.add_field(name=f"/{name}", value=field_value, inline=False)
+                embed.add_field(
+                    name=f"/{name}", value=field_value, inline=False
+                )
 
             return embed
 
@@ -260,7 +297,9 @@ class EmbedBuilder:
         """建立分頁嵌入"""
         try:
             embed = EmbedBuilder.build(
-                title=f"{title} (第 {page}/{total_pages} 頁)", color="info", **kwargs
+                title=f"{title} (第 {page}/{total_pages} 頁)",
+                color="info",
+                **kwargs,
             )
 
             if not items:
@@ -282,7 +321,9 @@ class EmbedBuilder:
             else:
                 # 預設格式化
                 for i, item in enumerate(items, 1):
-                    embed.add_field(name=f"項目 {i}", value=str(item), inline=False)
+                    embed.add_field(
+                        name=f"項目 {i}", value=str(item), inline=False
+                    )
 
             # 分頁資訊
             embed.set_footer(text=f"第 {page} 頁，共 {total_pages} 頁")
@@ -299,7 +340,9 @@ class EmbedBuilder:
     ) -> discord.Embed:
         """建立設定嵌入"""
         try:
-            embed = EmbedBuilder.build(title=title, color="secondary", **kwargs)
+            embed = EmbedBuilder.build(
+                title=title, color="secondary", **kwargs
+            )
 
             for key, value in settings.items():
                 # 格式化設定名稱
@@ -318,7 +361,9 @@ class EmbedBuilder:
                 else:
                     field_value = str(value)
 
-                embed.add_field(name=field_name, value=field_value, inline=True)
+                embed.add_field(
+                    name=field_name, value=field_value, inline=True
+                )
 
             return embed
 
@@ -344,9 +389,11 @@ class EmbedBuilder:
             embed = EmbedBuilder.build(title=title, color=color, **kwargs)
 
             # 整體狀態
-            status_emoji = {"healthy": "✅", "degraded": "⚠️", "unhealthy": "❌"}.get(
-                overall_status, "❓"
-            )
+            status_emoji = {
+                "healthy": "✅",
+                "degraded": "⚠️",
+                "unhealthy": "❌",
+            }.get(overall_status, "❓")
 
             embed.add_field(
                 name="📈 整體狀態",
@@ -369,7 +416,9 @@ class EmbedBuilder:
                 else:
                     field_value = str(value)
 
-                embed.add_field(name=field_name, value=field_value, inline=True)
+                embed.add_field(
+                    name=field_name, value=field_value, inline=True
+                )
 
             return embed
 
@@ -378,19 +427,29 @@ class EmbedBuilder:
             return EmbedBuilder.error("狀態載入失敗", "無法顯示系統狀態")
 
     @staticmethod
-    def create_field_list(items: List[str], max_per_field: int = 10) -> List[Dict[str, Any]]:
+    def create_field_list(
+        items: List[str], max_per_field: int = 10
+    ) -> List[Dict[str, Any]]:
         """將長列表分割為多個欄位"""
         fields = []
         for i in range(0, len(items), max_per_field):
             chunk = items[i : i + max_per_field]
             field_num = (i // max_per_field) + 1
 
-            fields.append({"name": f"項目 {field_num}", "value": "\n".join(chunk), "inline": True})
+            fields.append(
+                {
+                    "name": f"項目 {field_num}",
+                    "value": "\n".join(chunk),
+                    "inline": True,
+                }
+            )
 
         return fields
 
     @staticmethod
-    def safe_add_field(embed: discord.Embed, name: str, value: str, inline: bool = False):
+    def safe_add_field(
+        embed: discord.Embed, name: str, value: str, inline: bool = False
+    ):
         """安全添加欄位（避免超過 Discord 限制）"""
         try:
             # Discord 限制
@@ -476,24 +535,40 @@ def add_static_methods():
     """為 EmbedBuilder 添加靜態方法"""
 
     @staticmethod
-    def create_info_embed(title: str, description: str = None) -> discord.Embed:
+    def create_info_embed(
+        title: str, description: str = None
+    ) -> discord.Embed:
         """創建信息嵌入"""
-        return EmbedBuilder.build(title=title, description=description, color="info")
+        return EmbedBuilder.build(
+            title=title, description=description, color="info"
+        )
 
     @staticmethod
-    def create_success_embed(title: str, description: str = None) -> discord.Embed:
+    def create_success_embed(
+        title: str, description: str = None
+    ) -> discord.Embed:
         """創建成功嵌入"""
-        return EmbedBuilder.build(title=title, description=description, color="success")
+        return EmbedBuilder.build(
+            title=title, description=description, color="success"
+        )
 
     @staticmethod
-    def create_error_embed(title: str, description: str = None) -> discord.Embed:
+    def create_error_embed(
+        title: str, description: str = None
+    ) -> discord.Embed:
         """創建錯誤嵌入"""
-        return EmbedBuilder.build(title=title, description=description, color="error")
+        return EmbedBuilder.build(
+            title=title, description=description, color="error"
+        )
 
     @staticmethod
-    def create_warning_embed(title: str, description: str = None) -> discord.Embed:
+    def create_warning_embed(
+        title: str, description: str = None
+    ) -> discord.Embed:
         """創建警告嵌入"""
-        return EmbedBuilder.build(title=title, description=description, color="warning")
+        return EmbedBuilder.build(
+            title=title, description=description, color="warning"
+        )
 
     # 動態添加方法到 EmbedBuilder 類
     EmbedBuilder.create_info_embed = create_info_embed

@@ -107,10 +107,14 @@ class ImageProcessor:
 
         logger.info("🖼️ 圖片處理器初始化完成")
 
-    async def process_image(self, request: ImageProcessRequest) -> ProcessedImage:
+    async def process_image(
+        self, request: ImageProcessRequest
+    ) -> ProcessedImage:
         """處理圖片的主要方法"""
         if not PIL_AVAILABLE:
-            return ProcessedImage(success=False, error_message=f"PIL/Pillow 未安裝: {PIL_ERROR}")
+            return ProcessedImage(
+                success=False, error_message=f"PIL/Pillow 未安裝: {PIL_ERROR}"
+            )
 
         start_time = time.time()
 
@@ -118,7 +122,9 @@ class ImageProcessor:
             # 下載圖片
             image_data = await self._download_image(request.image_url)
             if not image_data:
-                return ProcessedImage(success=False, error_message="無法下載圖片")
+                return ProcessedImage(
+                    success=False, error_message="無法下載圖片"
+                )
 
             # 載入圖片
             image = Image.open(io.BytesIO(image_data))
@@ -128,7 +134,9 @@ class ImageProcessor:
             processed_image = await self._apply_operation(image, request)
 
             if not processed_image:
-                return ProcessedImage(success=False, error_message="圖片處理失敗")
+                return ProcessedImage(
+                    success=False, error_message="圖片處理失敗"
+                )
 
             # 轉換輸出格式
             output_data = await self._convert_format(
@@ -148,7 +156,9 @@ class ImageProcessor:
 
         except Exception as e:
             logger.error(f"❌ 圖片處理錯誤: {e}")
-            return ProcessedImage(success=False, error_message=f"處理失敗: {str(e)}")
+            return ProcessedImage(
+                success=False, error_message=f"處理失敗: {str(e)}"
+            )
 
     async def _download_image(self, url: str) -> Optional[bytes]:
         """下載圖片"""
@@ -158,7 +168,9 @@ class ImageProcessor:
                     if response.status == 200:
                         return await response.read()
                     else:
-                        logger.error(f"❌ 下載圖片失敗: HTTP {response.status}")
+                        logger.error(
+                            f"❌ 下載圖片失敗: HTTP {response.status}"
+                        )
                         return None
 
         except Exception as e:
@@ -189,7 +201,9 @@ class ImageProcessor:
             logger.error(f"❌ 應用操作失敗: {e}")
             return None
 
-    async def _resize_image(self, image: Image.Image, params: Dict[str, Any]) -> Image.Image:
+    async def _resize_image(
+        self, image: Image.Image, params: Dict[str, Any]
+    ) -> Image.Image:
         """調整圖片尺寸"""
         try:
             width = params.get("width", image.width)
@@ -208,7 +222,9 @@ class ImageProcessor:
             logger.error(f"❌ 調整尺寸失敗: {e}")
             return image
 
-    async def _apply_effect(self, image: Image.Image, params: Dict[str, Any]) -> Image.Image:
+    async def _apply_effect(
+        self, image: Image.Image, params: Dict[str, Any]
+    ) -> Image.Image:
         """應用圖片特效"""
         try:
             effect_type = params.get("effect_type", ImageEffect.VINTAGE)
@@ -222,11 +238,15 @@ class ImageProcessor:
                 image = image.convert("RGB")
 
             if effect_type == ImageEffect.BLUR:
-                return image.filter(ImageFilter.GaussianBlur(radius=intensity * 2))
+                return image.filter(
+                    ImageFilter.GaussianBlur(radius=intensity * 2)
+                )
 
             elif effect_type == ImageEffect.SHARPEN:
                 return image.filter(
-                    ImageFilter.UnsharpMask(radius=intensity, percent=150, threshold=3)
+                    ImageFilter.UnsharpMask(
+                        radius=intensity, percent=150, threshold=3
+                    )
                 )
 
             elif effect_type == ImageEffect.GRAYSCALE:
@@ -258,7 +278,9 @@ class ImageProcessor:
             logger.error(f"❌ 應用特效失敗: {e}")
             return image
 
-    def _apply_sepia(self, image: Image.Image, intensity: float) -> Image.Image:
+    def _apply_sepia(
+        self, image: Image.Image, intensity: float
+    ) -> Image.Image:
         """應用懷舊棕褐色效果"""
         try:
             # 轉換為灰階
@@ -284,7 +306,9 @@ class ImageProcessor:
             logger.error(f"❌ 棕褐色效果失敗: {e}")
             return image
 
-    def _apply_vintage(self, image: Image.Image, intensity: float) -> Image.Image:
+    def _apply_vintage(
+        self, image: Image.Image, intensity: float
+    ) -> Image.Image:
         """應用復古濾鏡效果"""
         try:
             # 降低飽和度
@@ -324,13 +348,17 @@ class ImageProcessor:
                     else:
                         background.paste(image)
                     image = background
-                image.save(output, format="JPEG", quality=quality, optimize=True)
+                image.save(
+                    output, format="JPEG", quality=quality, optimize=True
+                )
 
             elif format_name == "PNG":
                 image.save(output, format="PNG", optimize=True)
 
             elif format_name == "WEBP":
-                image.save(output, format="WEBP", quality=quality, optimize=True)
+                image.save(
+                    output, format="WEBP", quality=quality, optimize=True
+                )
 
             elif format_name == "GIF":
                 # GIF 需要調色板模式
@@ -354,7 +382,9 @@ class ImageProcessor:
             image.save(output, format="PNG")
             return output.getvalue()
 
-    async def batch_process(self, requests: List[ImageProcessRequest]) -> List[ProcessedImage]:
+    async def batch_process(
+        self, requests: List[ImageProcessRequest]
+    ) -> List[ProcessedImage]:
         """批量處理圖片"""
         try:
             tasks = []
@@ -368,7 +398,10 @@ class ImageProcessor:
             for i, result in enumerate(results):
                 if isinstance(result, Exception):
                     processed_results.append(
-                        ProcessedImage(success=False, error_message=f"批量處理錯誤: {str(result)}")
+                        ProcessedImage(
+                            success=False,
+                            error_message=f"批量處理錯誤: {str(result)}",
+                        )
                     )
                 else:
                     processed_results.append(result)
@@ -377,7 +410,11 @@ class ImageProcessor:
 
         except Exception as e:
             logger.error(f"❌ 批量處理失敗: {e}")
-            return [ProcessedImage(success=False, error_message=f"批量處理失敗: {str(e)}")]
+            return [
+                ProcessedImage(
+                    success=False, error_message=f"批量處理失敗: {str(e)}"
+                )
+            ]
 
 
 # 全域實例

@@ -47,8 +47,12 @@ class CachedTicketCore(commands.Cog):
         self.language_dao = LanguageDAO()
 
         # 服務層
-        self.manager = TicketManager(self.cached_dao.ticket_dao)  # 傳入原始 DAO
-        self.assignment_manager = AssignmentManager(self.assignment_dao, self.cached_dao.ticket_dao)
+        self.manager = TicketManager(
+            self.cached_dao.ticket_dao
+        )  # 傳入原始 DAO
+        self.assignment_manager = AssignmentManager(
+            self.assignment_dao, self.cached_dao.ticket_dao
+        )
         self.tag_manager = TagManager(self.tag_dao)
         self.statistics_manager = StatisticsManager()
         self.language_manager = LanguageManager()
@@ -125,7 +129,9 @@ class CachedTicketCore(commands.Cog):
 
                 # 記錄慢查詢
                 if duration > 1.0:
-                    logger.warning(f"⚠️ 慢查詢檢測: {func.__name__} - {duration:.3f}s")
+                    logger.warning(
+                        f"⚠️ 慢查詢檢測: {func.__name__} - {duration:.3f}s"
+                    )
 
                 return result
 
@@ -148,7 +154,9 @@ class CachedTicketCore(commands.Cog):
 
         try:
             # 查詢資料庫
-            ticket = await self.cached_dao.ticket_dao.get_ticket_by_channel(channel.id)
+            ticket = await self.cached_dao.ticket_dao.get_ticket_by_channel(
+                channel.id
+            )
             result = ticket is not None
 
             # 快取結果（短時間快取）
@@ -159,8 +167,12 @@ class CachedTicketCore(commands.Cog):
         except Exception as e:
             logger.error(f"❌ 票券頻道判斷失敗 {channel.id}: {e}")
             # fallback 檢查
-            result = hasattr(channel, "name") and channel.name.startswith("ticket-")
-            await cache_manager.set(cache_key, result, 30)  # 短時間快取 fallback 結果
+            result = hasattr(channel, "name") and channel.name.startswith(
+                "ticket-"
+            )
+            await cache_manager.set(
+                cache_key, result, 30
+            )  # 短時間快取 fallback 結果
             return result
 
     @cached("ticket_settings", ttl=600)
@@ -184,7 +196,9 @@ class CachedTicketCore(commands.Cog):
 
             embed = EmbedBuilder.build(
                 title="🎫 客服中心",
-                description=settings.get("welcome_message", "請選擇問題類型來建立支援票券"),
+                description=settings.get(
+                    "welcome_message", "請選擇問題類型來建立支援票券"
+                ),
                 color=TicketConstants.COLORS["primary"],
             )
 
@@ -240,7 +254,9 @@ class CachedTicketCore(commands.Cog):
                 self.cached_dao.get_performance_metrics(interaction.guild.id),
             ]
 
-            ticket_stats, cache_health, performance_metrics = await asyncio.gather(*stats_tasks)
+            ticket_stats, cache_health, performance_metrics = (
+                await asyncio.gather(*stats_tasks)
+            )
 
             embed = EmbedBuilder.build(
                 title="📊 票券系統統計", color=TicketConstants.COLORS["info"]
@@ -288,7 +304,9 @@ class CachedTicketCore(commands.Cog):
             if recommendations:
                 embed.add_field(
                     name="💡 優化建議",
-                    value="\n".join([f"• {rec}" for rec in recommendations[:3]]),
+                    value="\n".join(
+                        [f"• {rec}" for rec in recommendations[:3]]
+                    ),
                     inline=False,
                 )
 
@@ -301,7 +319,9 @@ class CachedTicketCore(commands.Cog):
 
     @app_commands.command(name="my_tickets", description="查看我的票券")
     @performance_tracked
-    async def my_tickets(self, interaction: discord.Interaction, status: str = None):
+    async def my_tickets(
+        self, interaction: discord.Interaction, status: str = None
+    ):
         """查看用戶票券（快取優化版）"""
         try:
             await interaction.response.defer(ephemeral=True)
@@ -312,7 +332,9 @@ class CachedTicketCore(commands.Cog):
             )
 
             if not tickets:
-                await interaction.followup.send("📝 您目前沒有票券。", ephemeral=True)
+                await interaction.followup.send(
+                    "📝 您目前沒有票券。", ephemeral=True
+                )
                 return
 
             embed = EmbedBuilder.build(
@@ -322,9 +344,11 @@ class CachedTicketCore(commands.Cog):
             )
 
             for ticket in tickets[:10]:  # 最多顯示10張
-                status_emoji = {"open": "🟢", "closed": "🔴", "pending": "🟡"}.get(
-                    ticket.get("status", "unknown"), "⚪"
-                )
+                status_emoji = {
+                    "open": "🟢",
+                    "closed": "🔴",
+                    "pending": "🟡",
+                }.get(ticket.get("status", "unknown"), "⚪")
 
                 embed.add_field(
                     name=f"{status_emoji} 票券 #{ticket.get('id')}",
@@ -342,9 +366,13 @@ class CachedTicketCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ 用戶票券查詢失敗: {e}")
-            await interaction.followup.send("❌ 查詢票券時發生錯誤。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 查詢票券時發生錯誤。", ephemeral=True
+            )
 
-    @app_commands.command(name="cache_control", description="快取控制（管理員專用）")
+    @app_commands.command(
+        name="cache_control", description="快取控制（管理員專用）"
+    )
     @app_commands.describe(action="執行的動作", target="目標範圍")
     @app_commands.choices(
         action=[
@@ -356,7 +384,10 @@ class CachedTicketCore(commands.Cog):
     )
     @app_commands.default_permissions(administrator=True)
     async def cache_control(
-        self, interaction: discord.Interaction, action: str, target: str = "all"
+        self,
+        interaction: discord.Interaction,
+        action: str,
+        target: str = "all",
     ):
         """快取控制命令"""
         try:
@@ -364,7 +395,9 @@ class CachedTicketCore(commands.Cog):
 
             if action == "clear":
                 # 清空快取
-                pattern = f"*{interaction.guild.id}*" if target == "guild" else "*"
+                pattern = (
+                    f"*{interaction.guild.id}*" if target == "guild" else "*"
+                )
                 count = await cache_manager.clear_all(pattern)
 
                 embed = EmbedBuilder.build(
@@ -388,7 +421,8 @@ class CachedTicketCore(commands.Cog):
                 stats = await cache_manager.get_statistics()
 
                 embed = EmbedBuilder.build(
-                    title="📊 快取詳細統計", color=TicketConstants.COLORS["info"]
+                    title="📊 快取詳細統計",
+                    color=TicketConstants.COLORS["info"],
                 )
 
                 embed.add_field(
@@ -431,7 +465,8 @@ class CachedTicketCore(commands.Cog):
                     title="🏥 快取健康檢查",
                     description=f"狀態：{health.get('status', '未知')}",
                     color=status_colors.get(
-                        health.get("status"), TicketConstants.COLORS["secondary"]
+                        health.get("status"),
+                        TicketConstants.COLORS["secondary"],
                     ),
                 )
 
@@ -447,7 +482,9 @@ class CachedTicketCore(commands.Cog):
                 if recommendations:
                     embed.add_field(
                         name="建議",
-                        value="\n".join([f"• {rec}" for rec in recommendations]),
+                        value="\n".join(
+                            [f"• {rec}" for rec in recommendations]
+                        ),
                         inline=False,
                     )
 
@@ -455,7 +492,9 @@ class CachedTicketCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"❌ 快取控制操作失敗: {e}")
-            await interaction.followup.send("❌ 快取控制操作失敗。", ephemeral=True)
+            await interaction.followup.send(
+                "❌ 快取控制操作失敗。", ephemeral=True
+            )
 
     # ========== 背景任務 ==========
 
@@ -492,7 +531,9 @@ class CachedTicketCore(commands.Cog):
 
             stats_after = await cache_manager.get_statistics()
 
-            logger.info(f"🔧 快取維護完成 - 請求總數: {stats_after['requests']['total']}")
+            logger.info(
+                f"🔧 快取維護完成 - 請求總數: {stats_after['requests']['total']}"
+            )
 
         except Exception as e:
             logger.error(f"❌ 快取維護失敗: {e}")
@@ -510,11 +551,15 @@ class CachedTicketCore(commands.Cog):
             # 檢查快取健康狀態
             cache_health = await self.cached_dao.get_cache_health()
             if cache_health.get("status") in ["warning", "critical"]:
-                logger.warning(f"⚠️ 快取健康狀態異常: {cache_health.get('status')}")
+                logger.warning(
+                    f"⚠️ 快取健康狀態異常: {cache_health.get('status')}"
+                )
 
             # 重置計數器（每小時重置一次）
             now = datetime.now(timezone.utc)
-            if (now - self.performance_stats["last_reset"]).total_seconds() > 3600:
+            if (
+                now - self.performance_stats["last_reset"]
+            ).total_seconds() > 3600:
                 self.performance_stats = {
                     "commands_executed": 0,
                     "cache_hits": 0,
@@ -535,7 +580,9 @@ class CachedTicketCore(commands.Cog):
             guilds = [guild.id for guild in self.bot.guilds]
 
             # 並行預熱多個伺服器的快取
-            tasks = [self.cached_dao.warm_cache(guild_id) for guild_id in guilds[:5]]  # 限制並發數
+            tasks = [
+                self.cached_dao.warm_cache(guild_id) for guild_id in guilds[:5]
+            ]  # 限制並發數
             await asyncio.gather(*tasks, return_exceptions=True)
 
             logger.info(f"🔥 全域快取預熱完成: {len(guilds)} 個伺服器")

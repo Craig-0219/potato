@@ -66,7 +66,9 @@ class Playlist:
     tracks: List[Track] = field(default_factory=list)
     owner_id: int = 0
     guild_id: int = 0
-    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
     is_public: bool = True
 
 
@@ -84,15 +86,25 @@ class MusicSession:
     shuffle: bool = False
     volume: float = 0.5
     position: int = 0  # 當前播放位置（秒）
-    last_activity: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    last_activity: datetime = field(
+        default_factory=lambda: datetime.now(timezone.utc)
+    )
 
 
 class MusicQuizQuestion:
     """音樂問答題目"""
 
-    def __init__(self, track: Track, question_type: str, options: List[str], correct_answer: str):
+    def __init__(
+        self,
+        track: Track,
+        question_type: str,
+        options: List[str],
+        correct_answer: str,
+    ):
         self.track = track
-        self.question_type = question_type  # "artist", "title", "year", "genre"
+        self.question_type = (
+            question_type  # "artist", "title", "year", "genre"
+        )
         self.options = options
         self.correct_answer = correct_answer
         self.difficulty = "medium"
@@ -144,7 +156,9 @@ class MusicPlayer:
     ) -> MusicSession:
         """創建音樂會話"""
         session = MusicSession(
-            guild_id=guild_id, channel_id=channel_id, voice_channel_id=voice_channel_id
+            guild_id=guild_id,
+            channel_id=channel_id,
+            voice_channel_id=voice_channel_id,
         )
         self.sessions[guild_id] = session
         logger.info(f"🎵 創建音樂會話: {guild_id}")
@@ -158,7 +172,9 @@ class MusicPlayer:
 
     # ========== 音樂搜尋 ==========
 
-    async def search_youtube(self, query: str, max_results: int = 5) -> List[Track]:
+    async def search_youtube(
+        self, query: str, max_results: int = 5
+    ) -> List[Track]:
         """搜尋YouTube音樂"""
         try:
             if not self.youtube_api_key:
@@ -188,7 +204,9 @@ class MusicPlayer:
                                 artist=item["snippet"]["channelTitle"],
                                 duration=0,  # 需要額外API調用獲取時長
                                 url=f"https://www.youtube.com/watch?v={item['id']['videoId']}",
-                                thumbnail=item["snippet"]["thumbnails"]["default"]["url"],
+                                thumbnail=item["snippet"]["thumbnails"][
+                                    "default"
+                                ]["url"],
                                 source=MusicSource.YOUTUBE,
                                 requested_by=0,
                                 search_query=query,
@@ -198,13 +216,17 @@ class MusicPlayer:
                         return tracks
                     else:
                         logger.error(f"❌ YouTube API錯誤: {response.status}")
-                        return await self._mock_search_results(query, max_results)
+                        return await self._mock_search_results(
+                            query, max_results
+                        )
 
         except Exception as e:
             logger.error(f"❌ YouTube搜尋失敗: {e}")
             return await self._mock_search_results(query, max_results)
 
-    async def _mock_search_results(self, query: str, max_results: int) -> List[Track]:
+    async def _mock_search_results(
+        self, query: str, max_results: int
+    ) -> List[Track]:
         """模擬搜尋結果（用於開發和演示）"""
         mock_results = [
             Track(
@@ -309,9 +331,15 @@ class MusicPlayer:
             next_track = session.queue.pop(0)
 
             # 如果是重複模式，處理重複邏輯
-            if session.repeat_mode == RepeatMode.TRACK and session.current_track:
+            if (
+                session.repeat_mode == RepeatMode.TRACK
+                and session.current_track
+            ):
                 session.queue.insert(0, session.current_track)
-            elif session.repeat_mode == RepeatMode.QUEUE and session.current_track:
+            elif (
+                session.repeat_mode == RepeatMode.QUEUE
+                and session.current_track
+            ):
                 session.queue.append(session.current_track)
 
             # 播放下一首
@@ -339,7 +367,9 @@ class MusicPlayer:
             logger.error(f"❌ 添加到佇列失敗: {e}")
             return False
 
-    async def remove_from_queue(self, guild_id: int, index: int) -> Optional[Track]:
+    async def remove_from_queue(
+        self, guild_id: int, index: int
+    ) -> Optional[Track]:
         """從佇列移除曲目"""
         try:
             session = await self.get_session(guild_id)
@@ -388,11 +418,17 @@ class MusicPlayer:
 
     # ========== 播放清單功能 ==========
 
-    async def create_playlist(self, name: str, owner_id: int, guild_id: int) -> str:
+    async def create_playlist(
+        self, name: str, owner_id: int, guild_id: int
+    ) -> str:
         """創建播放清單"""
         try:
-            playlist_id = f"{guild_id}_{owner_id}_{int(datetime.now().timestamp())}"
-            playlist = Playlist(name=name, owner_id=owner_id, guild_id=guild_id)
+            playlist_id = (
+                f"{guild_id}_{owner_id}_{int(datetime.now().timestamp())}"
+            )
+            playlist = Playlist(
+                name=name, owner_id=owner_id, guild_id=guild_id
+            )
 
             self.playlists[playlist_id] = playlist
             logger.info(f"📝 創建播放清單: {name} ({playlist_id})")
@@ -402,7 +438,9 @@ class MusicPlayer:
             logger.error(f"❌ 創建播放清單失敗: {e}")
             return ""
 
-    async def add_track_to_playlist(self, playlist_id: str, track: Track) -> bool:
+    async def add_track_to_playlist(
+        self, playlist_id: str, track: Track
+    ) -> bool:
         """添加曲目到播放清單"""
         try:
             playlist = self.playlists.get(playlist_id)
@@ -410,7 +448,9 @@ class MusicPlayer:
                 return False
 
             playlist.tracks.append(track)
-            logger.info(f"➕ 添加曲目到播放清單: {track.title} -> {playlist.name}")
+            logger.info(
+                f"➕ 添加曲目到播放清單: {track.title} -> {playlist.name}"
+            )
             return True
 
         except Exception as e:
@@ -430,7 +470,9 @@ class MusicPlayer:
 
             # 添加所有曲目到佇列
             session.queue.extend(playlist.tracks.copy())
-            logger.info(f"📂 載入播放清單: {playlist.name} ({len(playlist.tracks)} 首)")
+            logger.info(
+                f"📂 載入播放清單: {playlist.name} ({len(playlist.tracks)} 首)"
+            )
             return True
 
         except Exception as e:
@@ -439,7 +481,9 @@ class MusicPlayer:
 
     # ========== 音樂問答 ==========
 
-    async def generate_music_quiz(self, difficulty: str = "medium") -> Optional[MusicQuizQuestion]:
+    async def generate_music_quiz(
+        self, difficulty: str = "medium"
+    ) -> Optional[MusicQuizQuestion]:
         """生成音樂問答題目"""
         try:
             # 從預設曲目中隨機選擇
@@ -465,7 +509,9 @@ class MusicPlayer:
             # 隨機打亂選項
             random.shuffle(options)
 
-            question = MusicQuizQuestion(track, question_type, options, correct_answer)
+            question = MusicQuizQuestion(
+                track, question_type, options, correct_answer
+            )
             question.difficulty = difficulty
 
             return question
@@ -527,7 +573,11 @@ La la la la la
                 return {}
 
             return {
-                "current_track": (session.current_track.title if session.current_track else None),
+                "current_track": (
+                    session.current_track.title
+                    if session.current_track
+                    else None
+                ),
                 "queue_length": len(session.queue),
                 "state": session.state.value,
                 "repeat_mode": session.repeat_mode.value,
@@ -541,7 +591,9 @@ La la la la la
             logger.error(f"❌ 獲取會話統計失敗: {e}")
             return {}
 
-    async def get_popular_tracks(self, guild_id: int, limit: int = 10) -> List[Track]:
+    async def get_popular_tracks(
+        self, guild_id: int, limit: int = 10
+    ) -> List[Track]:
         """獲取熱門曲目"""
         try:
             # 模擬熱門曲目（實際實現可以基於播放統計）

@@ -82,7 +82,9 @@ class DatabaseManager:
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute("SELECT version FROM database_version WHERE id = 1")
+                    await cursor.execute(
+                        "SELECT version FROM database_version WHERE id = 1"
+                    )
                     result = await cursor.fetchone()
                     return result[0] if result else None
         except Exception as e:
@@ -131,7 +133,9 @@ class DatabaseManager:
                     # 刪除所有表格
                     for (table_name,) in tables:
                         try:
-                            await cursor.execute(f"DROP TABLE IF EXISTS {table_name}")
+                            await cursor.execute(
+                                f"DROP TABLE IF EXISTS {table_name}"
+                            )
                             logger.debug(f"已刪除表格: {table_name}")
                         except Exception as e:
                             logger.error(f"刪除表格 {table_name} 失敗: {e}")
@@ -171,7 +175,9 @@ class DatabaseManager:
                             "count": table_count,
                             "initialized": self._initialized,
                         },
-                        "status": "healthy" if self._initialized else "initializing",
+                        "status": (
+                            "healthy" if self._initialized else "initializing"
+                        ),
                     }
         except Exception as e:
             logger.error(f"獲取系統狀態失敗: {e}")
@@ -519,7 +525,9 @@ class DatabaseManager:
 
         await self._create_tables_batch(tables, "投票系統")
 
-    async def _create_tables_batch(self, tables: Dict[str, str], system_name: str):
+    async def _create_tables_batch(
+        self, tables: Dict[str, str], system_name: str
+    ):
         """批次創建表格"""
         success_count = 0
         try:
@@ -531,10 +539,14 @@ class DatabaseManager:
                             logger.debug(f"✅ 表格 {table_name} 創建成功")
                             success_count += 1
                         except Exception as table_error:
-                            logger.error(f"❌ 創建表格 {table_name} 失敗: {table_error}")
+                            logger.error(
+                                f"❌ 創建表格 {table_name} 失敗: {table_error}"
+                            )
 
                     await conn.commit()
-                    logger.info(f"🎯 {system_name} 表格批次創建完成: {success_count}/{len(tables)}")
+                    logger.info(
+                        f"🎯 {system_name} 表格批次創建完成: {success_count}/{len(tables)}"
+                    )
 
         except Exception as e:
             logger.error(f"❌ {system_name} 資料庫批次操作失敗: {e}")
@@ -837,7 +849,9 @@ class DatabaseManager:
         """創建企業級安全系統表格 - Phase 6"""
         try:
             # 使用專門的安全表格初始化模組
-            from bot.db.migrations.security_tables import initialize_security_system
+            from bot.db.migrations.security_tables import (
+                initialize_security_system,
+            )
 
             await initialize_security_system()
 

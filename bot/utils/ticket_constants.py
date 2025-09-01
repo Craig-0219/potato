@@ -77,7 +77,11 @@ class TicketConstants:
 
     STATUS_EMOJIS = {"open": "🟢", "closed": "🔒", "archived": "🗄️"}
 
-    STATUS_COLORS = {"open": 0x00FF00, "closed": 0xFF0000, "archived": 0x607D8B}
+    STATUS_COLORS = {
+        "open": 0x00FF00,
+        "closed": 0xFF0000,
+        "archived": 0x607D8B,
+    }
 
     COLORS = {
         "primary": 0x3498DB,  # 藍
@@ -87,9 +91,21 @@ class TicketConstants:
         "info": 0x9B59B6,  # 紫
     }
 
-    RATING_EMOJIS = {1: "⭐", 2: "⭐⭐", 3: "⭐⭐⭐", 4: "⭐⭐⭐⭐", 5: "⭐⭐⭐⭐⭐"}
+    RATING_EMOJIS = {
+        1: "⭐",
+        2: "⭐⭐",
+        3: "⭐⭐⭐",
+        4: "⭐⭐⭐⭐",
+        5: "⭐⭐⭐⭐⭐",
+    }
 
-    RATING_COLORS = {1: 0xE74C3C, 2: 0xF39C12, 3: 0xF1C40F, 4: 0x2ECC71, 5: 0x27AE60}
+    RATING_COLORS = {
+        1: 0xE74C3C,
+        2: 0xF39C12,
+        3: 0xF1C40F,
+        4: 0x2ECC71,
+        5: 0x27AE60,
+    }
 
     DEFAULT_TICKET_TYPES = [
         {
@@ -271,11 +287,17 @@ def create_priority_options() -> List[discord.SelectOption]:
 
 def create_rating_options() -> List[discord.SelectOption]:
     return [
-        discord.SelectOption(label="⭐ 1星 - 非常不滿意", value="1", emoji="⭐"),
+        discord.SelectOption(
+            label="⭐ 1星 - 非常不滿意", value="1", emoji="⭐"
+        ),
         discord.SelectOption(label="⭐⭐ 2星 - 不滿意", value="2", emoji="⭐"),
         discord.SelectOption(label="⭐⭐⭐ 3星 - 普通", value="3", emoji="⭐"),
-        discord.SelectOption(label="⭐⭐⭐⭐ 4星 - 滿意", value="4", emoji="⭐"),
-        discord.SelectOption(label="⭐⭐⭐⭐⭐ 5星 - 非常滿意", value="5", emoji="⭐"),
+        discord.SelectOption(
+            label="⭐⭐⭐⭐ 4星 - 滿意", value="4", emoji="⭐"
+        ),
+        discord.SelectOption(
+            label="⭐⭐⭐⭐⭐ 5星 - 非常滿意", value="5", emoji="⭐"
+        ),
     ]
 
 
@@ -338,7 +360,9 @@ def escape_markdown(text: str) -> str:
     return text
 
 
-def create_progress_indicator(current: int, total: int, length: int = 10) -> str:
+def create_progress_indicator(
+    current: int, total: int, length: int = 10
+) -> str:
     if total == 0:
         bar = "□" * length
     else:
