@@ -51,7 +51,11 @@ jobs:
     - name: 🔐 驗證現有 baseline
       run: |
         echo "🔍 驗證現有 secrets baseline..."
-        detect-secrets audit .secrets.baseline || true
+        if [[ -f .secrets.baseline ]]; then
+          echo "✅ Secrets baseline 檔案存在，跳過互動式驗證"
+        else
+          echo "⚠️ 未找到 secrets baseline 檔案"
+        fi
 
   bandit-scan:
     name: 🐍 Python 安全掃描
