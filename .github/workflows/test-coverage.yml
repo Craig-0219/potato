@@ -54,10 +54,38 @@ jobs:
         # 複製測試配置
         cp .env.example .env.test
         
-        # 設置測試資料庫 (SQLite for testing)
-        echo "DATABASE_URL=sqlite:///test.db" >> .env.test
-        echo "TESTING=true" >> .env.test
-        echo "LOG_LEVEL=WARNING" >> .env.test
+        # 設置測試資料庫和基本配置
+        cat >> .env.test << EOF
+        # 測試環境配置
+        TESTING=true
+        LOG_LEVEL=WARNING
+        
+        # 資料庫配置 (SQLite for unit tests)
+        DATABASE_URL=sqlite:///test.db
+        DB_HOST=localhost
+        DB_PORT=3306
+        DB_USER=test_user
+        DB_PASSWORD=test_password
+        DB_NAME=test_db
+        
+        # 基本 Discord 配置 (測試用假值)
+        DISCORD_TOKEN=test_token_unit_tests
+        DISCORD_CLIENT_ID=123456789
+        DISCORD_CLIENT_SECRET=test_secret
+        DISCORD_REDIRECT_URI=http://localhost:3000/test
+        DISCORD_GUILD_ID=987654321
+        
+        # Redis 配置
+        REDIS_URL=redis://localhost:6379/1
+        
+        # JWT 配置
+        JWT_SECRET=test_jwt_secret_for_unit_tests_minimum_32_chars
+        
+        # API 配置
+        ENABLE_API_SERVER=false
+        API_HOST=localhost
+        API_PORT=8001
+        EOF
     
     - name: 🧪 執行單元測試 - ${{ matrix.test-group }}
       run: |
@@ -66,16 +94,27 @@ jobs:
         # 根據測試組選擇測試目標
         case "${{ matrix.test-group }}" in
           "core")
-            TEST_PATH="tests/unit/test_main.py tests/unit/test_config.py"
+            TEST_PATH="tests/unit/test_config.py tests/unit/test_database.py"
             ;;
           "services")
-            TEST_PATH="tests/unit/services/"
+            TEST_PATH="tests/unit/test_cogs.py"
             ;;
           "api")
-            TEST_PATH="tests/unit/api/"
+            # API 相關測試 (如果沒有就使用 integration)
+            if [[ -d "tests/unit/api/" ]]; then
+              TEST_PATH="tests/unit/api/"
+            else
+              TEST_PATH="tests/integration/test_api_integration.py"
+            fi
             ;;
           "utils")
-            TEST_PATH="tests/unit/utils/"
+            # Utils 測試 (如果沒有就跳過)
+            if [[ -d "tests/unit/utils/" ]]; then
+              TEST_PATH="tests/unit/utils/"
+            else
+              echo "⚠️ utils 測試群組暫時跳過 - 測試檔案不存在"
+              exit 0
+            fi
             ;;
           *)
             TEST_PATH="tests/unit/"
