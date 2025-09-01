@@ -46,6 +46,12 @@ jobs:
     - name: 📦 安裝依賴
       run: |
         python -m pip install --upgrade pip
+        
+        # 安裝相容的 aioredis 版本以避免 Python 3.11+ 相容性問題
+        if [[ "${{ matrix.python-version }}" == "3.11" ]]; then
+          pip install "aioredis>=2.0.0,<2.1.0"
+        fi
+        
         pip install -r requirements.txt
         pip install -e .[test]
     
@@ -66,7 +72,7 @@ jobs:
         DB_PORT=3306
         DB_USER=test_user
         DB_PASSWORD=test_password
-        DB_NAME=test_db
+        DB_NAME=test_database
         
         # 基本 Discord 配置 (測試用假值)
         DISCORD_TOKEN=test_token_unit_tests
@@ -75,8 +81,10 @@ jobs:
         DISCORD_REDIRECT_URI=http://localhost:3000/test
         DISCORD_GUILD_ID=987654321
         
-        # Redis 配置
+        # Redis 配置 (測試環境禁用)
         REDIS_URL=redis://localhost:6379/1
+        ENABLE_REDIS=false
+        REDIS_AVAILABLE=false
         
         # JWT 配置
         JWT_SECRET=test_jwt_secret_for_unit_tests_minimum_32_chars
@@ -190,6 +198,10 @@ jobs:
     - name: 📦 安裝依賴
       run: |
         python -m pip install --upgrade pip
+        
+        # 安裝相容的 aioredis 版本
+        pip install "aioredis>=2.0.0,<2.1.0"
+        
         pip install -r requirements.txt
         pip install -e .[test]
     
@@ -309,6 +321,10 @@ jobs:
     - name: 📦 安裝依賴
       run: |
         python -m pip install --upgrade pip
+        
+        # 安裝相容的 aioredis 版本
+        pip install "aioredis>=2.0.0,<2.1.0"
+        
         pip install -r requirements.txt
         pip install -e .[test]
         
