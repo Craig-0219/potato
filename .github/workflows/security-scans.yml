@@ -90,7 +90,7 @@ jobs:
         fi
     
     - name: 📊 上傳 Bandit 報告
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: bandit-security-report
@@ -171,7 +171,7 @@ jobs:
         pip-audit --format=columns
     
     - name: 📊 上傳漏洞報告
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: vulnerability-reports
@@ -225,7 +225,7 @@ jobs:
         fi
     
     - name: 📊 上傳 Trivy 報告
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: trivy-security-report

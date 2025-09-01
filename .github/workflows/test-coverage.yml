@@ -138,7 +138,7 @@ jobs:
           --tb=short
     
     - name: 📊 上傳測試結果
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-results-${{ matrix.python-version }}-${{ matrix.test-group }}
@@ -269,7 +269,7 @@ jobs:
         fi
     
     - name: 📊 上傳整合測試結果
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: integration-test-results
@@ -330,7 +330,7 @@ jobs:
         fi
     
     - name: 📊 上傳 E2E 測試結果
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: e2e-test-results
@@ -364,7 +364,7 @@ jobs:
         pip install coverage[toml] coverage-badge
     
     - name: 📥 下載測試結果
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: test-artifacts
     
@@ -399,7 +399,7 @@ jobs:
         fi
     
     - name: 📊 上傳合併覆蓋率報告
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: final-coverage-report
