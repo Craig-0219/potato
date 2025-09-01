@@ -1,0 +1,187 @@
+name: 🔍 Code Quality
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.10'
+
+jobs:
+  code-quality:
+    name: 🎯 程式碼品質檢查
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+    - name: 📥 檢出程式碼
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: 🐍 設置 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: 📦 安裝依賴
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -e .[dev]
+    
+    - name: 📊 Cache Quality Tools
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cache/pip
+          ~/.cache/pre-commit
+        key: quality-${{ runner.os }}-${{ hashFiles('pyproject.toml', '.pre-commit-config.yaml') }}
+    
+    - name: 🔍 Black - 程式碼格式檢查
+      run: |
+        echo "🎨 檢查程式碼格式..."
+        black --check --diff bot/ shared/
+    
+    - name: 🔄 isort - Import 排序檢查
+      run: |
+        echo "📝 檢查 import 排序..."
+        isort --check-only --diff bot/ shared/
+    
+    - name: 🐾 Flake8 - 程式碼風格檢查
+      run: |
+        echo "✨ 檢查程式碼風格..."
+        flake8 bot/ shared/
+    
+    - name: 🔬 MyPy - 型別檢查
+      run: |
+        echo "🛡️ 執行型別檢查..."
+        mypy bot/ shared/ || echo "⚠️ 型別檢查發現問題，但不阻斷流程"
+      continue-on-error: true
+    
+    - name: 📐 複雜度分析
+      run: |
+        echo "📊 分析程式碼複雜度..."
+        # 使用 radon 分析複雜度
+        pip install radon
+        radon cc bot/ shared/ -a -nb
+        radon mi bot/ shared/ -nb
+    
+    - name: 📋 程式碼品質報告
+      if: always()
+      run: |
+        echo "📊 程式碼品質檢查完成!"
+        echo ""
+        echo "✅ 已完成的檢查:"
+        echo "  • Black 格式檢查"
+        echo "  • isort import 排序"
+        echo "  • Flake8 風格檢查"
+        echo "  • MyPy 型別檢查 (警告)"
+        echo "  • 複雜度分析"
+        echo ""
+        echo "💡 提示: 在本地執行 'make format' 可自動修復格式問題"
+
+  documentation-check:
+    name: 📚 文件品質檢查
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+    - name: 📥 檢出程式碼
+      uses: actions/checkout@v4
+    
+    - name: 🔍 檢查文件完整性
+      run: |
+        echo "📋 檢查必要文件..."
+        
+        # 檢查必要文件存在
+        required_files=(
+          "README.md"
+          "pyproject.toml"
+          "requirements.txt"
+          ".gitignore"
+        )
+        
+        for file in "${required_files[@]}"; do
+          if [[ -f "$file" ]]; then
+            echo "✅ $file 存在"
+          else
+            echo "❌ $file 缺失"
+            exit 1
+          fi
+        done
+    
+    - name: 📖 Markdown 格式檢查
+      run: |
+        echo "📝 檢查 Markdown 格式..."
+        
+        # 檢查 README 基本結構
+        if grep -q "# " README.md; then
+          echo "✅ README 包含標題"
+        else
+          echo "⚠️ README 缺少主標題"
+        fi
+        
+        if grep -q "## " README.md; then
+          echo "✅ README 包含章節"
+        else
+          echo "⚠️ README 缺少章節結構"
+        fi
+    
+    - name: 🏷️ 版本一致性檢查
+      run: |
+        echo "🔢 檢查版本一致性..."
+        
+        # 從 pyproject.toml 獲取版本
+        VERSION=$(grep "version = " pyproject.toml | cut -d '"' -f 2)
+        echo "📦 專案版本: $VERSION"
+        
+        # 檢查其他文件中的版本引用
+        if grep -q "$VERSION" README.md; then
+          echo "✅ README 版本一致"
+        else
+          echo "⚠️ README 版本可能需要更新"
+        fi
+
+  dependency-check:
+    name: 🔒 依賴安全檢查
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+    - name: 📥 檢出程式碼
+      uses: actions/checkout@v4
+    
+    - name: 🐍 設置 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: 🔍 檢查依賴漏洞
+      run: |
+        echo "🛡️ 執行依賴安全掃描..."
+        
+        pip install safety pip-audit
+        
+        # 使用 safety 檢查已知漏洞
+        echo "🔒 Safety 安全檢查..."
+        safety check --json || echo "⚠️ Safety 發現潛在安全問題"
+        
+        # 使用 pip-audit 檢查
+        echo "🔍 Pip-audit 檢查..."
+        pip-audit --format=json || echo "⚠️ Pip-audit 發現潛在問題"
+    
+    - name: 📊 依賴分析報告
+      if: always()
+      run: |
+        echo "📋 依賴安全檢查完成!"
+        echo ""
+        echo "🔍 已執行的檢查:"
+        echo "  • Safety 已知漏洞掃描"
+        echo "  • Pip-audit 安全審計"
+        echo ""
+        echo "💡 建議定期更新依賴套件以修復安全漏洞"

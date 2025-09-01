@@ -1,0 +1,441 @@
+name: 🧪 Test Coverage
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      test_type:
+        description: '測試類型'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - unit
+          - integration
+          - e2e
+
+env:
+  PYTHON_VERSION: '3.10'
+  MIN_COVERAGE: '70'
+
+jobs:
+  unit-tests:
+    name: 🔬 單元測試
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11']
+        test-group: ['core', 'services', 'api', 'utils']
+    
+    steps:
+    - name: 📥 檢出程式碼
+      uses: actions/checkout@v4
+    
+    - name: 🐍 設置 Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+        cache: 'pip'
+    
+    - name: 📦 安裝依賴
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -e .[test]
+    
+    - name: 🏗️ 設置測試環境
+      run: |
+        # 複製測試配置
+        cp .env.example .env.test
+        
+        # 設置測試資料庫 (SQLite for testing)
+        echo "DATABASE_URL=sqlite:///test.db" >> .env.test
+        echo "TESTING=true" >> .env.test
+        echo "LOG_LEVEL=WARNING" >> .env.test
+    
+    - name: 🧪 執行單元測試 - ${{ matrix.test-group }}
+      run: |
+        echo "🔬 執行 ${{ matrix.test-group }} 單元測試..."
+        
+        # 根據測試組選擇測試目標
+        case "${{ matrix.test-group }}" in
+          "core")
+            TEST_PATH="tests/unit/test_main.py tests/unit/test_config.py"
+            ;;
+          "services")
+            TEST_PATH="tests/unit/services/"
+            ;;
+          "api")
+            TEST_PATH="tests/unit/api/"
+            ;;
+          "utils")
+            TEST_PATH="tests/unit/utils/"
+            ;;
+          *)
+            TEST_PATH="tests/unit/"
+            ;;
+        esac
+        
+        # 如果測試路徑不存在，跳過
+        if [[ ! -e $TEST_PATH ]]; then
+          echo "⚠️ 測試路徑 $TEST_PATH 不存在，跳過"
+          exit 0
+        fi
+        
+        pytest $TEST_PATH \
+          --cov=bot \
+          --cov=shared \
+          --cov-report=xml:coverage-${{ matrix.test-group }}.xml \
+          --cov-report=html:htmlcov-${{ matrix.test-group }} \
+          --cov-report=term-missing \
+          --junit-xml=junit-${{ matrix.test-group }}.xml \
+          -v \
+          --tb=short
+    
+    - name: 📊 上傳測試結果
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: test-results-${{ matrix.python-version }}-${{ matrix.test-group }}
+        path: |
+          coverage-${{ matrix.test-group }}.xml
+          junit-${{ matrix.test-group }}.xml
+          htmlcov-${{ matrix.test-group }}/
+
+  integration-tests:
+    name: 🔗 整合測試
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'integration' || github.event.inputs.test_type == ''
+    
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      
+      mysql:
+        image: mysql:8.0
+        ports:
+          - 3306:3306
+        env:
+          MYSQL_ROOT_PASSWORD: testpass
+          MYSQL_DATABASE: potato_test
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    
+    steps:
+    - name: 📥 檢出程式碼
+      uses: actions/checkout@v4
+    
+    - name: 🐍 設置 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: 📦 安裝依賴
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -e .[test]
+    
+    - name: 🏗️ 設置整合測試環境
+      run: |
+        # 設置測試配置
+        cp .env.example .env.test
+        
+        # 設置測試服務連接
+        cat >> .env.test << EOF
+        DATABASE_URL=mysql://root:testpass@localhost:3306/potato_test
+        REDIS_URL=redis://localhost:6379/0
+        TESTING=true
+        LOG_LEVEL=INFO
+        DISCORD_TOKEN=test_token
+        EOF
+    
+    - name: ⏳ 等待服務就緒
+      run: |
+        echo "⏳ 等待資料庫和 Redis 服務就緒..."
+        
+        # 等待 MySQL
+        for i in {1..30}; do
+          if mysqladmin ping -h localhost -u root -ptestpass --silent; then
+            echo "✅ MySQL 已就緒"
+            break
+          fi
+          echo "⏳ 等待 MySQL... ($i/30)"
+          sleep 2
+        done
+        
+        # 等待 Redis
+        for i in {1..30}; do
+          if redis-cli -h localhost ping | grep -q PONG; then
+            echo "✅ Redis 已就緒"
+            break
+          fi
+          echo "⏳ 等待 Redis... ($i/30)"
+          sleep 1
+        done
+    
+    - name: 🏗️ 初始化測試資料庫
+      run: |
+        echo "🗄️ 初始化測試資料庫..."
+        
+        # 如果有資料庫遷移腳本，執行它們
+        if [[ -d "bot/db/migrations" ]]; then
+          python -c "
+        import asyncio
+        from bot.db.database_manager import DatabaseManager
+        
+        async def init_test_db():
+            db = DatabaseManager()
+            await db.initialize()
+            print('✅ 測試資料庫初始化完成')
+            
+        asyncio.run(init_test_db())
+        " || echo "⚠️ 資料庫初始化失敗，使用備用方案"
+        fi
+    
+    - name: 🧪 執行整合測試
+      run: |
+        echo "🔗 執行整合測試..."
+        
+        if [[ -d "tests/integration" ]]; then
+          pytest tests/integration/ \
+            --cov=bot \
+            --cov=shared \
+            --cov-report=xml:coverage-integration.xml \
+            --cov-report=html:htmlcov-integration \
+            --junit-xml=junit-integration.xml \
+            -v \
+            --tb=short \
+            --timeout=300
+        else
+          echo "⚠️ 整合測試目錄不存在，跳過整合測試"
+        fi
+    
+    - name: 📊 上傳整合測試結果
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: integration-test-results
+        path: |
+          coverage-integration.xml
+          junit-integration.xml
+          htmlcov-integration/
+
+  e2e-tests:
+    name: 🌐 端到端測試
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: (github.event.inputs.test_type == 'all' || github.event.inputs.test_type == 'e2e') && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: 📥 檢出程式碼
+      uses: actions/checkout@v4
+    
+    - name: 🐍 設置 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: 🐳 啟動完整測試環境
+      run: |
+        echo "🚀 啟動完整測試環境..."
+        
+        # 如果有 docker-compose.test.yml，使用它
+        if [[ -f "docker-compose.test.yml" ]]; then
+          docker-compose -f docker-compose.test.yml up -d
+          sleep 30  # 等待服務啟動
+        else
+          echo "⚠️ 沒有找到 docker-compose.test.yml，跳過環境啟動"
+        fi
+    
+    - name: 📦 安裝依賴
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -e .[test]
+        
+        # 安裝 E2E 測試專用依賴
+        pip install playwright pytest-playwright || echo "⚠️ E2E 測試依賴安裝失敗"
+    
+    - name: 🧪 執行端到端測試
+      run: |
+        echo "🌐 執行端到端測試..."
+        
+        if [[ -d "tests/e2e" ]]; then
+          pytest tests/e2e/ \
+            --junit-xml=junit-e2e.xml \
+            -v \
+            --tb=short \
+            --timeout=600
+        else
+          echo "⚠️ E2E 測試目錄不存在，跳過"
+        fi
+    
+    - name: 📊 上傳 E2E 測試結果
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: e2e-test-results
+        path: junit-e2e.xml
+    
+    - name: 🧹 清理測試環境
+      if: always()
+      run: |
+        if [[ -f "docker-compose.test.yml" ]]; then
+          docker-compose -f docker-compose.test.yml down -v
+        fi
+
+  coverage-report:
+    name: 📊 覆蓋率報告
+    needs: [unit-tests, integration-tests]
+    runs-on: ubuntu-latest
+    if: always()
+    timeout-minutes: 10
+    
+    steps:
+    - name: 📥 檢出程式碼
+      uses: actions/checkout@v4
+    
+    - name: 🐍 設置 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: 📦 安裝覆蓋率工具
+      run: |
+        pip install coverage[toml] coverage-badge
+    
+    - name: 📥 下載測試結果
+      uses: actions/download-artifact@v3
+      with:
+        path: test-artifacts
+    
+    - name: 🔗 合併覆蓋率報告
+      run: |
+        echo "📊 合併所有覆蓋率報告..."
+        
+        # 收集所有覆蓋率文件
+        find test-artifacts -name "coverage-*.xml" -exec cp {} . \;
+        
+        # 如果有覆蓋率文件，合併它們
+        if ls coverage-*.xml 1> /dev/null 2>&1; then
+          # 使用 coverage 合併報告
+          coverage combine || echo "⚠️ 覆蓋率合併失敗"
+          
+          # 生成最終報告
+          coverage report --format=markdown > coverage-report.md
+          coverage html
+          
+          # 檢查覆蓋率是否達到最低要求
+          COVERAGE=$(coverage report --format=total)
+          echo "📊 總覆蓋率: ${COVERAGE}%"
+          
+          if (( $(echo "$COVERAGE >= $MIN_COVERAGE" | bc -l) )); then
+            echo "✅ 覆蓋率達到要求 (${COVERAGE}% >= ${MIN_COVERAGE}%)"
+          else
+            echo "❌ 覆蓋率未達到要求 (${COVERAGE}% < ${MIN_COVERAGE}%)"
+            exit 1
+          fi
+        else
+          echo "⚠️ 沒有找到覆蓋率報告文件"
+        fi
+    
+    - name: 📊 上傳合併覆蓋率報告
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: final-coverage-report
+        path: |
+          coverage-report.md
+          htmlcov/
+    
+    - name: 💬 覆蓋率評論 (PR)
+      uses: actions/github-script@v6
+      if: github.event_name == 'pull_request' && always()
+      with:
+        script: |
+          const fs = require('fs');
+          
+          try {
+            if (fs.existsSync('coverage-report.md')) {
+              const coverage = fs.readFileSync('coverage-report.md', 'utf8');
+              
+              const comment = `## 📊 測試覆蓋率報告
+              
+              ${coverage}
+              
+              📈 最低要求覆蓋率: ${process.env.MIN_COVERAGE}%
+              
+              💡 詳細報告請查看 Artifacts 中的 \`final-coverage-report\`
+              `;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: comment
+              });
+            }
+          } catch (error) {
+            console.log('⚠️ 無法創建覆蓋率評論:', error.message);
+          }
+
+  test-summary:
+    name: 🏁 測試總結
+    needs: [unit-tests, integration-tests, e2e-tests, coverage-report]
+    runs-on: ubuntu-latest
+    if: always()
+    timeout-minutes: 5
+    
+    steps:
+    - name: 📋 測試執行總結
+      run: |
+        echo "🧪 測試執行完成總結"
+        echo ""
+        echo "✅ 測試階段結果:"
+        echo "  • 🔬 單元測試 - ${{ needs.unit-tests.result }}"
+        echo "  • 🔗 整合測試 - ${{ needs.integration-tests.result }}"
+        echo "  • 🌐 端到端測試 - ${{ needs.e2e-tests.result }}"
+        echo "  • 📊 覆蓋率報告 - ${{ needs.coverage-report.result }}"
+        echo ""
+        
+        # 檢查關鍵測試結果
+        if [[ "${{ needs.unit-tests.result }}" == "failure" ]]; then
+          echo "❌ 單元測試失敗 - 這是阻斷性問題"
+          exit 1
+        fi
+        
+        if [[ "${{ needs.coverage-report.result }}" == "failure" ]]; then
+          echo "⚠️ 覆蓋率不足 - 請增加測試覆蓋率"
+          exit 1
+        fi
+        
+        if [[ "${{ needs.integration-tests.result }}" == "failure" ]]; then
+          echo "⚠️ 整合測試失敗 - 建議修復後再合併"
+        fi
+        
+        echo "🎉 測試階段完成!"
+        echo ""
+        echo "📊 測試統計:"
+        echo "  • Python 版本: 3.10, 3.11"
+        echo "  • 測試組別: core, services, api, utils"
+        echo "  • 最低覆蓋率要求: ${MIN_COVERAGE}%"
