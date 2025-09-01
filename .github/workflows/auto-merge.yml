@@ -324,7 +324,7 @@ jobs:
         echo ""
         
         PR_RESULT='${{ steps.pr-info.outputs.result }}'
-        if [[ "$PR_RESULT" == *"shouldSkip\":true"* ]]; then
+        if [[ "$PR_RESULT" == *'"shouldSkip":true'* ]]; then
           echo "⏭️ 跳過處理：沒有找到相關的 PR"
           exit 0
         fi
@@ -336,29 +336,29 @@ jobs:
         
         echo "📊 檢查結果摘要:"
         
-        if [[ "$LABELS_RESULT" == *"canAutoMerge\":false"* ]]; then
+        if [[ "$LABELS_RESULT" == *'"canAutoMerge":false'* ]]; then
           echo "🏷️ 標籤檢查: ❌ 不符合自動合併條件"
           echo "   原因: $(echo "$LABELS_RESULT" | jq -r '.reason')"
         else
           echo "🏷️ 標籤檢查: ✅ 通過"
           
-          if [[ "$STATUS_RESULT" == *"allChecksPassed\":false"* ]]; then
+          if [[ "$STATUS_RESULT" == *'"allChecksPassed":false'* ]]; then
             echo "⚡ 狀態檢查: ❌ 未通過"
             echo "   失敗檢查: $(echo "$STATUS_RESULT" | jq -r '.failedChecks[]' | tr '\n' ',' | sed 's/,$//')"
             echo "   待處理檢查: $(echo "$STATUS_RESULT" | jq -r '.pendingChecks[]' | tr '\n' ',' | sed 's/,$//')"
           else
             echo "⚡ 狀態檢查: ✅ 通過"
             
-            if [[ "$REVIEWS_RESULT" == *"hasRejections\":true"* ]]; then
+            if [[ "$REVIEWS_RESULT" == *'"hasRejections":true'* ]]; then
               echo "👥 審查檢查: ❌ 有拒絕的審查"
-            elif [[ "$REVIEWS_RESULT" == *"hasEnoughApprovals\":false"* ]]; then
+            elif [[ "$REVIEWS_RESULT" == *'"hasEnoughApprovals":false'* ]]; then
               echo "👥 審查檢查: ❌ 審查不足"
               echo "   需要: $(echo "$REVIEWS_RESULT" | jq -r '.requiredApprovals') 個批准"
               echo "   當前: $(echo "$REVIEWS_RESULT" | jq -r '.approvals') 個批准"
             else
               echo "👥 審查檢查: ✅ 通過"
               
-              if [[ "$MERGE_RESULT" == *"success\":true"* ]]; then
+              if [[ "$MERGE_RESULT" == *'"success":true'* ]]; then
                 echo "🎉 自動合併: ✅ 成功完成"
                 echo "   SHA: $(echo "$MERGE_RESULT" | jq -r '.sha')"
               else

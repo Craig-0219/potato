@@ -51,7 +51,7 @@ jobs:
     - name: 🔐 驗證現有 baseline
       run: |
         echo "🔍 驗證現有 secrets baseline..."
-        detect-secrets audit .secrets.baseline --display-results || true
+        detect-secrets audit .secrets.baseline || true
 
   bandit-scan:
     name: 🐍 Python 安全掃描
@@ -148,22 +148,37 @@ jobs:
       run: |
         echo "🔒 執行 Safety 漏洞掃描..."
         
-        # 安裝兼容版本的 Safety
-        pip install "safety==3.2.7" --no-deps || pip install "safety>=2.3.5,<3.0.0"
-        pip install "typer>=0.9.0,<0.17" "click>=8.0.0" "packaging>=21.0" "setuptools>=65.0"
+        # 使用穩定版本的 Safety (避免版本衝突)
+        pip install "safety>=2.3.5,<4.0.0" --force-reinstall
         
-        # 執行 safety 檢查
-        safety check --output json --save-as safety-report.json || echo "Safety 掃描完成，可能有警告"
+        # 執行 safety 檢查 (簡化參數，避免不兼容選項)
+        safety check --json > safety-report.json || echo "Safety 掃描完成，可能有警告"
+        
+        # 顯示結果摘要
         safety check || echo "Safety 發現一些問題，但不阻斷流程"
         
         # 檢查報告是否生成
-        if [[ -f "safety-report.json" ]]; then
+        if [[ -f "safety-report.json" && -s "safety-report.json" ]]; then
           echo "✅ Safety 報告已生成"
-          ISSUES_COUNT=$(python3 -c "import json; f=open('safety-report.json','r'); data=json.load(f); f.close(); print(len(data.get('vulnerabilities', [])) if isinstance(data, dict) else 0)" 2>/dev/null || echo "0")
+          # 使用更簡單的方式計算問題數量
+          ISSUES_COUNT=$(python3 -c "
+          import json
+          try:
+              with open('safety-report.json', 'r') as f:
+                  data = json.load(f)
+              if isinstance(data, list):
+                  print(len(data))
+              elif isinstance(data, dict) and 'vulnerabilities' in data:
+                  print(len(data['vulnerabilities']))
+              else:
+                  print(0)
+          except:
+              print(0)
+          " 2>/dev/null || echo "0")
           echo "🔍 發現 $ISSUES_COUNT 個潛在漏洞"
         else
-          echo "⚠️ Safety 報告生成失敗，但不影響後續流程"
-          echo "{}" > safety-report.json
+          echo "⚠️ Safety 報告生成失敗，創建空報告"
+          echo "[]" > safety-report.json
         fi
     
     - name: 🔍 Pip-audit 掃描
