@@ -1,0 +1,369 @@
+name: 🤖 Auto Merge
+
+on:
+  pull_request:
+    types: [labeled, unlabeled, synchronize]
+  pull_request_review:
+    types: [submitted]
+  check_suite:
+    types: [completed]
+  status: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+
+jobs:
+  auto-merge:
+    name: 🚀 自動合併檢查
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    if: github.event_name == 'pull_request' || github.event_name == 'pull_request_review' || github.event_name == 'check_suite' || github.event_name == 'status'
+    
+    steps:
+    - name: 📥 檢出程式碼
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: 🔍 獲取 PR 資訊
+      id: pr-info
+      uses: actions/github-script@v6
+      with:
+        script: |
+          let prNumber;
+          let prData;
+          
+          if (context.eventName === 'pull_request') {
+            prNumber = context.payload.number;
+            prData = context.payload.pull_request;
+          } else if (context.eventName === 'pull_request_review') {
+            prNumber = context.payload.pull_request.number;
+            prData = context.payload.pull_request;
+          } else {
+            // 對於 check_suite 或 status 事件，找到相關的 PR
+            const prs = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open'
+            });
+            
+            const associatedPR = prs.data.find(pr => pr.head.sha === context.payload.sha);
+            if (!associatedPR) {
+              console.log('沒有找到相關的 PR');
+              return { shouldSkip: true };
+            }
+            
+            prNumber = associatedPR.number;
+            prData = associatedPR;
+          }
+          
+          return {
+            number: prNumber,
+            title: prData.title,
+            author: prData.user.login,
+            baseBranch: prData.base.ref,
+            headBranch: prData.head.ref,
+            draft: prData.draft,
+            mergeable: prData.mergeable,
+            shouldSkip: false
+          };
+    
+    - name: 🏷️ 檢查自動合併標籤
+      id: check-labels
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const prInfo = ${{ steps.pr-info.outputs.result }};
+          
+          if (prInfo.shouldSkip) {
+            return { canAutoMerge: false, reason: 'No associated PR found' };
+          }
+          
+          // 獲取 PR 標籤
+          const { data: labels } = await github.rest.issues.listLabelsOnIssue({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: prInfo.number
+          });
+          
+          const labelNames = labels.map(label => label.name);
+          console.log(`PR 標籤: ${labelNames.join(', ')}`);
+          
+          // 檢查是否有自動合併標籤
+          const autoMergeLabels = ['auto-merge', '🤖 auto-merge', 'ready-to-merge'];
+          const hasAutoMergeLabel = autoMergeLabels.some(label => labelNames.includes(label));
+          
+          // 檢查是否有阻擋標籤
+          const blockingLabels = ['do-not-merge', '❌ do-not-merge', 'work-in-progress', 'needs-review'];
+          const hasBlockingLabel = blockingLabels.some(label => labelNames.includes(label));
+          
+          if (!hasAutoMergeLabel) {
+            return { canAutoMerge: false, reason: 'No auto-merge label found' };
+          }
+          
+          if (hasBlockingLabel) {
+            return { canAutoMerge: false, reason: 'Blocking label present' };
+          }
+          
+          // 檢查是否為草稿
+          if (prInfo.draft) {
+            return { canAutoMerge: false, reason: 'PR is still a draft' };
+          }
+          
+          return { canAutoMerge: true, reason: 'Auto-merge label found and no blocking conditions' };
+    
+    - name: ✅ 檢查必要的狀態檢查
+      id: check-status
+      uses: actions/github-script@v6
+      if: fromJSON(steps.check-labels.outputs.result).canAutoMerge
+      with:
+        script: |
+          const prInfo = ${{ steps.pr-info.outputs.result }};
+          
+          // 獲取分支保護規則
+          let requiredChecks = [];
+          try {
+            const { data: branch } = await github.rest.repos.getBranch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              branch: prInfo.baseBranch
+            });
+            
+            if (branch.protection && branch.protection.required_status_checks) {
+              requiredChecks = branch.protection.required_status_checks.contexts || [];
+            }
+          } catch (error) {
+            console.log('無法獲取分支保護規則，使用預設檢查');
+            
+            // 預設必要檢查（根據目標分支）
+            if (prInfo.baseBranch === 'main') {
+              requiredChecks = [
+                'code-quality',
+                'security-scans', 
+                'test-coverage',
+                'build-validation'
+              ];
+            } else if (prInfo.baseBranch === 'develop') {
+              requiredChecks = [
+                'code-quality',
+                'test-coverage'
+              ];
+            }
+          }
+          
+          console.log(`必要檢查: ${requiredChecks.join(', ')}`);
+          
+          if (requiredChecks.length === 0) {
+            return { allChecksPassed: true, failedChecks: [] };
+          }
+          
+          // 獲取 PR 的檢查狀態
+          const { data: checks } = await github.rest.checks.listForRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: prInfo.headBranch
+          });
+          
+          const checkMap = {};
+          checks.check_runs.forEach(check => {
+            checkMap[check.name] = check.conclusion;
+          });
+          
+          // 檢查狀態
+          const { data: statuses } = await github.rest.repos.listCommitStatusesForRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: prInfo.headBranch
+          });
+          
+          statuses.forEach(status => {
+            if (!checkMap[status.context]) {
+              checkMap[status.context] = status.state === 'success' ? 'success' : 'failure';
+            }
+          });
+          
+          // 檢查所有必要檢查是否通過
+          const failedChecks = [];
+          const pendingChecks = [];
+          
+          for (const check of requiredChecks) {
+            const status = checkMap[check];
+            if (status === 'failure' || status === 'cancelled' || status === 'timed_out') {
+              failedChecks.push(check);
+            } else if (!status || status === 'pending' || status === 'queued' || status === 'in_progress') {
+              pendingChecks.push(check);
+            }
+          }
+          
+          console.log(`失敗的檢查: ${failedChecks.join(', ')}`);
+          console.log(`待處理的檢查: ${pendingChecks.join(', ')}`);
+          
+          return {
+            allChecksPassed: failedChecks.length === 0 && pendingChecks.length === 0,
+            failedChecks,
+            pendingChecks
+          };
+    
+    - name: 👥 檢查審查要求
+      id: check-reviews
+      uses: actions/github-script@v6
+      if: fromJSON(steps.check-labels.outputs.result).canAutoMerge && fromJSON(steps.check-status.outputs.result).allChecksPassed
+      with:
+        script: |
+          const prInfo = ${{ steps.pr-info.outputs.result }};
+          
+          // 獲取 PR 審查
+          const { data: reviews } = await github.rest.pulls.listReviews({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: prInfo.number
+          });
+          
+          // 根據目標分支決定審查要求
+          let requiredApprovals = 0;
+          if (prInfo.baseBranch === 'main') {
+            requiredApprovals = 2;  // main 分支需要 2 個批准
+          } else if (prInfo.baseBranch === 'develop') {
+            requiredApprovals = 1;  // develop 分支需要 1 個批准
+          }
+          
+          // 統計審查結果
+          const latestReviews = {};
+          reviews.forEach(review => {
+            latestReviews[review.user.login] = review.state;
+          });
+          
+          const approvals = Object.values(latestReviews).filter(state => state === 'APPROVED').length;
+          const rejections = Object.values(latestReviews).filter(state => state === 'REQUEST_CHANGES').length;
+          
+          console.log(`需要批准數: ${requiredApprovals}, 當前批准數: ${approvals}, 拒絕數: ${rejections}`);
+          
+          return {
+            hasEnoughApprovals: approvals >= requiredApprovals,
+            hasRejections: rejections > 0,
+            approvals,
+            rejections,
+            requiredApprovals
+          };
+    
+    - name: 🚀 執行自動合併
+      id: merge
+      uses: actions/github-script@v6
+      if: |
+        fromJSON(steps.check-labels.outputs.result).canAutoMerge && 
+        fromJSON(steps.check-status.outputs.result).allChecksPassed && 
+        fromJSON(steps.check-reviews.outputs.result).hasEnoughApprovals &&
+        !fromJSON(steps.check-reviews.outputs.result).hasRejections
+      with:
+        script: |
+          const prInfo = ${{ steps.pr-info.outputs.result }};
+          
+          try {
+            // 執行合併
+            const { data: merge } = await github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prInfo.number,
+              commit_title: `🤖 Auto-merge: ${prInfo.title}`,
+              commit_message: `
+              自動合併 PR #${prInfo.number}
+              
+              作者: @${prInfo.author}
+              分支: ${prInfo.headBranch} → ${prInfo.baseBranch}
+              
+              🤖 此 PR 已通過所有必要檢查和審查，自動合併完成。
+              `,
+              merge_method: prInfo.baseBranch === 'main' ? 'squash' : 'merge'
+            });
+            
+            console.log(`✅ PR #${prInfo.number} 已成功自動合併`);
+            
+            // 添加成功評論
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prInfo.number,
+              body: `🎉 **自動合併成功！**
+              
+              ✅ 所有檢查已通過
+              ✅ 審查要求已滿足
+              ✅ 已自動合併到 \`${prInfo.baseBranch}\` 分支
+              
+              Merge SHA: \`${merge.sha}\`
+              
+              感謝 @${prInfo.author} 的貢獻！ 🚀`
+            });
+            
+            return { success: true, sha: merge.sha };
+            
+          } catch (error) {
+            console.error('自動合併失敗:', error);
+            
+            // 添加失敗評論
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prInfo.number,
+              body: `❌ **自動合併失敗**
+              
+              錯誤原因: ${error.message}
+              
+              請檢查是否有合併衝突或其他問題，可能需要手動處理。 🔧`
+            });
+            
+            return { success: false, error: error.message };
+          }
+    
+    - name: 📋 輸出處理結果
+      if: always()
+      run: |
+        echo "🤖 自動合併處理完成"
+        echo ""
+        
+        if [[ "${{ steps.pr-info.outputs.result }}" == *"shouldSkip\":true"* ]]; then
+          echo "⏭️ 跳過處理：沒有找到相關的 PR"
+          exit 0
+        fi
+        
+        LABELS_RESULT="${{ steps.check-labels.outputs.result }}"
+        STATUS_RESULT="${{ steps.check-status.outputs.result }}"
+        REVIEWS_RESULT="${{ steps.check-reviews.outputs.result }}"
+        MERGE_RESULT="${{ steps.merge.outputs.result }}"
+        
+        echo "📊 檢查結果摘要:"
+        
+        if [[ "$LABELS_RESULT" == *"canAutoMerge\":false"* ]]; then
+          echo "🏷️ 標籤檢查: ❌ 不符合自動合併條件"
+          echo "   原因: $(echo "$LABELS_RESULT" | jq -r '.reason')"
+        else
+          echo "🏷️ 標籤檢查: ✅ 通過"
+          
+          if [[ "$STATUS_RESULT" == *"allChecksPassed\":false"* ]]; then
+            echo "⚡ 狀態檢查: ❌ 未通過"
+            echo "   失敗檢查: $(echo "$STATUS_RESULT" | jq -r '.failedChecks[]' | tr '\n' ',' | sed 's/,$//')"
+            echo "   待處理檢查: $(echo "$STATUS_RESULT" | jq -r '.pendingChecks[]' | tr '\n' ',' | sed 's/,$//')"
+          else
+            echo "⚡ 狀態檢查: ✅ 通過"
+            
+            if [[ "$REVIEWS_RESULT" == *"hasRejections\":true"* ]]; then
+              echo "👥 審查檢查: ❌ 有拒絕的審查"
+            elif [[ "$REVIEWS_RESULT" == *"hasEnoughApprovals\":false"* ]]; then
+              echo "👥 審查檢查: ❌ 審查不足"
+              echo "   需要: $(echo "$REVIEWS_RESULT" | jq -r '.requiredApprovals') 個批准"
+              echo "   當前: $(echo "$REVIEWS_RESULT" | jq -r '.approvals') 個批准"
+            else
+              echo "👥 審查檢查: ✅ 通過"
+              
+              if [[ "$MERGE_RESULT" == *"success\":true"* ]]; then
+                echo "🎉 自動合併: ✅ 成功完成"
+                echo "   SHA: $(echo "$MERGE_RESULT" | jq -r '.sha')"
+              else
+                echo "❌ 自動合併: 失敗"
+                echo "   錯誤: $(echo "$MERGE_RESULT" | jq -r '.error // "未知錯誤"')"
+              fi
+            fi
+          fi
+        fi
