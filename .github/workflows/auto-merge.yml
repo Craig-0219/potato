@@ -329,10 +329,10 @@ jobs:
           exit 0
         fi
         
-        LABELS_RESULT="${{ steps.check-labels.outputs.result }}"
-        STATUS_RESULT="${{ steps.check-status.outputs.result }}"
-        REVIEWS_RESULT="${{ steps.check-reviews.outputs.result }}"
-        MERGE_RESULT="${{ steps.merge.outputs.result }}"
+        LABELS_RESULT='${{ steps.check-labels.outputs.result }}'
+        STATUS_RESULT='${{ steps.check-status.outputs.result }}'
+        REVIEWS_RESULT='${{ steps.check-reviews.outputs.result }}'
+        MERGE_RESULT='${{ steps.merge.outputs.result }}'
         
         echo "📊 檢查結果摘要:"
         

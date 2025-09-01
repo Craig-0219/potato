@@ -719,8 +719,8 @@ async def start_api_server():
     """啟動API伺服器"""
 
     try:
-        host = "0.0.0.0"
-        port = 8000
+        host = os.getenv("API_HOST", "127.0.0.1")  # 預設使用 localhost，避免綁定所有介面
+        port = int(os.getenv("API_PORT", "8000"))
 
         logger.info(f"📚 API 文檔位址: http://{host}:{port}{API_BASE_PATH}/docs")
 
