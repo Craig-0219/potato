@@ -165,7 +165,7 @@ jobs:
       run: |
         echo "🛡️ 執行依賴安全掃描..."
         
-        pip install safety pip-audit
+        pip install "safety<3.6.0" "typer<0.17" pip-audit
         
         # 使用 safety 檢查已知漏洞
         echo "🔒 Safety 安全檢查..."

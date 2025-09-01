@@ -149,7 +149,7 @@ jobs:
     - name: 🛡️ Safety 漏洞掃描
       run: |
         echo "🔒 執行 Safety 漏洞掃描..."
-        pip install safety
+        pip install "safety<3.6.0" "typer<0.17"
         
         # 執行 safety 檢查
         safety check --json --output safety-report.json || true
