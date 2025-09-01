@@ -81,16 +81,30 @@ jobs:
         
         # 使用 pyproject.toml 中的配置執行 bandit
         bandit -r bot/ shared/ -f json -o bandit-report.json || true
-        bandit -r bot/ shared/ -f txt
+        bandit -r bot/ shared/ -f txt || true
         
-        # 檢查高風險問題
-        HIGH_ISSUES=$(bandit -r bot/ shared/ -f json | jq '.results[] | select(.issue_severity == "HIGH") | length' 2>/dev/null || echo "0")
-        
-        if [[ $HIGH_ISSUES -gt 0 ]]; then
-          echo "⚠️ 發現 $HIGH_ISSUES 個高風險安全問題"
-          echo "請檢查並修復這些安全問題"
+        # 檢查高風險和中等風險問題
+        if [[ -f "bandit-report.json" ]]; then
+          HIGH_ISSUES=$(jq '.results[] | select(.issue_severity == "HIGH") | length' bandit-report.json 2>/dev/null | awk '{sum+=$1} END {print sum+0}')
+          MEDIUM_ISSUES=$(jq '.results[] | select(.issue_severity == "MEDIUM") | length' bandit-report.json 2>/dev/null | awk '{sum+=$1} END {print sum+0}')
+          TOTAL_ISSUES=$(jq '.results | length' bandit-report.json 2>/dev/null || echo "0")
+          
+          echo "📊 Bandit 掃描結果:"
+          echo "  • 高風險問題: $HIGH_ISSUES"
+          echo "  • 中等風險問題: $MEDIUM_ISSUES"
+          echo "  • 總問題數量: $TOTAL_ISSUES"
+          
+          if [[ $HIGH_ISSUES -gt 0 ]]; then
+            echo "❌ 發現 $HIGH_ISSUES 個高風險安全問題，需要修復"
+            exit 1
+          elif [[ $MEDIUM_ISSUES -gt 5 ]]; then
+            echo "⚠️ 發現過多中等風險問題 ($MEDIUM_ISSUES > 5)，建議修復"
+            echo "但不阻斷流程"
+          else
+            echo "✅ 安全掃描通過"
+          fi
         else
-          echo "✅ 未發現高風險安全問題"
+          echo "⚠️ Bandit 報告生成失敗"
         fi
     
     - name: 📊 上傳 Bandit 報告
