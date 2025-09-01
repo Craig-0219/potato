@@ -26,7 +26,9 @@ router = APIRouter()
 # limiter = Limiter(key_func=get_remote_address)
 
 
-@router.get("/rules", response_model=PaginatedResponse, summary="獲取自動化規則列表")
+@router.get(
+    "/rules", response_model=PaginatedResponse, summary="獲取自動化規則列表"
+)
 # @limiter.limit("20/minute")
 async def get_automation_rules(
     guild_id: Optional[int] = Query(None),
@@ -76,10 +78,16 @@ async def get_automation_rules(
         raise HTTPException(status_code=500, detail="獲取自動化規則失敗")
 
 
-@router.post("/rules", response_model=BaseResponse, summary="創建自動化規則", status_code=201)
+@router.post(
+    "/rules",
+    response_model=BaseResponse,
+    summary="創建自動化規則",
+    status_code=201,
+)
 # @limiter.limit("5/minute")
 async def create_automation_rule(
-    rule_data: AutomationRule, user: APIUser = Depends(require_write_permission)
+    rule_data: AutomationRule,
+    user: APIUser = Depends(require_write_permission),
 ):
     """創建新的自動化規則"""
     try:
@@ -88,7 +96,9 @@ async def create_automation_rule(
         return {
             "success": True,
             "message": "自動化規則創建成功",
-            "data": {"rule_id": "rule_" + datetime.now().strftime("%Y%m%d_%H%M%S")},
+            "data": {
+                "rule_id": "rule_" + datetime.now().strftime("%Y%m%d_%H%M%S")
+            },
         }
 
     except Exception as e:
@@ -96,7 +106,11 @@ async def create_automation_rule(
         raise HTTPException(status_code=500, detail="創建自動化規則失敗")
 
 
-@router.get("/executions", response_model=List[AutomationExecution], summary="獲取執行記錄")
+@router.get(
+    "/executions",
+    response_model=List[AutomationExecution],
+    summary="獲取執行記錄",
+)
 # @limiter.limit("20/minute")
 async def get_automation_executions(
     rule_id: Optional[str] = Query(None),

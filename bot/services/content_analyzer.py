@@ -110,11 +110,28 @@ class ContentAnalyzer:
     def __init__(self):
         # 毒性關鍵詞庫（可擴展）
         self.toxic_keywords = {
-            "harassment": ["騷擾", "霸凌", "威脅", "恐嚇", "侮辱", "羞辱", "歧視"],
+            "harassment": [
+                "騷擾",
+                "霸凌",
+                "威脅",
+                "恐嚇",
+                "侮辱",
+                "羞辱",
+                "歧視",
+            ],
             "hate_speech": ["仇恨", "種族", "歧視", "偏見", "排斥"],
             "violence": ["暴力", "傷害", "攻擊", "殺害", "毆打", "打架"],
             "inappropriate": ["色情", "淫穢", "猥褻", "不雅", "露骨"],
-            "spam": ["廣告", "推銷", "買賣", "代購", "刷單", "點擊", "免費", "賺錢"],
+            "spam": [
+                "廣告",
+                "推銷",
+                "買賣",
+                "代購",
+                "刷單",
+                "點擊",
+                "免費",
+                "賺錢",
+            ],
         }
 
         # 情感詞庫
@@ -188,7 +205,10 @@ class ContentAnalyzer:
     # ========== 主要分析方法 ==========
 
     async def analyze_content(
-        self, text: str, user_id: int = 0, analysis_types: List[AnalysisType] = None
+        self,
+        text: str,
+        user_id: int = 0,
+        analysis_types: List[AnalysisType] = None,
     ) -> ContentAnalysisResult:
         """綜合內容分析"""
         start_time = time.time()
@@ -312,10 +332,16 @@ class ContentAnalyzer:
 
             # 特殊表情符號和標點符號分析
             positive_emojis = (
-                text.count("😊") + text.count("😄") + text.count("❤️") + text.count("👍")
+                text.count("😊")
+                + text.count("😄")
+                + text.count("❤️")
+                + text.count("👍")
             )
             negative_emojis = (
-                text.count("😢") + text.count("😡") + text.count("💔") + text.count("👎")
+                text.count("😢")
+                + text.count("😡")
+                + text.count("💔")
+                + text.count("👎")
             )
 
             positive_count += positive_emojis
@@ -356,7 +382,9 @@ class ContentAnalyzer:
             )
 
             # 快取結果
-            await cache_manager.set(cache_key, result.__dict__, 1800)  # 30分鐘快取
+            await cache_manager.set(
+                cache_key, result.__dict__, 1800
+            )  # 30分鐘快取
 
             return result
 
@@ -395,7 +423,9 @@ class ContentAnalyzer:
                 # 計算類別分數（基於出現頻率和文本長度）
                 text_length = len(text.split())
                 if text_length > 0 and category_count > 0:
-                    category_score = min(1.0, (category_count / text_length) * 10)
+                    category_score = min(
+                        1.0, (category_count / text_length) * 10
+                    )
 
                 toxicity_scores[category] = category_score
                 overall_toxicity = max(overall_toxicity, category_score)
@@ -404,13 +434,19 @@ class ContentAnalyzer:
             repeated_chars = re.findall(r"(.)\1{4,}", text)
             if repeated_chars:
                 toxicity_scores["spam"] = min(1.0, len(repeated_chars) * 0.2)
-                overall_toxicity = max(overall_toxicity, toxicity_scores["spam"])
+                overall_toxicity = max(
+                    overall_toxicity, toxicity_scores["spam"]
+                )
 
             # 檢查過度使用大寫字母
-            upper_ratio = sum(1 for c in text if c.isupper()) / max(1, len(text))
+            upper_ratio = sum(1 for c in text if c.isupper()) / max(
+                1, len(text)
+            )
             if upper_ratio > 0.7 and len(text) > 10:
                 toxicity_scores["aggressive"] = min(1.0, upper_ratio)
-                overall_toxicity = max(overall_toxicity, toxicity_scores["aggressive"])
+                overall_toxicity = max(
+                    overall_toxicity, toxicity_scores["aggressive"]
+                )
 
             is_toxic = overall_toxicity > 0.3
 
@@ -432,7 +468,9 @@ class ContentAnalyzer:
         try:
             # 簡單的語言檢測（基於字符特徵）
             chinese_chars = len([c for c in text if "\u4e00" <= c <= "\u9fff"])
-            english_chars = len([c for c in text if c.isalpha() and ord(c) < 128])
+            english_chars = len(
+                [c for c in text if c.isalpha() and ord(c) < 128]
+            )
             total_chars = len([c for c in text if c.isalnum()])
 
             if total_chars == 0:
@@ -507,7 +545,11 @@ class ContentAnalyzer:
             }
 
             # 過濾停用詞和短詞
-            keywords = [word for word in words if len(word) > 2 and word not in stop_words]
+            keywords = [
+                word
+                for word in words
+                if len(word) > 2 and word not in stop_words
+            ]
 
             # 計算詞頻
             word_freq = {}
@@ -515,7 +557,9 @@ class ContentAnalyzer:
                 word_freq[word] = word_freq.get(word, 0) + 1
 
             # 按頻率排序並返回前10個
-            sorted_keywords = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
+            sorted_keywords = sorted(
+                word_freq.items(), key=lambda x: x[1], reverse=True
+            )
 
             return [word for word, freq in sorted_keywords[:10]]
 
@@ -570,7 +614,9 @@ class ContentAnalyzer:
             domain_reputation = 1.0
 
             # 檢查是否為短網址
-            is_shortened = any(shortener in domain for shortener in self.url_shorteners)
+            is_shortened = any(
+                shortener in domain for shortener in self.url_shorteners
+            )
             if is_shortened:
                 risk_factors.append("短網址")
                 risk_level = ContentRiskLevel.LOW
@@ -583,7 +629,9 @@ class ContentAnalyzer:
                 domain_reputation = 0.0
 
             # 檢查可疑特徵
-            if re.search(r"[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}", domain):
+            if re.search(
+                r"[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}", domain
+            ):
                 risk_factors.append("IP地址")
                 risk_level = ContentRiskLevel.MEDIUM
                 domain_reputation *= 0.7
@@ -594,7 +642,13 @@ class ContentAnalyzer:
                 domain_reputation *= 0.8
 
             # 檢查可疑子域名
-            suspicious_subdomains = ["secure", "login", "verify", "update", "confirm"]
+            suspicious_subdomains = [
+                "secure",
+                "login",
+                "verify",
+                "update",
+                "confirm",
+            ]
             for subdomain in suspicious_subdomains:
                 if subdomain in domain:
                     risk_factors.append("可疑子域名")
@@ -639,7 +693,9 @@ class ContentAnalyzer:
 
     # ========== 風險評估 ==========
 
-    async def _calculate_risk_level(self, result: ContentAnalysisResult) -> ContentRiskLevel:
+    async def _calculate_risk_level(
+        self, result: ContentAnalysisResult
+    ) -> ContentRiskLevel:
         """計算整體風險等級"""
         try:
             risk_score = 0.0
@@ -649,13 +705,19 @@ class ContentAnalyzer:
                 risk_score += result.toxicity.toxicity_score * 0.4
 
             # 情感分析風險（極端負面情感可能有風險）
-            if result.sentiment and result.sentiment.sentiment == SentimentType.NEGATIVE:
+            if (
+                result.sentiment
+                and result.sentiment.sentiment == SentimentType.NEGATIVE
+            ):
                 risk_score += result.sentiment.negative_score * 0.2
 
             # 連結風險
             if result.links:
                 link_risk = max(
-                    [self._risk_level_to_score(link.risk_level) for link in result.links]
+                    [
+                        self._risk_level_to_score(link.risk_level)
+                        for link in result.links
+                    ]
                 )
                 risk_score += link_risk * 0.3
 
@@ -694,7 +756,9 @@ class ContentAnalyzer:
         }
         return mapping.get(risk_level, 0.0)
 
-    async def _calculate_confidence(self, result: ContentAnalysisResult) -> float:
+    async def _calculate_confidence(
+        self, result: ContentAnalysisResult
+    ) -> float:
         """計算分析信心度"""
         try:
             confidence_scores = []
@@ -704,12 +768,16 @@ class ContentAnalyzer:
 
             if result.toxicity:
                 # 毒性分析的信心度基於檢測到的關鍵詞數量
-                keyword_confidence = min(1.0, len(result.toxicity.flagged_phrases) * 0.2 + 0.3)
+                keyword_confidence = min(
+                    1.0, len(result.toxicity.flagged_phrases) * 0.2 + 0.3
+                )
                 confidence_scores.append(keyword_confidence)
 
             if result.language:
                 # 語言檢測信心度（簡化）
-                confidence_scores.append(0.8 if result.language != "unknown" else 0.3)
+                confidence_scores.append(
+                    0.8 if result.language != "unknown" else 0.3
+                )
 
             if confidence_scores:
                 return sum(confidence_scores) / len(confidence_scores)
@@ -722,7 +790,9 @@ class ContentAnalyzer:
 
     # ========== 統計分析 ==========
 
-    async def get_content_statistics(self, guild_id: int, days: int = 7) -> Dict[str, Any]:
+    async def get_content_statistics(
+        self, guild_id: int, days: int = 7
+    ) -> Dict[str, Any]:
         """獲取內容統計"""
         try:
             cache_key = f"content_stats:{guild_id}:{days}"
@@ -742,9 +812,17 @@ class ContentAnalyzer:
                 "toxicity_stats": {
                     "toxic_messages": 23,
                     "toxicity_rate": 1.84,
-                    "most_common_issues": ["spam", "harassment", "inappropriate"],
+                    "most_common_issues": [
+                        "spam",
+                        "harassment",
+                        "inappropriate",
+                    ],
                 },
-                "language_distribution": {"zh-TW": 67.3, "en": 28.7, "mixed": 4.0},
+                "language_distribution": {
+                    "zh-TW": 67.3,
+                    "en": 28.7,
+                    "mixed": 4.0,
+                },
                 "link_analysis": {
                     "total_links": 156,
                     "safe_links": 142,

@@ -116,7 +116,9 @@ class CrossPlatformEconomyManager:
                     "existing_uuid": existing_link.get("minecraft_uuid"),
                 }
 
-            existing_link = await self._get_account_link(minecraft_uuid=minecraft_uuid)
+            existing_link = await self._get_account_link(
+                minecraft_uuid=minecraft_uuid
+            )
             if existing_link:
                 return {
                     "success": False,
@@ -145,7 +147,9 @@ class CrossPlatformEconomyManager:
             # 觸發數據同步
             await self._sync_user_data(discord_id, minecraft_uuid, guild_id)
 
-            logger.info(f"🔗 帳號綁定成功: Discord {discord_id} <-> Minecraft {minecraft_uuid}")
+            logger.info(
+                f"🔗 帳號綁定成功: Discord {discord_id} <-> Minecraft {minecraft_uuid}"
+            )
 
             return {
                 "success": True,
@@ -164,7 +168,10 @@ class CrossPlatformEconomyManager:
         """解除帳號綁定"""
         try:
             if not discord_id and not minecraft_uuid:
-                return {"success": False, "error": "需要提供Discord ID或Minecraft UUID"}
+                return {
+                    "success": False,
+                    "error": "需要提供Discord ID或Minecraft UUID",
+                }
 
             where_clause = ""
             params = []
@@ -257,13 +264,19 @@ class CrossPlatformEconomyManager:
 
             if direction == "to_minecraft":
                 # Discord -> Minecraft
-                discord_economy = await self.economy_manager.get_user_economy(discord_id, guild_id)
+                discord_economy = await self.economy_manager.get_user_economy(
+                    discord_id, guild_id
+                )
 
                 # 轉換為Minecraft格式
-                minecraft_data = await self._convert_to_minecraft_format(discord_economy)
+                minecraft_data = await self._convert_to_minecraft_format(
+                    discord_economy
+                )
 
                 # 發送到Minecraft服務器
-                sync_result = await self._send_to_minecraft(minecraft_uuid, minecraft_data)
+                sync_result = await self._send_to_minecraft(
+                    minecraft_uuid, minecraft_data
+                )
 
                 return {
                     "success": sync_result["success"],
@@ -275,13 +288,19 @@ class CrossPlatformEconomyManager:
 
             elif direction == "from_minecraft":
                 # Minecraft -> Discord (需要Minecraft服務器主動推送)
-                minecraft_data = await self._fetch_from_minecraft(minecraft_uuid)
+                minecraft_data = await self._fetch_from_minecraft(
+                    minecraft_uuid
+                )
 
                 if minecraft_data:
-                    discord_data = await self._convert_from_minecraft_format(minecraft_data)
+                    discord_data = await self._convert_from_minecraft_format(
+                        minecraft_data
+                    )
 
                     # 更新Discord數據
-                    await self._update_discord_economy(discord_id, guild_id, discord_data)
+                    await self._update_discord_economy(
+                        discord_id, guild_id, discord_data
+                    )
 
                     return {
                         "success": True,
@@ -290,41 +309,63 @@ class CrossPlatformEconomyManager:
                         "discord_data": discord_data,
                     }
                 else:
-                    return {"success": False, "error": "無法從Minecraft獲取數據"}
+                    return {
+                        "success": False,
+                        "error": "無法從Minecraft獲取數據",
+                    }
 
         except Exception as e:
             logger.error(f"❌ 經濟數據同步失敗: {e}")
             return {"success": False, "error": str(e)}
 
-    async def _sync_user_data(self, discord_id: int, minecraft_uuid: str, guild_id: int):
+    async def _sync_user_data(
+        self, discord_id: int, minecraft_uuid: str, guild_id: int
+    ):
         """初始數據同步"""
         try:
             # 獲取Discord數據
-            discord_economy = await self.economy_manager.get_user_economy(discord_id, guild_id)
-            discord_achievements = await self.achievement_manager.get_user_achievements(
+            discord_economy = await self.economy_manager.get_user_economy(
                 discord_id, guild_id
+            )
+            discord_achievements = (
+                await self.achievement_manager.get_user_achievements(
+                    discord_id, guild_id
+                )
             )
 
             # 轉換並發送到Minecraft
-            minecraft_data = await self._convert_to_minecraft_format(discord_economy)
-            minecraft_data["achievements"] = [ach["id"] for ach in discord_achievements]
+            minecraft_data = await self._convert_to_minecraft_format(
+                discord_economy
+            )
+            minecraft_data["achievements"] = [
+                ach["id"] for ach in discord_achievements
+            ]
 
             await self._send_to_minecraft(minecraft_uuid, minecraft_data)
 
-            logger.info(f"✅ 初始數據同步完成: {discord_id} -> {minecraft_uuid}")
+            logger.info(
+                f"✅ 初始數據同步完成: {discord_id} -> {minecraft_uuid}"
+            )
 
         except Exception as e:
             logger.error(f"❌ 初始數據同步失敗: {e}")
 
     # ========== 格式轉換系統 ==========
 
-    async def _convert_to_minecraft_format(self, discord_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def _convert_to_minecraft_format(
+        self, discord_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """將Discord數據轉換為Minecraft格式"""
         try:
             # 計算Minecraft物品數量
             coins_amount = discord_data.get("coins", 0)
-            gems_amount = discord_data.get("gems", 0) * int(self.exchange_rates["gems"])
-            exp_amount = int(discord_data.get("experience", 0) * self.exchange_rates["experience"])
+            gems_amount = discord_data.get("gems", 0) * int(
+                self.exchange_rates["gems"]
+            )
+            exp_amount = int(
+                discord_data.get("experience", 0)
+                * self.exchange_rates["experience"]
+            )
 
             minecraft_data = {
                 "items": {
@@ -358,9 +399,13 @@ class CrossPlatformEconomyManager:
 
             # 反向轉換
             coins = items.get(self.minecraft_items["coins"], 0)
-            gems = int(items.get(self.minecraft_items["gems"], 0) / self.exchange_rates["gems"])
+            gems = int(
+                items.get(self.minecraft_items["gems"], 0)
+                / self.exchange_rates["gems"]
+            )
             experience = int(
-                items.get(self.minecraft_items["experience"], 0) / self.exchange_rates["experience"]
+                items.get(self.minecraft_items["experience"], 0)
+                / self.exchange_rates["experience"]
             )
 
             discord_data = {
@@ -379,7 +424,9 @@ class CrossPlatformEconomyManager:
 
     # ========== Minecraft API交互 ==========
 
-    async def _send_to_minecraft(self, minecraft_uuid: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    async def _send_to_minecraft(
+        self, minecraft_uuid: str, data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """發送數據到Minecraft服務器"""
         try:
             webhook_url = self.webhook_endpoints.get("minecraft")
@@ -397,14 +444,23 @@ class CrossPlatformEconomyManager:
             }
 
             async with aiohttp.ClientSession() as session:
-                async with session.post(webhook_url, json=payload, timeout=10) as response:
+                async with session.post(
+                    webhook_url, json=payload, timeout=10
+                ) as response:
                     if response.status == 200:
                         result = await response.json()
-                        logger.info(f"✅ 數據已發送到Minecraft: {minecraft_uuid}")
+                        logger.info(
+                            f"✅ 數據已發送到Minecraft: {minecraft_uuid}"
+                        )
                         return {"success": True, "response": result}
                     else:
-                        logger.error(f"❌ Minecraft服務器回應錯誤: {response.status}")
-                        return {"success": False, "error": f"HTTP {response.status}"}
+                        logger.error(
+                            f"❌ Minecraft服務器回應錯誤: {response.status}"
+                        )
+                        return {
+                            "success": False,
+                            "error": f"HTTP {response.status}",
+                        }
 
         except Exception as e:
             logger.error(f"❌ 發送到Minecraft失敗: {e}")
@@ -412,7 +468,9 @@ class CrossPlatformEconomyManager:
             await self._cache_minecraft_data(minecraft_uuid, data)
             return {"success": False, "error": str(e), "cached": True}
 
-    async def _fetch_from_minecraft(self, minecraft_uuid: str) -> Optional[Dict[str, Any]]:
+    async def _fetch_from_minecraft(
+        self, minecraft_uuid: str
+    ) -> Optional[Dict[str, Any]]:
         """從Minecraft服務器獲取數據"""
         try:
             # 優先從緩存獲取
@@ -425,19 +483,25 @@ class CrossPlatformEconomyManager:
                 return None
 
             async with aiohttp.ClientSession() as session:
-                async with session.get(f"{webhook_url}/player/{minecraft_uuid}") as response:
+                async with session.get(
+                    f"{webhook_url}/player/{minecraft_uuid}"
+                ) as response:
                     if response.status == 200:
                         data = await response.json()
                         return data.get("economy_data")
                     else:
-                        logger.error(f"❌ 從Minecraft獲取數據失敗: {response.status}")
+                        logger.error(
+                            f"❌ 從Minecraft獲取數據失敗: {response.status}"
+                        )
                         return None
 
         except Exception as e:
             logger.error(f"❌ 從Minecraft獲取數據異常: {e}")
             return None
 
-    async def _cache_minecraft_data(self, minecraft_uuid: str, data: Dict[str, Any]):
+    async def _cache_minecraft_data(
+        self, minecraft_uuid: str, data: Dict[str, Any]
+    ):
         """緩存Minecraft數據"""
         try:
             cache_key = f"minecraft_sync:{minecraft_uuid}"
@@ -446,7 +510,9 @@ class CrossPlatformEconomyManager:
         except Exception as e:
             logger.error(f"❌ 緩存Minecraft數據失敗: {e}")
 
-    async def _get_cached_minecraft_data(self, minecraft_uuid: str) -> Optional[Dict[str, Any]]:
+    async def _get_cached_minecraft_data(
+        self, minecraft_uuid: str
+    ) -> Optional[Dict[str, Any]]:
         """獲取緩存的Minecraft數據"""
         try:
             cache_key = f"minecraft_sync:{minecraft_uuid}"
@@ -538,7 +604,9 @@ class CrossPlatformEconomyManager:
             logger.error(f"❌ 創建交易記錄失敗: {e}")
             raise
 
-    async def get_user_transactions(self, user_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+    async def get_user_transactions(
+        self, user_id: str, limit: int = 50
+    ) -> List[Dict[str, Any]]:
         """獲取用戶交易記錄"""
         try:
             async with db_pool.connection() as conn:
@@ -567,7 +635,9 @@ class CrossPlatformEconomyManager:
                                 "currency_type": row[5],
                                 "amount": row[6],
                                 "reason": row[7],
-                                "metadata": json.loads(row[8]) if row[8] else {},
+                                "metadata": (
+                                    json.loads(row[8]) if row[8] else {}
+                                ),
                                 "timestamp": row[9],
                                 "status": row[10],
                             }

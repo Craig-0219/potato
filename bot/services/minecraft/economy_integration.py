@@ -111,7 +111,9 @@ class EconomyIntegrationService:
         for table_sql in tables:
             await self.db.execute(table_sql)
 
-    async def link_economy_account(self, discord_id: int, minecraft_uuid: str) -> bool:
+    async def link_economy_account(
+        self, discord_id: int, minecraft_uuid: str
+    ) -> bool:
         """連結 Discord 和 Minecraft 的經濟帳戶"""
         try:
             # 檢查是否已經連結
@@ -139,14 +141,18 @@ class EconomyIntegrationService:
             # 初始同步餘額
             await self._sync_balance(discord_id)
 
-            logger.info(f"經濟帳戶連結成功: Discord {discord_id} ↔ Minecraft {minecraft_uuid}")
+            logger.info(
+                f"經濟帳戶連結成功: Discord {discord_id} ↔ Minecraft {minecraft_uuid}"
+            )
             return True
 
         except Exception as e:
             logger.error(f"連結經濟帳戶失敗: {e}")
             return False
 
-    async def get_balance(self, discord_id: int, platform: str = "both") -> Dict[str, float]:
+    async def get_balance(
+        self, discord_id: int, platform: str = "both"
+    ) -> Dict[str, float]:
         """獲取玩家餘額"""
         try:
             result = await self.db.fetchone(
@@ -207,9 +213,7 @@ class EconomyIntegrationService:
                 )
 
             # 生成交易 ID
-            transaction_id = (
-                f"transfer_{from_discord_id}_{to_discord_id}_{int(datetime.now().timestamp())}"
-            )
+            transaction_id = f"transfer_{from_discord_id}_{to_discord_id}_{int(datetime.now().timestamp())}"
 
             # 記錄交易
             await self.db.execute(
@@ -272,7 +276,9 @@ class EconomyIntegrationService:
                 await self._sync_minecraft_balance(from_discord_id)
             await self._sync_minecraft_balance(to_discord_id)
 
-            logger.info(f"轉帳成功: {from_discord_id} → {to_discord_id}, 金額: {amount}")
+            logger.info(
+                f"轉帳成功: {from_discord_id} → {to_discord_id}, 金額: {amount}"
+            )
             return True, f"轉帳成功！已將 {amount:.2f} 點數轉給目標用戶"
 
         except Exception as e:
@@ -302,9 +308,7 @@ class EconomyIntegrationService:
                 )
 
             # 生成交易 ID
-            transaction_id = (
-                f"{transaction_type.value}_{discord_id}_{int(datetime.now().timestamp())}"
-            )
+            transaction_id = f"{transaction_type.value}_{discord_id}_{int(datetime.now().timestamp())}"
 
             # 記錄交易
             await self.db.execute(
@@ -383,7 +387,9 @@ class EconomyIntegrationService:
             logger.error(f"獲取交易記錄失敗 ({discord_id}): {e}")
             return []
 
-    async def get_wealth_ranking(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_wealth_ranking(
+        self, limit: int = 10
+    ) -> List[Dict[str, Any]]:
         """獲取財富排行榜"""
         try:
             ranking = await self.db.fetchall(
@@ -410,7 +416,9 @@ class EconomyIntegrationService:
                         "minecraft_username": record["minecraft_username"],
                         "total_balance": float(record["total_balance"]),
                         "discord_balance": float(record["discord_balance"]),
-                        "minecraft_balance": float(record["minecraft_balance"]),
+                        "minecraft_balance": float(
+                            record["minecraft_balance"]
+                        ),
                     }
                 )
 
@@ -513,7 +521,9 @@ class EconomyIntegrationService:
         except Exception as e:
             logger.error(f"同步現有數據失敗: {e}")
 
-    def format_balance_display(self, balance_data: Dict[str, float], username: str = None) -> str:
+    def format_balance_display(
+        self, balance_data: Dict[str, float], username: str = None
+    ) -> str:
         """格式化餘額顯示"""
         total = balance_data.get("total", 0.0)
         discord_bal = balance_data.get("discord", 0.0)
@@ -542,7 +552,9 @@ class EconomyIntegrationService:
 
         for entry in ranking:
             rank_emoji = {1: "🥇", 2: "🥈", 3: "🥉"}.get(entry["rank"], "🏅")
-            username = entry.get("minecraft_username") or f"玩家{entry['discord_id']}"
+            username = (
+                entry.get("minecraft_username") or f"玩家{entry['discord_id']}"
+            )
             total = entry["total_balance"]
 
             result += f"{rank_emoji} **#{entry['rank']}** {username}: {total:,.2f} 點數\n"

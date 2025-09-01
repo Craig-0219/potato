@@ -24,7 +24,11 @@ from bot.services.ticket_manager import TicketManager
 from bot.utils.embed_builder import EmbedBuilder
 from bot.utils.helper import format_duration, get_time_ago
 from bot.utils.ticket_constants import TicketConstants
-from bot.views.ticket_views import RatingView, TicketControlView, TicketPanelView
+from bot.views.ticket_views import (
+    RatingView,
+    TicketControlView,
+    TicketPanelView,
+)
 from shared.logger import logger
 
 
@@ -38,7 +42,9 @@ class TicketCore(commands.Cog):
         self.tag_dao = TagDAO()
         self.language_dao = LanguageDAO()
         self.manager = TicketManager(self.DAO)
-        self.assignment_manager = AssignmentManager(self.assignment_dao, self.DAO)
+        self.assignment_manager = AssignmentManager(
+            self.assignment_dao, self.DAO
+        )
         self.tag_manager = TagManager(self.tag_dao)
         self.statistics_manager = StatisticsManager()
         self.language_manager = LanguageManager()
@@ -58,7 +64,9 @@ class TicketCore(commands.Cog):
         必須於機器人啟動時註冊，否則斷線後 Discord 互動元件會失效。
         """
         try:
-            self.bot.add_view(TicketPanelView(settings=None))  # 主面板（不需參數即 persistent）
+            self.bot.add_view(
+                TicketPanelView(settings=None)
+            )  # 主面板（不需參數即 persistent）
             self.bot.add_view(TicketControlView())  # 控制面板
             # RatingView 改為動態創建，不在此註冊
             # self.bot.add_view(RatingView(ticket_id=0)) # 評分（改為動態創建）
@@ -74,9 +82,13 @@ class TicketCore(commands.Cog):
             ticket = await self.DAO.get_ticket_by_channel(channel.id)
             return ticket is not None
         except Exception as e:
-            logger.error(f"[票券頻道判斷] 頻道 {getattr(channel, 'id', None)} 查詢失敗: {e}")
+            logger.error(
+                f"[票券頻道判斷] 頻道 {getattr(channel, 'id', None)} 查詢失敗: {e}"
+            )
             # fallback: 若資料庫失敗則比對名稱
-            return hasattr(channel, "name") and channel.name.startswith("ticket-")
+            return hasattr(channel, "name") and channel.name.startswith(
+                "ticket-"
+            )
 
     # ========== 指令區 ==========
 
@@ -90,7 +102,9 @@ class TicketCore(commands.Cog):
             settings = await self.DAO.get_settings(ctx.guild.id)
             embed = EmbedBuilder.build(
                 title="🎫 客服中心",
-                description=settings.get("welcome_message", "請選擇問題類型來建立支援票券"),
+                description=settings.get(
+                    "welcome_message", "請選擇問題類型來建立支援票券"
+                ),
                 color=TicketConstants.COLORS["primary"],
             )
             embed.add_field(
@@ -102,16 +116,23 @@ class TicketCore(commands.Cog):
             )
             view = TicketPanelView(settings)
             message = await ctx.send(embed=embed, view=view)
-            await self.DAO.save_panel_message(ctx.guild.id, message.id, ctx.channel.id)
+            await self.DAO.save_panel_message(
+                ctx.guild.id, message.id, ctx.channel.id
+            )
             logger.info(f"票券面板建立於 {ctx.guild.name} by {ctx.author}")
         except Exception as e:
             logger.error(f"建立票券面板錯誤: {e}")
             await ctx.send("❌ 建立票券面板失敗，請稍後再試。")
 
-    @commands.command(name="set_ticket_category", aliases=["set_category", "ticket_category"])
+    @commands.command(
+        name="set_ticket_category", aliases=["set_category", "ticket_category"]
+    )
     @commands.has_permissions(manage_guild=True)
     async def set_ticket_category(
-        self, ctx: commands.Context, *, category: discord.CategoryChannel = None
+        self,
+        ctx: commands.Context,
+        *,
+        category: discord.CategoryChannel = None,
     ):
         """
         設定票券分類頻道
@@ -139,7 +160,9 @@ class TicketCore(commands.Cog):
 
         try:
             # 更新資料庫設定
-            await self.DAO.update_settings(ctx.guild.id, {"category_id": category.id})
+            await self.DAO.update_settings(
+                ctx.guild.id, {"category_id": category.id}
+            )
 
             embed = EmbedBuilder.success(
                 "分類頻道設定成功",
@@ -152,7 +175,9 @@ class TicketCore(commands.Cog):
             )
 
             await ctx.send(embed=embed)
-            logger.info(f"票券分類設定: {category.name} ({category.id}) by {ctx.author}")
+            logger.info(
+                f"票券分類設定: {category.name} ({category.id}) by {ctx.author}"
+            )
 
         except Exception as e:
             logger.error(f"設定票券分類錯誤: {e}")
@@ -163,7 +188,9 @@ class TicketCore(commands.Cog):
                 "• 指定的不是分類頻道"
             )
 
-    @commands.command(name="ticket_settings", aliases=["settings", "ticket_config"])
+    @commands.command(
+        name="ticket_settings", aliases=["settings", "ticket_config"]
+    )
     @commands.has_permissions(manage_guild=True)
     async def view_ticket_settings(self, ctx: commands.Context):
         """
@@ -182,11 +209,17 @@ class TicketCore(commands.Cog):
             category_id = settings.get("category_id")
             if category_id:
                 category = ctx.guild.get_channel(category_id)
-                category_info = category.mention if category else f"<#{category_id}> (已刪除)"
+                category_info = (
+                    category.mention
+                    if category
+                    else f"<#{category_id}> (已刪除)"
+                )
             else:
                 category_info = "❌ 尚未設定"
 
-            embed.add_field(name="📁 票券分類", value=category_info, inline=False)
+            embed.add_field(
+                name="📁 票券分類", value=category_info, inline=False
+            )
 
             # 其他設定
             embed.add_field(
@@ -203,7 +236,9 @@ class TicketCore(commands.Cog):
                 role_mentions = []
                 for role_id in support_roles:
                     role = ctx.guild.get_role(role_id)
-                    role_mentions.append(role.mention if role else f"<@&{role_id}> (已刪除)")
+                    role_mentions.append(
+                        role.mention if role else f"<@&{role_id}> (已刪除)"
+                    )
                 role_info = "\n".join([f"• {role}" for role in role_mentions])
             else:
                 role_info = "❌ 尚未設定"
@@ -215,9 +250,13 @@ class TicketCore(commands.Cog):
             if len(welcome_msg) > 100:
                 welcome_msg = welcome_msg[:100] + "..."
 
-            embed.add_field(name="💬 歡迎訊息", value=f"```{welcome_msg}```", inline=False)
+            embed.add_field(
+                name="💬 歡迎訊息", value=f"```{welcome_msg}```", inline=False
+            )
 
-            embed.set_footer(text="💡 使用 !set_ticket_category #分類名稱 來設定票券分類")
+            embed.set_footer(
+                text="💡 使用 !set_ticket_category #分類名稱 來設定票券分類"
+            )
 
             await ctx.send(embed=embed)
 
@@ -268,13 +307,16 @@ class TicketCore(commands.Cog):
 
         embed.add_field(
             name="⚠️ 常見錯誤",
-            value="• 指令和參數間忘記加空格\n" "• 使用了不存在的頻道\n" "• 沒有足夠的權限",
+            value="• 指令和參數間忘記加空格\n"
+            "• 使用了不存在的頻道\n"
+            "• 沒有足夠的權限",
             inline=False,
         )
 
         embed.add_field(
             name="💡 正確範例",
-            value="`!set_ticket_category #客服中心` ✅\n" "`!set_ticket_category#客服中心` ❌",
+            value="`!set_ticket_category #客服中心` ✅\n"
+            "`!set_ticket_category#客服中心` ❌",
             inline=False,
         )
 
@@ -317,8 +359,10 @@ class TicketCore(commands.Cog):
         用法: !auto_assign <票券ID>
         """
         try:
-            success, message, assigned_to = await self.assignment_manager.auto_assign_ticket(
-                ticket_id, ctx.author.id
+            success, message, assigned_to = (
+                await self.assignment_manager.auto_assign_ticket(
+                    ticket_id, ctx.author.id
+                )
             )
 
             if success and assigned_to:
@@ -338,7 +382,9 @@ class TicketCore(commands.Cog):
 
     @commands.command(name="staff_workload", aliases=["workload"])
     @commands.has_permissions(manage_guild=True)
-    async def staff_workload_command(self, ctx: commands.Context, member: discord.Member = None):
+    async def staff_workload_command(
+        self, ctx: commands.Context, member: discord.Member = None
+    ):
         """
         查看客服工作量
         用法: !staff_workload [@客服人員]
@@ -346,7 +392,9 @@ class TicketCore(commands.Cog):
         try:
             if member:
                 # 查看特定客服的詳細資訊
-                profile = await self.assignment_manager.get_staff_profile(ctx.guild.id, member.id)
+                profile = await self.assignment_manager.get_staff_profile(
+                    ctx.guild.id, member.id
+                )
 
                 if not profile:
                     await ctx.send("❌ 找不到該客服人員的工作量資訊。")
@@ -379,7 +427,8 @@ class TicketCore(commands.Cog):
 
                 if specialties:
                     specialty_list = [
-                        f"• {s['specialty_type']} ({s['skill_level']})" for s in specialties
+                        f"• {s['specialty_type']} ({s['skill_level']})"
+                        for s in specialties
                     ]
                     embed.add_field(
                         name="🎯 專精領域",
@@ -396,7 +445,11 @@ class TicketCore(commands.Cog):
 
             else:
                 # 查看所有客服的工作量摘要
-                summary = await self.assignment_manager.get_staff_workload_summary(ctx.guild.id)
+                summary = (
+                    await self.assignment_manager.get_staff_workload_summary(
+                        ctx.guild.id
+                    )
+                )
 
                 if not summary:
                     await ctx.send("📭 目前沒有客服人員的工作量資料。")
@@ -411,7 +464,11 @@ class TicketCore(commands.Cog):
                 # 顯示前10位客服的摘要
                 for i, staff in enumerate(summary[:10], 1):
                     member = ctx.guild.get_member(staff["staff_id"])
-                    name = member.display_name if member else f"<@{staff['staff_id']}>"
+                    name = (
+                        member.display_name
+                        if member
+                        else f"<@{staff['staff_id']}>"
+                    )
 
                     status_emoji = (
                         "🟢"
@@ -428,7 +485,9 @@ class TicketCore(commands.Cog):
                     )
 
                 if len(summary) > 10:
-                    embed.set_footer(text=f"顯示前10位，共{len(summary)}位客服")
+                    embed.set_footer(
+                        text=f"顯示前10位，共{len(summary)}位客服"
+                    )
 
             await ctx.send(embed=embed)
 
@@ -451,8 +510,10 @@ class TicketCore(commands.Cog):
         技能等級: beginner, intermediate, advanced, expert
         """
         try:
-            success, message = await self.assignment_manager.add_staff_specialty(
-                ctx.guild.id, member.id, specialty_type, skill_level
+            success, message = (
+                await self.assignment_manager.add_staff_specialty(
+                    ctx.guild.id, member.id, specialty_type, skill_level
+                )
             )
 
             if success:
@@ -470,13 +531,17 @@ class TicketCore(commands.Cog):
 
     @commands.command(name="assignment_stats", aliases=["assign_stats"])
     @commands.has_permissions(manage_guild=True)
-    async def assignment_stats_command(self, ctx: commands.Context, days: int = 30):
+    async def assignment_stats_command(
+        self, ctx: commands.Context, days: int = 30
+    ):
         """
         查看指派統計
         用法: !assignment_stats [天數]
         """
         try:
-            analytics = await self.assignment_manager.get_assignment_analytics(ctx.guild.id, days)
+            analytics = await self.assignment_manager.get_assignment_analytics(
+                ctx.guild.id, days
+            )
 
             if not analytics:
                 await ctx.send("❌ 無法取得指派統計資料。")
@@ -523,15 +588,25 @@ class TicketCore(commands.Cog):
                         f"• {method_name}: {method['count']}次 ({method['percentage']:.1f}%)"
                     )
 
-                embed.add_field(name="🎯 指派方法分析", value="\n".join(method_stats), inline=True)
+                embed.add_field(
+                    name="🎯 指派方法分析",
+                    value="\n".join(method_stats),
+                    inline=True,
+                )
 
             # 績效排行
             if analytics["staff_summary"]:
                 top_performers = []
                 for i, staff in enumerate(analytics["staff_summary"][:5], 1):
                     member = ctx.guild.get_member(staff["staff_id"])
-                    name = member.display_name if member else f"Staff {staff['staff_id']}"
-                    top_performers.append(f"{i}. {name} ({staff['completion_rate']:.1f}%)")
+                    name = (
+                        member.display_name
+                        if member
+                        else f"Staff {staff['staff_id']}"
+                    )
+                    top_performers.append(
+                        f"{i}. {name} ({staff['completion_rate']:.1f}%)"
+                    )
 
                 embed.add_field(
                     name="🏆 績效排行 TOP5",
@@ -547,8 +622,12 @@ class TicketCore(commands.Cog):
 
     # --------- 優先級系統指令 ---------
 
-    @app_commands.command(name="set_priority", description="設定票券優先級 | Set ticket priority")
-    @app_commands.describe(priority="優先級等級", ticket_id="票券ID（可選，預設為當前頻道票券）")
+    @app_commands.command(
+        name="set_priority", description="設定票券優先級 | Set ticket priority"
+    )
+    @app_commands.describe(
+        priority="優先級等級", ticket_id="票券ID（可選，預設為當前頻道票券）"
+    )
     @app_commands.choices(
         priority=[
             app_commands.Choice(name="🔴 高優先級 - 緊急問題", value="high"),
@@ -557,7 +636,10 @@ class TicketCore(commands.Cog):
         ]
     )
     async def set_priority(
-        self, interaction: discord.Interaction, priority: str, ticket_id: int = None
+        self,
+        interaction: discord.Interaction,
+        priority: str,
+        ticket_id: int = None,
     ):
         """設定票券優先級"""
         try:
@@ -570,10 +652,14 @@ class TicketCore(commands.Cog):
                         "❌ 請在票券頻道中使用，或指定票券ID。", ephemeral=True
                     )
                     return
-                ticket = await self.DAO.get_ticket_by_channel(interaction.channel.id)
+                ticket = await self.DAO.get_ticket_by_channel(
+                    interaction.channel.id
+                )
 
             if not ticket:
-                await interaction.response.send_message("❌ 找不到指定的票券。", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 找不到指定的票券。", ephemeral=True
+                )
                 return
 
             if ticket["status"] != "open":
@@ -587,18 +673,28 @@ class TicketCore(commands.Cog):
             is_staff = await self._is_support_staff(interaction.user, settings)
             is_creator = str(interaction.user.id) == ticket["discord_id"]
 
-            if not (is_staff or interaction.user.guild_permissions.manage_guild):
+            if not (
+                is_staff or interaction.user.guild_permissions.manage_guild
+            ):
                 await interaction.response.send_message(
                     "❌ 只有客服人員或管理員可以設定優先級。", ephemeral=True
                 )
                 return
 
             # 更新優先級
-            success = await self.DAO.update_ticket_priority(ticket["id"], priority)
+            success = await self.DAO.update_ticket_priority(
+                ticket["id"], priority
+            )
 
             if success:
-                priority_emoji = TicketConstants.PRIORITY_EMOJIS.get(priority, "🟡")
-                priority_name = {"high": "高", "medium": "中", "low": "低"}.get(priority, priority)
+                priority_emoji = TicketConstants.PRIORITY_EMOJIS.get(
+                    priority, "🟡"
+                )
+                priority_name = {
+                    "high": "高",
+                    "medium": "中",
+                    "low": "低",
+                }.get(priority, priority)
 
                 embed = EmbedBuilder.success(
                     "優先級已更新",
@@ -606,7 +702,9 @@ class TicketCore(commands.Cog):
                 )
 
                 # 根據優先級設定顏色
-                embed.color = TicketConstants.PRIORITY_COLORS.get(priority, 0xFFAA00)
+                embed.color = TicketConstants.PRIORITY_COLORS.get(
+                    priority, 0xFFAA00
+                )
 
                 await interaction.response.send_message(embed=embed)
 
@@ -616,7 +714,9 @@ class TicketCore(commands.Cog):
                         interaction.guild, ticket, interaction.user
                     )
 
-                logger.info(f"票券 #{ticket['id']} 優先級設定為 {priority} by {interaction.user}")
+                logger.info(
+                    f"票券 #{ticket['id']} 優先級設定為 {priority} by {interaction.user}"
+                )
             else:
                 await interaction.response.send_message(
                     "❌ 更新優先級失敗，請稍後再試。", ephemeral=True
@@ -630,7 +730,9 @@ class TicketCore(commands.Cog):
 
     @commands.command(name="priority_stats", aliases=["pstats"])
     @commands.has_permissions(manage_guild=True)
-    async def priority_stats_command(self, ctx: commands.Context, days: int = 7):
+    async def priority_stats_command(
+        self, ctx: commands.Context, days: int = 7
+    ):
         """
         查看優先級統計
         用法: !priority_stats [天數]
@@ -696,17 +798,23 @@ class TicketCore(commands.Cog):
             logger.error(f"查看優先級統計錯誤: {e}")
             await ctx.send("❌ 查看統計時發生錯誤，請稍後再試。")
 
-    async def _get_priority_statistics(self, guild_id: int, days: int) -> Dict[str, Any]:
+    async def _get_priority_statistics(
+        self, guild_id: int, days: int
+    ) -> Dict[str, Any]:
         """取得優先級統計資料"""
         try:
             # 獲取指定天數內的票券資料
             end_date = datetime.now(timezone.utc)
             start_date = end_date - timedelta(days=days)
 
-            tickets, _ = await self.DAO.get_tickets(guild_id, page_size=1000)  # 取得所有票券
+            tickets, _ = await self.DAO.get_tickets(
+                guild_id, page_size=1000
+            )  # 取得所有票券
 
             # 篩選時間範圍內的票券
-            filtered_tickets = [t for t in tickets if t["created_at"] >= start_date]
+            filtered_tickets = [
+                t for t in tickets if t["created_at"] >= start_date
+            ]
 
             # 優先級分佈統計
             distribution = {"high": 0, "medium": 0, "low": 0}
@@ -731,7 +839,9 @@ class TicketCore(commands.Cog):
                         closed_at = ticket["closed_at"]
                         # 確保時間戳有時區資訊
                         if created_at.tzinfo is None:
-                            created_at = created_at.replace(tzinfo=timezone.utc)
+                            created_at = created_at.replace(
+                                tzinfo=timezone.utc
+                            )
                         if closed_at.tzinfo is None:
                             closed_at = closed_at.replace(tzinfo=timezone.utc)
                         duration = closed_at - created_at
@@ -743,9 +853,9 @@ class TicketCore(commands.Cog):
             # 計算平均處理時間
             for priority in avg_resolution_time:
                 if avg_resolution_time[priority]:
-                    avg_resolution_time[priority] = sum(avg_resolution_time[priority]) / len(
+                    avg_resolution_time[priority] = sum(
                         avg_resolution_time[priority]
-                    )
+                    ) / len(avg_resolution_time[priority])
                 else:
                     avg_resolution_time[priority] = 0
 
@@ -838,15 +948,23 @@ class TicketCore(commands.Cog):
                     "❌ 此指令只能在票券頻道中使用。", ephemeral=True
                 )
                 return
-            ticket = await self.DAO.get_ticket_by_channel(interaction.channel.id)
+            ticket = await self.DAO.get_ticket_by_channel(
+                interaction.channel.id
+            )
             if not ticket:
-                await interaction.response.send_message("❌ 找不到票券資訊。", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 找不到票券資訊。", ephemeral=True
+                )
                 return
             if ticket["status"] == "closed":
-                await interaction.response.send_message("❌ 此票券已經關閉。", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 此票券已經關閉。", ephemeral=True
+                )
                 return
             settings = await self.DAO.get_settings(interaction.guild.id)
-            can_close = await self._check_close_permission(interaction.user, ticket, settings)
+            can_close = await self._check_close_permission(
+                interaction.user, ticket, settings
+            )
             if not can_close:
                 await interaction.response.send_message(
                     "❌ 只有票券創建者或客服人員可以關閉票券。", ephemeral=True
@@ -854,15 +972,21 @@ class TicketCore(commands.Cog):
                 return
             # 在關閉票券前先匯入聊天歷史記錄
             try:
-                from bot.services.chat_transcript_manager import ChatTranscriptManager
+                from bot.services.chat_transcript_manager import (
+                    ChatTranscriptManager,
+                )
 
                 transcript_manager = ChatTranscriptManager()
 
                 # 批量記錄頻道歷史訊息
-                message_count = await transcript_manager.batch_record_channel_history(
-                    ticket["id"], interaction.channel, limit=None
+                message_count = (
+                    await transcript_manager.batch_record_channel_history(
+                        ticket["id"], interaction.channel, limit=None
+                    )
                 )
-                logger.info(f"📝 票券 #{ticket['id']:04d} 已匯入 {message_count} 條歷史訊息")
+                logger.info(
+                    f"📝 票券 #{ticket['id']:04d} 已匯入 {message_count} 條歷史訊息"
+                )
 
             except Exception as transcript_error:
                 logger.error(f"❌ 匯入聊天歷史失敗: {transcript_error}")
@@ -875,14 +999,18 @@ class TicketCore(commands.Cog):
             if success:
                 # 更新指派統計（如果票券有指派）
                 if ticket.get("assigned_to"):
-                    await self.assignment_manager.update_ticket_completion(ticket["id"])
+                    await self.assignment_manager.update_ticket_completion(
+                        ticket["id"]
+                    )
                 embed = EmbedBuilder.build(
                     title="✅ 票券已關閉",
                     description=f"票券 #{ticket['id']:04d} 已成功關閉",
                     color=TicketConstants.COLORS["success"],
                 )
                 if reason:
-                    embed.add_field(name="關閉原因", value=reason, inline=False)
+                    embed.add_field(
+                        name="關閉原因", value=reason, inline=False
+                    )
                 await interaction.response.send_message(embed=embed)
                 # 評分（僅創建者可評分，未評過才顯示）
                 if (
@@ -891,8 +1019,12 @@ class TicketCore(commands.Cog):
                     and not ticket.get("rating")
                 ):
                     await asyncio.sleep(2)
-                    await self._show_rating_interface(interaction.channel, ticket["id"])
-                await self._schedule_channel_deletion(interaction.channel, delay=30)
+                    await self._show_rating_interface(
+                        interaction.channel, ticket["id"]
+                    )
+                await self._schedule_channel_deletion(
+                    interaction.channel, delay=30
+                )
             else:
                 await interaction.response.send_message(
                     "❌ 關閉票券失敗，請稍後再試。", ephemeral=True
@@ -900,11 +1032,18 @@ class TicketCore(commands.Cog):
         except Exception as e:
             logger.error(f"關閉票券錯誤: {e}")
             if not interaction.response.is_done():
-                await interaction.response.send_message("❌ 發生錯誤，請稍後再試。", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 發生錯誤，請稍後再試。", ephemeral=True
+                )
 
-    @app_commands.command(name="ticket_info", description="查看票券資訊 | View ticket information")
+    @app_commands.command(
+        name="ticket_info",
+        description="查看票券資訊 | View ticket information",
+    )
     @app_commands.describe(ticket_id="票券編號（可選）")
-    async def ticket_info(self, interaction: discord.Interaction, ticket_id: int = None):
+    async def ticket_info(
+        self, interaction: discord.Interaction, ticket_id: int = None
+    ):
         """
         查看票券資訊（slash 指令）。
         """
@@ -912,37 +1051,59 @@ class TicketCore(commands.Cog):
             if ticket_id:
                 ticket = await self.DAO.get_ticket_by_id(ticket_id)
             elif await self._is_ticket_channel(interaction.channel):
-                ticket = await self.DAO.get_ticket_by_channel(interaction.channel.id)
+                ticket = await self.DAO.get_ticket_by_channel(
+                    interaction.channel.id
+                )
             else:
                 await interaction.response.send_message(
                     "❌ 請在票券頻道中使用，或指定票券編號。", ephemeral=True
                 )
                 return
             if not ticket:
-                await interaction.response.send_message("❌ 找不到票券。", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 找不到票券。", ephemeral=True
+                )
                 return
             settings = await self.DAO.get_settings(interaction.guild.id)
-            can_view = await self._check_view_permission(interaction.user, ticket, settings)
+            can_view = await self._check_view_permission(
+                interaction.user, ticket, settings
+            )
             if not can_view:
-                await interaction.response.send_message("❌ 你沒有權限查看此票券。", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 你沒有權限查看此票券。", ephemeral=True
+                )
                 return
-            embed = await self._build_ticket_info_embed(ticket, interaction.guild)
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            embed = await self._build_ticket_info_embed(
+                ticket, interaction.guild
+            )
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
         except Exception as e:
             logger.error(f"查看票券資訊錯誤: {e}")
-            await interaction.response.send_message("❌ 查詢失敗，請稍後再試。", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 查詢失敗，請稍後再試。", ephemeral=True
+            )
 
     # @app_commands.command(name="tickets_test", description="測試票券列表指令")  # 已移除以節省指令空間
     async def test_tickets_disabled(self, interaction: discord.Interaction):
         """簡單的測試指令"""
         try:
-            logger.info(f"🧪 tickets_test 指令被調用 - 用戶: {interaction.user}")
-            await interaction.response.send_message("✅ 測試成功！指令運作正常", ephemeral=True)
+            logger.info(
+                f"🧪 tickets_test 指令被調用 - 用戶: {interaction.user}"
+            )
+            await interaction.response.send_message(
+                "✅ 測試成功！指令運作正常", ephemeral=True
+            )
         except Exception as e:
             logger.error(f"tickets_test 錯誤: {e}")
-            await interaction.response.send_message(f"❌ 錯誤: {str(e)}", ephemeral=True)
+            await interaction.response.send_message(
+                f"❌ 錯誤: {str(e)}", ephemeral=True
+            )
 
-    @app_commands.command(name="tickets", description="查看票券列表 | View ticket list")
+    @app_commands.command(
+        name="tickets", description="查看票券列表 | View ticket list"
+    )
     @app_commands.describe(
         status="狀態篩選",
         user="指定用戶（客服限定）",
@@ -1005,33 +1166,47 @@ class TicketCore(commands.Cog):
             # 處理標籤篩選
             if tag:
                 # 先查找標籤
-                tags = await self.tag_dao.get_tags_by_guild(interaction.guild.id)
-                tag_obj = next((t for t in tags if t["name"].lower() == tag.lower()), None)
+                tags = await self.tag_dao.get_tags_by_guild(
+                    interaction.guild.id
+                )
+                tag_obj = next(
+                    (t for t in tags if t["name"].lower() == tag.lower()), None
+                )
 
                 if not tag_obj:
-                    await interaction.followup.send(f"❌ 找不到標籤 '{tag}'", ephemeral=True)
+                    await interaction.followup.send(
+                        f"❌ 找不到標籤 '{tag}'", ephemeral=True
+                    )
                     return
 
                 # 取得使用此標籤的票券
-                tagged_tickets = await self.tag_dao.get_tickets_by_tag(tag_obj["id"], 100)
+                tagged_tickets = await self.tag_dao.get_tickets_by_tag(
+                    tag_obj["id"], 100
+                )
                 tagged_ticket_ids = [t["id"] for t in tagged_tickets]
 
                 if not tagged_ticket_ids:
-                    await interaction.followup.send("📭 沒有找到使用此標籤的票券。", ephemeral=True)
+                    await interaction.followup.send(
+                        "📭 沒有找到使用此標籤的票券。", ephemeral=True
+                    )
                     return
 
                 # 在已有條件基礎上進一步篩選
                 tickets, total = await self.DAO.get_tickets(**query_params)
 
                 # 篩選出有指定標籤的票券
-                filtered_tickets = [t for t in tickets if t["id"] in tagged_ticket_ids]
+                filtered_tickets = [
+                    t for t in tickets if t["id"] in tagged_ticket_ids
+                ]
                 tickets = filtered_tickets
                 total = len(tickets)
             else:
                 tickets, total = await self.DAO.get_tickets(**query_params)
 
             if not tickets:
-                await interaction.followup.send("📭 沒有找到符合條件的票券。", ephemeral=True)
+                await interaction.followup.send(
+                    "📭 沒有找到符合條件的票券。", ephemeral=True
+                )
                 return
 
             # 簡化版本用於測試
@@ -1057,7 +1232,9 @@ class TicketCore(commands.Cog):
 
             # 檢查是否還能回應
             try:
-                await interaction.followup.send(f"❌ 查詢失敗：{str(e)}", ephemeral=True)
+                await interaction.followup.send(
+                    f"❌ 查詢失敗：{str(e)}", ephemeral=True
+                )
             except Exception as follow_e:
                 logger.error(f"無法發送錯誤回應: {follow_e}")
 
@@ -1072,7 +1249,9 @@ class TicketCore(commands.Cog):
         """
         if ctx.invoked_subcommand is None:
             # 顯示標籤列表
-            formatted_list = await self.tag_manager.get_formatted_tag_list(ctx.guild.id)
+            formatted_list = await self.tag_manager.get_formatted_tag_list(
+                ctx.guild.id
+            )
 
             embed = EmbedBuilder.build(
                 title="🏷️ 伺服器標籤列表",
@@ -1084,7 +1263,9 @@ class TicketCore(commands.Cog):
             await ctx.send(embed=embed)
 
     @tag_group.command(name="create", aliases=["add"])
-    async def create_tag(self, ctx: commands.Context, name: str, *, display_name: str):
+    async def create_tag(
+        self, ctx: commands.Context, name: str, *, display_name: str
+    ):
         """
         創建新標籤
         用法: !tag create <標籤名> <顯示名稱>
@@ -1117,7 +1298,10 @@ class TicketCore(commands.Cog):
         try:
             # 根據名稱查找標籤
             tags = await self.tag_dao.get_tags_by_guild(ctx.guild.id)
-            tag = next((t for t in tags if t["name"].lower() == tag_name.lower()), None)
+            tag = next(
+                (t for t in tags if t["name"].lower() == tag_name.lower()),
+                None,
+            )
 
             if not tag:
                 await ctx.send(f"❌ 找不到標籤 '{tag_name}'")
@@ -1143,8 +1327,10 @@ class TicketCore(commands.Cog):
         用法: !tag init
         """
         try:
-            success, message, count = await self.tag_manager.initialize_default_tags(
-                ctx.guild.id, ctx.author.id
+            success, message, count = (
+                await self.tag_manager.initialize_default_tags(
+                    ctx.guild.id, ctx.author.id
+                )
             )
 
             if success:
@@ -1158,10 +1344,17 @@ class TicketCore(commands.Cog):
             logger.error(f"初始化預設標籤錯誤: {e}")
             await ctx.send("❌ 初始化預設標籤時發生錯誤，請稍後再試。")
 
-    @app_commands.command(name="add_tag", description="為票券添加標籤 | Add tag to ticket")
-    @app_commands.describe(tag_name="標籤名稱", ticket_id="票券ID（可選，預設為當前頻道票券）")
+    @app_commands.command(
+        name="add_tag", description="為票券添加標籤 | Add tag to ticket"
+    )
+    @app_commands.describe(
+        tag_name="標籤名稱", ticket_id="票券ID（可選，預設為當前頻道票券）"
+    )
     async def add_tag_to_ticket_slash(
-        self, interaction: discord.Interaction, tag_name: str, ticket_id: int = None
+        self,
+        interaction: discord.Interaction,
+        tag_name: str,
+        ticket_id: int = None,
     ):
         """為票券添加標籤（slash指令）"""
         try:
@@ -1169,7 +1362,9 @@ class TicketCore(commands.Cog):
             settings = await self.DAO.get_settings(interaction.guild.id)
             is_staff = await self._is_support_staff(interaction.user, settings)
 
-            if not (is_staff or interaction.user.guild_permissions.manage_guild):
+            if not (
+                is_staff or interaction.user.guild_permissions.manage_guild
+            ):
                 await interaction.response.send_message(
                     "❌ 只有客服人員或管理員可以添加標籤。", ephemeral=True
                 )
@@ -1184,15 +1379,22 @@ class TicketCore(commands.Cog):
                         "❌ 請在票券頻道中使用，或指定票券ID。", ephemeral=True
                     )
                     return
-                ticket = await self.DAO.get_ticket_by_channel(interaction.channel.id)
+                ticket = await self.DAO.get_ticket_by_channel(
+                    interaction.channel.id
+                )
 
             if not ticket:
-                await interaction.response.send_message("❌ 找不到指定的票券。", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 找不到指定的票券。", ephemeral=True
+                )
                 return
 
             # 查找標籤
             tags = await self.tag_dao.get_tags_by_guild(interaction.guild.id)
-            tag = next((t for t in tags if t["name"].lower() == tag_name.lower()), None)
+            tag = next(
+                (t for t in tags if t["name"].lower() == tag_name.lower()),
+                None,
+            )
 
             if not tag:
                 await interaction.response.send_message(
@@ -1209,7 +1411,9 @@ class TicketCore(commands.Cog):
                 embed = EmbedBuilder.success("標籤添加成功", message)
                 await interaction.response.send_message(embed=embed)
             else:
-                await interaction.response.send_message(f"❌ {message}", ephemeral=True)
+                await interaction.response.send_message(
+                    f"❌ {message}", ephemeral=True
+                )
 
         except Exception as e:
             logger.error(f"添加標籤錯誤: {e}")
@@ -1235,16 +1439,22 @@ class TicketCore(commands.Cog):
             loading_msg = await ctx.send("📊 正在生成統計面板...")
 
             # 取得統計數據
-            dashboard_data = await self.statistics_manager.get_dashboard_statistics(
-                ctx.guild.id, days
+            dashboard_data = (
+                await self.statistics_manager.get_dashboard_statistics(
+                    ctx.guild.id, days
+                )
             )
 
             if not dashboard_data:
-                await loading_msg.edit(content="❌ 無法生成統計數據，請稍後再試。")
+                await loading_msg.edit(
+                    content="❌ 無法生成統計數據，請稍後再試。"
+                )
                 return
 
             # 建立統計面板嵌入
-            embed = await self._build_dashboard_embed(dashboard_data, ctx.guild)
+            embed = await self._build_dashboard_embed(
+                dashboard_data, ctx.guild
+            )
 
             await loading_msg.edit(content="", embed=embed)
 
@@ -1260,17 +1470,23 @@ class TicketCore(commands.Cog):
             settings = await self.DAO.get_settings(interaction.guild.id)
             is_staff = await self._is_support_staff(interaction.user, settings)
 
-            if not (is_staff or interaction.user.guild_permissions.manage_guild):
+            if not (
+                is_staff or interaction.user.guild_permissions.manage_guild
+            ):
                 await interaction.response.send_message(
                     "❌ 只有客服人員或管理員可以查看統計。", ephemeral=True
                 )
                 return
 
             # 取得實時統計
-            stats = await self.statistics_manager.get_realtime_stats(interaction.guild.id)
+            stats = await self.statistics_manager.get_realtime_stats(
+                interaction.guild.id
+            )
 
             if not stats:
-                await interaction.response.send_message("❌ 無法取得實時統計數據。", ephemeral=True)
+                await interaction.response.send_message(
+                    "❌ 無法取得實時統計數據。", ephemeral=True
+                )
                 return
 
             embed = EmbedBuilder.build(
@@ -1307,7 +1523,9 @@ class TicketCore(commands.Cog):
                 inline=True,
             )
 
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"查看實時統計錯誤: {e}")
@@ -1328,7 +1546,9 @@ class TicketCore(commands.Cog):
                 return
 
             # 生成報告
-            report = await self.statistics_manager.generate_summary_report(ctx.guild.id, days)
+            report = await self.statistics_manager.generate_summary_report(
+                ctx.guild.id, days
+            )
 
             if not report or report.startswith("❌"):
                 await ctx.send(report or "❌ 生成報告失敗。")
@@ -1403,7 +1623,9 @@ class TicketCore(commands.Cog):
 
                 embed.add_field(
                     name="🎯 優先級分析",
-                    value="\n".join(priority_text) if priority_text else "無數據",
+                    value=(
+                        "\n".join(priority_text) if priority_text else "無數據"
+                    ),
                     inline=True,
                 )
 
@@ -1479,7 +1701,9 @@ class TicketCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"建立統計面板嵌入錯誤：{e}")
-            return EmbedBuilder.error("統計面板錯誤", "無法生成統計面板，請稍後再試。")
+            return EmbedBuilder.error(
+                "統計面板錯誤", "無法生成統計面板，請稍後再試。"
+            )
 
     # ========== SLA 監控任務 ==========
     @tasks.loop(minutes=5)
@@ -1499,7 +1723,9 @@ class TicketCore(commands.Cog):
                 try:
                     guild = self.bot.get_guild(guild_id)
                     if guild:
-                        await self._handle_guild_overdue_tickets(guild, tickets)
+                        await self._handle_guild_overdue_tickets(
+                            guild, tickets
+                        )
                 except Exception as e:
                     logger.error(f"處理伺服器 {guild_id} SLA 超時錯誤: {e}")
         except Exception as e:
@@ -1563,7 +1789,9 @@ class TicketCore(commands.Cog):
             return True
         return await self._is_support_staff(user, settings)
 
-    async def _is_support_staff(self, user: discord.Member, settings: Dict) -> bool:
+    async def _is_support_staff(
+        self, user: discord.Member, settings: Dict
+    ) -> bool:
         """
         是否為客服身分組或管理員
         """
@@ -1574,15 +1802,25 @@ class TicketCore(commands.Cog):
         return any(role_id in user_role_ids for role_id in support_roles)
 
     # ========== 嵌入建構 ==========
-    async def _build_ticket_info_embed(self, ticket: Dict, guild: discord.Guild) -> discord.Embed:
+    async def _build_ticket_info_embed(
+        self, ticket: Dict, guild: discord.Guild
+    ) -> discord.Embed:
         """
         建立票券資訊嵌入訊息。
         """
-        priority_emoji = TicketConstants.PRIORITY_EMOJIS.get(ticket.get("priority", "medium"), "🟡")
-        status_emoji = TicketConstants.STATUS_EMOJIS.get(ticket["status"], "🟢")
-        color = TicketConstants.PRIORITY_COLORS.get(ticket.get("priority", "medium"), 0x00FF00)
+        priority_emoji = TicketConstants.PRIORITY_EMOJIS.get(
+            ticket.get("priority", "medium"), "🟡"
+        )
+        status_emoji = TicketConstants.STATUS_EMOJIS.get(
+            ticket["status"], "🟢"
+        )
+        color = TicketConstants.PRIORITY_COLORS.get(
+            ticket.get("priority", "medium"), 0x00FF00
+        )
 
-        embed = EmbedBuilder.build(title=f"🎫 票券 #{ticket['id']:04d}", color=color)
+        embed = EmbedBuilder.build(
+            title=f"🎫 票券 #{ticket['id']:04d}", color=color
+        )
         embed.add_field(
             name="📋 基本資訊",
             value=f"**類型：** {ticket['type']}\n"
@@ -1592,7 +1830,8 @@ class TicketCore(commands.Cog):
         )
         embed.add_field(
             name="👤 用戶資訊",
-            value=f"**開票者：** <@{ticket['discord_id']}>\n" f"**用戶名：** {ticket['username']}",
+            value=f"**開票者：** <@{ticket['discord_id']}>\n"
+            f"**用戶名：** {ticket['username']}",
             inline=True,
         )
         created_time = get_time_ago(ticket["created_at"])
@@ -1664,7 +1903,9 @@ class TicketCore(commands.Cog):
             ),
         )
 
-        embed = EmbedBuilder.build(title="🎫 票券列表", color=TicketConstants.COLORS["info"])
+        embed = EmbedBuilder.build(
+            title="🎫 票券列表", color=TicketConstants.COLORS["info"]
+        )
 
         # 篩選條件與統計資訊
         filters = []
@@ -1687,16 +1928,22 @@ class TicketCore(commands.Cog):
         stats_text = f"🔴 {priority_stats['high']} | 🟡 {priority_stats['medium']} | 🟢 {priority_stats['low']}"
 
         if filters:
-            embed.description = (
-                f"**篩選條件：** {' | '.join(filters)}\n**優先級分佈：** {stats_text}"
-            )
+            embed.description = f"**篩選條件：** {' | '.join(filters)}\n**優先級分佈：** {stats_text}"
         else:
             embed.description = f"**優先級分佈：** {stats_text}"
 
         # 分組顯示票券（按優先級）
-        high_priority = [t for t in sorted_tickets if t.get("priority") == "high"]
-        medium_priority = [t for t in sorted_tickets if t.get("priority", "medium") == "medium"]
-        low_priority = [t for t in sorted_tickets if t.get("priority") == "low"]
+        high_priority = [
+            t for t in sorted_tickets if t.get("priority") == "high"
+        ]
+        medium_priority = [
+            t
+            for t in sorted_tickets
+            if t.get("priority", "medium") == "medium"
+        ]
+        low_priority = [
+            t for t in sorted_tickets if t.get("priority") == "low"
+        ]
 
         displayed_count = 0
         max_display = 10
@@ -1726,20 +1973,28 @@ class TicketCore(commands.Cog):
                     "archived": "🗄️ 已歸檔",
                 }.get(ticket["status"], ticket["status"].upper())
 
-                field_value = f"{priority_emoji} **{group_name}** | {status_text}\n"
+                field_value = (
+                    f"{priority_emoji} **{group_name}** | {status_text}\n"
+                )
                 field_value += f"👤 <@{ticket['discord_id']}>\n"
 
                 # 時間資訊（根據狀態顯示不同資訊）
                 if ticket["status"] == "open":
-                    time_info = f"📅 建立於 {get_time_ago(ticket['created_at'])}"
+                    time_info = (
+                        f"📅 建立於 {get_time_ago(ticket['created_at'])}"
+                    )
                     # 添加 SLA 狀態提示
                     if ticket.get("priority") == "high":
                         created_time = ticket["created_at"]
                         # 確保時間戳有時區資訊
                         if created_time.tzinfo is None:
-                            created_time = created_time.replace(tzinfo=timezone.utc)
+                            created_time = created_time.replace(
+                                tzinfo=timezone.utc
+                            )
                         now = datetime.now(timezone.utc)
-                        elapsed_minutes = (now - created_time).total_seconds() / 60
+                        elapsed_minutes = (
+                            now - created_time
+                        ).total_seconds() / 60
                         if elapsed_minutes > 30:  # 高優先級 30 分鐘 SLA
                             time_info += " ⚠️ **SLA超時**"
                         elif elapsed_minutes > 20:
@@ -1765,7 +2020,9 @@ class TicketCore(commands.Cog):
                     for tag in ticket_tags[:3]:  # 最多顯示3個標籤
                         emoji = tag.get("emoji", "")
                         tag_display = (
-                            f"{emoji}{tag['display_name']}" if emoji else tag["display_name"]
+                            f"{emoji}{tag['display_name']}"
+                            if emoji
+                            else tag["display_name"]
                         )
                         tag_displays.append(tag_display)
 
@@ -1779,9 +2036,13 @@ class TicketCore(commands.Cog):
                     field_value += f"\n📍 <#{ticket['channel_id']}>"
 
                 # 票券標題加上優先級標識
-                ticket_title = f"#{ticket['id']:04d} {priority_emoji} {ticket['type']}"
+                ticket_title = (
+                    f"#{ticket['id']:04d} {priority_emoji} {ticket['type']}"
+                )
 
-                embed.add_field(name=ticket_title, value=field_value, inline=True)
+                embed.add_field(
+                    name=ticket_title, value=field_value, inline=True
+                )
 
                 displayed_count += 1
 
@@ -1796,7 +2057,9 @@ class TicketCore(commands.Cog):
         return embed
 
     # ========== 互動工具 ==========
-    async def _show_rating_interface(self, channel: discord.TextChannel, ticket_id: int):
+    async def _show_rating_interface(
+        self, channel: discord.TextChannel, ticket_id: int
+    ):
         """
         顯示評分界面
         """
@@ -1820,7 +2083,9 @@ class TicketCore(commands.Cog):
         except Exception as e:
             logger.error(f"顯示評分界面錯誤: {e}")
 
-    async def _schedule_channel_deletion(self, channel: discord.TextChannel, delay: int = 30):
+    async def _schedule_channel_deletion(
+        self, channel: discord.TextChannel, delay: int = 30
+    ):
         """
         延遲刪除票券頻道。
         """
@@ -1834,7 +2099,9 @@ class TicketCore(commands.Cog):
         except Exception as e:
             logger.error(f"刪除頻道錯誤: {e}")
 
-    async def _handle_guild_overdue_tickets(self, guild: discord.Guild, tickets: List[Dict]):
+    async def _handle_guild_overdue_tickets(
+        self, guild: discord.Guild, tickets: List[Dict]
+    ):
         """
         通知指定伺服器的所有超時票券。
         """
@@ -1862,12 +2129,16 @@ class TicketCore(commands.Cog):
                 emoji = TicketConstants.PRIORITY_EMOJIS.get(priority, "🟡")
                 ticket_list = []
                 for ticket in priority_tickets[:5]:
-                    overdue_time = self._calculate_overdue_time(ticket, settings)
+                    overdue_time = self._calculate_overdue_time(
+                        ticket, settings
+                    )
                     ticket_list.append(
                         f"#{ticket['id']:04d} - {ticket['type']} (超時 {overdue_time:.0f} 分鐘)"
                     )
                 if len(priority_tickets) > 5:
-                    ticket_list.append(f"... 還有 {len(priority_tickets) - 5} 張")
+                    ticket_list.append(
+                        f"... 還有 {len(priority_tickets) - 5} 張"
+                    )
                 embed.add_field(
                     name=f"{emoji} {priority.upper()} 優先級 ({len(priority_tickets)} 張)",
                     value="\n".join(ticket_list),
@@ -1882,7 +2153,9 @@ class TicketCore(commands.Cog):
             content = " ".join(mentions) if mentions else ""
             embed.add_field(
                 name="📋 建議行動",
-                value="• 請優先處理高優先級票券\n" "• 檢查客服人員配置\n" "• 考慮調整 SLA 時間設定",
+                value="• 請優先處理高優先級票券\n"
+                "• 檢查客服人員配置\n"
+                "• 考慮調整 SLA 時間設定",
                 inline=False,
             )
             await log_channel.send(content=content, embed=embed)
@@ -1909,13 +2182,19 @@ class TicketCore(commands.Cog):
             logger.error(f"計算超時時間錯誤: {e}")
             return 0
 
-    async def _auto_close_inactive_tickets(self, guild_id: int, hours_threshold: int) -> int:
+    async def _auto_close_inactive_tickets(
+        self, guild_id: int, hours_threshold: int
+    ) -> int:
         """
         自動關閉無活動票券。
         """
         try:
-            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours_threshold)
-            inactive_tickets = await self.DAO.get_inactive_tickets(guild_id, cutoff_time)
+            cutoff_time = datetime.now(timezone.utc) - timedelta(
+                hours=hours_threshold
+            )
+            inactive_tickets = await self.DAO.get_inactive_tickets(
+                guild_id, cutoff_time
+            )
             closed_count = 0
             for ticket in inactive_tickets:
                 try:
@@ -1928,7 +2207,11 @@ class TicketCore(commands.Cog):
                         closed_count += 1
                         try:
                             guild = self.bot.get_guild(guild_id)
-                            user = guild.get_member(int(ticket["discord_id"])) if guild else None
+                            user = (
+                                guild.get_member(int(ticket["discord_id"]))
+                                if guild
+                                else None
+                            )
                             if user:
                                 embed = EmbedBuilder.build(
                                     title="🔒 票券自動關閉",
@@ -1952,13 +2235,17 @@ class TicketCore(commands.Cog):
                         try:
                             guild = self.bot.get_guild(guild_id)
                             if guild:
-                                channel = guild.get_channel(ticket["channel_id"])
+                                channel = guild.get_channel(
+                                    ticket["channel_id"]
+                                )
                                 if channel:
                                     await channel.delete(reason="票券自動關閉")
                         except:
                             pass
                 except Exception as e:
-                    logger.error(f"自動關閉票券 #{ticket['ticket_id']:04d} 錯誤: {e}")
+                    logger.error(
+                        f"自動關閉票券 #{ticket['ticket_id']:04d} 錯誤: {e}"
+                    )
                     continue
             return closed_count
         except Exception as e:
@@ -1978,7 +2265,9 @@ async def setup(bot: commands.Bot):
     for command in cog.get_commands():
         commands_registered.append(command.name)
 
-    logger.info(f"✅ 票券核心系統已載入，註冊的指令: {', '.join(commands_registered)}")
+    logger.info(
+        f"✅ 票券核心系統已載入，註冊的指令: {', '.join(commands_registered)}"
+    )
 
     # 特別檢查 ticket_settings
     if any(cmd.name == "ticket_settings" for cmd in cog.get_commands()):

@@ -10,7 +10,11 @@ from discord.ext import commands, tasks
 
 from bot.db.ticket_dao import TicketDAO
 from bot.services.chat_transcript_manager import ChatTranscriptManager
-from bot.services.realtime_sync_manager import SyncEvent, SyncEventType, realtime_sync
+from bot.services.realtime_sync_manager import (
+    SyncEvent,
+    SyncEventType,
+    realtime_sync,
+)
 from bot.services.ticket_manager import TicketManager
 from bot.utils.ticket_constants import get_priority_emoji
 from bot.utils.ticket_utils import TicketPermissionChecker, is_ticket_channel
@@ -34,12 +38,16 @@ class TicketListener(commands.Cog):
         self.transcript_manager = ChatTranscriptManager()
 
         # 可選服務
-        self.auto_reply_service = auto_reply_service or getattr(bot, "auto_reply_service", None)
+        self.auto_reply_service = auto_reply_service or getattr(
+            bot, "auto_reply_service", None
+        )
         self.sla_service = sla_service or getattr(bot, "sla_service", None)
         self.notification_service = notification_service or getattr(
             bot, "notification_service", None
         )
-        self.assignment_service = assignment_service or getattr(bot, "assignment_service", None)
+        self.assignment_service = assignment_service or getattr(
+            bot, "assignment_service", None
+        )
 
         # 狀態追蹤
         self.user_activity = {}  # 追蹤用戶活動
@@ -76,12 +84,16 @@ class TicketListener(commands.Cog):
 
         try:
             # 取得票券資訊
-            ticket_info = await self.dao.get_ticket_by_channel(message.channel.id)
+            ticket_info = await self.dao.get_ticket_by_channel(
+                message.channel.id
+            )
             if not ticket_info or ticket_info["status"] != "open":
                 return
 
             # 記錄聊天訊息到資料庫
-            await self.transcript_manager.record_message(ticket_info["ticket_id"], message)
+            await self.transcript_manager.record_message(
+                ticket_info["ticket_id"], message
+            )
 
             # 發布訊息接收事件
             await realtime_sync.publish_event(
@@ -115,15 +127,20 @@ class TicketListener(commands.Cog):
         except Exception as e:
             logger.error(f"處理客服訊息失敗: {e}")
 
-    async def _handle_user_message(self, message: discord.Message, ticket_info: Dict):
+    async def _handle_user_message(
+        self, message: discord.Message, ticket_info: Dict
+    ):
         """處理用戶訊息 - 增強版"""
         try:
             # 檢查是否需要觸發自動回覆
-            if self.auto_reply_service and await self._should_trigger_auto_reply(
-                message, ticket_info
+            if (
+                self.auto_reply_service
+                and await self._should_trigger_auto_reply(message, ticket_info)
             ):
-                auto_reply_triggered = await self.auto_reply_service.process_message(
-                    message, ticket_info
+                auto_reply_triggered = (
+                    await self.auto_reply_service.process_message(
+                        message, ticket_info
+                    )
                 )
 
                 if auto_reply_triggered:
@@ -138,7 +155,9 @@ class TicketListener(commands.Cog):
         except Exception as e:
             logger.error(f"處理用戶訊息失敗: {e}")
 
-    async def _handle_staff_message(self, message: discord.Message, ticket_info: Dict):
+    async def _handle_staff_message(
+        self, message: discord.Message, ticket_info: Dict
+    ):
         """處理客服訊息 - 增強版"""
         try:
             # 取得伺服器設定
@@ -151,13 +170,17 @@ class TicketListener(commands.Cog):
                 return
 
             # 記錄首次回應（SLA 監控）
-            if self.sla_service and not await self.dao.has_staff_response(ticket_info["ticket_id"]):
+            if self.sla_service and not await self.dao.has_staff_response(
+                ticket_info["ticket_id"]
+            ):
                 await self.sla_service.record_first_response(
                     ticket_info["ticket_id"], message.author.id
                 )
 
                 # 發送 SLA 達標通知
-                await self._send_sla_compliance_notification(message, ticket_info, settings)
+                await self._send_sla_compliance_notification(
+                    message, ticket_info, settings
+                )
 
             # 自動指派票券（如果尚未指派）
             if not ticket_info.get("assigned_to"):
@@ -169,7 +192,9 @@ class TicketListener(commands.Cog):
         except Exception as e:
             logger.error(f"處理票券回覆時發生錯誤: {e}", exc_info=True)
 
-    async def _should_trigger_auto_reply(self, message: discord.Message, ticket_info: Dict) -> bool:
+    async def _should_trigger_auto_reply(
+        self, message: discord.Message, ticket_info: Dict
+    ) -> bool:
         """檢查是否應該觸發自動回覆"""
         # 避免過於頻繁的自動回覆
         cache_key = f"auto_reply_{ticket_info['ticket_id']}"
@@ -184,7 +209,9 @@ class TicketListener(commands.Cog):
         self._message_cache[cache_key] = datetime.now(timezone.utc)
         return True
 
-    async def _check_urgent_keywords(self, message: discord.Message, ticket_info: Dict):
+    async def _check_urgent_keywords(
+        self, message: discord.Message, ticket_info: Dict
+    ):
         """檢查緊急關鍵字"""
         urgent_keywords = [
             "緊急",
@@ -219,7 +246,9 @@ class TicketListener(commands.Cog):
                     )
                     await message.channel.send(embed=embed)
 
-    async def _auto_assign_responding_staff(self, message: discord.Message, ticket_info: Dict):
+    async def _auto_assign_responding_staff(
+        self, message: discord.Message, ticket_info: Dict
+    ):
         """自動指派回應的客服"""
         try:
             success = await self.dao.assign_ticket(
@@ -236,7 +265,9 @@ class TicketListener(commands.Cog):
         except Exception as e:
             logger.error(f"自動指派客服失敗: {e}")
 
-    async def _detect_template_usage(self, message: discord.Message, ticket_info: Dict):
+    async def _detect_template_usage(
+        self, message: discord.Message, ticket_info: Dict
+    ):
         """檢測模板使用"""
         # 簡單的模板檢測邏輯
         content = message.content
@@ -255,7 +286,9 @@ class TicketListener(commands.Cog):
         for indicator in template_indicators:
             if indicator in content:
                 # 記錄模板使用（可用於統計）
-                logger.info(f"檢測到模板使用: {indicator} 在票券 {ticket_info.get('ticket_id')}")
+                logger.info(
+                    f"檢測到模板使用: {indicator} 在票券 {ticket_info.get('ticket_id')}"
+                )
                 break
 
     async def _flag_negative_sentiment(
@@ -282,14 +315,20 @@ class TicketListener(commands.Cog):
                         f"**頻道：** {message.channel.mention}",
                         inline=False,
                     )
-                    embed.add_field(name="建議", value="建議主管或資深客服介入處理", inline=False)
+                    embed.add_field(
+                        name="建議",
+                        value="建議主管或資深客服介入處理",
+                        inline=False,
+                    )
 
                     await log_channel.send(embed=embed)
 
         except Exception as e:
             logger.error(f"標記負面情感失敗: {e}")
 
-    async def _detect_repetitive_issues(self, message: discord.Message, ticket_info: Dict):
+    async def _detect_repetitive_issues(
+        self, message: discord.Message, ticket_info: Dict
+    ):
         """檢測重複問題"""
         # 簡化的重複檢測邏輯
         cache_key = f"messages_{ticket_info['ticket_id']}"
@@ -332,7 +371,9 @@ class TicketListener(commands.Cog):
 
         return len(intersection) / len(union)
 
-    async def _handle_repetitive_issue(self, message: discord.Message, ticket_info: Dict):
+    async def _handle_repetitive_issue(
+        self, message: discord.Message, ticket_info: Dict
+    ):
         """處理重複問題"""
         embed = discord.Embed(
             title="🔄 重複問題檢測",
@@ -368,7 +409,9 @@ class TicketListener(commands.Cog):
         except Exception as e:
             logger.error(f"處理頻道刪除事件時發生錯誤: {e}")
 
-    async def _log_channel_deletion(self, channel: discord.TextChannel, ticket_info: Dict):
+    async def _log_channel_deletion(
+        self, channel: discord.TextChannel, ticket_info: Dict
+    ):
         """記錄頻道刪除事件"""
         try:
             settings = await self.dao.get_guild_settings(channel.guild.id)
@@ -381,10 +424,22 @@ class TicketListener(commands.Cog):
             if not log_channel:
                 return
 
-            embed = discord.Embed(title="🗑️ 票券頻道被刪除", color=discord.Color.orange())
-            embed.add_field(name="票券編號", value=f"#{ticket_info['ticket_id']:04d}", inline=True)
-            embed.add_field(name="類型", value=ticket_info["type"], inline=True)
-            embed.add_field(name="開票者", value=f"<@{ticket_info['discord_id']}>", inline=True)
+            embed = discord.Embed(
+                title="🗑️ 票券頻道被刪除", color=discord.Color.orange()
+            )
+            embed.add_field(
+                name="票券編號",
+                value=f"#{ticket_info['ticket_id']:04d}",
+                inline=True,
+            )
+            embed.add_field(
+                name="類型", value=ticket_info["type"], inline=True
+            )
+            embed.add_field(
+                name="開票者",
+                value=f"<@{ticket_info['discord_id']}>",
+                inline=True,
+            )
             embed.add_field(name="頻道名稱", value=channel.name, inline=True)
             embed.add_field(
                 name="刪除時間",
@@ -449,7 +504,9 @@ class TicketListener(commands.Cog):
 
                         # 延遲刪除頻道
                         await asyncio.sleep(30)
-                        await channel.delete(reason=f"用戶 {member.display_name} 離開伺服器")
+                        await channel.delete(
+                            reason=f"用戶 {member.display_name} 離開伺服器"
+                        )
 
                     except discord.NotFound:
                         pass  # 頻道已被刪除
@@ -462,7 +519,9 @@ class TicketListener(commands.Cog):
         except Exception as e:
             logger.error(f"處理成員離開事件時發生錯誤: {e}")
 
-    async def _log_member_departure(self, member: discord.Member, tickets: List[Dict]):
+    async def _log_member_departure(
+        self, member: discord.Member, tickets: List[Dict]
+    ):
         """記錄成員離開事件"""
         try:
             settings = await self.dao.get_guild_settings(member.guild.id)
@@ -483,7 +542,9 @@ class TicketListener(commands.Cog):
 
             ticket_list = []
             for ticket in tickets:
-                priority_emoji = get_priority_emoji(ticket.get("priority", "medium"))
+                priority_emoji = get_priority_emoji(
+                    ticket.get("priority", "medium")
+                )
                 ticket_list.append(
                     f"{priority_emoji} #{ticket['ticket_id']:04d} - {ticket['type']}"
                 )
@@ -491,7 +552,11 @@ class TicketListener(commands.Cog):
             embed.add_field(
                 name=f"自動關閉的票券 ({len(tickets)} 張)",
                 value="\n".join(ticket_list[:10])
-                + (f"\n... 還有 {len(tickets)-10} 張" if len(tickets) > 10 else ""),
+                + (
+                    f"\n... 還有 {len(tickets)-10} 張"
+                    if len(tickets) > 10
+                    else ""
+                ),
                 inline=False,
             )
 
@@ -525,7 +590,9 @@ class TicketListener(commands.Cog):
     # ===== 身分組變更監聽 =====
 
     @commands.Cog.listener()
-    async def on_member_update(self, before: discord.Member, after: discord.Member):
+    async def on_member_update(
+        self, before: discord.Member, after: discord.Member
+    ):
         """監聽成員更新事件（身分組變更）- 增強版"""
         # 檢查身分組是否有變更
         if before.roles == after.roles:
@@ -537,7 +604,9 @@ class TicketListener(commands.Cog):
         # 處理身分組變更
         await self._handle_role_change(before, after)
 
-    async def _handle_role_change(self, before: discord.Member, after: discord.Member):
+    async def _handle_role_change(
+        self, before: discord.Member, after: discord.Member
+    ):
         """處理身分組變更"""
         try:
             # 取得設定
@@ -568,7 +637,9 @@ class TicketListener(commands.Cog):
         except Exception as e:
             logger.error(f"清理用戶快取時發生錯誤: {e}")
 
-    async def _handle_status_change(self, before: discord.Member, after: discord.Member):
+    async def _handle_status_change(
+        self, before: discord.Member, after: discord.Member
+    ):
         """處理狀態變更"""
         # 只追蹤客服人員
         if after.id not in self.staff_online_status:
@@ -585,7 +656,10 @@ class TicketListener(commands.Cog):
             )
 
             # 如果客服上線且有待分配的票券，發送通知
-            if before.status == discord.Status.offline and after.status != discord.Status.offline:
+            if (
+                before.status == discord.Status.offline
+                and after.status != discord.Status.offline
+            ):
 
                 await self._notify_staff_of_pending_tickets(after)
 
@@ -596,12 +670,15 @@ class TicketListener(commands.Cog):
         """處理客服身分組被移除"""
         try:
             # 查找該成員被指派的票券
-            tickets, _ = await self.dao.paginate_tickets(guild_id=member.guild.id, page_size=100)
+            tickets, _ = await self.dao.paginate_tickets(
+                guild_id=member.guild.id, page_size=100
+            )
 
             assigned_tickets = [
                 ticket
                 for ticket in tickets
-                if ticket.get("assigned_to") == member.id and ticket["status"] == "open"
+                if ticket.get("assigned_to") == member.id
+                and ticket["status"] == "open"
             ]
 
             if not assigned_tickets:
@@ -689,7 +766,9 @@ class TicketListener(commands.Cog):
                 guild_id=member.guild.id, status="open", page_size=10
             )
 
-            unassigned_tickets = [t for t in tickets if not t.get("assigned_to")]
+            unassigned_tickets = [
+                t for t in tickets if not t.get("assigned_to")
+            ]
 
             if unassigned_tickets:
                 embed = discord.Embed(
@@ -701,12 +780,16 @@ class TicketListener(commands.Cog):
                 # 顯示前5張票券
                 ticket_list = []
                 for ticket in unassigned_tickets[:5]:
-                    priority_emoji = get_priority_emoji(ticket.get("priority", "medium"))
+                    priority_emoji = get_priority_emoji(
+                        ticket.get("priority", "medium")
+                    )
                     ticket_list.append(
                         f"{priority_emoji} #{ticket['ticket_id']:04d} - {ticket['type']}"
                     )
 
-                embed.add_field(name="票券列表", value="\n".join(ticket_list), inline=False)
+                embed.add_field(
+                    name="票券列表", value="\n".join(ticket_list), inline=False
+                )
 
                 await member.send(embed=embed)
 
@@ -727,7 +810,9 @@ class TicketListener(commands.Cog):
             expired_keys = []
             for key, timestamp in self._message_cache.items():
                 if isinstance(timestamp, datetime):
-                    if (current_time - timestamp).total_seconds() > 3600:  # 1小時
+                    if (
+                        current_time - timestamp
+                    ).total_seconds() > 3600:  # 1小時
                         expired_keys.append(key)
                 elif isinstance(timestamp, list):
                     # 處理訊息歷史列表
@@ -739,7 +824,9 @@ class TicketListener(commands.Cog):
             # 清理用戶活動記錄
             expired_activity = []
             for key, timestamp in self.user_activity.items():
-                if (current_time - timestamp).total_seconds() > 86400:  # 24小時
+                if (
+                    current_time - timestamp
+                ).total_seconds() > 86400:  # 24小時
                     expired_activity.append(key)
 
             for key in expired_activity:
@@ -764,12 +851,15 @@ class TicketListener(commands.Cog):
             active_users = sum(
                 1
                 for timestamp in self.user_activity.values()
-                if (current_time - timestamp).total_seconds() < 1800  # 30分鐘內活躍
+                if (current_time - timestamp).total_seconds()
+                < 1800  # 30分鐘內活躍
             )
 
             # 統計在線客服數
             online_staff = sum(
-                1 for status in self.staff_online_status.values() if status.get("is_online", False)
+                1
+                for status in self.staff_online_status.values()
+                if status.get("is_online", False)
             )
 
         except Exception as e:
@@ -802,7 +892,9 @@ class TicketListener(commands.Cog):
                 if (current_time - timestamp).total_seconds() < 1800
             ),
             "online_staff": sum(
-                1 for status in self.staff_online_status.values() if status.get("is_online", False)
+                1
+                for status in self.staff_online_status.values()
+                if status.get("is_online", False)
             ),
             "total_tracked_staff": len(self.staff_online_status),
             "cache_size": len(self._message_cache),
@@ -891,12 +983,15 @@ class TicketMaintenanceListener(commands.Cog):
             async with self.dao.db_pool.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
-                        "DELETE FROM ticket_views WHERE viewed_at < %s", (cutoff_date,)
+                        "DELETE FROM ticket_views WHERE viewed_at < %s",
+                        (cutoff_date,),
                     )
                     await conn.commit()
 
                     if cursor.rowcount > 0:
-                        logger.info(f"清理了 {cursor.rowcount} 個舊的票券查看記錄")
+                        logger.info(
+                            f"清理了 {cursor.rowcount} 個舊的票券查看記錄"
+                        )
 
         except Exception as e:
             logger.error(f"清理舊的票券查看記錄時發生錯誤: {e}")
@@ -1018,13 +1113,17 @@ class TicketAnalyticsListener(commands.Cog):
 
             # 收集當前小時的數據
             for guild in self.bot.guilds:
-                guild_data = await self._collect_hourly_data(guild.id, current_hour)
+                guild_data = await self._collect_hourly_data(
+                    guild.id, current_hour
+                )
                 self.peak_hours_data[f"{guild.id}_{current_hour}"] = guild_data
 
             # 清理舊數據（保留24小時）
             cutoff_key = f"_{(current_hour - 24) % 24}"
             keys_to_remove = [
-                key for key in self.peak_hours_data.keys() if key.endswith(cutoff_key)
+                key
+                for key in self.peak_hours_data.keys()
+                if key.endswith(cutoff_key)
             ]
             for key in keys_to_remove:
                 self.peak_hours_data.pop(key, None)
@@ -1032,12 +1131,16 @@ class TicketAnalyticsListener(commands.Cog):
         except Exception as e:
             logger.error(f"分析任務時發生錯誤: {e}")
 
-    async def _collect_hourly_data(self, guild_id: int, hour: int) -> Dict[str, Any]:
+    async def _collect_hourly_data(
+        self, guild_id: int, hour: int
+    ) -> Dict[str, Any]:
         """收集每小時數據"""
         try:
             # 取得當前小時的活動票券
             current_time = datetime.now(timezone.utc)
-            hour_start = current_time.replace(minute=0, second=0, microsecond=0)
+            hour_start = current_time.replace(
+                minute=0, second=0, microsecond=0
+            )
 
             async with self.dao.db_pool.connection() as conn:
                 async with conn.cursor(aiomysql.DictCursor) as cursor:
@@ -1049,14 +1152,22 @@ class TicketAnalyticsListener(commands.Cog):
                         FROM tickets
                         WHERE guild_id = %s AND created_at >= %s AND created_at < %s
                         """,
-                        (guild_id, hour_start, hour_start + timedelta(hours=1)),
+                        (
+                            guild_id,
+                            hour_start,
+                            hour_start + timedelta(hours=1),
+                        ),
                     )
                     creation_data = await cursor.fetchone()
 
                     # 本小時關閉的票券
                     await cursor.execute(
                         "SELECT COUNT(*) as closed_count FROM tickets WHERE guild_id = %s AND closed_at >= %s AND closed_at < %s",
-                        (guild_id, hour_start, hour_start + timedelta(hours=1)),
+                        (
+                            guild_id,
+                            hour_start,
+                            hour_start + timedelta(hours=1),
+                        ),
                     )
                     close_data = await cursor.fetchone()
 
@@ -1064,7 +1175,9 @@ class TicketAnalyticsListener(commands.Cog):
                 "hour": hour,
                 "created_tickets": creation_data.get("created_count", 0),
                 "closed_tickets": close_data.get("closed_count", 0),
-                "high_priority_rate": creation_data.get("high_priority_rate", 0),
+                "high_priority_rate": creation_data.get(
+                    "high_priority_rate", 0
+                ),
                 "timestamp": current_time,
             }
 
@@ -1083,7 +1196,11 @@ class TicketAnalyticsListener(commands.Cog):
 
     def get_peak_hours_analysis(self, guild_id: int) -> Dict[str, Any]:
         """取得高峰時段分析"""
-        guild_data = {k: v for k, v in self.peak_hours_data.items() if k.startswith(f"{guild_id}_")}
+        guild_data = {
+            k: v
+            for k, v in self.peak_hours_data.items()
+            if k.startswith(f"{guild_id}_")
+        }
 
         if not guild_data:
             return {"peak_hours": [], "total_activity": 0}
@@ -1096,13 +1213,17 @@ class TicketAnalyticsListener(commands.Cog):
             hourly_activity[hour] = hourly_activity.get(hour, 0) + activity
 
         # 找出前3個高峰時段
-        peak_hours = sorted(hourly_activity.items(), key=lambda x: x[1], reverse=True)[:3]
+        peak_hours = sorted(
+            hourly_activity.items(), key=lambda x: x[1], reverse=True
+        )[:3]
 
         return {
             "peak_hours": [{"hour": h, "activity": a} for h, a in peak_hours],
             "total_activity": sum(hourly_activity.values()),
             "average_activity": (
-                sum(hourly_activity.values()) / len(hourly_activity) if hourly_activity else 0
+                sum(hourly_activity.values()) / len(hourly_activity)
+                if hourly_activity
+                else 0
             ),
         }
 
@@ -1119,4 +1240,8 @@ async def setup(bot):
 
 # ===== 匯出 =====
 
-__all__ = ["TicketListener", "TicketMaintenanceListener", "TicketAnalyticsListener"]
+__all__ = [
+    "TicketListener",
+    "TicketMaintenanceListener",
+    "TicketAnalyticsListener",
+]

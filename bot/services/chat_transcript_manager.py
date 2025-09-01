@@ -109,7 +109,9 @@ class ChatTranscriptManager:
         except Exception as e:
             logger.error(f"❌ 初始化聊天記錄表失敗: {e}")
 
-    async def record_message(self, ticket_id: int, message: discord.Message) -> bool:
+    async def record_message(
+        self, ticket_id: int, message: discord.Message
+    ) -> bool:
         """記錄單一聊天訊息"""
         try:
             # 判斷訊息類型
@@ -162,7 +164,9 @@ class ChatTranscriptManager:
                     return True
 
         except Exception as e:
-            logger.error(f"記錄訊息失敗 (ticket_id={ticket_id}, message_id={message.id}): {e}")
+            logger.error(
+                f"記錄訊息失敗 (ticket_id={ticket_id}, message_id={message.id}): {e}"
+            )
             return False
 
     def _determine_message_type(self, message: discord.Message) -> str:
@@ -170,7 +174,8 @@ class ChatTranscriptManager:
         if message.author.bot:
             return "bot"
         elif any(
-            role.name in ["客服", "管理員", "Staff", "Admin"] for role in message.author.roles
+            role.name in ["客服", "管理員", "Staff", "Admin"]
+            for role in message.author.roles
         ):
             return "staff"
         else:
@@ -204,7 +209,9 @@ class ChatTranscriptManager:
                             author_name=msg["author_name"],
                             content=msg["content"],
                             attachments=(
-                                json.loads(msg["attachments"]) if msg["attachments"] else []
+                                json.loads(msg["attachments"])
+                                if msg["attachments"]
+                                else []
                             ),
                             message_type=msg["message_type"],
                             timestamp=msg["timestamp"],
@@ -218,7 +225,9 @@ class ChatTranscriptManager:
             logger.error(f"獲取票券訊息失敗 (ticket_id={ticket_id}): {e}")
             return []
 
-    async def export_transcript(self, ticket_id: int, format_type: str = "html") -> Optional[str]:
+    async def export_transcript(
+        self, ticket_id: int, format_type: str = "html"
+    ) -> Optional[str]:
         """匯出票券聊天記錄"""
         try:
             # 獲取票券訊息
@@ -232,13 +241,19 @@ class ChatTranscriptManager:
 
             # 根據格式類型生成記錄
             if format_type == "html":
-                content = await self._generate_html_transcript(ticket_info, messages)
+                content = await self._generate_html_transcript(
+                    ticket_info, messages
+                )
                 file_extension = "html"
             elif format_type == "text":
-                content = await self._generate_text_transcript(ticket_info, messages)
+                content = await self._generate_text_transcript(
+                    ticket_info, messages
+                )
                 file_extension = "txt"
             elif format_type == "json":
-                content = await self._generate_json_transcript(ticket_info, messages)
+                content = await self._generate_json_transcript(
+                    ticket_info, messages
+                )
                 file_extension = "json"
             else:
                 raise ValueError(f"不支援的格式: {format_type}")
@@ -367,14 +382,18 @@ class ChatTranscriptManager:
             # 處理附件
             attachments_html = ""
             if message.attachments:
-                attachments_html = '<div class="attachments"><strong>附件:</strong><br>'
+                attachments_html = (
+                    '<div class="attachments"><strong>附件:</strong><br>'
+                )
                 for att in message.attachments:
                     attachments_html += f'<div class="attachment">📎 {att["filename"]} ({att.get("size", 0)} bytes)</div>'
                 attachments_html += "</div>"
 
             # 處理訊息內容
             content = (
-                message.content.replace("\n", "<br>").replace("<", "&lt;").replace(">", "&gt;")
+                message.content.replace("\n", "<br>")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
             )
 
             html += f"""
@@ -452,7 +471,9 @@ class ChatTranscriptManager:
                     "message_type": message.message_type,
                     "timestamp": message.timestamp.isoformat(),
                     "edited_timestamp": (
-                        message.edited_timestamp.isoformat() if message.edited_timestamp else None
+                        message.edited_timestamp.isoformat()
+                        if message.edited_timestamp
+                        else None
                     ),
                     "reply_to": message.reply_to,
                 }
@@ -545,7 +566,9 @@ class ChatTranscriptManager:
                     await conn.commit()
 
         except Exception as e:
-            logger.error(f"保存聊天記錄到資料庫失敗 (ticket_id={ticket_id}): {e}")
+            logger.error(
+                f"保存聊天記錄到資料庫失敗 (ticket_id={ticket_id}): {e}"
+            )
 
     async def cleanup_old_transcripts(self, days: int = 30) -> int:
         """清理舊的聊天記錄檔案"""
@@ -556,14 +579,20 @@ class ChatTranscriptManager:
             # 清理檔案系統中的舊檔案
             for file_path in self.transcript_dir.iterdir():
                 if file_path.is_file():
-                    file_time = datetime.fromtimestamp(file_path.stat().st_mtime)
+                    file_time = datetime.fromtimestamp(
+                        file_path.stat().st_mtime
+                    )
                     if file_time < cutoff_date:
                         try:
                             file_path.unlink()
                             deleted_count += 1
-                            logger.info(f"🗑️ 已刪除舊聊天記錄檔案: {file_path.name}")
+                            logger.info(
+                                f"🗑️ 已刪除舊聊天記錄檔案: {file_path.name}"
+                            )
                         except Exception as e:
-                            logger.warning(f"刪除檔案 {file_path.name} 失敗: {e}")
+                            logger.warning(
+                                f"刪除檔案 {file_path.name} 失敗: {e}"
+                            )
 
             return deleted_count
 
@@ -578,9 +607,13 @@ class ChatTranscriptManager:
         try:
             recorded_count = 0
 
-            logger.info(f"開始批量記錄頻道歷史訊息 (ticket_id={ticket_id}, channel={channel.id})")
+            logger.info(
+                f"開始批量記錄頻道歷史訊息 (ticket_id={ticket_id}, channel={channel.id})"
+            )
 
-            async for message in channel.history(limit=limit, oldest_first=True):
+            async for message in channel.history(
+                limit=limit, oldest_first=True
+            ):
                 success = await self.record_message(ticket_id, message)
                 if success:
                     recorded_count += 1

@@ -228,13 +228,13 @@ jobs:
       - name: 🧪 Run critical tests
         env:
           TESTING: true
-          DISCORD_TOKEN: "test_token_for_rollback_validation_minimum_length_requirement_met_automatically_generated_rollback_token" # pragma: allowlist secret
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TEST_TOKEN || 'test_token_for_rollback_validation_minimum_length_requirement_met_automatically_generated_rollback_token' }}
           DB_HOST: "localhost"
           DB_USER: "test_user"
-          DB_PASSWORD: "test_password_for_rollback_environment_only" # pragma: allowlist secret
+          DB_PASSWORD: ${{ secrets.DB_TEST_PASSWORD || 'test_password_for_rollback_environment_only' }}
           DB_NAME: "test_database"
           DB_PORT: "3306"
-          JWT_SECRET: "test_jwt_secret_for_rollback_validation_pipeline_usage_only" # pragma: allowlist secret
+          JWT_SECRET: ${{ secrets.JWT_TEST_SECRET || 'test_jwt_secret_for_rollback_validation_pipeline_usage_only' }}
         run: |
           echo "🧪 Running critical tests after rollback..."
 

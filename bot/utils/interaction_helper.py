@@ -32,11 +32,17 @@ class SafeInteractionHandler:
             # 如果互動已經完成，使用 followup
             if interaction.response.is_done():
                 await interaction.followup.send(
-                    content=content, embed=embed, view=view, ephemeral=ephemeral
+                    content=content,
+                    embed=embed,
+                    view=view,
+                    ephemeral=ephemeral,
                 )
             else:
                 await interaction.response.send_message(
-                    content=content, embed=embed, view=view, ephemeral=ephemeral
+                    content=content,
+                    embed=embed,
+                    view=view,
+                    ephemeral=ephemeral,
                 )
 
             return True
@@ -45,14 +51,19 @@ class SafeInteractionHandler:
             logger.debug("互動已被回應，嘗試使用 followup")
             try:
                 await interaction.followup.send(
-                    content=content, embed=embed, view=view, ephemeral=ephemeral
+                    content=content,
+                    embed=embed,
+                    view=view,
+                    ephemeral=ephemeral,
                 )
                 return True
             except Exception as followup_error:
                 logger.error(f"Followup 失敗: {followup_error}")
                 return False
         except Exception as e:
-            if "Interaction has already been acknowledged" in str(e) or "40060" in str(e):
+            if "Interaction has already been acknowledged" in str(
+                e
+            ) or "40060" in str(e):
                 logger.debug("互動已被確認，忽略錯誤")
                 return False
             logger.error(f"安全回應互動失敗: {e}")
@@ -82,7 +93,9 @@ class SafeInteractionHandler:
             return False
 
     @staticmethod
-    async def safe_defer(interaction: discord.Interaction, ephemeral: bool = True) -> bool:
+    async def safe_defer(
+        interaction: discord.Interaction, ephemeral: bool = True
+    ) -> bool:
         """安全延遲互動回應"""
         try:
             if not interaction or not hasattr(interaction, "response"):
@@ -108,7 +121,9 @@ class SafeInteractionHandler:
 
     @staticmethod
     async def handle_interaction_error(
-        interaction: discord.Interaction, error: Exception, operation_name: str = "操作"
+        interaction: discord.Interaction,
+        error: Exception,
+        operation_name: str = "操作",
     ) -> None:
         """統一處理互動錯誤"""
         try:
@@ -146,7 +161,9 @@ class SafeInteractionHandler:
 class InteractionContext:
     """互動上下文管理器"""
 
-    def __init__(self, interaction: discord.Interaction, operation_name: str = "操作"):
+    def __init__(
+        self, interaction: discord.Interaction, operation_name: str = "操作"
+    ):
         self.interaction = interaction
         self.operation_name = operation_name
         self.deferred = False
@@ -155,7 +172,9 @@ class InteractionContext:
         """進入上下文管理器"""
         try:
             if SafeInteractionHandler.is_interaction_valid(self.interaction):
-                self.deferred = await SafeInteractionHandler.safe_defer(self.interaction)
+                self.deferred = await SafeInteractionHandler.safe_defer(
+                    self.interaction
+                )
             return self
         except Exception as e:
             logger.error(f"進入互動上下文失敗: {e}")
@@ -182,9 +201,13 @@ def safe_interaction(operation_name: str = "操作"):
     """安全互動裝飾器"""
 
     def decorator(func):
-        async def wrapper(self, interaction: discord.Interaction, *args, **kwargs):
+        async def wrapper(
+            self, interaction: discord.Interaction, *args, **kwargs
+        ):
             try:
-                async with InteractionContext(interaction, operation_name) as ctx:
+                async with InteractionContext(
+                    interaction, operation_name
+                ) as ctx:
                     if not ctx.is_valid():
                         logger.warning(f"無效的互動上下文: {operation_name}")
                         return
@@ -211,7 +234,9 @@ def safe_interaction(operation_name: str = "操作"):
 class SafeView(discord.ui.View):
     """安全的 Discord UI View 基礎類別"""
 
-    def __init__(self, *, timeout: float = 180.0, user_id: Optional[int] = None):
+    def __init__(
+        self, *, timeout: float = 180.0, user_id: Optional[int] = None
+    ):
         super().__init__(timeout=timeout)
         self.user_id = user_id
 
@@ -227,7 +252,9 @@ class SafeView(discord.ui.View):
         except Exception as e:
             logger.error(f"處理 View 超時時發生錯誤: {e}")
 
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+    async def interaction_check(
+        self, interaction: discord.Interaction
+    ) -> bool:
         """檢查用戶權限"""
         if self.user_id and interaction.user.id != self.user_id:
             await SafeInteractionHandler.safe_respond(
@@ -236,7 +263,11 @@ class SafeView(discord.ui.View):
             return False
         return True
 
-    async def on_error(self, interaction: discord.Interaction, error: Exception, item) -> None:
+    async def on_error(
+        self, interaction: discord.Interaction, error: Exception, item
+    ) -> None:
         """處理 View 錯誤"""
         logger.error(f"View 組件錯誤: {error}")
-        await SafeInteractionHandler.handle_interaction_error(interaction, error, "面板操作")
+        await SafeInteractionHandler.handle_interaction_error(
+            interaction, error, "面板操作"
+        )

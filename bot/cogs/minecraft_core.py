@@ -89,7 +89,9 @@ class MinecraftCore(commands.Cog):
     # Discord 斜線指令
     # =============================================================================
 
-    @commands.slash_command(name="mc-status", description="查看 Minecraft 伺服器狀態")
+    @commands.slash_command(
+        name="mc-status", description="查看 Minecraft 伺服器狀態"
+    )
     async def minecraft_status(self, ctx):
         """顯示 Minecraft 伺服器狀態"""
         try:
@@ -109,7 +111,9 @@ class MinecraftCore(commands.Cog):
             # 建立狀態嵌入訊息
             embed = discord.Embed(
                 title=(
-                    "🟢 Minecraft 伺服器狀態" if status["online"] else "🔴 Minecraft 伺服器狀態"
+                    "🟢 Minecraft 伺服器狀態"
+                    if status["online"]
+                    else "🔴 Minecraft 伺服器狀態"
                 ),
                 color=0x00FF00 if status["online"] else 0xFF0000,
             )
@@ -136,11 +140,17 @@ class MinecraftCore(commands.Cog):
                 if status["players"] > 0:
                     online_players = await self.server_api.get_online_players()
                     if online_players:
-                        player_list = ", ".join([p["name"] for p in online_players[:10]])
+                        player_list = ", ".join(
+                            [p["name"] for p in online_players[:10]]
+                        )
                         if len(online_players) > 10:
-                            player_list += f" 和其他 {len(online_players) - 10} 位玩家"
+                            player_list += (
+                                f" 和其他 {len(online_players) - 10} 位玩家"
+                            )
 
-                        embed.add_field(name="👥 在線玩家", value=player_list, inline=False)
+                        embed.add_field(
+                            name="👥 在線玩家", value=player_list, inline=False
+                        )
 
                 # 伺服器效能資訊
                 performance = await self.server_api.get_server_performance()
@@ -175,7 +185,9 @@ class MinecraftCore(commands.Cog):
             )
             await ctx.followup.send(embed=embed)
 
-    @commands.slash_command(name="mc-players", description="查看在線玩家詳細資訊")
+    @commands.slash_command(
+        name="mc-players", description="查看在線玩家詳細資訊"
+    )
     async def minecraft_players(self, ctx):
         """顯示詳細的在線玩家資訊"""
         try:
@@ -184,12 +196,16 @@ class MinecraftCore(commands.Cog):
             players = await self.server_api.get_online_players_detailed()
             if not players:
                 embed = discord.Embed(
-                    title="👥 在線玩家", description="目前沒有玩家在線", color=0xFFFF00
+                    title="👥 在線玩家",
+                    description="目前沒有玩家在線",
+                    color=0xFFFF00,
                 )
                 await ctx.followup.send(embed=embed)
                 return
 
-            embed = discord.Embed(title=f"👥 在線玩家 ({len(players)})", color=0x00FF00)
+            embed = discord.Embed(
+                title=f"👥 在線玩家 ({len(players)})", color=0x00FF00
+            )
 
             for player in players:
                 player_info = f"""
@@ -199,7 +215,9 @@ class MinecraftCore(commands.Cog):
                 **血量**: {player.get('health', 20)}/20 ❤️
                 """
 
-                embed.add_field(name=f"🎮 {player['name']}", value=player_info, inline=True)
+                embed.add_field(
+                    name=f"🎮 {player['name']}", value=player_info, inline=True
+                )
 
             embed.timestamp = datetime.now()
             await ctx.followup.send(embed=embed)
@@ -208,14 +226,18 @@ class MinecraftCore(commands.Cog):
             logger.error(f"minecraft_players 指令錯誤: {e}")
             await ctx.followup.send("❌ 無法獲取玩家資訊")
 
-    @commands.slash_command(name="mc-bind", description="綁定您的 Discord 帳號到 Minecraft 玩家")
+    @commands.slash_command(
+        name="mc-bind", description="綁定您的 Discord 帳號到 Minecraft 玩家"
+    )
     async def bind_minecraft(self, ctx, minecraft_username: str):
         """綁定 Discord 用戶到 Minecraft 玩家"""
         try:
             await ctx.defer()
 
             # 驗證 Minecraft 用戶名
-            player_data = await self.server_api.get_player_info(minecraft_username)
+            player_data = await self.server_api.get_player_info(
+                minecraft_username
+            )
             if not player_data:
                 embed = discord.Embed(
                     title="❌ 綁定失敗",
@@ -260,7 +282,9 @@ class MinecraftCore(commands.Cog):
             logger.error(f"bind_minecraft 指令錯誤: {e}")
             await ctx.followup.send("❌ 綁定過程中發生錯誤")
 
-    @commands.slash_command(name="mc-cmd", description="執行 Minecraft 伺服器指令 (需要管理員權限)")
+    @commands.slash_command(
+        name="mc-cmd", description="執行 Minecraft 伺服器指令 (需要管理員權限)"
+    )
     @commands.has_permissions(administrator=True)
     async def minecraft_command(self, ctx, command: str):
         """執行 Minecraft 伺服器指令"""
@@ -275,7 +299,9 @@ class MinecraftCore(commands.Cog):
                 color=0x00FF00 if result["success"] else 0xFF0000,
             )
 
-            embed.add_field(name="📝 執行指令", value=f"`/{command}`", inline=False)
+            embed.add_field(
+                name="📝 執行指令", value=f"`/{command}`", inline=False
+            )
 
             if result["success"]:
                 embed.add_field(
@@ -300,13 +326,17 @@ class MinecraftCore(commands.Cog):
             await ctx.followup.send(embed=embed)
 
             # 記錄管理操作
-            logger.info(f"管理員 {ctx.author.display_name} 執行 MC 指令: /{command}")
+            logger.info(
+                f"管理員 {ctx.author.display_name} 執行 MC 指令: /{command}"
+            )
 
         except Exception as e:
             logger.error(f"minecraft_command 指令錯誤: {e}")
             await ctx.followup.send("❌ 指令執行失敗")
 
-    @commands.slash_command(name="mc-whitelist", description="管理白名單 (需要管理員權限)")
+    @commands.slash_command(
+        name="mc-whitelist", description="管理白名單 (需要管理員權限)"
+    )
     @commands.has_permissions(administrator=True)
     async def whitelist_management(
         self,
@@ -323,12 +353,16 @@ class MinecraftCore(commands.Cog):
                 if whitelist:
                     embed = discord.Embed(
                         title="📋 白名單玩家",
-                        description="\n".join([f"• {player}" for player in whitelist]),
+                        description="\n".join(
+                            [f"• {player}" for player in whitelist]
+                        ),
                         color=0x0099FF,
                     )
                 else:
                     embed = discord.Embed(
-                        title="📋 白名單玩家", description="白名單為空", color=0xFFFF00
+                        title="📋 白名單玩家",
+                        description="白名單為空",
+                        color=0xFFFF00,
                     )
 
                 await ctx.followup.send(embed=embed)
@@ -339,24 +373,34 @@ class MinecraftCore(commands.Cog):
                 return
 
             if action == "add":
-                result = await self.rcon_manager.execute_command(f"whitelist add {player}")
+                result = await self.rcon_manager.execute_command(
+                    f"whitelist add {player}"
+                )
                 title = (
                     f"✅ 已將 {player} 加入白名單"
                     if result["success"]
                     else f"❌ 無法將 {player} 加入白名單"
                 )
             elif action == "remove":
-                result = await self.rcon_manager.execute_command(f"whitelist remove {player}")
+                result = await self.rcon_manager.execute_command(
+                    f"whitelist remove {player}"
+                )
                 title = (
                     f"✅ 已將 {player} 從白名單移除"
                     if result["success"]
                     else f"❌ 無法將 {player} 從白名單移除"
                 )
 
-            embed = discord.Embed(title=title, color=0x00FF00 if result["success"] else 0xFF0000)
+            embed = discord.Embed(
+                title=title, color=0x00FF00 if result["success"] else 0xFF0000
+            )
 
             if result["response"]:
-                embed.add_field(name="回應", value=f"```{result['response']}```", inline=False)
+                embed.add_field(
+                    name="回應",
+                    value=f"```{result['response']}```",
+                    inline=False,
+                )
 
             await ctx.followup.send(embed=embed)
 
@@ -370,7 +414,9 @@ class MinecraftCore(commands.Cog):
     )
     @commands.has_permissions(administrator=True)
     async def chat_bridge_control(
-        self, ctx, action: discord.Option(str, choices=["enable", "disable", "status"])
+        self,
+        ctx,
+        action: discord.Option(str, choices=["enable", "disable", "status"]),
     ):
         """控制聊天橋接功能"""
         try:
@@ -386,9 +432,7 @@ class MinecraftCore(commands.Cog):
                 )
 
                 if result:
-                    embed.description = (
-                        f"已在 {ctx.channel.mention} 啟用 Discord ↔ Minecraft 聊天橋接"
-                    )
+                    embed.description = f"已在 {ctx.channel.mention} 啟用 Discord ↔ Minecraft 聊天橋接"
                     embed.add_field(
                         name="使用說明",
                         value="""
@@ -399,7 +443,9 @@ class MinecraftCore(commands.Cog):
                         inline=False,
                     )
                 else:
-                    embed.description = "聊天橋接啟用失敗，請檢查 RCON 連線設定"
+                    embed.description = (
+                        "聊天橋接啟用失敗，請檢查 RCON 連線設定"
+                    )
 
             elif action == "disable":
                 self.chat_bridge.disable_bridge()
@@ -425,18 +471,26 @@ class MinecraftCore(commands.Cog):
                 )
 
                 if status["enabled"] and status["discord_channel_id"]:
-                    channel = self.bot.get_channel(status["discord_channel_id"])
+                    channel = self.bot.get_channel(
+                        status["discord_channel_id"]
+                    )
                     embed.add_field(
                         name="橋接頻道",
                         value=(
-                            channel.mention if channel else f"ID: {status['discord_channel_id']}"
+                            channel.mention
+                            if channel
+                            else f"ID: {status['discord_channel_id']}"
                         ),
                         inline=True,
                     )
 
                 embed.add_field(
                     name="聊天過濾",
-                    value="🟢 已啟用" if status["chat_filter_enabled"] else "🔴 已停用",
+                    value=(
+                        "🟢 已啟用"
+                        if status["chat_filter_enabled"]
+                        else "🔴 已停用"
+                    ),
                     inline=True,
                 )
 
@@ -493,7 +547,9 @@ class MinecraftCore(commands.Cog):
                         if channel:
                             await channel.send(embed=embed)
                     except (ValueError, TypeError):
-                        logger.error(f"無效的 Discord 頻道 ID: {MINECRAFT_NOTIFICATION_CHANNEL}")
+                        logger.error(
+                            f"無效的 Discord 頻道 ID: {MINECRAFT_NOTIFICATION_CHANNEL}"
+                        )
 
         except Exception as e:
             logger.error(f"伺服器狀態變化通知錯誤: {e}")

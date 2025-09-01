@@ -1,4 +1,4 @@
-# Potato Discord Bot - Development Branch
+# Potato Discord Bot
 
 [![Version](https://img.shields.io/badge/version-2025.08.30-blue.svg)](VERSION)
 [![Discord Bot](https://img.shields.io/badge/Discord-Bot-7289DA.svg)](https://discord.com)
@@ -7,7 +7,7 @@
 [![Tests](https://img.shields.io/badge/Tests-Passing-success.svg)](#testing)
 [![Security](https://img.shields.io/badge/Security-Scanned-green.svg)](#security)
 
-> **多功能社群管理機器人** - 開發分支，包含完整的 CI/CD 流程和測試框架
+> **多功能社群管理機器人** - 穩定版本，適用於生產環境部署
 
 ## 🚀 快速開始
 
@@ -46,9 +46,9 @@ nano .env
 
 ## 🏗️ 分支架構
 
-- **`dev`** - 開發分支 (當前) - 包含完整的 CI/CD 和測試框架
-- **`main`** - 生產主分支 - 穩定版本，包含託管部署流程
-- **`ptero`** - 部署分支 - 純淨生產版本，無開發工具
+- **`main`** - 生產主分支 (當前) - 穩定版本，適合生產環境部署
+- **`dev`** - 開發分支 - 包含最新功能和完整的 CI/CD 測試框架
+- **`ptero`** - 部署分支 - 純淨生產版本，專為託管環境優化
 
 ## 🔄 CI/CD 流程
 
@@ -86,8 +86,9 @@ nano .env
 
 ### 部署流程
 
-- dev → main: 合併請求觸發完整 CI/CD
-- main → ptero: 自動部署到託管服務
+- dev → main: 穩定功能合併到生產分支
+- main → ptero: 自動部署到託管環境
+- 生產環境持續監控和健康檢查
 
 ## 📋 系統要求
 

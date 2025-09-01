@@ -80,14 +80,21 @@ class MainMenuView(discord.ui.View):
     🏠 主選單視圖
     """
 
-    def __init__(self, bot: commands.Bot, user_id: int, contextual_options: Dict[str, Any] = None):
+    def __init__(
+        self,
+        bot: commands.Bot,
+        user_id: int,
+        contextual_options: Dict[str, Any] = None,
+    ):
         super().__init__(timeout=300)
         self.bot = bot
         self.user_id = user_id
         self.contextual_options = contextual_options or {}
 
     @discord.ui.button(label="🤖 AI 助手", style=discord.ButtonStyle.primary)
-    async def ai_assistant(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def ai_assistant(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """AI 助手選單"""
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
@@ -99,8 +106,12 @@ class MainMenuView(discord.ui.View):
         embed = await view.create_main_embed()
         await interaction.response.edit_message(embed=embed, view=view)
 
-    @discord.ui.button(label="🎫 支援票券", style=discord.ButtonStyle.secondary)
-    async def ticket_system(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="🎫 支援票券", style=discord.ButtonStyle.secondary
+    )
+    async def ticket_system(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """票券系統選單"""
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
@@ -113,7 +124,9 @@ class MainMenuView(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=view)
 
     @discord.ui.button(label="🗳️ 投票系統", style=discord.ButtonStyle.secondary)
-    async def vote_system(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def vote_system(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """投票系統選單"""
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
@@ -125,8 +138,12 @@ class MainMenuView(discord.ui.View):
         embed = await view.create_main_embed()
         await interaction.response.edit_message(embed=embed, view=view)
 
-    @discord.ui.button(label="👋 歡迎系統", style=discord.ButtonStyle.secondary)
-    async def welcome_system(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="👋 歡迎系統", style=discord.ButtonStyle.secondary
+    )
+    async def welcome_system(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """歡迎系統選單"""
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
@@ -138,8 +155,12 @@ class MainMenuView(discord.ui.View):
         embed = await view.create_main_embed()
         await interaction.response.edit_message(embed=embed, view=view)
 
-    @discord.ui.button(label="🎮 娛樂遊戲", style=discord.ButtonStyle.success, row=1)
-    async def entertainment(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="🎮 娛樂遊戲", style=discord.ButtonStyle.success, row=1
+    )
+    async def entertainment(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """娛樂遊戲選單"""
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
@@ -151,8 +172,12 @@ class MainMenuView(discord.ui.View):
         embed = await view.create_main_embed()
         await interaction.response.edit_message(embed=embed, view=view)
 
-    @discord.ui.button(label="🎵 音樂播放", style=discord.ButtonStyle.success, row=1)
-    async def music(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="🎵 音樂播放", style=discord.ButtonStyle.success, row=1
+    )
+    async def music(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """音樂播放選單"""
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
@@ -164,8 +189,12 @@ class MainMenuView(discord.ui.View):
         embed = await view.create_main_embed()
         await interaction.response.edit_message(embed=embed, view=view)
 
-    @discord.ui.button(label="⚙️ 設定", style=discord.ButtonStyle.secondary, row=1)
-    async def settings(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="⚙️ 設定", style=discord.ButtonStyle.secondary, row=1
+    )
+    async def settings(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """設定選單"""
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
@@ -196,16 +225,30 @@ class AdminMenuView(discord.ui.View):
             color=0xE74C3C,
         )
 
-        embed.add_field(name="📊 系統狀態", value="• 即時監控\n• 性能分析\n• 使用統計", inline=True)
+        embed.add_field(
+            name="📊 系統狀態",
+            value="• 即時監控\n• 性能分析\n• 使用統計",
+            inline=True,
+        )
 
-        embed.add_field(name="👥 用戶管理", value="• 權限設定\n• 角色管理\n• 活動追蹤", inline=True)
+        embed.add_field(
+            name="👥 用戶管理",
+            value="• 權限設定\n• 角色管理\n• 活動追蹤",
+            inline=True,
+        )
 
-        embed.add_field(name="⚡ 快速操作", value="• 批量處理\n• 緊急控制\n• 系統維護", inline=True)
+        embed.add_field(
+            name="⚡ 快速操作",
+            value="• 批量處理\n• 緊急控制\n• 系統維護",
+            inline=True,
+        )
 
         return embed
 
     @discord.ui.button(label="📊 系統監控", style=discord.ButtonStyle.primary)
-    async def system_monitoring(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def system_monitoring(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """系統監控面板"""
         embed = discord.Embed(
             title="📊 系統監控儀表板",
@@ -220,12 +263,18 @@ class AdminMenuView(discord.ui.View):
             embed.add_field(name="🤖 Bot 狀態", value=bot_status, inline=True)
 
             # 延遲
-            latency = f"{round(self.bot.latency * 1000)}ms" if self.bot.latency else "N/A"
+            latency = (
+                f"{round(self.bot.latency * 1000)}ms"
+                if self.bot.latency
+                else "N/A"
+            )
             embed.add_field(name="📶 延遲", value=latency, inline=True)
 
             # 伺服器數量
             guild_count = len(self.bot.guilds)
-            embed.add_field(name="🏠 伺服器數", value=f"{guild_count} 個", inline=True)
+            embed.add_field(
+                name="🏠 伺服器數", value=f"{guild_count} 個", inline=True
+            )
 
             # 獲取票券狀態
             try:
@@ -238,7 +287,9 @@ class AdminMenuView(discord.ui.View):
                         guild.id, status=["open", "in_progress"]
                     )
                     open_tickets += len(tickets) if tickets else 0
-                embed.add_field(name="🎫 開放票券", value=f"{open_tickets} 張", inline=True)
+                embed.add_field(
+                    name="🎫 開放票券", value=f"{open_tickets} 張", inline=True
+                )
             except Exception:
                 embed.add_field(name="🎫 開放票券", value="N/A", inline=True)
 
@@ -251,7 +302,11 @@ class AdminMenuView(discord.ui.View):
                 for guild in self.bot.guilds:
                     votes = await vote_dao.get_active_votes(guild.id)
                     active_votes += len(votes) if votes else 0
-                embed.add_field(name="🗳️ 進行中投票", value=f"{active_votes} 個", inline=True)
+                embed.add_field(
+                    name="🗳️ 進行中投票",
+                    value=f"{active_votes} 個",
+                    inline=True,
+                )
             except Exception:
                 embed.add_field(name="🗳️ 進行中投票", value="N/A", inline=True)
 
@@ -275,34 +330,52 @@ class AdminMenuView(discord.ui.View):
             # 如果獲取失敗，使用基本資訊
             embed.add_field(name="🤖 Bot 狀態", value="✅ 在線", inline=True)
             embed.add_field(name="📶 延遲", value="N/A", inline=True)
-            embed.add_field(name="🏠 伺服器數", value=f"{len(self.bot.guilds)} 個", inline=True)
+            embed.add_field(
+                name="🏠 伺服器數",
+                value=f"{len(self.bot.guilds)} 個",
+                inline=True,
+            )
 
         view = SystemMonitoringView(self.bot, self.user_id)
         await interaction.response.edit_message(embed=embed, view=view)
 
-    @discord.ui.button(label="👥 用戶管理", style=discord.ButtonStyle.secondary)
-    async def user_management(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="👥 用戶管理", style=discord.ButtonStyle.secondary
+    )
+    async def user_management(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """用戶管理面板"""
         view = UserManagementView(self.bot, self.user_id)
         embed = await view.create_main_embed()
         await interaction.response.edit_message(embed=embed, view=view)
 
-    @discord.ui.button(label="🔧 系統設定", style=discord.ButtonStyle.secondary)
-    async def system_settings(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="🔧 系統設定", style=discord.ButtonStyle.secondary
+    )
+    async def system_settings(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """系統設定面板"""
         view = AdminSettingsView(self.bot, self.user_id)
         embed = await view.create_main_embed()
         await interaction.response.edit_message(embed=embed, view=view)
 
     @discord.ui.button(label="⚡ 快速操作", style=discord.ButtonStyle.danger)
-    async def quick_actions(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def quick_actions(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """快速操作面板"""
         view = QuickActionsView(self.bot, self.user_id)
         embed = await view.create_main_embed()
         await interaction.response.edit_message(embed=embed, view=view)
 
-    @discord.ui.button(label="🔙 返回主選單", style=discord.ButtonStyle.secondary, row=1)
-    async def back_to_main(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="🔙 返回主選單", style=discord.ButtonStyle.secondary, row=1
+    )
+    async def back_to_main(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """返回主選單"""
         view = MainMenuView(self.bot, self.user_id)
         embed = discord.Embed(
@@ -331,22 +404,36 @@ class AIMenuView(discord.ui.View):
             color=0x9B59B6,
         )
 
-        embed.add_field(name="💬 智能對話", value="多輪對話、意圖識別", inline=True)
+        embed.add_field(
+            name="💬 智能對話", value="多輪對話、意圖識別", inline=True
+        )
 
-        embed.add_field(name="🎯 引導式流程", value="票券、投票、歡迎設定", inline=True)
+        embed.add_field(
+            name="🎯 引導式流程", value="票券、投票、歡迎設定", inline=True
+        )
 
-        embed.add_field(name="📊 AI 分析", value="數據洞察、個性化建議", inline=True)
+        embed.add_field(
+            name="📊 AI 分析", value="數據洞察、個性化建議", inline=True
+        )
 
         return embed
 
-    @discord.ui.button(label="💬 開始智能對話", style=discord.ButtonStyle.primary)
-    async def start_smart_chat(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="💬 開始智能對話", style=discord.ButtonStyle.primary
+    )
+    async def start_smart_chat(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """開始智能對話"""
         modal = SmartChatModal(self.bot)
         await interaction.response.send_modal(modal)
 
-    @discord.ui.button(label="🎫 票券建立流程", style=discord.ButtonStyle.secondary)
-    async def ticket_flow(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="🎫 票券建立流程", style=discord.ButtonStyle.secondary
+    )
+    async def ticket_flow(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """開始票券建立流程"""
         # 直接跳轉到票券系統選單，提供更好的用戶體驗
         view = TicketMenuView(self.bot, self.user_id)
@@ -354,7 +441,9 @@ class AIMenuView(discord.ui.View):
         await interaction.response.edit_message(embed=embed, view=view)
 
     @discord.ui.button(label="🔙 返回", style=discord.ButtonStyle.secondary)
-    async def back_to_main(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def back_to_main(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """返回主選單"""
         view = MainMenuView(self.bot, self.user_id)
         embed = discord.Embed(
@@ -394,7 +483,11 @@ class TicketMenuView(discord.ui.View):
                 self.user_id, self.bot.guilds[0].id if self.bot.guilds else 0
             )
             open_count = len(
-                [t for t in user_tickets if t.get("status") in ["open", "in_progress", "pending"]]
+                [
+                    t
+                    for t in user_tickets
+                    if t.get("status") in ["open", "in_progress", "pending"]
+                ]
             )
 
             # 獲取系統設定
@@ -403,8 +496,12 @@ class TicketMenuView(discord.ui.View):
             )
             response_time = settings.get("sla_response_minutes", 60)
 
-            embed.add_field(name="📋 我的票券", value=f"{open_count} 張開放", inline=True)
-            embed.add_field(name="⏱️ 平均回應", value=f"< {response_time} 分鐘", inline=True)
+            embed.add_field(
+                name="📋 我的票券", value=f"{open_count} 張開放", inline=True
+            )
+            embed.add_field(
+                name="⏱️ 平均回應", value=f"< {response_time} 分鐘", inline=True
+            )
             embed.add_field(name="✅ 解決率", value="95%", inline=True)
 
         except Exception as e:
@@ -417,8 +514,12 @@ class TicketMenuView(discord.ui.View):
 
         return embed
 
-    @discord.ui.button(label="➕ 建立新票券", style=discord.ButtonStyle.primary)
-    async def create_ticket(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="➕ 建立新票券", style=discord.ButtonStyle.primary
+    )
+    async def create_ticket(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """建立新票券"""
         try:
             # 使用票券面板的真實創建流程
@@ -428,7 +529,9 @@ class TicketMenuView(discord.ui.View):
             # 獲取票券設定
             ticket_dao = TicketDAO()
             settings = (
-                await ticket_dao.get_settings(interaction.guild.id) if interaction.guild else {}
+                await ticket_dao.get_settings(interaction.guild.id)
+                if interaction.guild
+                else {}
             )
 
             # 創建票券面板視圖
@@ -448,7 +551,9 @@ class TicketMenuView(discord.ui.View):
                 inline=False,
             )
 
-            await interaction.response.send_message(embed=embed, view=panel_view, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, view=panel_view, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"票券創建按鈕錯誤: {e}")
@@ -456,8 +561,12 @@ class TicketMenuView(discord.ui.View):
                 "❌ 建立票券時發生錯誤，請稍後再試", ephemeral=True
             )
 
-    @discord.ui.button(label="📋 我的票券", style=discord.ButtonStyle.secondary)
-    async def my_tickets(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="📋 我的票券", style=discord.ButtonStyle.secondary
+    )
+    async def my_tickets(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """查看我的票券"""
         try:
             # 直接使用資料庫查詢，避免 interaction 衝突
@@ -466,7 +575,9 @@ class TicketMenuView(discord.ui.View):
             ticket_dao = TicketDAO()
 
             # 查詢用戶的票券
-            tickets = await ticket_dao.get_user_tickets(interaction.user.id, interaction.guild.id)
+            tickets = await ticket_dao.get_user_tickets(
+                interaction.user.id, interaction.guild.id
+            )
 
             if not tickets:
                 embed = discord.Embed(
@@ -479,7 +590,9 @@ class TicketMenuView(discord.ui.View):
                     value="點擊 **➕ 建立新票券** 來創建您的第一張票券",
                     inline=False,
                 )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.response.send_message(
+                    embed=embed, ephemeral=True
+                )
             else:
                 embed = discord.Embed(
                     title="📋 我的票券",
@@ -509,7 +622,9 @@ class TicketMenuView(discord.ui.View):
                         inline=False,
                     )
 
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.response.send_message(
+                    embed=embed, ephemeral=True
+                )
             return
 
             # 原本的備用邏輯（已移除）
@@ -559,7 +674,9 @@ class TicketMenuView(discord.ui.View):
                             inline=False,
                         )
 
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.response.send_message(
+                    embed=embed, ephemeral=True
+                )
 
         except Exception as e:
             logger.error(f"查看票券按鈕錯誤: {e}")
@@ -568,7 +685,9 @@ class TicketMenuView(discord.ui.View):
             )
 
     @discord.ui.button(label="🔙 返回", style=discord.ButtonStyle.secondary)
-    async def back_to_main(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def back_to_main(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """返回主選單"""
         view = MainMenuView(self.bot, self.user_id)
         embed = discord.Embed(
@@ -602,7 +721,9 @@ class SmartChatModal(discord.ui.Modal):
             cog = self.bot.get_cog("AIAssistantCore")
             if cog and hasattr(cog, "smart_chat"):
                 # 直接調用 AI 助手的智能對話功能
-                await cog.smart_chat(interaction, message=self.message_input.value)
+                await cog.smart_chat(
+                    interaction, message=self.message_input.value
+                )
                 return
 
             # 如果沒有 AI Cog，使用簡單回應
@@ -612,7 +733,9 @@ class SmartChatModal(discord.ui.Modal):
                 color=0x9B59B6,
             )
 
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"智能對話處理失敗: {e}")
@@ -685,16 +808,24 @@ class VoteMenuView(discord.ui.View):
             color=0xE67E22,
         )
 
-        embed.add_field(name="📊 投票功能", value="建立、管理、結果統計", inline=True)
+        embed.add_field(
+            name="📊 投票功能", value="建立、管理、結果統計", inline=True
+        )
 
-        embed.add_field(name="📈 實時統計", value="票數統計、進度追蹤", inline=True)
+        embed.add_field(
+            name="📈 實時統計", value="票數統計、進度追蹤", inline=True
+        )
 
-        embed.add_field(name="⚙️ 進階設定", value="匿名、定時、多選投票", inline=True)
+        embed.add_field(
+            name="⚙️ 進階設定", value="匿名、定時、多選投票", inline=True
+        )
 
         return embed
 
     @discord.ui.button(label="📊 建立投票", style=discord.ButtonStyle.primary)
-    async def create_vote(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def create_vote(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """建立新投票"""
         cog = self.bot.get_cog("VoteCore")
         if cog and hasattr(cog, "vote"):
@@ -704,10 +835,16 @@ class VoteMenuView(discord.ui.View):
             else:
                 await command(interaction)
         else:
-            await interaction.response.send_message("❌ 投票系統暫時不可用", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 投票系統暫時不可用", ephemeral=True
+            )
 
-    @discord.ui.button(label="📈 查看投票", style=discord.ButtonStyle.secondary)
-    async def view_votes(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="📈 查看投票", style=discord.ButtonStyle.secondary
+    )
+    async def view_votes(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """查看進行中的投票"""
         cog = self.bot.get_cog("VoteCore")
         if cog and hasattr(cog, "votes"):
@@ -717,10 +854,16 @@ class VoteMenuView(discord.ui.View):
             else:
                 await command(interaction)
         else:
-            await interaction.response.send_message("❌ 投票系統暫時不可用", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 投票系統暫時不可用", ephemeral=True
+            )
 
-    @discord.ui.button(label="🏆 投票統計", style=discord.ButtonStyle.secondary)
-    async def vote_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="🏆 投票統計", style=discord.ButtonStyle.secondary
+    )
+    async def vote_stats(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """查看投票統計"""
         try:
             cog = self.bot.get_cog("VoteCore")
@@ -747,8 +890,12 @@ class VoteMenuView(discord.ui.View):
             vote_dao = VoteDAO()
 
             # 獲取基本統計
-            active_votes = await vote_dao.get_guild_active_votes(interaction.guild.id)
-            total_votes = await vote_dao.get_guild_vote_count(interaction.guild.id)
+            active_votes = await vote_dao.get_guild_active_votes(
+                interaction.guild.id
+            )
+            total_votes = await vote_dao.get_guild_vote_count(
+                interaction.guild.id
+            )
 
             embed = discord.Embed(
                 title="🏆 投票統計",
@@ -766,15 +913,25 @@ class VoteMenuView(discord.ui.View):
 
             if active_votes:
                 # 顯示最近的3個活躍投票
-                recent_votes = sorted(active_votes, key=lambda x: x["created_at"], reverse=True)[:3]
+                recent_votes = sorted(
+                    active_votes, key=lambda x: x["created_at"], reverse=True
+                )[:3]
                 vote_list = []
                 for vote in recent_votes:
-                    status = "🟢 進行中" if vote["status"] == "active" else "🟡 即將結束"
+                    status = (
+                        "🟢 進行中"
+                        if vote["status"] == "active"
+                        else "🟡 即將結束"
+                    )
                     vote_list.append(
                         f"• **{vote['title'][:30]}...**\n  {status} | {vote['total_votes']} 票"
                     )
 
-                embed.add_field(name="📋 最近投票", value="\n".join(vote_list), inline=False)
+                embed.add_field(
+                    name="📋 最近投票",
+                    value="\n".join(vote_list),
+                    inline=False,
+                )
 
             embed.add_field(
                 name="⚙️ 更多功能",
@@ -786,7 +943,9 @@ class VoteMenuView(discord.ui.View):
 
             embed.set_footer(text="使用 /vote_panel 開啟完整管理面板")
 
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
 
         except Exception as e:
             logger.error(f"投票統計錯誤: {e}")
@@ -802,12 +961,16 @@ class VoteMenuView(discord.ui.View):
             )
 
             try:
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.response.send_message(
+                    embed=embed, ephemeral=True
+                )
             except:
                 await interaction.followup.send(embed=embed, ephemeral=True)
 
     @discord.ui.button(label="🔙 返回", style=discord.ButtonStyle.secondary)
-    async def back_to_main(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def back_to_main(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """返回主選單"""
         view = MainMenuView(self.bot, self.user_id)
         embed = discord.Embed(
@@ -834,16 +997,24 @@ class WelcomeMenuView(discord.ui.View):
             color=0x27AE60,
         )
 
-        embed.add_field(name="🎉 歡迎功能", value="自動歡迎、歡迎頻道設定", inline=True)
+        embed.add_field(
+            name="🎉 歡迎功能", value="自動歡迎、歡迎頻道設定", inline=True
+        )
 
-        embed.add_field(name="🎨 自訂訊息", value="個性化歡迎文字、嵌入", inline=True)
+        embed.add_field(
+            name="🎨 自訂訊息", value="個性化歡迎文字、嵌入", inline=True
+        )
 
-        embed.add_field(name="🔧 進階設定", value="角色自動分配、驗證系統", inline=True)
+        embed.add_field(
+            name="🔧 進階設定", value="角色自動分配、驗證系統", inline=True
+        )
 
         return embed
 
     @discord.ui.button(label="⚙️ 歡迎設定", style=discord.ButtonStyle.primary)
-    async def welcome_settings(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def welcome_settings(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """歡迎系統設定"""
         cog = self.bot.get_cog("WelcomeCore")
         if cog and hasattr(cog, "welcome_status"):
@@ -869,7 +1040,9 @@ class WelcomeMenuView(discord.ui.View):
                     "\u2022 `/welcome test` - 測試歡迎訊息",
                     inline=False,
                 )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.response.send_message(
+                    embed=embed, ephemeral=True
+                )
         else:
             # 顯示簡單設定界面
             embed = discord.Embed(
@@ -884,10 +1057,16 @@ class WelcomeMenuView(discord.ui.View):
                 "\u2022 `/welcome test` - 測試歡迎訊息",
                 inline=False,
             )
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await interaction.response.send_message(
+                embed=embed, ephemeral=True
+            )
 
-    @discord.ui.button(label="📝 訊息設定", style=discord.ButtonStyle.secondary)
-    async def message_settings(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="📝 訊息設定", style=discord.ButtonStyle.secondary
+    )
+    async def message_settings(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """歡迎訊息設定"""
         embed = discord.Embed(
             title="📝 歡迎訊息設定",
@@ -910,8 +1089,12 @@ class WelcomeMenuView(discord.ui.View):
         )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(label="🎭 預覽歡迎", style=discord.ButtonStyle.secondary)
-    async def preview_welcome(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="🎭 預覽歡迎", style=discord.ButtonStyle.secondary
+    )
+    async def preview_welcome(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """預覽歡迎訊息"""
         cog = self.bot.get_cog("WelcomeCore")
         if cog and hasattr(cog, "test_welcome_message"):
@@ -932,9 +1115,15 @@ class WelcomeMenuView(discord.ui.View):
                     ),
                     color=0x2ECC71,
                 )
-                embed.add_field(name="📍 頻道", value=result.get("channel", "未設定"), inline=True)
+                embed.add_field(
+                    name="📍 頻道",
+                    value=result.get("channel", "未設定"),
+                    inline=True,
+                )
                 embed.add_field(name="✅ 狀態", value="預覽成功", inline=True)
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.response.send_message(
+                    embed=embed, ephemeral=True
+                )
                 return
             except Exception as e:
                 logger.error(f"歡迎訊息預覽錯誤: {e}")
@@ -960,7 +1149,9 @@ class WelcomeMenuView(discord.ui.View):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @discord.ui.button(label="🎭 自動身分", style=discord.ButtonStyle.success)
-    async def auto_role_settings(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def auto_role_settings(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """自動身分設定"""
         try:
             # 檢查是否有管理權限
@@ -970,7 +1161,9 @@ class WelcomeMenuView(discord.ui.View):
                     description="您需要「管理身分組」權限才能設定自動身分。",
                     color=0xE74C3C,
                 )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.response.send_message(
+                    embed=embed, ephemeral=True
+                )
                 return
 
             # 檢查Bot是否有管理身分組權限
@@ -980,7 +1173,9 @@ class WelcomeMenuView(discord.ui.View):
                     description="Bot需要「管理身分組」權限才能設定自動身分。\n請讓伺服器管理員給予Bot相應權限。",
                     color=0xE74C3C,
                 )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.response.send_message(
+                    embed=embed, ephemeral=True
+                )
                 return
 
             # 獲取歡迎系統設定
@@ -992,16 +1187,22 @@ class WelcomeMenuView(discord.ui.View):
                     from bot.db.welcome_dao import WelcomeDAO
 
                     welcome_dao = WelcomeDAO()
-                    settings = await welcome_dao.get_welcome_settings(interaction.guild.id)
+                    settings = await welcome_dao.get_welcome_settings(
+                        interaction.guild.id
+                    )
                     if settings and settings.get("auto_role_id"):
                         auto_role_id = settings["auto_role_id"]
-                        current_auto_role = interaction.guild.get_role(int(auto_role_id))
+                        current_auto_role = interaction.guild.get_role(
+                            int(auto_role_id)
+                        )
                 except Exception as e:
                     logger.error(f"取得自動身分設定時發生錯誤: {e}")
                     current_auto_role = None
 
             # 建立歡迎設定視圖
-            view = WelcomeSettingsView(self.bot, self.user_id, current_auto_role)
+            view = WelcomeSettingsView(
+                self.bot, self.user_id, current_auto_role
+            )
             embed = discord.Embed(
                 title="🎉 歡迎系統設定",
                 description="設定新成員加入時的歡迎訊息和自動身分：",
@@ -1016,7 +1217,9 @@ class WelcomeMenuView(discord.ui.View):
                     inline=False,
                 )
             else:
-                embed.add_field(name="🎭 目前自動身分", value="*未設定*", inline=False)
+                embed.add_field(
+                    name="🎭 目前自動身分", value="*未設定*", inline=False
+                )
 
             await interaction.response.edit_message(embed=embed, view=view)
 
@@ -1028,13 +1231,17 @@ class WelcomeMenuView(discord.ui.View):
                 color=0xE74C3C,
             )
             try:
-                await interaction.response.send_message(embed=embed, ephemeral=True)
+                await interaction.response.send_message(
+                    embed=embed, ephemeral=True
+                )
             except:
                 # 如果無法回應，嘗試使用followup
                 await interaction.followup.send(embed=embed, ephemeral=True)
 
     @discord.ui.button(label="🔙 返回", style=discord.ButtonStyle.secondary)
-    async def back_to_main(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def back_to_main(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """返回主選單"""
         view = MainMenuView(self.bot, self.user_id)
         embed = discord.Embed(
@@ -1061,19 +1268,27 @@ class SettingsMenuView(discord.ui.View):
             color=0x34495E,
         )
 
-        embed.add_field(name="🔧 基本設定", value="前綴、語言、時區設定", inline=True)
+        embed.add_field(
+            name="🔧 基本設定", value="前綴、語言、時區設定", inline=True
+        )
 
-        embed.add_field(name="🛡️ 安全設定", value="權限、角色、頻道管理", inline=True)
+        embed.add_field(
+            name="🛡️ 安全設定", value="權限、角色、頻道管理", inline=True
+        )
 
         embed.add_field(name="📊 功能開關", value="模組啟用/停用", inline=True)
 
         return embed
 
     @discord.ui.button(label="🔧 基本設定", style=discord.ButtonStyle.primary)
-    async def basic_settings(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def basic_settings(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """基本設定"""
         embed = discord.Embed(
-            title="🔧 基本設定", description="**Bot 基本配置選項**", color=0x3498DB
+            title="🔧 基本設定",
+            description="**Bot 基本配置選項**",
+            color=0x3498DB,
         )
 
         embed.add_field(
@@ -1104,7 +1319,9 @@ class SettingsMenuView(discord.ui.View):
             )
             return
 
-        embed = discord.Embed(title="🛡️ 權限設定", description="**權限管理概覽**", color=0xE74C3C)
+        embed = discord.Embed(
+            title="🛡️ 權限設定", description="**權限管理概覽**", color=0xE74C3C
+        )
 
         embed.add_field(
             name="👑 管理員權限",
@@ -1126,8 +1343,12 @@ class SettingsMenuView(discord.ui.View):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(label="📊 功能模組", style=discord.ButtonStyle.secondary)
-    async def module_settings(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="📊 功能模組", style=discord.ButtonStyle.secondary
+    )
+    async def module_settings(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """功能模組狀態"""
         embed = discord.Embed(
             title="📊 功能模組狀態",
@@ -1148,10 +1369,18 @@ class SettingsMenuView(discord.ui.View):
                 feature_modules.append(f"✅ {cog_name}")
 
         if core_modules:
-            embed.add_field(name="🔧 核心模組", value="\n".join(core_modules[:10]), inline=True)
+            embed.add_field(
+                name="🔧 核心模組",
+                value="\n".join(core_modules[:10]),
+                inline=True,
+            )
 
         if feature_modules:
-            embed.add_field(name="🎮 功能模組", value="\n".join(feature_modules[:10]), inline=True)
+            embed.add_field(
+                name="🎮 功能模組",
+                value="\n".join(feature_modules[:10]),
+                inline=True,
+            )
 
         embed.add_field(
             name="📈 統計",
@@ -1164,7 +1393,9 @@ class SettingsMenuView(discord.ui.View):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @discord.ui.button(label="🔙 返回", style=discord.ButtonStyle.secondary)
-    async def back_to_main(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def back_to_main(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """返回主選單"""
         view = MainMenuView(self.bot, self.user_id)
         embed = discord.Embed(
@@ -1184,7 +1415,9 @@ class SystemMonitoringView(discord.ui.View):
         self.user_id = user_id
 
     @discord.ui.button(label="🔄 刷新數據", style=discord.ButtonStyle.primary)
-    async def refresh_data(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def refresh_data(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """刷新系統數據"""
         import time
 
@@ -1195,7 +1428,9 @@ class SystemMonitoringView(discord.ui.View):
         cpu_percent = psutil.cpu_percent(interval=1)
 
         embed = discord.Embed(
-            title="📈 即時系統狀態", description="**系統資源使用狀態**", color=0x27AE60
+            title="📈 即時系統狀態",
+            description="**系統資源使用狀態**",
+            color=0x27AE60,
         )
 
         embed.add_field(
@@ -1222,7 +1457,11 @@ class SystemMonitoringView(discord.ui.View):
 
         # 獲取 Bot 統計
         guild_count = len(self.bot.guilds)
-        user_count = sum(guild.member_count for guild in self.bot.guilds if guild.member_count)
+        user_count = sum(
+            guild.member_count
+            for guild in self.bot.guilds
+            if guild.member_count
+        )
 
         embed.add_field(
             name="📈 Bot 統計",
@@ -1234,10 +1473,16 @@ class SystemMonitoringView(discord.ui.View):
 
         await interaction.response.edit_message(embed=embed, view=self)
 
-    @discord.ui.button(label="📁 日誌檢視", style=discord.ButtonStyle.secondary)
-    async def view_logs(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="📁 日誌檢視", style=discord.ButtonStyle.secondary
+    )
+    async def view_logs(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """查看系統日誌"""
-        embed = discord.Embed(title="📁 系統日誌", description="**最近系統事件**", color=0x3498DB)
+        embed = discord.Embed(
+            title="📁 系統日誌", description="**最近系統事件**", color=0x3498DB
+        )
 
         embed.add_field(
             name="ℹ️ 說明",
@@ -1248,7 +1493,9 @@ class SystemMonitoringView(discord.ui.View):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @discord.ui.button(label="🔙 返回", style=discord.ButtonStyle.secondary)
-    async def back_to_admin(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def back_to_admin(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """返回管理員選單"""
         view = AdminMenuView(self.bot, self.user_id)
         embed = await view.create_main_embed()
@@ -1272,7 +1519,11 @@ class UserManagementView(discord.ui.View):
         )
 
         # 獲取伺服器統計
-        guild = self.bot.get_guild(self.user_id) if hasattr(self, "guild_id") else None
+        guild = (
+            self.bot.get_guild(self.user_id)
+            if hasattr(self, "guild_id")
+            else None
+        )
         if not guild:
             # 嘗試從 interaction 獲取 guild
             guilds = self.bot.guilds
@@ -1281,7 +1532,9 @@ class UserManagementView(discord.ui.View):
         if guild:
             member_count = guild.member_count
             online_count = sum(
-                1 for member in guild.members if member.status != discord.Status.offline
+                1
+                for member in guild.members
+                if member.status != discord.Status.offline
             )
             role_count = len(guild.roles)
         else:
@@ -1295,16 +1548,24 @@ class UserManagementView(discord.ui.View):
             inline=True,
         )
 
-        embed.add_field(name="🔧 管理功能", value="• 成員查詢\n• 角色管理\n• 權限設定", inline=True)
+        embed.add_field(
+            name="🔧 管理功能",
+            value="• 成員查詢\n• 角色管理\n• 權限設定",
+            inline=True,
+        )
 
         return embed
 
     @discord.ui.button(label="🔍 成員查詢", style=discord.ButtonStyle.primary)
-    async def member_search(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def member_search(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """成員查詢功能"""
         guild = interaction.guild
         if not guild:
-            await interaction.response.send_message("❌ 無法獲取伺服器資訊", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 無法獲取伺服器資訊", ephemeral=True
+            )
             return
 
         embed = discord.Embed(
@@ -1340,12 +1601,18 @@ class UserManagementView(discord.ui.View):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(label="🎨 角色管理", style=discord.ButtonStyle.secondary)
-    async def role_management(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="🎨 角色管理", style=discord.ButtonStyle.secondary
+    )
+    async def role_management(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """角色管理功能"""
         guild = interaction.guild
         if not guild:
-            await interaction.response.send_message("❌ 無法獲取伺服器資訊", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 無法獲取伺服器資訊", ephemeral=True
+            )
             return
 
         embed = discord.Embed(
@@ -1358,12 +1625,20 @@ class UserManagementView(discord.ui.View):
         roles_list = []
         for role in guild.roles[-11:-1]:  # 除去 @everyone 角色，取最高的10個
             member_count = len(role.members)
-            color_hex = f"#{role.color.value:06x}" if role.color.value else "#99aab5"
-            roles_list.append(f"{role.mention} ({member_count} 人) - {color_hex}")
+            color_hex = (
+                f"#{role.color.value:06x}" if role.color.value else "#99aab5"
+            )
+            roles_list.append(
+                f"{role.mention} ({member_count} 人) - {color_hex}"
+            )
 
         embed.add_field(
             name="🏆 角色列表",
-            value="\n".join(reversed(roles_list)) if roles_list else "無自定義角色",
+            value=(
+                "\n".join(reversed(roles_list))
+                if roles_list
+                else "無自定義角色"
+            ),
             inline=False,
         )
 
@@ -1376,7 +1651,9 @@ class UserManagementView(discord.ui.View):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @discord.ui.button(label="🔙 返回", style=discord.ButtonStyle.secondary)
-    async def back_to_admin(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def back_to_admin(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """返回管理員選單"""
         view = AdminMenuView(self.bot, self.user_id)
         embed = await view.create_main_embed()
@@ -1394,7 +1671,9 @@ class AdminSettingsView(discord.ui.View):
     async def create_main_embed(self) -> discord.Embed:
         """創建管理員設定主選單"""
         embed = discord.Embed(
-            title="🔧 系統設定中心", description="**Bot 進階配置選項**", color=0x34495E
+            title="🔧 系統設定中心",
+            description="**Bot 進階配置選項**",
+            color=0x34495E,
         )
 
         embed.add_field(
@@ -1414,10 +1693,14 @@ class AdminSettingsView(discord.ui.View):
         return embed
 
     @discord.ui.button(label="📊 模組管理", style=discord.ButtonStyle.primary)
-    async def module_management(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def module_management(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """模組管理功能"""
         embed = discord.Embed(
-            title="📊 模組管理中心", description="**已載入的 Bot 模組**", color=0x9B59B6
+            title="📊 模組管理中心",
+            description="**已載入的 Bot 模組**",
+            color=0x9B59B6,
         )
 
         # 分類模組
@@ -1434,14 +1717,16 @@ class AdminSettingsView(discord.ui.View):
         if core_cogs:
             embed.add_field(
                 name="🔧 核心模組",
-                value="\n".join(core_cogs[:8]) + ("\n..." if len(core_cogs) > 8 else ""),
+                value="\n".join(core_cogs[:8])
+                + ("\n..." if len(core_cogs) > 8 else ""),
                 inline=True,
             )
 
         if feature_cogs:
             embed.add_field(
                 name="🎮 功能模組",
-                value="\n".join(feature_cogs[:8]) + ("\n..." if len(feature_cogs) > 8 else ""),
+                value="\n".join(feature_cogs[:8])
+                + ("\n..." if len(feature_cogs) > 8 else ""),
                 inline=True,
             )
 
@@ -1455,12 +1740,18 @@ class AdminSettingsView(discord.ui.View):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(label="📁 日誌設定", style=discord.ButtonStyle.secondary)
-    async def log_settings(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="📁 日誌設定", style=discord.ButtonStyle.secondary
+    )
+    async def log_settings(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """日誌設定功能"""
         import logging
 
-        embed = discord.Embed(title="📁 日誌設定", description="**系統日誌配置**", color=0xF39C12)
+        embed = discord.Embed(
+            title="📁 日誌設定", description="**系統日誌配置**", color=0xF39C12
+        )
 
         # 獲取當前日誌等級
         root_logger = logging.getLogger()
@@ -1493,7 +1784,9 @@ class AdminSettingsView(discord.ui.View):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @discord.ui.button(label="🔙 返回", style=discord.ButtonStyle.secondary)
-    async def back_to_admin(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def back_to_admin(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """返回管理員選單"""
         view = AdminMenuView(self.bot, self.user_id)
         embed = await view.create_main_embed()
@@ -1511,7 +1804,9 @@ class QuickActionsView(discord.ui.View):
     async def create_main_embed(self) -> discord.Embed:
         """創建快速操作主選單"""
         embed = discord.Embed(
-            title="⚡ 快速操作中心", description="**一鍵式管理操作**", color=0xE74C3C
+            title="⚡ 快速操作中心",
+            description="**一鍵式管理操作**",
+            color=0xE74C3C,
         )
 
         embed.add_field(
@@ -1520,17 +1815,29 @@ class QuickActionsView(discord.ui.View):
             inline=True,
         )
 
-        embed.add_field(name="🛠️ 管理工具", value="• 快速重啟\n• 清理快取\n• 權限檢查", inline=True)
+        embed.add_field(
+            name="🛠️ 管理工具",
+            value="• 快速重啟\n• 清理快取\n• 權限檢查",
+            inline=True,
+        )
 
-        embed.add_field(name="⚠️ 注意事項", value="部分操作不可復原，請謹慎使用", inline=False)
+        embed.add_field(
+            name="⚠️ 注意事項",
+            value="部分操作不可復原，請謹慎使用",
+            inline=False,
+        )
 
         return embed
 
     @discord.ui.button(label="🔄 狀態檢查", style=discord.ButtonStyle.primary)
-    async def system_check(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def system_check(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """系統狀態檢查"""
         embed = discord.Embed(
-            title="🔄 系統狀態檢查", description="**快速系統檢查結果**", color=0x27AE60
+            title="🔄 系統狀態檢查",
+            description="**快速系統檢查結果**",
+            color=0x27AE60,
         )
 
         # 檢查各個系統組件
@@ -1545,18 +1852,29 @@ class QuickActionsView(discord.ui.View):
 
         embed.add_field(name="🔍 檢查結果", value=check_text, inline=False)
 
-        embed.set_footer(text=f"檢查時間: {datetime.now(timezone.utc).strftime('%H:%M:%S UTC')}")
+        embed.set_footer(
+            text=f"檢查時間: {datetime.now(timezone.utc).strftime('%H:%M:%S UTC')}"
+        )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(label="📁 清理模式", style=discord.ButtonStyle.secondary)
-    async def cleanup_mode(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="📁 清理模式", style=discord.ButtonStyle.secondary
+    )
+    async def cleanup_mode(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """清理模式"""
-        embed = discord.Embed(title="📁 清理模式", description="**系統清理功能**", color=0xF39C12)
+        embed = discord.Embed(
+            title="📁 清理模式", description="**系統清理功能**", color=0xF39C12
+        )
 
         embed.add_field(
             name="📄 可清理項目",
-            value="• 渠道訊息快取\n" "• 模組模情狀態\n" "• 用戶數據快取\n" "• 系統日誌文件",
+            value="• 渠道訊息快取\n"
+            "• 模組模情狀態\n"
+            "• 用戶數據快取\n"
+            "• 系統日誌文件",
             inline=False,
         )
 
@@ -1575,15 +1893,22 @@ class QuickActionsView(discord.ui.View):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @discord.ui.button(label="⚠️ 緊急模式", style=discord.ButtonStyle.danger)
-    async def emergency_mode(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def emergency_mode(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """緊急模式"""
         embed = discord.Embed(
-            title="⚠️ 緊急模式", description="**系統緊急操作選項**", color=0xE74C3C
+            title="⚠️ 緊急模式",
+            description="**系統緊急操作選項**",
+            color=0xE74C3C,
         )
 
         embed.add_field(
             name="🎆 可用操作",
-            value="• 停用非核心模組\n" "• 只保留基本功能\n" "• 限制用戶訪問\n" "• 假陥狀態模式",
+            value="• 停用非核心模組\n"
+            "• 只保留基本功能\n"
+            "• 限制用戶訪問\n"
+            "• 假陥狀態模式",
             inline=False,
         )
 
@@ -1602,7 +1927,9 @@ class QuickActionsView(discord.ui.View):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @discord.ui.button(label="🔙 返回", style=discord.ButtonStyle.secondary)
-    async def back_to_admin(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def back_to_admin(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """返回管理員選單"""
         view = AdminMenuView(self.bot, self.user_id)
         embed = await view.create_main_embed()
@@ -1627,15 +1954,23 @@ class EntertainmentMenuView(discord.ui.View):
             color=0x1ABC9C,
         )
 
-        embed.add_field(name="🎯 經典遊戲", value="猜數字、剪刀石頭布、骰子", inline=True)
+        embed.add_field(
+            name="🎯 經典遊戲", value="猜數字、剪刀石頭布、骰子", inline=True
+        )
 
-        embed.add_field(name="🧠 智力遊戲", value="問答、記憶遊戲、接龍", inline=True)
+        embed.add_field(
+            name="🧠 智力遊戲", value="問答、記憶遊戲、接龍", inline=True
+        )
 
-        embed.add_field(name="🏆 競技系統", value="排行榜、統計、成就", inline=True)
+        embed.add_field(
+            name="🏆 競技系統", value="排行榜、統計、成就", inline=True
+        )
 
         return embed
 
-    @discord.ui.button(label="🎮 開啟娛樂中心", style=discord.ButtonStyle.primary)
+    @discord.ui.button(
+        label="🎮 開啟娛樂中心", style=discord.ButtonStyle.primary
+    )
     async def entertainment_center(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
@@ -1650,10 +1985,16 @@ class EntertainmentMenuView(discord.ui.View):
             else:
                 await command(interaction)
         else:
-            await interaction.response.send_message("❌ 娛樂系統暫時不可用", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 娛樂系統暫時不可用", ephemeral=True
+            )
 
-    @discord.ui.button(label="📊 遊戲統計", style=discord.ButtonStyle.secondary)
-    async def game_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="📊 遊戲統計", style=discord.ButtonStyle.secondary
+    )
+    async def game_stats(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """查看遊戲統計"""
         cog = self.bot.get_cog("EntertainmentCore")
         if cog and hasattr(cog, "game_stats"):
@@ -1663,10 +2004,14 @@ class EntertainmentMenuView(discord.ui.View):
             else:
                 await command(interaction)
         else:
-            await interaction.response.send_message("❌ 娛樂系統暫時不可用", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 娛樂系統暫時不可用", ephemeral=True
+            )
 
     @discord.ui.button(label="🏆 排行榜", style=discord.ButtonStyle.secondary)
-    async def leaderboard(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def leaderboard(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """查看排行榜"""
         cog = self.bot.get_cog("EntertainmentCore")
         if cog and hasattr(cog, "leaderboard"):
@@ -1676,10 +2021,14 @@ class EntertainmentMenuView(discord.ui.View):
             else:
                 await command(interaction)
         else:
-            await interaction.response.send_message("❌ 娛樂系統暫時不可用", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 娛樂系統暫時不可用", ephemeral=True
+            )
 
     @discord.ui.button(label="🎁 每日獎勵", style=discord.ButtonStyle.success)
-    async def daily_rewards(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def daily_rewards(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """領取每日獎勵"""
         cog = self.bot.get_cog("EntertainmentCore")
         if cog and hasattr(cog, "daily_rewards"):
@@ -1689,10 +2038,14 @@ class EntertainmentMenuView(discord.ui.View):
             else:
                 await command(interaction)
         else:
-            await interaction.response.send_message("❌ 娛樂系統暫時不可用", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 娛樂系統暫時不可用", ephemeral=True
+            )
 
     @discord.ui.button(label="🔙 返回", style=discord.ButtonStyle.secondary)
-    async def back_to_main(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def back_to_main(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """返回主選單"""
         view = MainMenuView(self.bot, self.user_id)
         embed = discord.Embed(
@@ -1721,16 +2074,24 @@ class MusicMenuView(discord.ui.View):
             color=0xE74C3C,
         )
 
-        embed.add_field(name="🎶 播放功能", value="搜索、播放、暫停", inline=True)
+        embed.add_field(
+            name="🎶 播放功能", value="搜索、播放、暫停", inline=True
+        )
 
-        embed.add_field(name="📝 播放列表", value="隊列管理、循環播放", inline=True)
+        embed.add_field(
+            name="📝 播放列表", value="隊列管理、循環播放", inline=True
+        )
 
-        embed.add_field(name="🎛️ 控制面板", value="音量、跳過、停止", inline=True)
+        embed.add_field(
+            name="🎛️ 控制面板", value="音量、跳過、停止", inline=True
+        )
 
         return embed
 
     @discord.ui.button(label="🎵 音樂菜單", style=discord.ButtonStyle.primary)
-    async def music_menu(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def music_menu(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """開啟音樂主菜單"""
         cog = self.bot.get_cog("MusicCore")
         if cog and hasattr(cog, "music_menu"):
@@ -1741,10 +2102,14 @@ class MusicMenuView(discord.ui.View):
             else:
                 await command(interaction)
         else:
-            await interaction.response.send_message("❌ 音樂系統暫時不可用", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 音樂系統暫時不可用", ephemeral=True
+            )
 
     @discord.ui.button(label="🎛️ 控制面板", style=discord.ButtonStyle.secondary)
-    async def music_control(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def music_control(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """音樂控制面板"""
         cog = self.bot.get_cog("MusicCore")
         if cog and hasattr(cog, "music_control"):
@@ -1754,10 +2119,16 @@ class MusicMenuView(discord.ui.View):
             else:
                 await command(interaction)
         else:
-            await interaction.response.send_message("❌ 音樂系統暫時不可用", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 音樂系統暫時不可用", ephemeral=True
+            )
 
-    @discord.ui.button(label="📝 播放列表", style=discord.ButtonStyle.secondary)
-    async def queue(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @discord.ui.button(
+        label="📝 播放列表", style=discord.ButtonStyle.secondary
+    )
+    async def queue(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """查看播放列表"""
         cog = self.bot.get_cog("MusicCore")
         if cog and hasattr(cog, "queue"):
@@ -1767,10 +2138,14 @@ class MusicMenuView(discord.ui.View):
             else:
                 await command(interaction)
         else:
-            await interaction.response.send_message("❌ 音樂系統暫時不可用", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 音樂系統暫時不可用", ephemeral=True
+            )
 
     @discord.ui.button(label="🔗 語音連接", style=discord.ButtonStyle.success)
-    async def voice_connect(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def voice_connect(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """連接語音頻道"""
         cog = self.bot.get_cog("MusicCore")
         if cog and hasattr(cog, "voice_connect"):
@@ -1780,10 +2155,14 @@ class MusicMenuView(discord.ui.View):
             else:
                 await command(interaction)
         else:
-            await interaction.response.send_message("❌ 音樂系統暫時不可用", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 音樂系統暫時不可用", ephemeral=True
+            )
 
     @discord.ui.button(label="🔙 返回", style=discord.ButtonStyle.secondary)
-    async def back_to_main(self, interaction: discord.Interaction, button: discord.ui.Button):
+    async def back_to_main(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
         """返回主選單"""
         view = MainMenuView(self.bot, self.user_id)
         embed = discord.Embed(
@@ -1812,7 +2191,9 @@ class MenuSystemManager:
         context_engine = get_context_engine(self.bot)
 
         # 記錄用戶行為
-        await context_engine.record_user_action(str(user_id), guild_id, "main_menu_open")
+        await context_engine.record_user_action(
+            str(user_id), guild_id, "main_menu_open"
+        )
 
         # 獲取情境化選單選項
         contextual_options = await context_engine.get_contextual_menu_options(
@@ -1829,23 +2210,47 @@ class MenuSystemManager:
             color=0x3498DB,
         )
 
-        embed.add_field(name="🤖 AI 功能", value="智能對話、意圖識別、引導式操作", inline=True)
+        embed.add_field(
+            name="🤖 AI 功能",
+            value="智能對話、意圖識別、引導式操作",
+            inline=True,
+        )
 
-        embed.add_field(name="🎫 支援系統", value="票券管理、問題追蹤、客服支援", inline=True)
+        embed.add_field(
+            name="🎫 支援系統",
+            value="票券管理、問題追蹤、客服支援",
+            inline=True,
+        )
 
-        embed.add_field(name="🗳️ 協作工具", value="投票系統、歡迎設定、團隊管理", inline=True)
+        embed.add_field(
+            name="🗳️ 協作工具",
+            value="投票系統、歡迎設定、團隊管理",
+            inline=True,
+        )
 
-        embed.add_field(name="🎮 娛樂功能", value="小遊戲、音樂播放、互動娛樂", inline=True)
+        embed.add_field(
+            name="🎮 娛樂功能", value="小遊戲、音樂播放、互動娛樂", inline=True
+        )
 
         # 添加智能推薦
         recommendations = contextual_options.get("recommendations", [])
         if recommendations:
-            high_priority_recs = [r for r in recommendations if r.level == RecommendationLevel.HIGH]
+            high_priority_recs = [
+                r
+                for r in recommendations
+                if r.level == RecommendationLevel.HIGH
+            ]
             if high_priority_recs:
-                rec_text = "\n".join([f"• {rec.title}" for rec in high_priority_recs[:2]])
-                embed.add_field(name="🎯 智能推薦", value=rec_text, inline=False)
+                rec_text = "\n".join(
+                    [f"• {rec.title}" for rec in high_priority_recs[:2]]
+                )
+                embed.add_field(
+                    name="🎯 智能推薦", value=rec_text, inline=False
+                )
 
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        await interaction.response.send_message(
+            embed=embed, view=view, ephemeral=True
+        )
 
     async def show_admin_menu(self, interaction: discord.Interaction) -> None:
         """顯示管理員選單"""
@@ -1853,14 +2258,18 @@ class MenuSystemManager:
 
         # 檢查管理員權限
         if not interaction.user.guild_permissions.administrator:
-            await interaction.response.send_message("❌ 您沒有管理員權限", ephemeral=True)
+            await interaction.response.send_message(
+                "❌ 您沒有管理員權限", ephemeral=True
+            )
             return
 
         view = AdminMenuView(self.bot, user_id)
         self.active_menus[user_id] = view
 
         embed = await view.create_main_embed()
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        await interaction.response.send_message(
+            embed=embed, view=view, ephemeral=True
+        )
 
     def cleanup_menu(self, user_id: int) -> None:
         """清理選單"""

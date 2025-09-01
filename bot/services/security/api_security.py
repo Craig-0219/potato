@@ -104,7 +104,9 @@ class APISecurityManager:
         self.token_expiry = 3600  # 1 小時
 
         # 速率限制快取
-        self._rate_limit_cache: Dict[str, deque] = defaultdict(lambda: deque(maxlen=1000))
+        self._rate_limit_cache: Dict[str, deque] = defaultdict(
+            lambda: deque(maxlen=1000)
+        )
         self._api_keys_cache: Dict[str, APIKey] = {}
 
         # IP 控制
@@ -236,7 +238,10 @@ class APISecurityManager:
                     category=EventCategory.SYSTEM_CONFIG,
                     severity=EventSeverity.INFO,
                     message=f"API 密鑰已創建: {name}",
-                    details={"api_key_id": api_key_id, "key_type": key_type.value},
+                    details={
+                        "api_key_id": api_key_id,
+                        "key_type": key_type.value,
+                    },
                 )
             )
 
@@ -392,14 +397,18 @@ class APISecurityManager:
 
                 rate_limit_info[rule.limit_type.value] = {
                     "limit": rule.max_requests,
-                    "remaining": max(0, rule.max_requests - current_requests - 1),
+                    "remaining": max(
+                        0, rule.max_requests - current_requests - 1
+                    ),
                     "reset_time": int(current_time + window_size),
                     "window_size": window_size,
                 }
 
                 # 檢查突發限制
                 if rule.burst_allowance > 0:
-                    recent_requests = sum(1 for t in request_times if current_time - t <= 1)
+                    recent_requests = sum(
+                        1 for t in request_times if current_time - t <= 1
+                    )
                     if recent_requests >= rule.burst_allowance:
                         return False, {
                             "error": "rate_limit_exceeded",
@@ -448,7 +457,10 @@ class APISecurityManager:
             return False, {"error": "internal_error"}
 
     async def generate_jwt_token(
-        self, user_id: int, permissions: List[str] = None, expires_in: int = None
+        self,
+        user_id: int,
+        permissions: List[str] = None,
+        expires_in: int = None,
     ) -> str:
         """
         生成 JWT 令牌
@@ -473,7 +485,9 @@ class APISecurityManager:
                 "jti": secrets.token_hex(16),  # JWT ID for token revocation
             }
 
-            token = jwt.encode(payload, self.jwt_secret, algorithm=self.jwt_algorithm)
+            token = jwt.encode(
+                payload, self.jwt_secret, algorithm=self.jwt_algorithm
+            )
 
             # 記錄令牌生成事件
             await audit_manager.log_event(
@@ -507,7 +521,9 @@ class APISecurityManager:
             Optional[Dict[str, Any]]: 解碼的令牌內容
         """
         try:
-            payload = jwt.decode(token, self.jwt_secret, algorithms=[self.jwt_algorithm])
+            payload = jwt.decode(
+                token, self.jwt_secret, algorithms=[self.jwt_algorithm]
+            )
             return payload
 
         except jwt.ExpiredSignatureError:
@@ -620,7 +636,10 @@ class APISecurityManager:
                     category=EventCategory.SYSTEM_CONFIG,
                     severity=EventSeverity.INFO,
                     message=f"API 密鑰已撤銷: {name}",
-                    details={"api_key_id": api_key_id, "revoked_by": revoked_by},
+                    details={
+                        "api_key_id": api_key_id,
+                        "revoked_by": revoked_by,
+                    },
                 )
             )
 

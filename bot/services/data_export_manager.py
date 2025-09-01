@@ -108,7 +108,9 @@ class DataExportManager:
         start_time = datetime.now()
 
         try:
-            logger.info(f"🚀 開始匯出 {request.export_type} 資料 ({request.format} 格式)")
+            logger.info(
+                f"🚀 開始匯出 {request.export_type} 資料 ({request.format} 格式)"
+            )
 
             # 檢查匯出類型是否支援
             if request.export_type not in self.export_handlers:
@@ -120,7 +122,8 @@ class DataExportManager:
             # 檢查格式是否支援
             if request.format not in ["csv", "json", "excel"]:
                 return ExportResult(
-                    success=False, error_message=f"不支援的匯出格式: {request.format}"
+                    success=False,
+                    error_message=f"不支援的匯出格式: {request.format}",
                 )
 
             # 執行資料查詢
@@ -128,7 +131,9 @@ class DataExportManager:
             data, metadata = await handler(request)
 
             if not data:
-                return ExportResult(success=False, error_message="沒有找到符合條件的資料")
+                return ExportResult(
+                    success=False, error_message="沒有找到符合條件的資料"
+                )
 
             # 生成檔案名稱
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -149,9 +154,13 @@ class DataExportManager:
             file_size = file_path.stat().st_size
 
             # 記錄匯出日誌
-            await self._log_export(request, str(file_path), len(data), export_time)
+            await self._log_export(
+                request, str(file_path), len(data), export_time
+            )
 
-            logger.info(f"✅ 匯出完成: {filename} ({file_size} bytes, {len(data)} 條記錄)")
+            logger.info(
+                f"✅ 匯出完成: {filename} ({file_size} bytes, {len(data)} 條記錄)"
+            )
 
             return ExportResult(
                 success=True,
@@ -166,7 +175,9 @@ class DataExportManager:
             logger.error(f"❌ 匯出失敗: {e}", exc_info=True)
             return ExportResult(success=False, error_message=str(e))
 
-    async def _export_tickets(self, request: ExportRequest) -> tuple[List[Dict], Dict]:
+    async def _export_tickets(
+        self, request: ExportRequest
+    ) -> tuple[List[Dict], Dict]:
         """匯出票券資料"""
         query_parts = ["SELECT * FROM tickets WHERE 1=1"]
         params = []
@@ -218,7 +229,9 @@ class DataExportManager:
                         """
                         await cursor.execute(tag_query, (ticket["id"],))
                         tags = await cursor.fetchall()
-                        ticket["tags"] = [tag["name"] for tag in tags] if tags else []
+                        ticket["tags"] = (
+                            [tag["name"] for tag in tags] if tags else []
+                        )
                     except Exception:
                         # 如果標籤查詢失敗，設為空列表
                         ticket["tags"] = []
@@ -234,7 +247,9 @@ class DataExportManager:
 
         return tickets, metadata
 
-    async def _export_users(self, request: ExportRequest) -> tuple[List[Dict], Dict]:
+    async def _export_users(
+        self, request: ExportRequest
+    ) -> tuple[List[Dict], Dict]:
         """匯出用戶資料"""
         # 從票券系統中提取用戶統計資料
         query = """
@@ -280,7 +295,9 @@ class DataExportManager:
 
         return users, metadata
 
-    async def _export_votes(self, request: ExportRequest) -> tuple[List[Dict], Dict]:
+    async def _export_votes(
+        self, request: ExportRequest
+    ) -> tuple[List[Dict], Dict]:
         """匯出投票資料"""
         query = """
         SELECT
@@ -323,7 +340,9 @@ class DataExportManager:
 
         return votes, metadata
 
-    async def _export_logs(self, request: ExportRequest) -> tuple[List[Dict], Dict]:
+    async def _export_logs(
+        self, request: ExportRequest
+    ) -> tuple[List[Dict], Dict]:
         """匯出日誌資料"""
         # 合併多個日誌表的資料
         queries = [
@@ -349,7 +368,9 @@ class DataExportManager:
                         query = base_query + date_filter
                         if request.limit:
                             query += " LIMIT %s"
-                            current_params = params + [request.limit // len(queries)]
+                            current_params = params + [
+                                request.limit // len(queries)
+                            ]
                         else:
                             current_params = params
 
@@ -366,7 +387,9 @@ class DataExportManager:
                         continue
 
         # 按時間排序
-        all_logs.sort(key=lambda x: x.get("created_at", datetime.min), reverse=True)
+        all_logs.sort(
+            key=lambda x: x.get("created_at", datetime.min), reverse=True
+        )
 
         metadata = {
             "export_type": "logs",
@@ -377,7 +400,9 @@ class DataExportManager:
 
         return all_logs, metadata
 
-    async def _export_statistics(self, request: ExportRequest) -> tuple[List[Dict], Dict]:
+    async def _export_statistics(
+        self, request: ExportRequest
+    ) -> tuple[List[Dict], Dict]:
         """匯出統計資料"""
         statistics = []
 
@@ -455,7 +480,9 @@ class DataExportManager:
 
         return statistics, metadata
 
-    async def _export_analytics(self, request: ExportRequest) -> tuple[List[Dict], Dict]:
+    async def _export_analytics(
+        self, request: ExportRequest
+    ) -> tuple[List[Dict], Dict]:
         """匯出分析資料"""
         analytics = []
 
@@ -519,7 +546,9 @@ class DataExportManager:
 
         return analytics, metadata
 
-    async def _export_assignments(self, request: ExportRequest) -> tuple[List[Dict], Dict]:
+    async def _export_assignments(
+        self, request: ExportRequest
+    ) -> tuple[List[Dict], Dict]:
         """匯出指派記錄"""
         query = """
         SELECT
@@ -561,7 +590,9 @@ class DataExportManager:
 
         return assignments, metadata
 
-    async def _export_tags(self, request: ExportRequest) -> tuple[List[Dict], Dict]:
+    async def _export_tags(
+        self, request: ExportRequest
+    ) -> tuple[List[Dict], Dict]:
         """匯出標籤資料"""
         query = """
         SELECT
@@ -594,7 +625,9 @@ class DataExportManager:
 
         return tags, metadata
 
-    async def _export_webhooks(self, request: ExportRequest) -> tuple[List[Dict], Dict]:
+    async def _export_webhooks(
+        self, request: ExportRequest
+    ) -> tuple[List[Dict], Dict]:
         """匯出 Webhook 配置"""
         query = "SELECT * FROM webhook_configs WHERE 1=1"
         params = []
@@ -625,7 +658,9 @@ class DataExportManager:
 
         return webhooks, metadata
 
-    async def _export_security_events(self, request: ExportRequest) -> tuple[List[Dict], Dict]:
+    async def _export_security_events(
+        self, request: ExportRequest
+    ) -> tuple[List[Dict], Dict]:
         """匯出安全事件"""
         query = "SELECT * FROM security_events WHERE 1=1"
         params = []
@@ -679,7 +714,9 @@ class DataExportManager:
             actual_path = await self._write_excel(data, file_path, metadata)
             return actual_path or str(file_path)
 
-    async def _write_csv(self, data: List[Dict], file_path: Path, metadata: Dict):
+    async def _write_csv(
+        self, data: List[Dict], file_path: Path, metadata: Dict
+    ):
         """寫入 CSV 檔案"""
         if not data:
             return
@@ -687,7 +724,9 @@ class DataExportManager:
         # 使用 asyncio 在執行緒中執行 CSV 寫入
         def write_csv_sync():
             # 使用 utf-8-sig 編碼，包含 BOM 頭，確保 Excel 能正確識別 UTF-8 編碼
-            with open(file_path, "w", newline="", encoding="utf-8-sig") as csvfile:
+            with open(
+                file_path, "w", newline="", encoding="utf-8-sig"
+            ) as csvfile:
                 if data:
                     fieldnames = list(data[0].keys())
                     writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -698,7 +737,9 @@ class DataExportManager:
                         processed_row = {}
                         for key, value in row.items():
                             if isinstance(value, (list, dict)):
-                                processed_row[key] = json.dumps(value, ensure_ascii=False)
+                                processed_row[key] = json.dumps(
+                                    value, ensure_ascii=False
+                                )
                             elif isinstance(value, datetime):
                                 processed_row[key] = value.isoformat()
                             else:
@@ -707,18 +748,28 @@ class DataExportManager:
 
         await asyncio.get_event_loop().run_in_executor(None, write_csv_sync)
 
-    async def _write_json(self, data: List[Dict], file_path: Path, metadata: Dict):
+    async def _write_json(
+        self, data: List[Dict], file_path: Path, metadata: Dict
+    ):
         """寫入 JSON 檔案"""
 
         def write_json_sync():
             export_data = {"metadata": metadata, "data": data}
 
             with open(file_path, "w", encoding="utf-8") as jsonfile:
-                json.dump(export_data, jsonfile, ensure_ascii=False, indent=2, default=str)
+                json.dump(
+                    export_data,
+                    jsonfile,
+                    ensure_ascii=False,
+                    indent=2,
+                    default=str,
+                )
 
         await asyncio.get_event_loop().run_in_executor(None, write_json_sync)
 
-    async def _write_excel(self, data: List[Dict], file_path: Path, metadata: Dict):
+    async def _write_excel(
+        self, data: List[Dict], file_path: Path, metadata: Dict
+    ):
         """寫入 Excel 檔案"""
         if not HAS_PANDAS:
             # 降級到 CSV 格式
@@ -735,7 +786,9 @@ class DataExportManager:
                 processed_row = {}
                 for key, value in row.items():
                     if isinstance(value, (list, dict)):
-                        processed_row[key] = json.dumps(value, ensure_ascii=False)
+                        processed_row[key] = json.dumps(
+                            value, ensure_ascii=False
+                        )
                     elif isinstance(value, datetime):
                         processed_row[key] = value.isoformat()
                     else:
@@ -757,14 +810,19 @@ class DataExportManager:
                             "匯出類型": metadata.get("export_type", ""),
                             "總記錄數": metadata.get("total_records", 0),
                             "匯出時間": metadata.get("export_timestamp", ""),
-                            "日期範圍": str(metadata.get("date_range", "全部")),
+                            "日期範圍": str(
+                                metadata.get("date_range", "全部")
+                            ),
                             "篩選條件": json.dumps(
-                                metadata.get("filters_applied", {}), ensure_ascii=False
+                                metadata.get("filters_applied", {}),
+                                ensure_ascii=False,
                             ),
                         }
                     ]
                 )
-                metadata_df.to_excel(writer, sheet_name="匯出資訊", index=False)
+                metadata_df.to_excel(
+                    writer, sheet_name="匯出資訊", index=False
+                )
 
                 # 自動調整列寬
                 for sheet_name in writer.sheets:
@@ -778,8 +836,12 @@ class DataExportManager:
                                     max_length = len(str(cell.value))
                             except:
                                 pass
-                        adjusted_width = min(max_length + 2, 50)  # 限制最大寬度
-                        worksheet.column_dimensions[column].width = adjusted_width
+                        adjusted_width = min(
+                            max_length + 2, 50
+                        )  # 限制最大寬度
+                        worksheet.column_dimensions[column].width = (
+                            adjusted_width
+                        )
 
         await asyncio.get_event_loop().run_in_executor(None, write_excel_sync)
         return str(file_path)
@@ -816,7 +878,11 @@ class DataExportManager:
                     await cursor.execute(create_table_query)
 
                     # 插入日誌記錄
-                    file_size = Path(file_path).stat().st_size if Path(file_path).exists() else 0
+                    file_size = (
+                        Path(file_path).stat().st_size
+                        if Path(file_path).exists()
+                        else 0
+                    )
 
                     insert_query = """
                     INSERT INTO export_logs
@@ -825,9 +891,17 @@ class DataExportManager:
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     """
 
-                    filters_json = json.dumps(request.filters) if request.filters else None
-                    date_start = request.date_range[0] if request.date_range else None
-                    date_end = request.date_range[1] if request.date_range else None
+                    filters_json = (
+                        json.dumps(request.filters)
+                        if request.filters
+                        else None
+                    )
+                    date_start = (
+                        request.date_range[0] if request.date_range else None
+                    )
+                    date_end = (
+                        request.date_range[1] if request.date_range else None
+                    )
 
                     await cursor.execute(
                         insert_query,
@@ -898,7 +972,8 @@ class DataExportManager:
                         "timestamp": datetime.now().isoformat(),
                         "total_export_types": len(export_types),
                         "successful_exports": successful_exports,
-                        "failed_exports": len(export_types) - successful_exports,
+                        "failed_exports": len(export_types)
+                        - successful_exports,
                         "total_records": total_records,
                         "export_types": export_types,
                         "guild_id": guild_id,
@@ -908,7 +983,9 @@ class DataExportManager:
 
                 zipf.writestr(
                     "export_summary.json",
-                    json.dumps(summary, ensure_ascii=False, indent=2, default=str),
+                    json.dumps(
+                        summary, ensure_ascii=False, indent=2, default=str
+                    ),
                 )
 
             file_size = zip_path.stat().st_size
@@ -969,14 +1046,20 @@ class DataExportManager:
 
             for file_path in self.export_dir.iterdir():
                 if file_path.is_file():
-                    file_time = datetime.fromtimestamp(file_path.stat().st_mtime)
+                    file_time = datetime.fromtimestamp(
+                        file_path.stat().st_mtime
+                    )
                     if file_time < cutoff_date:
                         try:
                             file_path.unlink()
                             deleted_count += 1
-                            logger.info(f"🗑️ 已刪除舊匯出檔案: {file_path.name}")
+                            logger.info(
+                                f"🗑️ 已刪除舊匯出檔案: {file_path.name}"
+                            )
                         except Exception as e:
-                            logger.warning(f"刪除檔案 {file_path.name} 失敗: {e}")
+                            logger.warning(
+                                f"刪除檔案 {file_path.name} 失敗: {e}"
+                            )
 
             return deleted_count
 
