@@ -17,11 +17,17 @@ class TestDatabaseIntegration(unittest.TestCase):
     def setUp(self):
         """測試設置"""
         os.environ["TESTING"] = "true"
-        os.environ["DATABASE_URL"] = "mysql://test_user:test_password@localhost:3306/test_database"
-        os.environ["DB_HOST"] = "localhost"
-        os.environ["DB_USER"] = "test_user"
-        os.environ["DB_PASSWORD"] = "test_password"
-        os.environ["DB_NAME"] = "test_database"
+        # 使用與 CI 環境一致的配置，如果沒有設定則使用預設值
+        if not os.environ.get("DATABASE_URL"):
+            os.environ["DATABASE_URL"] = "mysql://test_user:test_password@localhost:3306/test_database"
+        if not os.environ.get("DB_HOST"):
+            os.environ["DB_HOST"] = "localhost"
+        if not os.environ.get("DB_USER"):
+            os.environ["DB_USER"] = "test_user"
+        if not os.environ.get("DB_PASSWORD"):
+            os.environ["DB_PASSWORD"] = "test_password"
+        if not os.environ.get("DB_NAME"):
+            os.environ["DB_NAME"] = "test_database"
 
     @patch("aiomysql.connect")
     def test_database_manager_connection(self, mock_connect):
@@ -76,10 +82,14 @@ class TestDatabaseIntegration(unittest.TestCase):
         try:
             from shared.config import DB_HOST, DB_NAME, DB_PORT, DB_USER
 
-            # 驗證測試環境配置
-            self.assertEqual(DB_HOST, "localhost")
-            self.assertEqual(DB_USER, "test_user")
-            self.assertEqual(DB_NAME, "test_database")
+            # 驗證測試環境配置 - 使用環境變數的實際值
+            expected_host = os.environ.get("DB_HOST", "localhost")
+            expected_user = os.environ.get("DB_USER", "test_user")
+            expected_name = os.environ.get("DB_NAME", "test_database")
+
+            self.assertEqual(DB_HOST, expected_host)
+            self.assertEqual(DB_USER, expected_user)
+            self.assertEqual(DB_NAME, expected_name)
             self.assertIsInstance(DB_PORT, int)
 
         except ImportError as e:

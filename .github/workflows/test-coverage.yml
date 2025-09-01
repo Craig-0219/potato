@@ -18,6 +18,12 @@ on:
           - integration
           - e2e
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  checks: read
+
 env:
   PYTHON_VERSION: '3.10'
   MIN_COVERAGE: '70'
@@ -106,20 +112,16 @@ jobs:
             TEST_PATH="tests/unit/test_cogs.py"
             ;;
           "api")
-            # API 相關測試 (如果沒有就使用 integration)
-            if [[ -d "tests/unit/api/" ]]; then
-              TEST_PATH="tests/unit/api/"
-            else
-              TEST_PATH="tests/integration/test_api_integration.py"
-            fi
+            # API 相關測試使用 integration 測試
+            TEST_PATH="tests/integration/test_api_integration.py"
             ;;
           "utils")
-            # Utils 測試 (如果沒有就跳過)
-            if [[ -d "tests/unit/utils/" ]]; then
-              TEST_PATH="tests/unit/utils/"
+            # Utils 測試 - 如果沒有專用檔案，使用所有單元測試
+            if [[ -f "tests/unit/test_utils.py" ]]; then
+              TEST_PATH="tests/unit/test_utils.py"
             else
-              echo "⚠️ utils 測試群組暫時跳過 - 測試檔案不存在"
-              exit 0
+              echo "⚠️ utils 測試群組使用所有單元測試"
+              TEST_PATH="tests/unit/"
             fi
             ;;
           *)
