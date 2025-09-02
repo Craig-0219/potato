@@ -15,16 +15,19 @@ class TestConfig(unittest.TestCase):
 
     def setUp(self):
         """測試設置"""
+        # 確保測試環境標記在最前面
         os.environ["TESTING"] = "true"
-        # 設置測試環境變數
-        os.environ["DISCORD_TOKEN"] = (
-            "test_token_comprehensive_validation_length_requirement_met_12345678_abcdefghijk"
-        )
+        
+        # 設置測試環境變數 - 使用與 .env.test 一致的值
+        os.environ["DISCORD_TOKEN"] = "test_token_minimum_50_characters_for_testing_purposes_12345"
         os.environ["DB_HOST"] = "localhost"
         os.environ["DB_USER"] = "test_user"
         os.environ["DB_PASSWORD"] = "test_password"
         os.environ["DB_NAME"] = "test_database"
+        os.environ["DB_PORT"] = "3306"
         os.environ["JWT_SECRET"] = "test_jwt_secret_for_automated_testing_purposes_only"
+        os.environ["DEBUG"] = "true"
+        os.environ["LOG_LEVEL"] = "DEBUG"
 
     def test_config_import(self):
         """測試配置模組可以正常導入"""
