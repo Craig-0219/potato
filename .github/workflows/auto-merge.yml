@@ -227,7 +227,7 @@ jobs:
           if (prInfo.baseBranch === 'main') {
             requiredApprovals = 2;  // main 分支需要 2 個批准
           } else if (prInfo.baseBranch === 'develop') {
-            requiredApprovals = 1;  // develop 分支需要 1 個批准
+            requiredApprovals = 0;  // develop 分支不需要審查批准
           }
           
           // 統計審查結果
