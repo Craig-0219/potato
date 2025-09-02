@@ -324,7 +324,7 @@ jobs:
         echo ""
         
         PR_RESULT='${{ steps.pr-info.outputs.result }}'
-        if [[ "$PR_RESULT" == *"shouldSkip\":true"* ]]; then
+        if [[ "$PR_RESULT" == *'"shouldSkip":true'* ]]; then
           echo "⏭️ 跳過處理：沒有找到相關的 PR"
           exit 0
         fi
