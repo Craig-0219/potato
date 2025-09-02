@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """
-智能變更分類腳本
-分析 Git 變更並決定 CI/CD 執行策略
+Smart Change Detection Script
+Analyzes git changes and provides recommendations for CI/CD workflow execution.
 """
-
 import os
 import re
 import sys
-
+import json
 
 def classify_changes():
     """智能變更分類和影響分析"""
@@ -136,7 +135,7 @@ def classify_changes():
     
     cache_strategy = cache_strategies.get(change_type, 'standard')
     
-    # 決定可跳過的 workflows
+    # 決定可跳過的檢查 (這些將作為其他 workflows 的條件輸入)
     skip_workflows_map = {
         'docs': 'tests,security,quality',  # 文檔變更可跳過大部分檢查
         'test': 'security',                 # 測試變更可跳過安全掃描  
@@ -151,7 +150,10 @@ def classify_changes():
         'impact_level': impact_level,
         'test_strategy': test_strategy,
         'cache_strategy': cache_strategy,
-        'skip_workflows': skip_workflows
+        'skip_workflows': skip_workflows,
+        'run_quality': 'quality' not in skip_workflows,
+        'run_security': 'security' not in skip_workflows,
+        'run_tests': 'tests' not in skip_workflows
     }
     
     print(f"\n🎯 智能分析結果:")
@@ -160,30 +162,26 @@ def classify_changes():
     print(f"  • 測試策略: {test_strategy}")
     print(f"  • 快取策略: {cache_strategy}")
     print(f"  • 可跳過檢查: {skip_workflows}")
+    print(f"  • 執行品質檢查: {result['run_quality']}")
+    print(f"  • 執行安全掃描: {result['run_security']}")
+    print(f"  • 執行測試: {result['run_tests']}")
     
     return result
 
-
 def main():
-    """主執行函數"""
-    try:
-        result = classify_changes()
-        
-        # 輸出到 GitHub Actions
-        github_output = os.environ.get('GITHUB_OUTPUT')
-        if github_output:
-            with open(github_output, 'a') as f:
-                for key, value in result.items():
-                    f.write(f"{key}={value}\n")
-        else:
-            # 如果沒有 GITHUB_OUTPUT，直接輸出
+    """主執行邏輯"""
+    result = classify_changes()
+    
+    # 輸出到 GitHub Actions
+    github_output = os.environ.get('GITHUB_OUTPUT')
+    if github_output:
+        with open(github_output, 'a') as f:
             for key, value in result.items():
-                print(f"{key}={value}")
-                
-    except Exception as e:
-        print(f"❌ 分析過程發生錯誤: {e}")
-        sys.exit(1)
-
+                f.write(f"{key}={value}\n")
+    
+    # 也輸出 JSON 格式供其他用途
+    print(f"\n📋 JSON 結果:")
+    print(json.dumps(result, indent=2, ensure_ascii=False))
 
 if __name__ == '__main__':
     main()
