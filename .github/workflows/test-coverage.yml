@@ -495,6 +495,18 @@ jobs:
           coverage-report.md
           htmlcov/
     
+    - name: ☁️ 上傳到 Codecov
+      uses: codecov/codecov-action@v4
+      if: always()
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./coverage-*.xml
+        directory: ./
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+        verbose: true
+    
     - name: 💬 覆蓋率評論 (PR)
       uses: actions/github-script@v6
       if: github.event_name == 'pull_request' && always()
