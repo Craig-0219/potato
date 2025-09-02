@@ -427,6 +427,8 @@ jobs:
     - name: 📦 安裝覆蓋率工具
       run: |
         pip install coverage[toml] coverage-badge
+        pip install -r requirements.txt || echo "⚠️ requirements.txt 安裝失敗，繼續執行"
+        pip install -e .[test] || echo "⚠️ 測試依賴安裝失敗，繼續執行"
     
     - name: 📥 下載測試結果
       uses: actions/download-artifact@v4
