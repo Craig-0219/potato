@@ -11,7 +11,7 @@ env:
   PYTHON_VERSION: '3.10'
 
 jobs:
-  code-quality:
+  quality-checks:
     name: 🎯 程式碼品質檢查
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -165,7 +165,7 @@ jobs:
       run: |
         echo "🛡️ 執行依賴安全掃描..."
         
-        pip install safety pip-audit
+        pip install "safety<3.6.0" "typer<0.17" pip-audit
         
         # 使用 safety 檢查已知漏洞
         echo "🔒 Safety 安全檢查..."
@@ -185,3 +185,46 @@ jobs:
         echo "  • Pip-audit 安全審計"
         echo ""
         echo "💡 建議定期更新依賴套件以修復安全漏洞"
+
+  code-quality:
+    name: 🏁 程式碼品質總結  
+    needs: [quality-checks, documentation-check, dependency-check]
+    runs-on: ubuntu-latest
+    if: always()
+    timeout-minutes: 5
+    
+    steps:
+    - name: 📋 程式碼品質檢查總結
+      run: |
+        echo "🔍 程式碼品質檢查完成總結"
+        echo ""
+        echo "✅ 品質檢查階段結果:"
+        echo "  • 🎯 程式碼品質檢查 - ${{ needs.quality-checks.result }}"
+        echo "  • 📚 文件品質檢查 - ${{ needs.documentation-check.result }}"
+        echo "  • 🔒 依賴安全檢查 - ${{ needs.dependency-check.result }}"
+        echo ""
+        
+        # 檢查關鍵品質檢查結果
+        if [[ "${{ needs.quality-checks.result }}" == "failure" ]]; then
+          echo "❌ 程式碼品質檢查失敗 - 這是阻斷性問題"
+          exit 1
+        fi
+        
+        if [[ "${{ needs.dependency-check.result }}" == "failure" ]]; then
+          echo "❌ 依賴安全檢查失敗 - 發現安全漏洞"
+          exit 1
+        fi
+        
+        # 文件檢查失敗不阻斷主流程
+        if [[ "${{ needs.documentation-check.result }}" == "failure" ]]; then
+          echo "⚠️ 文件品質檢查失敗 - 建議改進文件"
+        fi
+        
+        echo "🎉 程式碼品質檢查階段完成!"
+        echo ""
+        echo "📊 品質檢查統計:"
+        echo "  • Black 格式檢查: 完成"
+        echo "  • isort import 排序: 完成"
+        echo "  • Flake8 風格檢查: 完成"
+        echo "  • MyPy 型別檢查: 完成"
+        echo "  • 複雜度分析: 完成"

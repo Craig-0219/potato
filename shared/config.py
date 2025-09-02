@@ -12,14 +12,19 @@ import sys
 
 from dotenv import load_dotenv
 
-# 載入環境變數（跳過測試環境）
+# 載入環境變數
 if not os.getenv("TESTING"):
     load_dotenv()
+else:
+    # 測試環境：嘗試載入 .env.test 文件（如果存在）
+    if os.path.exists(".env.test"):
+        load_dotenv(".env.test")
 
 # 檢查必填變數
 required_vars = ["DISCORD_TOKEN", "DB_HOST", "DB_USER", "DB_PASSWORD", "DB_NAME"]
 missing = [v for v in required_vars if os.getenv(v) is None]
 
+# 只有在非測試環境且有缺少變數時才退出
 if missing and not os.getenv("TESTING"):
     print(f"⚠️ 缺少必要的環境變數：{', '.join(missing)}")
     print("請參考 .env.example 並建立 .env 檔案後再重新啟動。")
@@ -30,7 +35,7 @@ if missing and not os.getenv("TESTING"):
     print("DB_USER=your_db_user")
     print("DB_PASSWORD=your_db_password")
     print("DB_NAME=your_db_name")
-    sys.exit(1)  # 修復：使用 sys.exit 而不是 exit
+    sys.exit(1)
 
 # 主要配置
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")

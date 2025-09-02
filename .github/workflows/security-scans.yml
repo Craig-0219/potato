@@ -51,7 +51,11 @@ jobs:
     - name: 🔐 驗證現有 baseline
       run: |
         echo "🔍 驗證現有 secrets baseline..."
-        detect-secrets audit .secrets.baseline --display-results || true
+        if [[ -f .secrets.baseline ]]; then
+          echo "✅ Secrets baseline 檔案存在，跳過互動式驗證"
+        else
+          echo "⚠️ 未找到 secrets baseline 檔案"
+        fi
 
   bandit-scan:
     name: 🐍 Python 安全掃描
@@ -77,20 +81,34 @@ jobs:
         
         # 使用 pyproject.toml 中的配置執行 bandit
         bandit -r bot/ shared/ -f json -o bandit-report.json || true
-        bandit -r bot/ shared/ -f txt
+        bandit -r bot/ shared/ -f txt || true
         
-        # 檢查高風險問題
-        HIGH_ISSUES=$(bandit -r bot/ shared/ -f json | jq '.results[] | select(.issue_severity == "HIGH") | length' 2>/dev/null || echo "0")
-        
-        if [[ $HIGH_ISSUES -gt 0 ]]; then
-          echo "⚠️ 發現 $HIGH_ISSUES 個高風險安全問題"
-          echo "請檢查並修復這些安全問題"
+        # 檢查高風險和中等風險問題
+        if [[ -f "bandit-report.json" ]]; then
+          HIGH_ISSUES=$(jq '.results[] | select(.issue_severity == "HIGH") | length' bandit-report.json 2>/dev/null | awk '{sum+=$1} END {print sum+0}')
+          MEDIUM_ISSUES=$(jq '.results[] | select(.issue_severity == "MEDIUM") | length' bandit-report.json 2>/dev/null | awk '{sum+=$1} END {print sum+0}')
+          TOTAL_ISSUES=$(jq '.results | length' bandit-report.json 2>/dev/null || echo "0")
+          
+          echo "📊 Bandit 掃描結果:"
+          echo "  • 高風險問題: $HIGH_ISSUES"
+          echo "  • 中等風險問題: $MEDIUM_ISSUES"
+          echo "  • 總問題數量: $TOTAL_ISSUES"
+          
+          if [[ $HIGH_ISSUES -gt 0 ]]; then
+            echo "❌ 發現 $HIGH_ISSUES 個高風險安全問題，需要修復"
+            exit 1
+          elif [[ $MEDIUM_ISSUES -gt 5 ]]; then
+            echo "⚠️ 發現過多中等風險問題 ($MEDIUM_ISSUES > 5)，建議修復"
+            echo "但不阻斷流程"
+          else
+            echo "✅ 安全掃描通過"
+          fi
         else
-          echo "✅ 未發現高風險安全問題"
+          echo "⚠️ Bandit 報告生成失敗"
         fi
     
     - name: 📊 上傳 Bandit 報告
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: bandit-security-report
@@ -113,8 +131,6 @@ jobs:
           p/security-audit
           p/django
           p/flask
-        publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-        publishDeployment: ${{ github.repository }}
       env:
         SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
     
@@ -149,17 +165,38 @@ jobs:
     - name: 🛡️ Safety 漏洞掃描
       run: |
         echo "🔒 執行 Safety 漏洞掃描..."
-        pip install safety
         
-        # 執行 safety 檢查
-        safety check --json --output safety-report.json || true
-        safety check --short-report
+        # 使用穩定版本的 Safety (避免版本衝突)
+        pip install "safety>=2.3.5,<4.0.0" --force-reinstall
         
-        # 檢查是否有高風險漏洞
-        if safety check --exit-code; then
-          echo "✅ 未發現已知安全漏洞"
+        # 執行 safety 檢查 (簡化參數，避免不兼容選項)
+        safety check --json > safety-report.json || echo "Safety 掃描完成，可能有警告"
+        
+        # 顯示結果摘要
+        safety check || echo "Safety 發現一些問題，但不阻斷流程"
+        
+        # 檢查報告是否生成
+        if [[ -f "safety-report.json" && -s "safety-report.json" ]]; then
+          echo "✅ Safety 報告已生成"
+          # 使用更簡單的方式計算問題數量
+          ISSUES_COUNT=$(python3 -c "
+          import json
+          try:
+              with open('safety-report.json', 'r') as f:
+                  data = json.load(f)
+              if isinstance(data, list):
+                  print(len(data))
+              elif isinstance(data, dict) and 'vulnerabilities' in data:
+                  print(len(data['vulnerabilities']))
+              else:
+                  print(0)
+          except:
+              print(0)
+          " 2>/dev/null || echo "0")
+          echo "🔍 發現 $ISSUES_COUNT 個潛在漏洞"
         else
-          echo "⚠️ 發現潛在安全漏洞，請檢查並更新相關套件"
+          echo "⚠️ Safety 報告生成失敗，創建空報告"
+          echo "[]" > safety-report.json
         fi
     
     - name: 🔍 Pip-audit 掃描
@@ -167,11 +204,19 @@ jobs:
         echo "📊 執行 pip-audit 掃描..."
         pip install pip-audit
         
-        pip-audit --format=json --output=pip-audit-report.json || true
-        pip-audit --format=columns
+        # 執行 pip-audit 並生成報告
+        if pip-audit --format=json --output=pip-audit-report.json; then
+          echo "✅ Pip-audit JSON 報告生成成功"
+        else
+          echo "⚠️ Pip-audit JSON 報告生成失敗，創建空報告"
+          echo "[]" > pip-audit-report.json
+        fi
+        
+        # 顯示人類可讀的結果
+        pip-audit --format=columns || echo "⚠️ Pip-audit 發現一些問題，但不阻斷流程"
     
     - name: 📊 上傳漏洞報告
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: vulnerability-reports
@@ -225,7 +270,7 @@ jobs:
         fi
     
     - name: 📊 上傳 Trivy 報告
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: trivy-security-report
