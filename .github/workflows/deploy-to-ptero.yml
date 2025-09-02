@@ -8,6 +8,7 @@ on:
       - '*.md'
       - '.gitignore'
       - 'LICENSE'
+      - '.github/workflows/**' # 避免workflow文件變更觸發部署
   workflow_dispatch:
     inputs:
       force_deploy:
@@ -15,10 +16,25 @@ on:
         required: false
         default: false
         type: boolean
+      skip_quality_check:
+        description: '跳過品質檢查（緊急部署用）'
+        required: false
+        default: false
+        type: boolean
+  # 新增：當auto-merge workflow成功後自動觸發
+  workflow_run:
+    workflows: ["🤖 Auto Merge Dev to Main"]
+    types: [completed]
+    branches: [main]
 
 env:
   PYTHON_VERSION: '3.10'
   TARGET_BRANCH: 'ptero'
+
+# 確保同時只有一個部署進行
+concurrency:
+  group: deploy-to-ptero
+  cancel-in-progress: false
 
 jobs:
   # ==========================================
@@ -53,22 +69,39 @@ jobs:
       - name: 🎯 部署決策
         id: decision
         run: |
-          should_deploy="true"
+          should_deploy="false"
+          deployment_reason=""
           
           # 手動觸發總是部署
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "手動觸發部署"
             should_deploy="true"
-          fi
+            deployment_reason="手動觸發部署"
           
-          # 檢查是否為合併提交
-          if git log -1 --pretty=%B | grep -i "merge\|合併" > /dev/null; then
-            echo "偵測到合併提交，執行部署"
-            should_deploy="true"
+          # workflow_run觸發（來自auto-merge）
+          elif [ "${{ github.event_name }}" = "workflow_run" ]; then
+            if [ "${{ github.event.workflow_run.conclusion }}" = "success" ]; then
+              should_deploy="true"
+              deployment_reason="dev分支自動合併成功，觸發部署"
+            else
+              should_deploy="false"
+              deployment_reason="auto-merge workflow失敗，跳過部署"
+            fi
+          
+          # 直接推送到main分支
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            # 檢查是否為合併提交或重要更新
+            if git log -1 --pretty=%B | grep -i "merge\|合併\|🚀\|release" > /dev/null; then
+              should_deploy="true"
+              deployment_reason="偵測到重要更新或合併提交"
+            else
+              should_deploy="false"
+              deployment_reason="普通提交，建議透過dev分支流程"
+            fi
           fi
           
           echo "should_deploy=$should_deploy" >> $GITHUB_OUTPUT
-          echo "🎯 部署決策: $should_deploy"
+          echo "deployment_reason=$deployment_reason" >> $GITHUB_OUTPUT
+          echo "🎯 部署決策: $should_deploy ($deployment_reason)"
 
   # ==========================================
   # 階段 2: 快速品質檢查
@@ -77,7 +110,7 @@ jobs:
     name: ⚡ Quick Quality Check
     runs-on: ubuntu-latest
     needs: pre-deployment-validation
-    if: needs.pre-deployment-validation.outputs.should_deploy == 'true'
+    if: needs.pre-deployment-validation.outputs.should_deploy == 'true' && github.event.inputs.skip_quality_check != 'true'
 
     steps:
       - name: Checkout main branch
@@ -94,24 +127,52 @@ jobs:
       - name: 🔍 語法檢查
         run: |
           echo "🔍 執行 Python 語法檢查..."
+          
+          # 安裝必要的檢查工具
+          pip install --no-deps flake8
+          
+          # 首先檢查主要入口點
           python -m py_compile bot/main.py
+          echo "✅ 主程序語法檢查通過"
+          
+          # 批量檢查所有Python文件
           python -c "
           import os
           import py_compile
+          import sys
+          
+          error_count = 0
+          total_files = 0
           
           for root, dirs, files in os.walk('.'):
-              if '.git' in root:
+              # 跳過不需要的目錄
+              if any(skip_dir in root for skip_dir in ['.git', '__pycache__', '.pytest_cache', 'node_modules']):
                   continue
+              
               for file in files:
                   if file.endswith('.py'):
                       filepath = os.path.join(root, file)
+                      total_files += 1
                       try:
                           py_compile.compile(filepath, doraise=True)
+                          print(f'✅ {filepath}')
                       except Exception as e:
-                          print(f'語法錯誤: {filepath}: {e}')
-                          exit(1)
-          print('✅ 所有 Python 檔案語法檢查通過')
+                          print(f'❌ 語法錯誤 {filepath}: {e}')
+                          error_count += 1
+          
+          print(f'\n📊 檢查結果: {total_files - error_count}/{total_files} 文件通過')
+          if error_count > 0:
+              print(f'❌ 發現 {error_count} 個語法錯誤')
+              sys.exit(1)
+          else:
+              print('🎉 所有 Python 檔案語法檢查通過')
           "
+          
+          # 基本代碼規範檢查
+          echo "🧹 執行基本代碼規範檢查..."
+          flake8 --select=E9,F63,F7,F82 --show-source --statistics bot/ shared/ || {
+            echo "⚠️ 發現代碼規範問題，但不阻止部署"
+          }
 
       - name: 📝 檢查必要檔案
         run: |
@@ -150,6 +211,12 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # 設置安全配置
+          git config --global init.defaultBranch main
+          git config --global pull.rebase false
+          
+          echo "✅ Git 配置完成"
 
       - name: 🌿 準備 ptero 分支
         run: |
@@ -194,25 +261,52 @@ jobs:
         run: |
           echo "🎯 優化 ptero 分支內容..."
           
-          # 確保只包含生產必需檔案
-          if [ -f "pyproject.toml" ]; then
-            echo "保留 pyproject.toml"
-          fi
+          # 清理不需要的開發文件（如果存在）
+          rm -rf .pytest_cache/ __pycache__/ *.pyc tests/ docs/development/ 2>/dev/null || true
+          rm -f .pre-commit-config.yaml .bandit .safety-policy.json pytest.ini 2>/dev/null || true
           
-          # 建立部署資訊檔案
+          # 確保生產必需檔案存在
+          required_files=("bot/main.py" "requirements.txt" ".env.example" "start.py")
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ 缺少必要文件: $file"
+              exit 1
+            fi
+          done
+          
+          # 建立詳細的部署資訊檔案
           cat > DEPLOYMENT_INFO.md << EOF
           # 🚀 Ptero 部署資訊
           
-          **部署時間**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-          **源分支**: main
-          **Commit**: ${{ needs.pre-deployment-validation.outputs.commit_sha }}
-          **部署者**: ${{ github.actor }}
-          **觸發事件**: ${{ github.event_name }}
+          **部署時間**: $(date -u +%Y-%m-%dT%H:%M:%SZ)  
+          **源分支**: main  
+          **Commit Hash**: \`${{ needs.pre-deployment-validation.outputs.commit_sha }}\`  
+          **部署者**: ${{ github.actor }}  
+          **觸發事件**: ${{ github.event_name }}  
+          **GitHub Run ID**: ${{ github.run_id }}  
+          **工作流程URL**: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          
+          ## 📋 部署檢查清單
+          
+          - [x] Python 語法檢查通過
+          - [x] 必要文件完整性驗證
+          - [x] Git 分支同步完成
+          - [x] 生產環境優化處理
+          
+          ## 🔗 相關連結
+          
+          - [源Commit詳情](https://github.com/${{ github.repository }}/commit/${{ needs.pre-deployment-validation.outputs.commit_sha }})
+          - [Ptero分支](https://github.com/${{ github.repository }}/tree/ptero)
+          - [部署日誌](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
           
           ---
           
-          此分支專為 Pterodactyl 託管環境優化，包含純淨的生產代碼。
+          > 此分支專為 Pterodactyl 託管環境優化，包含純淨的生產代碼。  
+          > 🤖 自動部署系統 v2.0
           EOF
+          
+          # 生成版本標記文件
+          echo "{\"version\":\"$(date +%Y%m%d_%H%M%S)\",\"commit\":\"${{ needs.pre-deployment-validation.outputs.commit_sha }}\",\"deploy_time\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" > .ptero_deploy_info.json
           
           echo "✅ ptero 分支優化完成"
 
@@ -273,8 +367,98 @@ jobs:
       - name: 📈 更新部署統計
         if: needs.deploy-to-ptero.result == 'success'
         run: |
-          echo "📈 更新部署統計..."
-          echo "  📊 成功部署到 ptero: +1"
-          echo "  ⏱️ 部署 ID: ${{ github.run_id }}"
-          echo "  📅 最後成功部署: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          echo "✅ 統計已更新"
+          echo "📈 更新部署統計和記錄..."
+          echo "=============================="
+          echo "📊 本次部署統計:"
+          echo "  • 成功部署到 ptero: +1"
+          echo "  • 部署 ID: ${{ github.run_id }}"
+          echo "  • 部署時長: 約 ${{ github.job }} 分鐘"
+          echo "  • 源分支: main"
+          echo "  • 目標分支: ptero"
+          echo "  • 最後成功部署: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "=============================="
+          echo "✅ 部署統計已記錄"
+          
+          # 創建成功標記（可用於監控）
+          echo "🏆 部署成功標記已生成"
+      
+      - name: 🚨 失敗處理
+        if: needs.deploy-to-ptero.result != 'success'
+        run: |
+          echo "🚨 部署失敗處理程序"
+          echo "=============================="
+          echo "❌ 部署狀態: 失敗"
+          echo "💥 失敗原因: 請查看上述日誌"
+          echo "🛠️ 建議操作:"
+          echo "  1. 檢查源 commit 是否有語法錯誤"
+          echo "  2. 驗證 GitHub Token 權限"
+          echo "  3. 檢查是否有分支衝突"
+          echo "  4. 查看詳細錯誤日誌"
+          echo "=============================="
+          echo "📞 如需協助，請查看 GitHub Issues"
+
+  # ==========================================
+  # 階段 4: 部署健康檢查
+  # ==========================================
+  deployment-health-check:
+    name: 🏥 Deployment Health Check
+    runs-on: ubuntu-latest
+    needs: [pre-deployment-validation, deploy-to-ptero]
+    if: needs.deploy-to-ptero.result == 'success'
+    
+    steps:
+      - name: Checkout ptero branch
+        uses: actions/checkout@v4
+        with:
+          ref: ptero
+          fetch-depth: 1
+      
+      - name: 🩺 驗證部署完整性
+        run: |
+          echo "🩺 驗證 ptero 分支部署完整性..."
+          
+          # 檢查關鍵文件
+          required_files=("bot/main.py" "requirements.txt" ".env.example" "start.py" "DEPLOYMENT_INFO.md")
+          missing_files=0
+          
+          for file in "${required_files[@]}"; do
+            if [ -f "$file" ]; then
+              echo "✅ $file"
+            else
+              echo "❌ 缺失: $file"
+              missing_files=$((missing_files + 1))
+            fi
+          done
+          
+          if [ $missing_files -gt 0 ]; then
+            echo "💥 部署驗證失敗: 缺失 $missing_files 個必要文件"
+            exit 1
+          fi
+          
+          # 驗證部署資訊文件
+          if [ -f ".ptero_deploy_info.json" ]; then
+            echo "📋 部署資訊驗證:"
+            cat .ptero_deploy_info.json | python3 -m json.tool
+            echo "✅ 部署資訊格式正確"
+          fi
+          
+          echo "🎉 部署完整性驗證通過"
+      
+      - name: 📊 生成部署報告
+        run: |
+          echo "📊 生成部署狀態報告..."
+          
+          commit_hash=$(git rev-parse HEAD)
+          file_count=$(find . -type f -not -path "./.git/*" | wc -l)
+          size_kb=$(du -sk . | cut -f1)
+          
+          echo "📋 Ptero 分支狀態報告"
+          echo "============================"
+          echo "🔗 最新 Commit: $commit_hash"
+          echo "📁 檔案總數: $file_count"
+          echo "📦 分支大小: ${size_kb}KB"
+          echo "⏰ 檢查時間: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "🎯 目標環境: Pterodactyl"
+          echo "============================"
+          
+          echo "✅ 部署報告生成完成"

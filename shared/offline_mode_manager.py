@@ -73,17 +73,17 @@ class OfflineModeManager:
             return False
 
         try:
-            import aioredis
+            import redis.asyncio as redis_async
 
-            redis = aioredis.from_url(redis_url)
+            redis = redis_async.from_url(redis_url)
             await redis.ping()
             await redis.close()
             return True
         except Exception:
             try:
-                import redis.asyncio as redis_async
+                import aioredis
 
-                redis = redis_async.from_url(redis_url)
+                redis = aioredis.from_url(redis_url)
                 await redis.ping()
                 await redis.close()
                 return True
