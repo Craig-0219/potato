@@ -2,9 +2,9 @@ name: 🛡️ Security Scans
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches: [main, develop, dev]
   push:
-    branches: [main, develop]
+    branches: [main, develop, dev]
   schedule:
     # 每天凌晨 2 點執行安全掃描
     - cron: '0 2 * * *'

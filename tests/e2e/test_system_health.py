@@ -19,14 +19,20 @@ class TestSystemHealth(unittest.IsolatedAsyncioTestCase):
 
     def setUp(self):
         """測試設置"""
+        # 設置測試環境標記
         os.environ["TESTING"] = "true"
         os.environ["E2E_TESTING"] = "true"
-        os.environ["DISCORD_TOKEN"] = (
-            "test_token_comprehensive_validation_length_requirement_met_12345678_abcdefghijk"
-        )
-        os.environ["DATABASE_URL"] = (
-            "mysql://test_user:test_password@127.0.0.1:3306/test_potato_bot_e2e"
-        )
+        
+        # 設置一致的測試環境變數
+        os.environ["DISCORD_TOKEN"] = "test_token_minimum_50_characters_for_testing_purposes_12345"
+        os.environ["DB_HOST"] = "localhost"
+        os.environ["DB_USER"] = "test_user"
+        os.environ["DB_PASSWORD"] = "test_password"
+        os.environ["DB_NAME"] = "test_database"
+        os.environ["DB_PORT"] = "3306"
+        os.environ["DATABASE_URL"] = "mysql://test_user:test_password@127.0.0.1:3306/test_database"
+        os.environ["DEBUG"] = "true"
+        os.environ["LOG_LEVEL"] = "DEBUG"
 
     async def test_configuration_health(self):
         """測試配置健康檢查"""
