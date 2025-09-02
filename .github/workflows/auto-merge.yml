@@ -141,15 +141,15 @@ jobs:
             // 預設必要檢查（根據目標分支）
             if (prInfo.baseBranch === 'main') {
               requiredChecks = [
-                'code-quality',
-                'security-scans', 
-                'test-coverage',
-                'build-validation'
+                '🎯 程式碼品質檢查',
+                '📋 安全掃描總結', 
+                '🏁 測試總結',
+                '🏁 建構總結'
               ];
             } else if (prInfo.baseBranch === 'develop') {
               requiredChecks = [
-                'code-quality',
-                'test-coverage'
+                '🎯 程式碼品質檢查',
+                '🏁 測試總結'
               ];
             }
           }
