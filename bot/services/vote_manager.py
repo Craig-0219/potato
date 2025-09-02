@@ -4,9 +4,10 @@
 負責投票的創建、管理和執行
 """
 
-from typing import Any, Dict, List, Optional
-import discord
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+
+import discord
 
 from bot.db.vote_dao import VoteDAO
 from bot.services.vote_template_manager import VoteTemplateManager
@@ -21,10 +22,17 @@ class VoteManager:
         self.vote_dao = VoteDAO(database_manager) if database_manager else None
         self.template_manager = VoteTemplateManager()
         self.active_votes = {}
-        
-    async def create_vote(self, guild_id: int, channel_id: int, creator_id: int, 
-                         title: str, options: List[str], duration: int = 120, 
-                         is_multi: bool = False) -> Dict[str, Any]:
+
+    async def create_vote(
+        self,
+        guild_id: int,
+        channel_id: int,
+        creator_id: int,
+        title: str,
+        options: List[str],
+        duration: int = 120,
+        is_multi: bool = False,
+    ) -> Dict[str, Any]:
         """創建新的投票"""
         try:
             vote_data = {
@@ -36,12 +44,12 @@ class VoteManager:
                 "duration": duration,
                 "is_multi": is_multi,
                 "created_at": datetime.utcnow(),
-                "status": "active"
+                "status": "active",
             }
-            
+
             logger.info(f"創建新投票: {title}")
             return vote_data
-            
+
         except Exception as e:
             logger.error(f"創建投票失敗: {e}")
             raise
@@ -51,7 +59,7 @@ class VoteManager:
         try:
             logger.info(f"結束投票: {vote_id}")
             return {"vote_id": vote_id, "status": "ended"}
-            
+
         except Exception as e:
             logger.error(f"結束投票失敗: {e}")
             raise
@@ -61,7 +69,7 @@ class VoteManager:
         try:
             logger.info(f"獲取投票結果: {vote_id}")
             return {"vote_id": vote_id, "results": []}
-            
+
         except Exception as e:
             logger.error(f"獲取投票結果失敗: {e}")
             raise
@@ -71,24 +79,17 @@ class VoteManager:
         try:
             logger.info(f"用戶 {user_id} 對投票 {vote_id} 投票: {option}")
             return True
-            
+
         except Exception as e:
             logger.error(f"投票失敗: {e}")
             raise
 
     def get_vote_embed(self, vote_data: Dict[str, Any]) -> discord.Embed:
         """生成投票嵌入訊息"""
-        embed = discord.Embed(
-            title=vote_data.get("title", "投票"),
-            color=discord.Color.blue()
-        )
-        
+        embed = discord.Embed(title=vote_data.get("title", "投票"), color=discord.Color.blue())
+
         options = vote_data.get("options", [])
         for i, option in enumerate(options, 1):
-            embed.add_field(
-                name=f"選項 {i}",
-                value=option,
-                inline=False
-            )
-            
+            embed.add_field(name=f"選項 {i}", value=option, inline=False)
+
         return embed

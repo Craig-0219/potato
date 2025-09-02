@@ -44,10 +44,10 @@ def format_duration(duration: Union[timedelta, int]) -> str:
 
 def format_time_delta(delta: timedelta) -> str:
     """格式化時間差 - format_duration的別名
-    
+
     Args:
         delta: 時間差對象
-        
+
     Returns:
         str: 格式化的時間差字符串
     """
