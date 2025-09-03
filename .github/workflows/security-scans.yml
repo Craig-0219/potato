@@ -90,7 +90,7 @@ jobs:
         fi
     
     - name: 📊 上傳 Bandit 報告
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: bandit-security-report
@@ -113,8 +113,6 @@ jobs:
           p/security-audit
           p/django
           p/flask
-        publishToken: ${{ secrets.SEMGREP_APP_TOKEN }}
-        publishDeployment: ${{ github.repository }}
       env:
         SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
     
@@ -171,7 +169,7 @@ jobs:
         pip-audit --format=columns
     
     - name: 📊 上傳漏洞報告
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: vulnerability-reports
@@ -225,7 +223,7 @@ jobs:
         fi
     
     - name: 📊 上傳 Trivy 報告
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: trivy-security-report
