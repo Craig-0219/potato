@@ -143,7 +143,7 @@ jobs:
     name: 🐳 Docker 建構驗證
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: (github.event.inputs.build_type || 'all') == 'all' || github.event.inputs.build_type == 'docker'
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'docker' || github.event.inputs.build_type == null
     
     steps:
     - name: 📥 檢出程式碼
@@ -224,7 +224,7 @@ jobs:
     name: 🌐 Web UI 建構驗證
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: ((github.event.inputs.build_type || 'all') == 'all' || github.event.inputs.build_type == 'web-ui') && hashFiles('web-ui/**') != ''
+    if: (github.event_name != 'workflow_dispatch' || github.event.inputs.build_type == 'all' || github.event.inputs.build_type == 'web-ui' || github.event.inputs.build_type == null) && hashFiles('web-ui/**') != ''
     
     defaults:
       run:
