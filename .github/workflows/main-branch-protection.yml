@@ -1,0 +1,114 @@
+name: 🛡️ Main Branch Protection
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  production-compliance:
+    name: 🔒 生產合規強制檢查
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+    - name: 📥 檢出程式碼
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: 🛡️ 執行生產檔案合規檢查
+      id: compliance
+      run: |
+        echo "🔍 執行 main 分支生產檔案合規檢查..."
+        chmod +x .github/scripts/production-compliance-check.sh
+        
+        # 執行檢查並捕獲結果
+        if .github/scripts/production-compliance-check.sh; then
+          echo "✅ 生產合規檢查通過"
+          echo "compliance_status=passed" >> $GITHUB_OUTPUT
+        else
+          echo "❌ 生產合規檢查失敗"
+          echo "compliance_status=failed" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+    
+    - name: 📋 Main 分支保護總結
+      if: always()
+      run: |
+        echo "🛡️ Main 分支保護檢查完成"
+        echo ""
+        echo "📊 檢查結果:"
+        
+        if [[ "${{ steps.compliance.outputs.compliance_status }}" == "passed" ]]; then
+          echo "✅ 生產合規檢查: 通過"
+          echo ""
+          echo "🎉 此 PR 符合 main 分支的生產標準"
+          echo "🔒 所有檔案都符合生產環境白名單要求"
+          echo "✨ 可以安全合併到 main 分支"
+        else
+          echo "❌ 生產合規檢查: 失敗"
+          echo ""
+          echo "🚫 此 PR 包含不符合生產標準的檔案"
+          echo "💡 請移除以下類型的檔案："
+          echo "   • 測試檔案 (tests/**, *_test.py)"
+          echo "   • 開發工具配置 (.bandit, .flake8, pytest.ini)"
+          echo "   • 建構檔案 (Dockerfile, Makefile)"
+          echo "   • 實驗性檔案 (experimental/**, prototype/**)"
+          echo "   • IDE 配置檔案 (.vscode/**, .idea/**)"
+          echo ""
+          echo "🔧 解決方案:"
+          echo "1. 將這些檔案保留在 dev 分支"
+          echo "2. main 分支應只包含生產環境必需的檔案"
+          echo "3. 重新提交 PR，僅包含白名單中的檔案"
+        fi
+
+  branch-policy-check:
+    name: 🚦 分支策略檢查
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+    - name: 📥 檢出程式碼
+      uses: actions/checkout@v4
+    
+    - name: 🔍 檢查分支策略
+      run: |
+        echo "🚦 檢查 main 分支策略合規性..."
+        
+        # 檢查是否有直接推送到 main（應該只允許 PR）
+        if [[ "${{ github.event_name }}" == "push" ]] && [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          echo "⚠️ 檢測到直接推送到 main 分支"
+          
+          # 檢查是否是合併提交（允許）或直接推送（不允許）
+          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
+          if [[ "$COMMIT_MESSAGE" == *"Merge pull request"* ]] || [[ "$COMMIT_MESSAGE" == *"Auto-merge"* ]]; then
+            echo "✅ 合併提交 - 允許"
+          else
+            echo "❌ 直接推送到 main 分支不被允許"
+            echo "💡 請使用 Pull Request 流程"
+            exit 1
+          fi
+        fi
+        
+        echo "✅ 分支策略檢查通過"
+    
+    - name: 📊 分支保護狀態報告
+      if: always()
+      run: |
+        echo "🛡️ Main 分支保護狀態報告"
+        echo "================================"
+        echo "🌿 分支: ${{ github.ref }}"
+        echo "🎯 事件: ${{ github.event_name }}"
+        echo "👤 觸發者: ${{ github.actor }}"
+        echo ""
+        
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          echo "✅ 正確使用 PR 流程合併到 main"
+          echo "🔍 PR 標題: ${{ github.event.pull_request.title }}"
+          echo "👥 PR 作者: ${{ github.event.pull_request.user.login }}"
+        fi
+        
+        echo ""
+        echo "🎉 Main 分支保護機制正常運行"

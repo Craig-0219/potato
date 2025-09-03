@@ -1,0 +1,40 @@
+# 核心程式檔案
+bot/**/*.py
+shared/**/*.py
+web-ui/**/*.js
+web-ui/**/*.ts
+web-ui/**/*.tsx
+web-ui/**/*.json
+web-ui/**/*.css
+web-ui/**/*.html
+
+# 配置檔案
+requirements.txt
+pyproject.toml
+.env.example
+.gitignore
+.gitattributes
+.gitconfig
+
+# 啟動腳本
+start.py
+start.sh
+start.bat
+
+# 文檔 (僅基本文檔)
+README.md
+docs/system/ADMIN_PERMISSION_SETUP.md
+docs/user-guides/COMMANDS.md
+docs/user-guides/USER_MANUAL.md
+
+# CI/CD 流程 (僅生產相關)
+.github/workflows/deploy-to-production.yml
+.github/workflows/deploy-to-ptero.yml
+.github/workflows/emergency-rollback.yml
+.github/workflows/main-branch-protection.yml
+.github/workflows/security-scans.yml
+.github/workflows/smart-change-detection.yml
+.github/workflows/code-quality.yml
+.github/workflows/test-coverage.yml
+.github/scripts/*.py
+.github/scripts/*.sh

@@ -1,0 +1,59 @@
+# 開發工具配置
+.bandit
+.flake8
+.pre-commit-config.yaml
+.safety-policy.json
+.secrets.baseline
+.semgrepignore
+pytest.ini
+
+# 測試檔案
+tests/**/*
+**/test_*.py
+**/*_test.py
+**/*_tests.py
+
+# 開發腳本
+scripts/**/*
+tools/**/*
+
+# 構建檔案
+Dockerfile*
+docker-compose*.yml
+Makefile
+
+# 開發文檔
+docs/development/**/*
+docs/plans/**/*
+docs/archives/**/*
+docs/reports/**/*
+docs/issues/**/*
+DEVELOPMENT*.md
+CONTRIBUTING.md
+
+# 臨時檔案
+*.tmp
+*.temp
+*.log
+*.cache
+.pytest_cache/**/*
+__pycache__/**/*
+*.pyc
+
+# IDE 配置
+.vscode/**/*
+.idea/**/*
+*.swp
+*.swo
+.DS_Store
+
+# 實驗性檔案
+experimental/**/*
+prototype/**/*
+demo/**/*
+sandbox/**/*
+
+# 備份檔案
+*.bak
+*.backup
+*.old
