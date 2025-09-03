@@ -30,9 +30,7 @@ class AutomationCore(commands.Cog):
 
     # ========== 規則管理指令 ==========
 
-    @app_commands.command(
-        name="automation_list", description="查看自動化規則列表"
-    )
+    @app_commands.command(name="automation_list", description="查看自動化規則列表")
     @app_commands.describe(status="篩選規則狀態", trigger_type="篩選觸發類型")
     @app_commands.choices(
         status=[
@@ -125,9 +123,7 @@ class AutomationCore(commands.Cog):
 
                     rule_list = []
                     for rule in status_rules[:5]:  # 限制顯示5個
-                        trigger_name = self._get_trigger_display_name(
-                            rule["trigger_type"]
-                        )
+                        trigger_name = self._get_trigger_display_name(rule["trigger_type"])
                         rule_list.append(
                             f"• **{rule['name']}** (優先級: {rule['priority']})\n"
                             f"  觸發: {trigger_name} | 執行: {rule['execution_count']}次"
@@ -146,28 +142,18 @@ class AutomationCore(commands.Cog):
                 inline=True,
             )
 
-            embed.set_footer(
-                text=f"使用 /automation_detail [規則ID] 查看詳細資訊"
-            )
+            embed.set_footer(text=f"使用 /automation_detail [規則ID] 查看詳細資訊")
 
             # 創建互動視圖
-            view = AutomationView(
-                interaction.user.id, rules[:10]
-            )  # 限制10個規則的操作按鈕
+            view = AutomationView(interaction.user.id, rules[:10])  # 限制10個規則的操作按鈕
 
-            await interaction.followup.send(
-                embed=embed, view=view, ephemeral=True
-            )
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
         except Exception as e:
             logger.error(f"查看自動化規則列表失敗: {e}")
-            await interaction.followup.send(
-                f"❌ 獲取規則列表失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.followup.send(f"❌ 獲取規則列表失敗: {str(e)}", ephemeral=True)
 
-    @app_commands.command(
-        name="automation_create", description="創建新的自動化規則"
-    )
+    @app_commands.command(name="automation_create", description="創建新的自動化規則")
     @app_commands.describe(name="規則名稱", description="規則描述")
     async def automation_create(
         self,
@@ -185,24 +171,16 @@ class AutomationCore(commands.Cog):
                 return
 
             # 創建規則建構器模態框
-            modal = RuleBuilderModal(
-                name, description, interaction.guild.id, interaction.user.id
-            )
+            modal = RuleBuilderModal(name, description, interaction.guild.id, interaction.user.id)
             await interaction.response.send_modal(modal)
 
         except Exception as e:
             logger.error(f"創建自動化規則失敗: {e}")
-            await interaction.response.send_message(
-                f"❌ 創建規則失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.response.send_message(f"❌ 創建規則失敗: {str(e)}", ephemeral=True)
 
-    @app_commands.command(
-        name="automation_detail", description="查看自動化規則詳細資訊"
-    )
+    @app_commands.command(name="automation_detail", description="查看自動化規則詳細資訊")
     @app_commands.describe(rule_id="規則ID")
-    async def automation_detail(
-        self, interaction: discord.Interaction, rule_id: str
-    ):
+    async def automation_detail(self, interaction: discord.Interaction, rule_id: str):
         """查看自動化規則詳細資訊"""
         try:
             # 檢查權限
@@ -217,16 +195,12 @@ class AutomationCore(commands.Cog):
             # 獲取規則詳情
             rule = await self.dao.get_rule(rule_id)
             if not rule:
-                await interaction.followup.send(
-                    "❌ 找不到指定的規則", ephemeral=True
-                )
+                await interaction.followup.send("❌ 找不到指定的規則", ephemeral=True)
                 return
 
             # 檢查權限（只能查看同伺服器的規則）
             if rule["guild_id"] != interaction.guild.id:
-                await interaction.followup.send(
-                    "❌ 無權查看此規則", ephemeral=True
-                )
+                await interaction.followup.send("❌ 無權查看此規則", ephemeral=True)
                 return
 
             # 創建詳細資訊嵌入式訊息
@@ -292,9 +266,7 @@ class AutomationCore(commands.Cog):
                     ]
                 )
                 if len(rule["actions"]) > 3:
-                    actions_text += (
-                        f"\n...還有 {len(rule['actions']) - 3} 個動作"
-                    )
+                    actions_text += f"\n...還有 {len(rule['actions']) - 3} 個動作"
 
             embed.add_field(
                 name="🎯 動作",
@@ -305,15 +277,11 @@ class AutomationCore(commands.Cog):
             # 執行統計
             success_rate = 0
             if rule["execution_count"] > 0:
-                success_rate = (
-                    rule["success_count"] / rule["execution_count"]
-                ) * 100
+                success_rate = (rule["success_count"] / rule["execution_count"]) * 100
 
             last_executed = "從未執行"
             if rule["last_executed"]:
-                last_executed = rule["last_executed"].strftime(
-                    "%Y-%m-%d %H:%M"
-                )
+                last_executed = rule["last_executed"].strftime("%Y-%m-%d %H:%M")
 
             embed.add_field(
                 name="📊 執行統計",
@@ -339,13 +307,9 @@ class AutomationCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"查看規則詳情失敗: {e}")
-            await interaction.followup.send(
-                f"❌ 獲取規則詳情失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.followup.send(f"❌ 獲取規則詳情失敗: {str(e)}", ephemeral=True)
 
-    @app_commands.command(
-        name="automation_toggle", description="啟用/停用自動化規則"
-    )
+    @app_commands.command(name="automation_toggle", description="啟用/停用自動化規則")
     @app_commands.describe(rule_id="規則ID", status="新狀態")
     @app_commands.choices(
         status=[
@@ -354,9 +318,7 @@ class AutomationCore(commands.Cog):
             app_commands.Choice(name="停用", value="disabled"),
         ]
     )
-    async def automation_toggle(
-        self, interaction: discord.Interaction, rule_id: str, status: str
-    ):
+    async def automation_toggle(self, interaction: discord.Interaction, rule_id: str, status: str):
         """啟用/停用自動化規則"""
         try:
             # 檢查權限
@@ -371,15 +333,11 @@ class AutomationCore(commands.Cog):
             # 獲取規則
             rule = await self.dao.get_rule(rule_id)
             if not rule or rule["guild_id"] != interaction.guild.id:
-                await interaction.followup.send(
-                    "❌ 找不到指定的規則", ephemeral=True
-                )
+                await interaction.followup.send("❌ 找不到指定的規則", ephemeral=True)
                 return
 
             # 更新狀態
-            success = await self.dao.update_rule(
-                rule_id, {"status": status}, interaction.user.id
-            )
+            success = await self.dao.update_rule(rule_id, {"status": status}, interaction.user.id)
 
             if success:
                 # 同步更新引擎中的規則
@@ -402,21 +360,15 @@ class AutomationCore(commands.Cog):
 
                 await interaction.followup.send(embed=embed, ephemeral=True)
             else:
-                await interaction.followup.send(
-                    "❌ 更新規則狀態失敗", ephemeral=True
-                )
+                await interaction.followup.send("❌ 更新規則狀態失敗", ephemeral=True)
 
         except Exception as e:
             logger.error(f"切換規則狀態失敗: {e}")
-            await interaction.followup.send(
-                f"❌ 操作失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.followup.send(f"❌ 操作失敗: {str(e)}", ephemeral=True)
 
     # ========== 執行記錄指令 ==========
 
-    @app_commands.command(
-        name="automation_history", description="查看自動化執行記錄"
-    )
+    @app_commands.command(name="automation_history", description="查看自動化執行記錄")
     @app_commands.describe(rule_id="規則ID（可選）", days="查看天數")
     async def automation_history(
         self,
@@ -434,9 +386,7 @@ class AutomationCore(commands.Cog):
                 return
 
             if not 1 <= days <= 30:
-                await interaction.response.send_message(
-                    "❌ 天數必須在1-30之間", ephemeral=True
-                )
+                await interaction.response.send_message("❌ 天數必須在1-30之間", ephemeral=True)
                 return
 
             await interaction.response.defer(ephemeral=True)
@@ -472,14 +422,8 @@ class AutomationCore(commands.Cog):
             else:
                 # 統計資訊
                 success_count = len([e for e in executions if e["success"]])
-                failure_count = len(
-                    [e for e in executions if not e["success"]]
-                )
-                success_rate = (
-                    (success_count / len(executions) * 100)
-                    if executions
-                    else 0
-                )
+                failure_count = len([e for e in executions if not e["success"]])
+                success_rate = (success_count / len(executions) * 100) if executions else 0
 
                 embed.add_field(
                     name="📊 執行統計",
@@ -508,25 +452,17 @@ class AutomationCore(commands.Cog):
                     inline=False,
                 )
 
-            embed.set_footer(
-                text=f"共 {total_count} 條記錄 | 顯示前 {min(20, len(executions))} 條"
-            )
+            embed.set_footer(text=f"共 {total_count} 條記錄 | 顯示前 {min(20, len(executions))} 條")
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"查看執行記錄失敗: {e}")
-            await interaction.followup.send(
-                f"❌ 獲取執行記錄失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.followup.send(f"❌ 獲取執行記錄失敗: {str(e)}", ephemeral=True)
 
-    @app_commands.command(
-        name="automation_stats", description="查看自動化統計資訊"
-    )
+    @app_commands.command(name="automation_stats", description="查看自動化統計資訊")
     @app_commands.describe(days="統計天數")
-    async def automation_stats(
-        self, interaction: discord.Interaction, days: int = 30
-    ):
+    async def automation_stats(self, interaction: discord.Interaction, days: int = 30):
         """查看自動化統計資訊"""
         try:
             # 檢查權限
@@ -537,17 +473,13 @@ class AutomationCore(commands.Cog):
                 return
 
             if not 1 <= days <= 365:
-                await interaction.response.send_message(
-                    "❌ 天數必須在1-365之間", ephemeral=True
-                )
+                await interaction.response.send_message("❌ 天數必須在1-365之間", ephemeral=True)
                 return
 
             await interaction.response.defer(ephemeral=True)
 
             # 獲取統計資訊
-            stats = await self.dao.get_guild_automation_statistics(
-                interaction.guild.id, days
-            )
+            stats = await self.dao.get_guild_automation_statistics(interaction.guild.id, days)
 
             # 創建嵌入式訊息
             embed = EmbedBuilder.build(
@@ -580,12 +512,8 @@ class AutomationCore(commands.Cog):
             if stats.get("trigger_distribution"):
                 trigger_text = []
                 for trigger in stats["trigger_distribution"][:5]:
-                    trigger_name = self._get_trigger_display_name(
-                        trigger["type"]
-                    )
-                    trigger_text.append(
-                        f"• {trigger_name}: {trigger['count']}"
-                    )
+                    trigger_name = self._get_trigger_display_name(trigger["type"])
+                    trigger_text.append(f"• {trigger_name}: {trigger['count']}")
 
                 embed.add_field(
                     name="🎯 觸發類型分佈",
@@ -617,9 +545,7 @@ class AutomationCore(commands.Cog):
 
         except Exception as e:
             logger.error(f"查看統計資訊失敗: {e}")
-            await interaction.followup.send(
-                f"❌ 獲取統計資訊失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.followup.send(f"❌ 獲取統計資訊失敗: {str(e)}", ephemeral=True)
 
     # ========== 輔助方法 ==========
 
@@ -670,11 +596,7 @@ class AutomationCore(commands.Cog):
                     "id": member.id,
                     "name": member.name,
                     "display_name": member.display_name,
-                    "joined_at": (
-                        member.joined_at.isoformat()
-                        if member.joined_at
-                        else None
-                    ),
+                    "joined_at": (member.joined_at.isoformat() if member.joined_at else None),
                 },
             }
 
@@ -733,9 +655,7 @@ class AutomationCore(commands.Cog):
 
             # 處理事件
             if message.guild:
-                await self.engine.process_event(
-                    TriggerType.MESSAGE_SENT, event_data
-                )
+                await self.engine.process_event(TriggerType.MESSAGE_SENT, event_data)
 
         except Exception as e:
             logger.error(f"處理訊息事件失敗: {e}")
@@ -755,9 +675,7 @@ class AutomationCore(commands.Cog):
                 "❌ 指令執行時發生錯誤，請稍後再試", ephemeral=True
             )
         else:
-            await interaction.followup.send(
-                "❌ 操作失敗，請檢查系統狀態", ephemeral=True
-            )
+            await interaction.followup.send("❌ 操作失敗，請檢查系統狀態", ephemeral=True)
 
 
 async def setup(bot):

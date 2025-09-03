@@ -55,9 +55,7 @@ async def get_security_overview(
         raise HTTPException(status_code=500, detail="獲取安全狀況失敗")
 
 
-@router.get(
-    "/audit-log", response_model=PaginatedResponse, summary="獲取審計日誌"
-)
+@router.get("/audit-log", response_model=PaginatedResponse, summary="獲取審計日誌")
 # @limiter.limit("20/minute")
 async def get_audit_log(
     guild_id: Optional[int] = Query(None),

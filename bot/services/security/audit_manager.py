@@ -109,9 +109,7 @@ class AuditManager:
 
         # 快取
         self._rules_cache: List[AuditRule] = []
-        self._user_activity_cache: Dict[int, List[datetime]] = defaultdict(
-            list
-        )
+        self._user_activity_cache: Dict[int, List[datetime]] = defaultdict(list)
         self._ip_activity_cache: Dict[str, int] = defaultdict(int)
 
         logger.info("🔍 安全審計管理器初始化完成")
@@ -173,21 +171,17 @@ class AuditManager:
 
             # 更新活動快取
             if event.user_id:
-                self._user_activity_cache[event.user_id].append(
-                    event.timestamp
-                )
+                self._user_activity_cache[event.user_id].append(event.timestamp)
                 # 保持快取大小
                 if len(self._user_activity_cache[event.user_id]) > 100:
-                    self._user_activity_cache[event.user_id] = (
-                        self._user_activity_cache[event.user_id][-50:]
-                    )
+                    self._user_activity_cache[event.user_id] = self._user_activity_cache[
+                        event.user_id
+                    ][-50:]
 
             if event.ip_address:
                 self._ip_activity_cache[event.ip_address] += 1
 
-            logger.info(
-                f"📝 安全事件已記錄: {event.event_type} (ID: {event.id})"
-            )
+            logger.info(f"📝 安全事件已記錄: {event.event_type} (ID: {event.id})")
             return True
 
         except Exception as e:
@@ -272,11 +266,7 @@ class AuditManager:
         """記錄 API 存取事件"""
         severity = EventSeverity.INFO
         if status_code >= 400:
-            severity = (
-                EventSeverity.MEDIUM
-                if status_code < 500
-                else EventSeverity.HIGH
-            )
+            severity = EventSeverity.MEDIUM if status_code < 500 else EventSeverity.HIGH
 
         event = SecurityEvent(
             user_id=user_id,
@@ -491,9 +481,7 @@ class AuditManager:
                         )
 
                     # 計算合規分數
-                    compliance_score = await self._calculate_compliance_score(
-                        event_stats, standard
-                    )
+                    compliance_score = await self._calculate_compliance_score(event_stats, standard)
                     report["compliance_score"] = compliance_score
 
                     if compliance_score >= 90:
@@ -576,9 +564,7 @@ class AuditManager:
                                 }
                             )
 
-            integrity_percentage = (
-                (verified_count / total_count * 100) if total_count > 0 else 0
-            )
+            integrity_percentage = (verified_count / total_count * 100) if total_count > 0 else 0
 
             result = {
                 "verification_period": {
@@ -589,9 +575,7 @@ class AuditManager:
                 "verified_records": verified_count,
                 "integrity_percentage": round(integrity_percentage, 2),
                 "issues_found": len(integrity_issues),
-                "integrity_issues": integrity_issues[
-                    :10
-                ],  # 只返回前 10 個問題
+                "integrity_issues": integrity_issues[:10],  # 只返回前 10 個問題
                 "status": (
                     "good"
                     if integrity_percentage > 99
@@ -649,8 +633,7 @@ class AuditManager:
                 # 檢測私有 IP 範圍外的可疑存取
                 if (
                     not ip.is_private
-                    and self._ip_activity_cache[event.ip_address]
-                    > self.suspicious_ip_threshold
+                    and self._ip_activity_cache[event.ip_address] > self.suspicious_ip_threshold
                 ):
                     return True
             except ValueError:
@@ -669,18 +652,14 @@ class AuditManager:
             ]
 
             if len(recent_events) > self.max_events_per_minute:
-                await self._trigger_anomaly_alert(
-                    event, "high_frequency_activity"
-                )
+                await self._trigger_anomaly_alert(event, "high_frequency_activity")
 
     async def _trigger_security_alert(self, event: SecurityEvent):
         """觸發安全警報"""
         logger.warning(f"🚨 安全警報: {event.event_type} - {event.message}")
         # 這裡可以添加通知機制，如發送到 Discord 頻道或郵件
 
-    async def _trigger_anomaly_alert(
-        self, event: SecurityEvent, anomaly_type: str
-    ):
+    async def _trigger_anomaly_alert(self, event: SecurityEvent, anomaly_type: str):
         """觸發異常警報"""
         logger.warning(f"⚠️ 異常檢測: {anomaly_type} - 用戶 {event.user_id}")
 
@@ -724,12 +703,8 @@ class AuditManager:
         critical_events = 0
 
         for category_stats in event_stats.values():
-            high_severity_events += category_stats.get(
-                EventSeverity.HIGH.value, 0
-            )
-            critical_events += category_stats.get(
-                EventSeverity.CRITICAL.value, 0
-            )
+            high_severity_events += category_stats.get(EventSeverity.HIGH.value, 0)
+            critical_events += category_stats.get(EventSeverity.CRITICAL.value, 0)
 
         # 扣分規則
         base_score -= critical_events * 10

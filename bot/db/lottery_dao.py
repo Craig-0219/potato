@@ -105,9 +105,7 @@ class LotteryDAO(BaseDAO):
                     lottery_id = cursor.lastrowid
                     await conn.commit()
 
-                    logger.info(
-                        f"創建抽獎成功: {lottery_id} - {lottery_data.name}"
-                    )
+                    logger.info(f"創建抽獎成功: {lottery_id} - {lottery_data.name}")
                     return lottery_id
 
         except Exception as e:
@@ -126,17 +124,11 @@ class LotteryDAO(BaseDAO):
                     if result:
                         # 解析JSON欄位
                         if result["prize_data"]:
-                            result["prize_data"] = json.loads(
-                                result["prize_data"]
-                            )
+                            result["prize_data"] = json.loads(result["prize_data"])
                         if result["required_roles"]:
-                            result["required_roles"] = json.loads(
-                                result["required_roles"]
-                            )
+                            result["required_roles"] = json.loads(result["required_roles"])
                         if result["excluded_roles"]:
-                            result["excluded_roles"] = json.loads(
-                                result["excluded_roles"]
-                            )
+                            result["excluded_roles"] = json.loads(result["excluded_roles"])
 
                     return result
 
@@ -160,17 +152,11 @@ class LotteryDAO(BaseDAO):
                     # 解析JSON欄位
                     for result in results:
                         if result["prize_data"]:
-                            result["prize_data"] = json.loads(
-                                result["prize_data"]
-                            )
+                            result["prize_data"] = json.loads(result["prize_data"])
                         if result["required_roles"]:
-                            result["required_roles"] = json.loads(
-                                result["required_roles"]
-                            )
+                            result["required_roles"] = json.loads(result["required_roles"])
                         if result["excluded_roles"]:
-                            result["excluded_roles"] = json.loads(
-                                result["excluded_roles"]
-                            )
+                            result["excluded_roles"] = json.loads(result["excluded_roles"])
 
                     return results
 
@@ -195,9 +181,7 @@ class LotteryDAO(BaseDAO):
                     ON DUPLICATE KEY UPDATE entry_time = CURRENT_TIMESTAMP
                     """
 
-                    await cursor.execute(
-                        query, (lottery_id, user_id, username, entry_method)
-                    )
+                    await cursor.execute(query, (lottery_id, user_id, username, entry_method))
                     await conn.commit()
 
                     return True
@@ -238,17 +222,13 @@ class LotteryDAO(BaseDAO):
             logger.error(f"獲取抽獎參與者失敗: {e}")
             return []
 
-    async def select_winners(
-        self, lottery_id: int, winners: List[Tuple[int, str, int]]
-    ) -> bool:
+    async def select_winners(self, lottery_id: int, winners: List[Tuple[int, str, int]]) -> bool:
         """選出中獎者"""
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     # 獲取抽獎資料
-                    lottery_query = (
-                        "SELECT prize_data FROM lotteries WHERE id = %s"
-                    )
+                    lottery_query = "SELECT prize_data FROM lotteries WHERE id = %s"
                     await cursor.execute(lottery_query, (lottery_id,))
                     lottery_result = await cursor.fetchone()
 
@@ -276,9 +256,7 @@ class LotteryDAO(BaseDAO):
                         )
 
                     # 更新抽獎狀態
-                    update_query = (
-                        "UPDATE lotteries SET status = 'ended' WHERE id = %s"
-                    )
+                    update_query = "UPDATE lotteries SET status = 'ended' WHERE id = %s"
                     await cursor.execute(update_query, (lottery_id,))
 
                     await conn.commit()
@@ -304,9 +282,7 @@ class LotteryDAO(BaseDAO):
                     # 解析JSON欄位
                     for result in results:
                         if result["prize_data"]:
-                            result["prize_data"] = json.loads(
-                                result["prize_data"]
-                            )
+                            result["prize_data"] = json.loads(result["prize_data"])
 
                     return results
 
@@ -323,13 +299,9 @@ class LotteryDAO(BaseDAO):
                 async with conn.cursor() as cursor:
                     if message_id:
                         query = "UPDATE lotteries SET status = %s, message_id = %s WHERE id = %s"
-                        await cursor.execute(
-                            query, (status, message_id, lottery_id)
-                        )
+                        await cursor.execute(query, (status, message_id, lottery_id))
                     else:
-                        query = (
-                            "UPDATE lotteries SET status = %s WHERE id = %s"
-                        )
+                        query = "UPDATE lotteries SET status = %s WHERE id = %s"
                         await cursor.execute(query, (status, lottery_id))
 
                     await conn.commit()
@@ -344,18 +316,14 @@ class LotteryDAO(BaseDAO):
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor(aiomysql.DictCursor) as cursor:
-                    query = (
-                        "SELECT * FROM lottery_settings WHERE guild_id = %s"
-                    )
+                    query = "SELECT * FROM lottery_settings WHERE guild_id = %s"
                     await cursor.execute(query, (guild_id,))
                     result = await cursor.fetchone()
 
                     if result:
                         # 解析JSON欄位
                         if result["admin_roles"]:
-                            result["admin_roles"] = json.loads(
-                                result["admin_roles"]
-                            )
+                            result["admin_roles"] = json.loads(result["admin_roles"])
                         return result
                     else:
                         # 返回預設設定
@@ -374,9 +342,7 @@ class LotteryDAO(BaseDAO):
             logger.error(f"獲取抽獎設定失敗: {e}")
             return {}
 
-    async def update_lottery_settings(
-        self, guild_id: int, settings: Dict[str, Any]
-    ) -> bool:
+    async def update_lottery_settings(self, guild_id: int, settings: Dict[str, Any]) -> bool:
         """更新抽獎設定"""
         try:
             async with self.db.connection() as conn:
@@ -446,9 +412,7 @@ class LotteryDAO(BaseDAO):
             logger.error(f"清理過期抽獎失敗: {e}")
             return 0
 
-    async def get_lottery_statistics(
-        self, guild_id: int, days: int = 30
-    ) -> Dict[str, Any]:
+    async def get_lottery_statistics(self, guild_id: int, days: int = 30) -> Dict[str, Any]:
         """獲取抽獎統計資料"""
         try:
             async with self.db.connection() as conn:
@@ -510,45 +474,24 @@ class LotteryDAO(BaseDAO):
                     ) as pc
                     """
 
-                    await cursor.execute(
-                        avg_participants_query, (guild_id, days)
-                    )
+                    await cursor.execute(avg_participants_query, (guild_id, days))
                     avg_result = await cursor.fetchone()
 
                     # 合併統計結果
                     stats = {
                         "total_lotteries": basic_stats["total_lotteries"] or 0,
-                        "active_lotteries": basic_stats["active_lotteries"]
-                        or 0,
-                        "completed_lotteries": basic_stats[
-                            "completed_lotteries"
-                        ]
-                        or 0,
-                        "cancelled_lotteries": basic_stats[
-                            "cancelled_lotteries"
-                        ]
-                        or 0,
+                        "active_lotteries": basic_stats["active_lotteries"] or 0,
+                        "completed_lotteries": basic_stats["completed_lotteries"] or 0,
+                        "cancelled_lotteries": basic_stats["cancelled_lotteries"] or 0,
                         "daily_lotteries": basic_stats["daily_lotteries"] or 0,
-                        "weekly_lotteries": basic_stats["weekly_lotteries"]
-                        or 0,
-                        "monthly_lotteries": basic_stats["monthly_lotteries"]
-                        or 0,
-                        "total_participations": participation_stats[
-                            "total_participations"
-                        ]
-                        or 0,
-                        "unique_participants": participation_stats[
-                            "unique_participants"
-                        ]
-                        or 0,
+                        "weekly_lotteries": basic_stats["weekly_lotteries"] or 0,
+                        "monthly_lotteries": basic_stats["monthly_lotteries"] or 0,
+                        "total_participations": participation_stats["total_participations"] or 0,
+                        "unique_participants": participation_stats["unique_participants"] or 0,
                         "total_wins": winner_stats["total_wins"] or 0,
                         "unique_winners": winner_stats["unique_winners"] or 0,
-                        "avg_participants": float(
-                            avg_result["avg_participants"] or 0
-                        ),
-                        "avg_winner_count": float(
-                            basic_stats["avg_winner_count"] or 1
-                        ),
+                        "avg_participants": float(avg_result["avg_participants"] or 0),
+                        "avg_winner_count": float(basic_stats["avg_winner_count"] or 1),
                     }
 
                     return stats
@@ -599,9 +542,7 @@ class LotteryDAO(BaseDAO):
                     # 解析JSON欄位
                     for result in results:
                         if result["prize_data"]:
-                            result["prize_data"] = json.loads(
-                                result["prize_data"]
-                            )
+                            result["prize_data"] = json.loads(result["prize_data"])
 
                     return results
 

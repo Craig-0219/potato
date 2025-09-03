@@ -61,24 +61,16 @@ async def get_tickets(
     guild_id: Optional[int] = Query(None, description="伺服器 ID 篩選"),
     status: Optional[str] = Query(None, description="狀態篩選"),
     priority: Optional[str] = Query(None, description="優先級篩選"),
-    discord_id: Optional[str] = Query(
-        None, description="用戶 Discord ID 篩選"
-    ),
+    discord_id: Optional[str] = Query(None, description="用戶 Discord ID 篩選"),
     assigned_to: Optional[int] = Query(None, description="指派給用戶篩選"),
     tag: Optional[str] = Query(None, description="標籤篩選"),
-    created_after: Optional[datetime] = Query(
-        None, description="創建時間起始"
-    ),
-    created_before: Optional[datetime] = Query(
-        None, description="創建時間結束"
-    ),
+    created_after: Optional[datetime] = Query(None, description="創建時間起始"),
+    created_before: Optional[datetime] = Query(None, description="創建時間結束"),
     keyword: Optional[str] = Query(None, description="關鍵字搜尋"),
     page: int = Query(1, ge=1, description="頁碼"),
     page_size: int = Query(10, ge=1, le=100, description="每頁記錄數"),
     sort_by: Optional[str] = Query("created_at", description="排序欄位"),
-    sort_order: str = Query(
-        "desc", pattern="^(asc|desc)$", description="排序方向"
-    ),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$", description="排序方向"),
     user: APIUser = Depends(require_read_permission),
 ):
     """
@@ -129,15 +121,9 @@ async def get_tickets(
         # 過濾數據
         filtered_tickets = mock_tickets
         if status and status != "all":
-            filtered_tickets = [
-                t for t in filtered_tickets if t["status"] == status
-            ]
+            filtered_tickets = [t for t in filtered_tickets if t["status"] == status]
         if discord_id:
-            filtered_tickets = [
-                t
-                for t in filtered_tickets
-                if t["discord_id"] == str(discord_id)
-            ]
+            filtered_tickets = [t for t in filtered_tickets if t["discord_id"] == str(discord_id)]
 
         # 分頁
         total = len(filtered_tickets)
@@ -173,13 +159,9 @@ async def get_tickets(
         raise HTTPException(status_code=500, detail="獲取票券列表失敗")
 
 
-@router.get(
-    "/{ticket_id}", response_model=TicketResponse, summary="獲取票券詳情"
-)
+@router.get("/{ticket_id}", response_model=TicketResponse, summary="獲取票券詳情")
 # @limiter.limit("60/minute")
-async def get_ticket(
-    ticket_id: int, user: APIUser = Depends(require_read_permission)
-):
+async def get_ticket(ticket_id: int, user: APIUser = Depends(require_read_permission)):
     """獲取特定票券的詳細信息"""
     try:
         ticket_dao = get_ticket_dao()
@@ -187,9 +169,7 @@ async def get_ticket(
         # 獲取票券基本信息
         ticket = await ticket_dao.get_ticket(ticket_id)
         if not ticket:
-            raise HTTPException(
-                status_code=404, detail=f"票券 #{ticket_id} 不存在"
-            )
+            raise HTTPException(status_code=404, detail=f"票券 #{ticket_id} 不存在")
 
         # 獲取票券標籤
         tag_dao = get_tag_dao()
@@ -205,9 +185,7 @@ async def get_ticket(
         raise HTTPException(status_code=500, detail="獲取票券詳情失敗")
 
 
-@router.post(
-    "/", response_model=BaseResponse, summary="創建新票券", status_code=201
-)
+@router.post("/", response_model=BaseResponse, summary="創建新票券", status_code=201)
 # @limiter.limit("10/minute")
 async def create_ticket(
     ticket_data: TicketCreate,
@@ -254,9 +232,7 @@ async def update_ticket(
         # 檢查票券是否存在
         existing_ticket = await ticket_dao.get_ticket(ticket_id)
         if not existing_ticket:
-            raise HTTPException(
-                status_code=404, detail=f"票券 #{ticket_id} 不存在"
-            )
+            raise HTTPException(status_code=404, detail=f"票券 #{ticket_id} 不存在")
 
         # 構建更新數據
         update_data = {}
@@ -290,9 +266,7 @@ async def update_ticket(
 
 @router.delete("/{ticket_id}", response_model=BaseResponse, summary="刪除票券")
 # @limiter.limit("10/minute")
-async def delete_ticket(
-    ticket_id: int, user: APIUser = Depends(require_write_permission)
-):
+async def delete_ticket(ticket_id: int, user: APIUser = Depends(require_write_permission)):
     """刪除票券（標記為已刪除）"""
     try:
         ticket_dao = get_ticket_dao()
@@ -300,9 +274,7 @@ async def delete_ticket(
         # 檢查票券是否存在
         existing_ticket = await ticket_dao.get_ticket(ticket_id)
         if not existing_ticket:
-            raise HTTPException(
-                status_code=404, detail=f"票券 #{ticket_id} 不存在"
-            )
+            raise HTTPException(status_code=404, detail=f"票券 #{ticket_id} 不存在")
 
         # 軟刪除票券（更新狀態為 archived）
         success = await ticket_dao.update_ticket(ticket_id, status="archived")
@@ -318,9 +290,7 @@ async def delete_ticket(
         raise HTTPException(status_code=500, detail="刪除票券失敗")
 
 
-@router.post(
-    "/{ticket_id}/close", response_model=BaseResponse, summary="關閉票券"
-)
+@router.post("/{ticket_id}/close", response_model=BaseResponse, summary="關閉票券")
 # @limiter.limit("20/minute")
 async def close_ticket(
     ticket_id: int,
@@ -350,9 +320,7 @@ async def close_ticket(
         raise HTTPException(status_code=500, detail="關閉票券失敗")
 
 
-@router.post(
-    "/{ticket_id}/assign", response_model=BaseResponse, summary="指派票券"
-)
+@router.post("/{ticket_id}/assign", response_model=BaseResponse, summary="指派票券")
 # @limiter.limit("20/minute")
 async def assign_ticket(
     ticket_id: int,
@@ -385,9 +353,7 @@ async def assign_ticket(
         raise HTTPException(status_code=500, detail="指派票券失敗")
 
 
-@router.post(
-    "/{ticket_id}/rating", response_model=BaseResponse, summary="為票券評分"
-)
+@router.post("/{ticket_id}/rating", response_model=BaseResponse, summary="為票券評分")
 # @limiter.limit("10/minute")
 async def rate_ticket(
     ticket_id: int,
@@ -472,15 +438,11 @@ async def get_public_ticket_statistics(
                 "low_priority": 55,
                 "avg_resolution_time": 3.2,
                 "avg_rating": 4.1,
-                "period_start": (
-                    datetime.now() - timedelta(days=days)
-                ).isoformat(),
+                "period_start": (datetime.now() - timedelta(days=days)).isoformat(),
                 "period_end": datetime.now().isoformat(),
                 "daily_stats": [
                     {
-                        "date": (datetime.now() - timedelta(days=i)).strftime(
-                            "%Y-%m-%d"
-                        ),
+                        "date": (datetime.now() - timedelta(days=i)).strftime("%Y-%m-%d"),
                         "created": 5 + (i % 3),
                         "resolved": 4 + (i % 2),
                     }
@@ -502,9 +464,7 @@ async def get_public_ticket_statistics(
                 "low_priority": 0,
                 "avg_resolution_time": 0,
                 "avg_rating": 0,
-                "period_start": (
-                    datetime.now() - timedelta(days=days)
-                ).isoformat(),
+                "period_start": (datetime.now() - timedelta(days=days)).isoformat(),
                 "period_end": datetime.now().isoformat(),
                 "daily_stats": [],
             },

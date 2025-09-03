@@ -53,9 +53,7 @@ class LotteryStatsDashboardView(ui.View):
             ),
         ],
     )
-    async def period_select(
-        self, interaction: discord.Interaction, select: ui.Select
-    ):
+    async def period_select(self, interaction: discord.Interaction, select: ui.Select):
         """選擇統計時間範圍"""
         try:
             self.current_period = int(select.values[0])
@@ -69,22 +67,14 @@ class LotteryStatsDashboardView(ui.View):
             # 創建統計嵌入
             embed = await self._create_stats_embed(stats, self.current_period)
 
-            await interaction.followup.edit_message(
-                interaction.message.id, embed=embed, view=self
-            )
+            await interaction.followup.edit_message(interaction.message.id, embed=embed, view=self)
 
         except Exception as e:
             logger.error(f"更新統計時間範圍失敗: {e}")
-            await interaction.followup.send(
-                "❌ 更新統計資料時發生錯誤", ephemeral=True
-            )
+            await interaction.followup.send("❌ 更新統計資料時發生錯誤", ephemeral=True)
 
-    @ui.button(
-        label="🔄 刷新數據", style=discord.ButtonStyle.secondary, emoji="🔄"
-    )
-    async def refresh_stats(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    @ui.button(label="🔄 刷新數據", style=discord.ButtonStyle.secondary, emoji="🔄")
+    async def refresh_stats(self, interaction: discord.Interaction, button: ui.Button):
         """刷新統計數據"""
         try:
             await interaction.response.defer()
@@ -96,79 +86,49 @@ class LotteryStatsDashboardView(ui.View):
 
             # 創建統計嵌入
             embed = await self._create_stats_embed(stats, self.current_period)
-            embed.set_footer(
-                text=f"📊 數據已刷新 • {datetime.now().strftime('%H:%M:%S')}"
-            )
+            embed.set_footer(text=f"📊 數據已刷新 • {datetime.now().strftime('%H:%M:%S')}")
 
-            await interaction.followup.edit_message(
-                interaction.message.id, embed=embed, view=self
-            )
+            await interaction.followup.edit_message(interaction.message.id, embed=embed, view=self)
 
         except Exception as e:
             logger.error(f"刷新統計數據失敗: {e}")
-            await interaction.followup.send(
-                "❌ 刷新統計數據時發生錯誤", ephemeral=True
-            )
+            await interaction.followup.send("❌ 刷新統計數據時發生錯誤", ephemeral=True)
 
-    @ui.button(
-        label="🏆 中獎排行榜", style=discord.ButtonStyle.primary, emoji="🏆"
-    )
-    async def winners_leaderboard(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    @ui.button(label="🏆 中獎排行榜", style=discord.ButtonStyle.primary, emoji="🏆")
+    async def winners_leaderboard(self, interaction: discord.Interaction, button: ui.Button):
         """顯示中獎排行榜"""
         try:
             await interaction.response.defer(ephemeral=True)
 
             # 獲取中獎排行榜資料
-            leaderboard = await self._get_winners_leaderboard(
-                self.current_period
-            )
+            leaderboard = await self._get_winners_leaderboard(self.current_period)
 
             if not leaderboard:
-                await interaction.followup.send(
-                    "📊 在選定時間範圍內沒有中獎記錄", ephemeral=True
-                )
+                await interaction.followup.send("📊 在選定時間範圍內沒有中獎記錄", ephemeral=True)
                 return
 
-            embed = EmbedBuilder.create_info_embed(
-                f"🏆 中獎排行榜 (最近 {self.current_period} 天)"
-            )
+            embed = EmbedBuilder.create_info_embed(f"🏆 中獎排行榜 (最近 {self.current_period} 天)")
 
             leaderboard_text = ""
             medals = ["🥇", "🥈", "🥉"]
 
-            for i, (user_id, username, win_count) in enumerate(
-                leaderboard[:10]
-            ):
+            for i, (user_id, username, win_count) in enumerate(leaderboard[:10]):
                 medal = medals[i] if i < 3 else f"{i+1}."
-                leaderboard_text += (
-                    f"{medal} <@{user_id}> - {win_count} 次中獎\n"
-                )
+                leaderboard_text += f"{medal} <@{user_id}> - {win_count} 次中獎\n"
 
-            embed.add_field(
-                name="🎯 幸運之星", value=leaderboard_text, inline=False
-            )
+            embed.add_field(name="🎯 幸運之星", value=leaderboard_text, inline=False)
 
             if len(leaderboard) > 10:
-                embed.set_footer(
-                    text=f"顯示前 10 名，共 {len(leaderboard)} 名中獎者"
-                )
+                embed.set_footer(text=f"顯示前 10 名，共 {len(leaderboard)} 名中獎者")
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"獲取中獎排行榜失敗: {e}")
-            await interaction.followup.send(
-                "❌ 獲取排行榜時發生錯誤", ephemeral=True
-            )
+            await interaction.followup.send("❌ 獲取排行榜時發生錯誤", ephemeral=True)
 
-    @ui.button(
-        label="📋 詳細報告", style=discord.ButtonStyle.secondary, emoji="📋"
-    )
-    async def detailed_report(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    @ui.button(label="📋 詳細報告", style=discord.ButtonStyle.secondary, emoji="📋")
+    async def detailed_report(self, interaction: discord.Interaction, button: ui.Button):
         """生成詳細報告"""
         try:
             await interaction.response.defer(ephemeral=True)
@@ -221,25 +181,17 @@ class LotteryStatsDashboardView(ui.View):
                     inline=False,
                 )
 
-            embed.set_footer(
-                text=f"報告生成時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-            )
+            embed.set_footer(text=f"報告生成時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"生成詳細報告失敗: {e}")
-            await interaction.followup.send(
-                "❌ 生成報告時發生錯誤", ephemeral=True
-            )
+            await interaction.followup.send("❌ 生成報告時發生錯誤", ephemeral=True)
 
-    async def _create_stats_embed(
-        self, stats: Dict[str, Any], period: int
-    ) -> discord.Embed:
+    async def _create_stats_embed(self, stats: Dict[str, Any], period: int) -> discord.Embed:
         """創建統計嵌入"""
-        embed = EmbedBuilder.create_info_embed(
-            f"📊 抽獎統計儀表板 (最近 {period} 天)"
-        )
+        embed = EmbedBuilder.create_info_embed(f"📊 抽獎統計儀表板 (最近 {period} 天)")
 
         # 基本統計
         total = stats.get("total_lotteries", 0)
@@ -275,9 +227,7 @@ class LotteryStatsDashboardView(ui.View):
         # 中獎統計
         total_wins = stats.get("total_wins", 0)
         unique_winners = stats.get("unique_winners", 0)
-        win_rate = (
-            (total_wins / participations * 100) if participations > 0 else 0
-        )
+        win_rate = (total_wins / participations * 100) if participations > 0 else 0
 
         embed.add_field(
             name="🏆 中獎統計",
@@ -294,17 +244,13 @@ class LotteryStatsDashboardView(ui.View):
 
         embed.add_field(
             name="📅 時間分佈",
-            value=f"**今日**: {daily}\n"
-            f"**本週**: {weekly}\n"
-            f"**本月**: {monthly}",
+            value=f"**今日**: {daily}\n" f"**本週**: {weekly}\n" f"**本月**: {monthly}",
             inline=True,
         )
 
         # 活躍度指標
         if total > 0:
-            activity_score = min(
-                100, (active * 20 + completed * 10 + participations / 10)
-            )
+            activity_score = min(100, (active * 20 + completed * 10 + participations / 10))
             activity_text = (
                 "🔥 非常活躍"
                 if activity_score > 80
@@ -317,16 +263,13 @@ class LotteryStatsDashboardView(ui.View):
 
             embed.add_field(
                 name="📊 活躍度",
-                value=f"**活躍指數**: {activity_score:.0f}/100\n"
-                f"**評級**: {activity_text}",
+                value=f"**活躍指數**: {activity_score:.0f}/100\n" f"**評級**: {activity_text}",
                 inline=True,
             )
 
         # 效率統計
         avg_winners = stats.get("avg_winner_count", 1)
-        participation_efficiency = (
-            (unique_participants / total) if total > 0 else 0
-        )
+        participation_efficiency = (unique_participants / total) if total > 0 else 0
 
         embed.add_field(
             name="⚡ 效率統計",
@@ -336,9 +279,7 @@ class LotteryStatsDashboardView(ui.View):
         )
 
         embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/🎲.png")
-        embed.set_footer(
-            text=f"數據更新時間: {datetime.now().strftime('%H:%M:%S')}"
-        )
+        embed.set_footer(text=f"數據更新時間: {datetime.now().strftime('%H:%M:%S')}")
 
         return embed
 
@@ -374,18 +315,12 @@ class LotteryStatsDashboardView(ui.View):
         """生成詳細報告"""
         try:
             # 獲取基本統計
-            stats = await self.lottery_manager.dao.get_lottery_statistics(
-                self.guild_id, period
-            )
+            stats = await self.lottery_manager.dao.get_lottery_statistics(self.guild_id, period)
 
             # 計算額外指標
             total_participations = stats.get("total_participations", 0)
             total_wins = stats.get("total_wins", 0)
-            win_rate = (
-                (total_wins / total_participations * 100)
-                if total_participations > 0
-                else 0
-            )
+            win_rate = (total_wins / total_participations * 100) if total_participations > 0 else 0
 
             # 獲取每日趨勢（簡化版）
             daily_trend = {}
@@ -417,38 +352,24 @@ class UserLotteryHistoryView(ui.View):
         self.current_page = 0
         self.page_size = 5
 
-    @ui.button(
-        label="⬅️ 上一頁", style=discord.ButtonStyle.secondary, emoji="⬅️"
-    )
-    async def previous_page(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    @ui.button(label="⬅️ 上一頁", style=discord.ButtonStyle.secondary, emoji="⬅️")
+    async def previous_page(self, interaction: discord.Interaction, button: ui.Button):
         """上一頁"""
         if self.current_page > 0:
             self.current_page -= 1
             await self._update_history(interaction)
         else:
-            await interaction.response.send_message(
-                "已經是第一頁了", ephemeral=True
-            )
+            await interaction.response.send_message("已經是第一頁了", ephemeral=True)
 
-    @ui.button(
-        label="➡️ 下一頁", style=discord.ButtonStyle.secondary, emoji="➡️"
-    )
-    async def next_page(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    @ui.button(label="➡️ 下一頁", style=discord.ButtonStyle.secondary, emoji="➡️")
+    async def next_page(self, interaction: discord.Interaction, button: ui.Button):
         """下一頁"""
         # 這裡應該檢查是否還有更多頁面
         self.current_page += 1
         await self._update_history(interaction)
 
-    @ui.button(
-        label="🔄 刷新", style=discord.ButtonStyle.secondary, emoji="🔄"
-    )
-    async def refresh_history(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    @ui.button(label="🔄 刷新", style=discord.ButtonStyle.secondary, emoji="🔄")
+    async def refresh_history(self, interaction: discord.Interaction, button: ui.Button):
         """刷新歷史"""
         await self._update_history(interaction)
 
@@ -470,18 +391,14 @@ class UserLotteryHistoryView(ui.View):
             current_page_history = history[start_idx:end_idx]
 
             if not current_page_history:
-                embed = EmbedBuilder.create_info_embed(
-                    "📋 抽獎歷史", "沒有找到抽獎參與記錄"
-                )
+                embed = EmbedBuilder.create_info_embed("📋 抽獎歷史", "沒有找到抽獎參與記錄")
                 await interaction.followup.edit_message(
                     interaction.message.id, embed=embed, view=self
                 )
                 return
 
             # 創建歷史嵌入
-            embed = EmbedBuilder.create_info_embed(
-                f"📋 <@{self.user_id}> 的抽獎歷史"
-            )
+            embed = EmbedBuilder.create_info_embed(f"📋 <@{self.user_id}> 的抽獎歷史")
 
             for record in current_page_history:
                 status_emoji = {
@@ -492,9 +409,7 @@ class UserLotteryHistoryView(ui.View):
 
                 win_text = "🏆 中獎" if record.get("is_winner") else "📝 參與"
                 position_text = (
-                    f" (第{record.get('win_position')}名)"
-                    if record.get("win_position")
-                    else ""
+                    f" (第{record.get('win_position')}名)" if record.get("win_position") else ""
                 )
 
                 embed.add_field(
@@ -504,16 +419,10 @@ class UserLotteryHistoryView(ui.View):
                     inline=False,
                 )
 
-            embed.set_footer(
-                text=f"第 {self.current_page + 1} 頁 • 共 {len(history)} 條記錄"
-            )
+            embed.set_footer(text=f"第 {self.current_page + 1} 頁 • 共 {len(history)} 條記錄")
 
-            await interaction.followup.edit_message(
-                interaction.message.id, embed=embed, view=self
-            )
+            await interaction.followup.edit_message(interaction.message.id, embed=embed, view=self)
 
         except Exception as e:
             logger.error(f"更新用戶抽獎歷史失敗: {e}")
-            await interaction.followup.send(
-                "❌ 更新歷史記錄時發生錯誤", ephemeral=True
-            )
+            await interaction.followup.send("❌ 更新歷史記錄時發生錯誤", ephemeral=True)

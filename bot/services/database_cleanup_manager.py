@@ -49,9 +49,7 @@ class DatabaseCleanupManager:
             results = {}
 
             # 1. 歸檔舊票券
-            logger.info(
-                f"歸檔 {config['ticket_retention_days']} 天前的票券..."
-            )
+            logger.info(f"歸檔 {config['ticket_retention_days']} 天前的票券...")
             ticket_result = await self.dao.archive_old_tickets(
                 guild_id, config["ticket_retention_days"], config["batch_size"]
             )
@@ -66,16 +64,12 @@ class DatabaseCleanupManager:
 
             # 3. 歸檔用戶活動
             logger.info("歸檔月度用戶活動資料...")
-            activity_result = await self.dao.archive_user_activity(
-                guild_id, "monthly"
-            )
+            activity_result = await self.dao.archive_user_activity(guild_id, "monthly")
             results["activities_archived"] = activity_result
 
             # 4. 清理日誌
             if config.get("clean_logs", True):
-                logger.info(
-                    f"清理 {config['log_retention_days']} 天前的日誌..."
-                )
+                logger.info(f"清理 {config['log_retention_days']} 天前的日誌...")
                 log_result = await self.dao.cleanup_old_data(
                     guild_id,
                     "logs",
@@ -146,20 +140,14 @@ class DatabaseCleanupManager:
     ) -> Dict[str, Any]:
         """歸檔特定時期的資料"""
         try:
-            logger.info(
-                f"歸檔 {guild_id} 的 {data_type} 資料: {start_date} 到 {end_date}"
-            )
+            logger.info(f"歸檔 {guild_id} 的 {data_type} 資料: {start_date} 到 {end_date}")
 
             if data_type == "tickets":
                 # 自定義查詢歸檔特定期間的票券
-                result = await self._archive_tickets_by_period(
-                    guild_id, start_date, end_date
-                )
+                result = await self._archive_tickets_by_period(guild_id, start_date, end_date)
             elif data_type == "votes":
                 # 自定義查詢歸檔特定期間的投票
-                result = await self._archive_votes_by_period(
-                    guild_id, start_date, end_date
-                )
+                result = await self._archive_votes_by_period(guild_id, start_date, end_date)
             else:
                 return {"error": f"不支援的資料類型: {data_type}"}
 
@@ -181,9 +169,7 @@ class DatabaseCleanupManager:
         """歸檔特定期間的票券"""
         # 這裡可以實現更精確的期間歸檔邏輯
         # 目前使用現有的方法，但可以擴展為更靈活的查詢
-        return await self.dao.archive_old_tickets(
-            guild_id, 0, 1000
-        )  # 暫時實現
+        return await self.dao.archive_old_tickets(guild_id, 0, 1000)  # 暫時實現
 
     async def _archive_votes_by_period(
         self, guild_id: int, start_date: datetime, end_date: datetime
@@ -197,9 +183,7 @@ class DatabaseCleanupManager:
     ) -> Dict[str, Any]:
         """設置清理排程"""
         try:
-            schedule_id = await self.dao.create_cleanup_schedule(
-                guild_id, schedule_config
-            )
+            schedule_id = await self.dao.create_cleanup_schedule(guild_id, schedule_config)
 
             if schedule_id:
                 logger.info(f"創建清理排程成功: {schedule_id}")
@@ -269,9 +253,7 @@ class DatabaseCleanupManager:
         except Exception as e:
             return {"error": str(e)}
 
-    async def _optimize_database_indexes(
-        self, guild_id: int
-    ) -> Dict[str, Any]:
+    async def _optimize_database_indexes(self, guild_id: int) -> Dict[str, Any]:
         """優化資料庫索引"""
         try:
             # 這裡可以分析並優化資料庫索引
@@ -295,12 +277,8 @@ class DatabaseCleanupManager:
             # 添加額外統計資訊
             stats = {
                 **archive_stats,
-                "storage_analysis": await self._analyze_storage_usage(
-                    guild_id
-                ),
-                "recommendations": await self._generate_cleanup_recommendations(
-                    guild_id
-                ),
+                "storage_analysis": await self._analyze_storage_usage(guild_id),
+                "recommendations": await self._generate_cleanup_recommendations(guild_id),
             }
 
             return stats
@@ -323,9 +301,7 @@ class DatabaseCleanupManager:
         except Exception as e:
             return {"error": str(e)}
 
-    async def _generate_cleanup_recommendations(
-        self, guild_id: int
-    ) -> List[str]:
+    async def _generate_cleanup_recommendations(self, guild_id: int) -> List[str]:
         """生成清理建議"""
         try:
             recommendations = []
@@ -333,20 +309,10 @@ class DatabaseCleanupManager:
             # 基於資料分析生成建議
             archive_stats = await self.dao.get_archive_statistics(guild_id)
 
-            if (
-                archive_stats.get("ticket_archives", {}).get(
-                    "total_archived_tickets", 0
-                )
-                > 1000
-            ):
+            if archive_stats.get("ticket_archives", {}).get("total_archived_tickets", 0) > 1000:
                 recommendations.append("考慮設置更短的票券保留期間")
 
-            if (
-                archive_stats.get("vote_archives", {}).get(
-                    "total_archived_votes", 0
-                )
-                > 500
-            ):
+            if archive_stats.get("vote_archives", {}).get("total_archived_votes", 0) > 500:
                 recommendations.append("建議定期清理舊投票資料")
 
             # 如果沒有特殊建議，提供通用建議
@@ -381,9 +347,7 @@ class DatabaseCleanupManager:
                             and schedule.get("is_enabled", True)
                         ):
 
-                            await self._execute_scheduled_cleanup(
-                                guild.id, schedule
-                            )
+                            await self._execute_scheduled_cleanup(guild.id, schedule)
 
                 except Exception as e:
                     logger.error(f"處理伺服器 {guild.id} 的清理排程失敗: {e}")
@@ -395,35 +359,27 @@ class DatabaseCleanupManager:
     async def _execute_scheduled_cleanup(self, guild_id: int, schedule: Dict):
         """執行排程清理"""
         try:
-            logger.info(
-                f"執行排程清理: {schedule['id']} - {schedule['cleanup_type']}"
-            )
+            logger.info(f"執行排程清理: {schedule['id']} - {schedule['cleanup_type']}")
 
             cleanup_config = {
                 "ticket_retention_days": schedule.get("retention_days", 90),
                 "vote_retention_days": schedule.get("retention_days", 90),
                 "log_retention_days": schedule.get("retention_days", 30),
-                "archive_before_delete": schedule.get(
-                    "archive_before_delete", True
-                ),
+                "archive_before_delete": schedule.get("archive_before_delete", True),
             }
 
             # 執行清理
             await self.perform_comprehensive_cleanup(guild_id, cleanup_config)
 
             # 更新排程的下次執行時間
-            await self._update_schedule_next_run(
-                schedule["id"], schedule["schedule_type"]
-            )
+            await self._update_schedule_next_run(schedule["id"], schedule["schedule_type"])
 
             logger.info(f"排程清理完成: {schedule['id']}")
 
         except Exception as e:
             logger.error(f"執行排程清理失敗: {e}")
 
-    async def _update_schedule_next_run(
-        self, schedule_id: int, schedule_type: str
-    ):
+    async def _update_schedule_next_run(self, schedule_id: int, schedule_type: str):
         """更新排程下次執行時間"""
         # 這裡需要在ArchiveDAO中實現相應的更新方法
 

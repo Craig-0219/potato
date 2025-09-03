@@ -41,11 +41,7 @@ class MusicSource:
         self.thumbnail = data.get("thumbnail", "")
         self.uploader = data.get("uploader", "Unknown")
         self.requester = requester
-        self.stream_url = (
-            data.get("formats", [{}])[0].get("url", "")
-            if data.get("formats")
-            else ""
-        )
+        self.stream_url = data.get("formats", [{}])[0].get("url", "") if data.get("formats") else ""
 
     def __str__(self):
         return f"**{self.title}** - {self.requester.mention}"
@@ -158,9 +154,7 @@ class MusicPlayer:
             raise
         except Exception as e:
             logger.error(f"❌ 語音連接失敗: {e}")
-            await self.send_embed(
-                "❌ 連接失敗", f"無法連接到語音頻道: {str(e)}", "error"
-            )
+            await self.send_embed("❌ 連接失敗", f"無法連接到語音頻道: {str(e)}", "error")
             raise
 
     async def disconnect(self):
@@ -234,9 +228,7 @@ class MusicPlayer:
             # 沒有更多歌曲
             self.current = None
             self.is_playing = False
-            await self.send_embed(
-                "🎵 播放列表已結束", "所有歌曲播放完畢", "info"
-            )
+            await self.send_embed("🎵 播放列表已結束", "所有歌曲播放完畢", "info")
             return
 
         self.current = next_song
@@ -267,9 +259,7 @@ class MusicPlayer:
                 logger.info(f"🎵 創建音頻源成功: {self.current.title}")
             except Exception as e:
                 logger.error(f"❌ 創建音頻源失敗: {e}")
-                await self.send_embed(
-                    "❌ 播放錯誤", f"音頻源創建失敗: {str(e)}", "error"
-                )
+                await self.send_embed("❌ 播放錯誤", f"音頻源創建失敗: {str(e)}", "error")
                 await self.play_next()
                 return
 
@@ -278,9 +268,7 @@ class MusicPlayer:
                 self.voice_client.play(
                     source,
                     after=lambda e: (
-                        asyncio.run_coroutine_threadsafe(
-                            self.play_next(), self.bot.loop
-                        ).result()
+                        asyncio.run_coroutine_threadsafe(self.play_next(), self.bot.loop).result()
                         if not e
                         else logger.error(f"播放錯誤: {e}")
                     ),
@@ -288,9 +276,7 @@ class MusicPlayer:
                 logger.info(f"🎵 開始播放: {self.current.title}")
             except Exception as e:
                 logger.error(f"❌ 播放失敗: {e}")
-                await self.send_embed(
-                    "❌ 播放錯誤", f"無法播放音樂: {str(e)}", "error"
-                )
+                await self.send_embed("❌ 播放錯誤", f"無法播放音樂: {str(e)}", "error")
                 await self.play_next()
                 return
 
@@ -343,9 +329,7 @@ class MusicPlayer:
         if self.voice_client and hasattr(self.voice_client.source, "volume"):
             self.voice_client.source.volume = self.volume
 
-    async def send_embed(
-        self, title: str, description: str, color: str = "info"
-    ):
+    async def send_embed(self, title: str, description: str, color: str = "info"):
         """發送嵌入消息"""
         if color == "success":
             embed = EmbedBuilder.create_success_embed(title, description)
@@ -363,9 +347,7 @@ class MusicPlayer:
         if not self.current:
             return
 
-        embed = EmbedBuilder.create_info_embed(
-            "🎵 正在播放", f"**{self.current.title}**"
-        )
+        embed = EmbedBuilder.create_info_embed("🎵 正在播放", f"**{self.current.title}**")
 
         embed.add_field(
             name="詳細信息",
@@ -382,9 +364,7 @@ class MusicPlayer:
                 inline=True,
             )
 
-        embed.add_field(
-            name="播放模式", value=f"🔁 {self.loop_mode.value}", inline=True
-        )
+        embed.add_field(name="播放模式", value=f"🔁 {self.loop_mode.value}", inline=True)
 
         if self.current.thumbnail:
             embed.set_thumbnail(url=self.current.thumbnail)
@@ -410,15 +390,11 @@ class MusicCore(commands.Cog):
         """增強的語音連接狀態檢測"""
         try:
             # 檢查 player 的 voice_client
-            player_connected = (
-                player.voice_client and player.voice_client.is_connected()
-            )
+            player_connected = player.voice_client and player.voice_client.is_connected()
 
             # 檢查 guild 的 voice_client (更可靠)
             guild_voice_client = guild.voice_client
-            guild_connected = (
-                guild_voice_client and guild_voice_client.is_connected()
-            )
+            guild_connected = guild_voice_client and guild_voice_client.is_connected()
 
             # 如果有不一致，同步 player 狀態
             if guild_connected and not player_connected:
@@ -437,9 +413,7 @@ class MusicCore(commands.Cog):
             logger.error(f"語音連接檢測錯誤: {e}")
             return False
 
-    async def _create_context_from_interaction(
-        self, interaction: discord.Interaction
-    ):
+    async def _create_context_from_interaction(self, interaction: discord.Interaction):
         """從互動創建context"""
 
         # 創建一個假的 context 對象
@@ -462,19 +436,14 @@ class MusicCore(commands.Cog):
         """Cog錯誤處理"""
         logger.error(f"音樂指令錯誤: {error}")
 
-    @app_commands.command(
-        name="play", description="🎵 播放音樂 - 支援 YouTube 網址或搜索關鍵字"
-    )
+    @app_commands.command(name="play", description="🎵 播放音樂 - 支援 YouTube 網址或搜索關鍵字")
     async def play(self, interaction: discord.Interaction, url_or_search: str):
         """播放音樂指令"""
         try:
             await interaction.response.defer()
 
             # 檢查用戶是否在語音頻道
-            if (
-                not interaction.user.voice
-                or not interaction.user.voice.channel
-            ):
+            if not interaction.user.voice or not interaction.user.voice.channel:
                 embed = EmbedBuilder.create_error_embed(
                     "❌ 請先加入語音頻道",
                     "您需要先加入一個語音頻道才能播放音樂",
@@ -544,17 +513,13 @@ class MusicCore(commands.Cog):
             player = self.get_player(ctx)
 
             # 檢查語音連接狀態（但不阻止進入控制面板）- 增強版檢測
-            is_connected = self._check_voice_connection(
-                player, interaction.guild
-            )
+            is_connected = self._check_voice_connection(player, interaction.guild)
 
             # 創建控制面板
             from bot.views.music_views import MusicControlView
 
             if is_connected:
-                embed = EmbedBuilder.create_info_embed(
-                    "🎛️ 音樂控制面板", "使用下方按鈕控制音樂播放"
-                )
+                embed = EmbedBuilder.create_info_embed("🎛️ 音樂控制面板", "使用下方按鈕控制音樂播放")
             else:
                 embed = EmbedBuilder.create_warning_embed(
                     "🎛️ 音樂控制面板",
@@ -598,13 +563,9 @@ class MusicCore(commands.Cog):
                 if len(player.queue) > 5:
                     queue_preview += f"\n... 還有 {len(player.queue) - 5} 首"
 
-                embed.add_field(
-                    name="📝 播放列表", value=queue_preview, inline=True
-                )
+                embed.add_field(name="📝 播放列表", value=queue_preview, inline=True)
             else:
-                embed.add_field(
-                    name="📝 播放列表", value="播放列表為空", inline=True
-                )
+                embed.add_field(name="📝 播放列表", value="播放列表為空", inline=True)
 
             view = MusicControlView(player)
             await interaction.followup.send(embed=embed, view=view)
@@ -614,17 +575,11 @@ class MusicCore(commands.Cog):
         except Exception as e:
             logger.error(f"音樂控制面板錯誤: {e}")
             try:
-                embed = EmbedBuilder.create_error_embed(
-                    "❌ 系統錯誤", "無法顯示音樂控制面板"
-                )
+                embed = EmbedBuilder.create_error_embed("❌ 系統錯誤", "無法顯示音樂控制面板")
                 if not interaction.response.is_done():
-                    await interaction.response.send_message(
-                        embed=embed, ephemeral=True
-                    )
+                    await interaction.response.send_message(embed=embed, ephemeral=True)
                 else:
-                    await interaction.followup.send(
-                        embed=embed, ephemeral=True
-                    )
+                    await interaction.followup.send(embed=embed, ephemeral=True)
             except:
                 pass
 
@@ -640,9 +595,7 @@ class MusicCore(commands.Cog):
             player = self.get_player(ctx)
 
             if not player.current and not player.queue:
-                embed = EmbedBuilder.create_info_embed(
-                    "📝 播放列表", "播放列表目前為空"
-                )
+                embed = EmbedBuilder.create_info_embed("📝 播放列表", "播放列表目前為空")
                 await interaction.response.send_message(embed=embed)
                 return
 
@@ -665,13 +618,9 @@ class MusicCore(commands.Cog):
                 if len(player.queue) > 10:
                     queue_text += f"... 還有 {len(player.queue) - 10} 首歌曲"
 
-                embed.add_field(
-                    name="📋 接下來播放", value=queue_text, inline=False
-                )
+                embed.add_field(name="📋 接下來播放", value=queue_text, inline=False)
             else:
-                embed.add_field(
-                    name="📋 接下來播放", value="沒有更多歌曲", inline=False
-                )
+                embed.add_field(name="📋 接下來播放", value="沒有更多歌曲", inline=False)
 
             await interaction.response.send_message(embed=embed)
 
@@ -680,17 +629,11 @@ class MusicCore(commands.Cog):
         except Exception as e:
             logger.error(f"播放列表指令錯誤: {e}")
             try:
-                embed = EmbedBuilder.create_error_embed(
-                    "❌ 系統錯誤", "無法顯示播放列表"
-                )
+                embed = EmbedBuilder.create_error_embed("❌ 系統錯誤", "無法顯示播放列表")
                 if not interaction.response.is_done():
-                    await interaction.response.send_message(
-                        embed=embed, ephemeral=True
-                    )
+                    await interaction.response.send_message(embed=embed, ephemeral=True)
                 else:
-                    await interaction.followup.send(
-                        embed=embed, ephemeral=True
-                    )
+                    await interaction.followup.send(embed=embed, ephemeral=True)
             except:
                 pass
 
@@ -719,15 +662,11 @@ class MusicCore(commands.Cog):
             guild_connected = False
 
             if player_vc:
-                logger.info(
-                    f"🔍 player_vc.is_connected() = {player_vc.is_connected()}"
-                )
+                logger.info(f"🔍 player_vc.is_connected() = {player_vc.is_connected()}")
                 player_connected = player_vc.is_connected()
 
             if guild_vc:
-                logger.info(
-                    f"🔍 guild_vc.is_connected() = {guild_vc.is_connected()}"
-                )
+                logger.info(f"🔍 guild_vc.is_connected() = {guild_vc.is_connected()}")
                 logger.info(f"🔍 guild_vc.channel = {guild_vc.channel}")
                 guild_connected = guild_vc.is_connected()
 
@@ -735,9 +674,7 @@ class MusicCore(commands.Cog):
                 f"🔍 最終結果: player_connected={player_connected}, guild_connected={guild_connected}"
             )
 
-            embed = EmbedBuilder.create_info_embed(
-                "🔍 語音狀態調試報告", "詳細的語音連接狀態分析"
-            )
+            embed = EmbedBuilder.create_info_embed("🔍 語音狀態調試報告", "詳細的語音連接狀態分析")
 
             # 詳細狀態信息
             player_status = "✅ 已連接" if player_connected else "❌ 未連接"
@@ -759,8 +696,7 @@ class MusicCore(commands.Cog):
             if guild_vc:
                 embed.add_field(
                     name="Guild Voice Client 詳情",
-                    value=f"頻道: {guild_vc.channel}\n"
-                    f"連接狀態: {guild_vc.is_connected()}",
+                    value=f"頻道: {guild_vc.channel}\n" f"連接狀態: {guild_vc.is_connected()}",
                     inline=False,
                 )
 
@@ -804,19 +740,14 @@ class MusicCore(commands.Cog):
             except:
                 pass
 
-    @app_commands.command(
-        name="voice_connect", description="🔗 強制連接到語音頻道"
-    )
+    @app_commands.command(name="voice_connect", description="🔗 強制連接到語音頻道")
     async def voice_connect(self, interaction: discord.Interaction):
         """強制連接到語音頻道"""
         try:
             await interaction.response.defer()
 
             # 檢查用戶是否在語音頻道
-            if (
-                not interaction.user.voice
-                or not interaction.user.voice.channel
-            ):
+            if not interaction.user.voice or not interaction.user.voice.channel:
                 embed = EmbedBuilder.create_error_embed(
                     "❌ 請先加入語音頻道", "您需要先加入一個語音頻道"
                 )
@@ -851,9 +782,7 @@ class MusicCore(commands.Cog):
                         inline=False,
                     )
                 else:
-                    embed = EmbedBuilder.create_error_embed(
-                        "❌ 連接失敗", "無法建立語音連接"
-                    )
+                    embed = EmbedBuilder.create_error_embed("❌ 連接失敗", "無法建立語音連接")
 
                 await interaction.followup.send(embed=embed)
 
@@ -874,9 +803,7 @@ class MusicCore(commands.Cog):
 
             logger.error(traceback.format_exc())
 
-    @app_commands.command(
-        name="connection_status", description="🤖 檢查 Bot 連接狀態"
-    )
+    @app_commands.command(name="connection_status", description="🤖 檢查 Bot 連接狀態")
     async def connection_status(self, interaction: discord.Interaction):
         """檢查 Bot 的連接狀態"""
         try:
@@ -914,9 +841,7 @@ class MusicCore(commands.Cog):
 
                 # 語音頻道信息
                 voice_channels = [
-                    ch
-                    for ch in guild.channels
-                    if isinstance(ch, discord.VoiceChannel)
+                    ch for ch in guild.channels if isinstance(ch, discord.VoiceChannel)
                 ]
                 embed.add_field(
                     name="語音頻道",
@@ -1001,17 +926,11 @@ class MusicCore(commands.Cog):
         except Exception as e:
             logger.error(f"音樂菜單錯誤: {e}")
             try:
-                embed = EmbedBuilder.create_error_embed(
-                    "❌ 系統錯誤", "無法顯示音樂菜單"
-                )
+                embed = EmbedBuilder.create_error_embed("❌ 系統錯誤", "無法顯示音樂菜單")
                 if not interaction.response.is_done():
-                    await interaction.response.send_message(
-                        embed=embed, ephemeral=True
-                    )
+                    await interaction.response.send_message(embed=embed, ephemeral=True)
                 else:
-                    await interaction.followup.send(
-                        embed=embed, ephemeral=True
-                    )
+                    await interaction.followup.send(embed=embed, ephemeral=True)
             except:
                 pass
 

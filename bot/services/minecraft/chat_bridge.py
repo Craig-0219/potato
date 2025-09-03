@@ -53,9 +53,7 @@ class ChatBridge:
         self.discord_channel_id = None
         logger.info("聊天橋接已停用")
 
-    async def send_to_minecraft(
-        self, message: str, username: str = None
-    ) -> bool:
+    async def send_to_minecraft(self, message: str, username: str = None) -> bool:
         """發送 Discord 訊息到 Minecraft"""
         try:
             if not self.bridge_enabled:
@@ -82,18 +80,14 @@ class ChatBridge:
                 logger.debug(f"Discord → Minecraft: {clean_message}")
                 return True
             else:
-                logger.error(
-                    f"發送到 Minecraft 失敗: {result.get('error', 'Unknown error')}"
-                )
+                logger.error(f"發送到 Minecraft 失敗: {result.get('error', 'Unknown error')}")
                 return False
 
         except Exception as e:
             logger.error(f"發送到 Minecraft 錯誤: {e}")
             return False
 
-    async def send_to_discord(
-        self, message: str, player_name: str = None
-    ) -> bool:
+    async def send_to_discord(self, message: str, player_name: str = None) -> bool:
         """發送 Minecraft 訊息到 Discord"""
         try:
             if not self.bridge_enabled or not self.discord_channel_id:
@@ -107,9 +101,7 @@ class ChatBridge:
 
             # 格式化訊息
             if player_name:
-                formatted_message = (
-                    f"**[Minecraft]** `{player_name}`: {message}"
-                )
+                formatted_message = f"**[Minecraft]** `{player_name}`: {message}"
             else:
                 formatted_message = f"**[Minecraft]** {message}"
 
@@ -131,10 +123,7 @@ class ChatBridge:
         """處理來自 Discord 的訊息"""
         try:
             # 檢查是否為橋接頻道
-            if (
-                not self.bridge_enabled
-                or message.channel.id != self.discord_channel_id
-            ):
+            if not self.bridge_enabled or message.channel.id != self.discord_channel_id:
                 return False
 
             # 忽略機器人訊息
@@ -150,9 +139,7 @@ class ChatBridge:
                 return False
 
             # 發送到 Minecraft
-            return await self.send_to_minecraft(
-                message.content, message.author.display_name
-            )
+            return await self.send_to_minecraft(message.content, message.author.display_name)
 
         except Exception as e:
             logger.error(f"處理 Discord 訊息錯誤: {e}")

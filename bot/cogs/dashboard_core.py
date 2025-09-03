@@ -30,9 +30,7 @@ class DashboardCore(commands.Cog):
 
     # ========== 儀表板指令 ==========
 
-    @app_commands.command(
-        name="dashboard_overview", description="查看系統概覽儀表板"
-    )
+    @app_commands.command(name="dashboard_overview", description="查看系統概覽儀表板")
     @app_commands.describe(days="分析天數 (默認30天)", refresh="是否刷新快取")
     async def dashboard_overview(
         self,
@@ -65,10 +63,8 @@ class DashboardCore(commands.Cog):
                 )
 
             # 生成儀表板數據
-            dashboard_data = (
-                await self.dashboard_manager.generate_overview_dashboard(
-                    interaction.guild.id, days
-                )
+            dashboard_data = await self.dashboard_manager.generate_overview_dashboard(
+                interaction.guild.id, days
             )
 
             # 創建嵌入式訊息
@@ -108,9 +104,7 @@ class DashboardCore(commands.Cog):
             if dashboard_data.insights:
                 embed.add_field(
                     name="💡 智能洞察",
-                    value="\n".join(
-                        dashboard_data.insights[:3]
-                    ),  # 限制顯示3個洞察
+                    value="\n".join(dashboard_data.insights[:3]),  # 限制顯示3個洞察
                     inline=False,
                 )
 
@@ -130,9 +124,7 @@ class DashboardCore(commands.Cog):
             # 創建互動視圖
             view = DashboardView(interaction.user.id, dashboard_data)
 
-            await interaction.followup.send(
-                embed=embed, view=view, ephemeral=True
-            )
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
         except Exception as e:
             logger.error(f"生成系統概覽儀表板失敗: {e}")
@@ -145,13 +137,9 @@ class DashboardCore(commands.Cog):
             except Exception:
                 pass
 
-    @app_commands.command(
-        name="dashboard_performance", description="查看系統性能分析儀表板"
-    )
+    @app_commands.command(name="dashboard_performance", description="查看系統性能分析儀表板")
     @app_commands.describe(days="分析天數 (默認30天)")
-    async def dashboard_performance(
-        self, interaction: discord.Interaction, days: int = 30
-    ):
+    async def dashboard_performance(self, interaction: discord.Interaction, days: int = 30):
         """查看系統性能分析儀表板"""
         try:
             # 檢查權限
@@ -164,10 +152,8 @@ class DashboardCore(commands.Cog):
             await interaction.response.defer(ephemeral=True)
 
             # 生成性能儀表板
-            dashboard_data = (
-                await self.dashboard_manager.generate_performance_dashboard(
-                    interaction.guild.id, days
-                )
+            dashboard_data = await self.dashboard_manager.generate_performance_dashboard(
+                interaction.guild.id, days
             )
 
             # 創建嵌入式訊息
@@ -185,9 +171,7 @@ class DashboardCore(commands.Cog):
                     "system_uptime",
                     "sla_compliance",
                 ]:
-                    status_icon = (
-                        "🟢" if metric_data.status == "good" else "🟡"
-                    )
+                    status_icon = "🟢" if metric_data.status == "good" else "🟡"
                     performance_summary.append(
                         f"{status_icon} {metric_name.replace('_', ' ').title()}: {metric_data.current_value}"
                     )
@@ -214,24 +198,18 @@ class DashboardCore(commands.Cog):
             # 創建互動視圖
             view = DashboardView(interaction.user.id, dashboard_data)
 
-            await interaction.followup.send(
-                embed=embed, view=view, ephemeral=True
-            )
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
         except Exception as e:
             logger.error(f"生成性能儀表板失敗: {e}")
             try:
                 if "Unknown interaction" in str(e) or "10062" in str(e):
                     return  # 忽略未知互動錯誤
-                await SafeInteractionHandler.handle_interaction_error(
-                    interaction, e, "性能儀表板"
-                )
+                await SafeInteractionHandler.handle_interaction_error(interaction, e, "性能儀表板")
             except Exception:
                 pass
 
-    @app_commands.command(
-        name="dashboard_prediction", description="查看智能預測分析儀表板"
-    )
+    @app_commands.command(name="dashboard_prediction", description="查看智能預測分析儀表板")
     async def dashboard_prediction(self, interaction: discord.Interaction):
         """查看智能預測分析儀表板"""
         try:
@@ -245,10 +223,8 @@ class DashboardCore(commands.Cog):
             await interaction.response.defer(ephemeral=True)
 
             # 生成預測儀表板
-            dashboard_data = (
-                await self.dashboard_manager.generate_predictive_dashboard(
-                    interaction.guild.id
-                )
+            dashboard_data = await self.dashboard_manager.generate_predictive_dashboard(
+                interaction.guild.id
             )
 
             # 創建嵌入式訊息
@@ -297,18 +273,14 @@ class DashboardCore(commands.Cog):
             # 創建互動視圖
             view = DashboardView(interaction.user.id, dashboard_data)
 
-            await interaction.followup.send(
-                embed=embed, view=view, ephemeral=True
-            )
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
         except Exception as e:
             logger.error(f"生成預測儀表板失敗: {e}")
             try:
                 if "Unknown interaction" in str(e) or "10062" in str(e):
                     return  # 忽略未知互動錯誤
-                await SafeInteractionHandler.handle_interaction_error(
-                    interaction, e, "預測儀表板"
-                )
+                await SafeInteractionHandler.handle_interaction_error(interaction, e, "預測儀表板")
             except Exception:
                 pass
 
@@ -338,13 +310,9 @@ class DashboardCore(commands.Cog):
 
             if action == "info":
                 # 查看快取資訊
-                cache_info = (
-                    await self.dashboard_manager.get_dashboard_cache_info()
-                )
+                cache_info = await self.dashboard_manager.get_dashboard_cache_info()
 
-                embed = EmbedBuilder.build(
-                    title="🗄️ 儀表板快取資訊", color=0x95A5A6
-                )
+                embed = EmbedBuilder.build(title="🗄️ 儀表板快取資訊", color=0x95A5A6)
 
                 embed.add_field(
                     name="📊 基本資訊",
@@ -357,16 +325,11 @@ class DashboardCore(commands.Cog):
                 if cache_info["cache_keys"]:
                     embed.add_field(
                         name="🔑 快取鍵列表",
-                        value="\n".join(
-                            f"• `{key}`"
-                            for key in cache_info["cache_keys"][:5]
-                        ),
+                        value="\n".join(f"• `{key}`" for key in cache_info["cache_keys"][:5]),
                         inline=False,
                     )
 
-                await interaction.response.send_message(
-                    embed=embed, ephemeral=True
-                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
 
             elif action == "clear_all":
                 # 清除所有快取
@@ -378,9 +341,7 @@ class DashboardCore(commands.Cog):
                     color=0x2ECC71,
                 )
 
-                await interaction.response.send_message(
-                    embed=embed, ephemeral=True
-                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
 
             elif action == "clear_key":
                 # 清除特定快取
@@ -398,21 +359,15 @@ class DashboardCore(commands.Cog):
                     color=0x2ECC71,
                 )
 
-                await interaction.response.send_message(
-                    embed=embed, ephemeral=True
-                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"管理儀表板快取失敗: {e}")
-            await interaction.response.send_message(
-                f"❌ 操作失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.response.send_message(f"❌ 操作失敗: {str(e)}", ephemeral=True)
 
     # ========== 實時數據指令 ==========
 
-    @app_commands.command(
-        name="dashboard_realtime", description="查看實時系統狀態"
-    )
+    @app_commands.command(name="dashboard_realtime", description="查看實時系統狀態")
     async def dashboard_realtime(self, interaction: discord.Interaction):
         """查看實時系統狀態"""
         try:
@@ -425,23 +380,17 @@ class DashboardCore(commands.Cog):
                 )
                 return
 
-            if not await SafeInteractionHandler.safe_defer(
-                interaction, ephemeral=True
-            ):
+            if not await SafeInteractionHandler.safe_defer(interaction, ephemeral=True):
                 return
 
         except Exception as e:
-            await SafeInteractionHandler.handle_interaction_error(
-                interaction, e, "獲取實時數據"
-            )
+            await SafeInteractionHandler.handle_interaction_error(interaction, e, "獲取實時數據")
 
     async def _get_realtime_data(self, guild_id: int) -> Dict[str, Any]:
         """獲取實時數據"""
         try:
             # 使用 StatisticsManager 獲取真實的實時統計
-            realtime_stats = await self.stats_manager.get_realtime_stats(
-                guild_id
-            )
+            realtime_stats = await self.stats_manager.get_realtime_stats(guild_id)
 
             if not realtime_stats:
                 # 如果統計數據不可用，使用基本的模擬數據
@@ -460,9 +409,7 @@ class DashboardCore(commands.Cog):
             # 獲取額外的實時數據
             try:
                 # 獲取工作流程數據（如果可用）
-                workflow_data = await self._get_workflow_realtime_data(
-                    guild_id
-                )
+                workflow_data = await self._get_workflow_realtime_data(guild_id)
             except Exception as e:
                 logger.warning(f"獲取工作流程實時數據失敗: {e}")
                 workflow_data = {
@@ -475,35 +422,25 @@ class DashboardCore(commands.Cog):
             open_tickets = realtime_stats.get("open_tickets", 0)
             max_capacity = 50  # 假設最大處理能力為50張票券
             current_load = (
-                min((open_tickets / max_capacity) * 100, 100.0)
-                if max_capacity > 0
-                else 0.0
+                min((open_tickets / max_capacity) * 100, 100.0) if max_capacity > 0 else 0.0
             )
 
             # 估算活躍用戶數（基於今日創建的票券）
             today_created = realtime_stats.get("today_created", 0)
-            estimated_active_users = (
-                today_created * 2
-            )  # 假設每2張票券對應1個活躍用戶
+            estimated_active_users = today_created * 2  # 假設每2張票券對應1個活躍用戶
 
             realtime_data = {
                 "system_online": True,
                 "active_users": estimated_active_users,
                 "current_load": current_load,
                 "open_tickets": realtime_stats.get("open_tickets", 0),
-                "pending_tickets": realtime_stats.get(
-                    "priority_distribution", {}
-                ).get("high", 0),
+                "pending_tickets": realtime_stats.get("priority_distribution", {}).get("high", 0),
                 "today_new_tickets": realtime_stats.get("today_created", 0),
                 "active_workflows": workflow_data.get("active_workflows", 0),
-                "running_executions": workflow_data.get(
-                    "running_executions", 0
-                ),
+                "running_executions": workflow_data.get("running_executions", 0),
                 "today_executions": workflow_data.get("today_executions", 0),
                 "last_updated": realtime_stats.get("last_updated"),
-                "priority_distribution": realtime_stats.get(
-                    "priority_distribution", {}
-                ),
+                "priority_distribution": realtime_stats.get("priority_distribution", {}),
             }
 
             return realtime_data
@@ -523,9 +460,7 @@ class DashboardCore(commands.Cog):
                 "error": str(e),
             }
 
-    async def _get_workflow_realtime_data(
-        self, guild_id: int
-    ) -> Dict[str, Any]:
+    async def _get_workflow_realtime_data(self, guild_id: int) -> Dict[str, Any]:
         """獲取工作流程實時數據"""
         try:
             # 嘗試獲取工作流程數據
@@ -534,9 +469,7 @@ class DashboardCore(commands.Cog):
             workflow_dao = WorkflowDAO()
 
             # 獲取活躍工作流程
-            active_workflows = await workflow_dao.get_active_workflows(
-                guild_id
-            )
+            active_workflows = await workflow_dao.get_active_workflows(guild_id)
 
             # 獲取今日執行數據
             today_start = datetime.now(timezone.utc).replace(
@@ -547,20 +480,12 @@ class DashboardCore(commands.Cog):
             )
 
             # 獲取執行中的工作流程
-            running_executions = (
-                await workflow_dao.get_running_executions_count(guild_id)
-            )
+            running_executions = await workflow_dao.get_running_executions_count(guild_id)
 
             return {
-                "active_workflows": (
-                    len(active_workflows) if active_workflows else 0
-                ),
-                "running_executions": (
-                    running_executions if running_executions else 0
-                ),
-                "today_executions": (
-                    today_executions if today_executions else 0
-                ),
+                "active_workflows": (len(active_workflows) if active_workflows else 0),
+                "running_executions": (running_executions if running_executions else 0),
+                "today_executions": (today_executions if today_executions else 0),
             }
 
         except Exception as e:
@@ -587,9 +512,7 @@ class DashboardCore(commands.Cog):
                 "❌ 指令執行時發生錯誤，請稍後再試", ephemeral=True
             )
         else:
-            await interaction.followup.send(
-                "❌ 操作失敗，請檢查系統狀態", ephemeral=True
-            )
+            await interaction.followup.send("❌ 操作失敗，請檢查系統狀態", ephemeral=True)
 
 
 async def setup(bot):

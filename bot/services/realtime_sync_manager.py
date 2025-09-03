@@ -92,13 +92,9 @@ class RealtimeSyncManager:
             if REDIS_AVAILABLE:
                 try:
                     if REDIS_TYPE == "aioredis":
-                        self.redis = await aioredis.from_url(
-                            self.redis_url, decode_responses=True
-                        )
+                        self.redis = await aioredis.from_url(self.redis_url, decode_responses=True)
                     elif REDIS_TYPE == "redis-py":
-                        self.redis = await redis.from_url(
-                            self.redis_url, decode_responses=True
-                        )
+                        self.redis = await redis.from_url(self.redis_url, decode_responses=True)
                     logger.info(f"✅ Redis 連接成功 ({REDIS_TYPE})")
                 except Exception as e:
                     logger.warning(f"⚠️ Redis 連接失敗，將使用本機模式: {e}")
@@ -137,11 +133,7 @@ class RealtimeSyncManager:
                 }
 
                 await self.redis.publish(
-                    (
-                        f"ticket_sync:{event.guild_id}"
-                        if event.guild_id
-                        else "ticket_sync:global"
-                    ),
+                    (f"ticket_sync:{event.guild_id}" if event.guild_id else "ticket_sync:global"),
                     json.dumps(event_data, ensure_ascii=False),
                 )
 
@@ -153,9 +145,7 @@ class RealtimeSyncManager:
         while self.is_running:
             try:
                 # 等待事件
-                event = await asyncio.wait_for(
-                    self.event_queue.get(), timeout=1.0
-                )
+                event = await asyncio.wait_for(self.event_queue.get(), timeout=1.0)
 
                 # 處理事件
                 await self._handle_sync_event(event)
@@ -279,9 +269,7 @@ class RealtimeSyncManager:
                     color=0x3498DB,
                 )
                 if ticket_info:
-                    embed.add_field(
-                        name="票券類型", value=ticket_info["type"], inline=True
-                    )
+                    embed.add_field(name="票券類型", value=ticket_info["type"], inline=True)
                     embed.add_field(
                         name="優先級",
                         value=ticket_info["priority"],
@@ -329,16 +317,12 @@ class RealtimeSyncManager:
         except Exception as e:
             logger.error(f"通知票券關閉失敗: {e}")
 
-    async def _get_ticket_info(
-        self, ticket_id: int
-    ) -> Optional[Dict[str, Any]]:
+    async def _get_ticket_info(self, ticket_id: int) -> Optional[Dict[str, Any]]:
         """獲取票券資訊"""
         try:
             async with db_pool.connection() as conn:
                 async with conn.cursor(aiomysql.DictCursor) as cursor:
-                    await cursor.execute(
-                        "SELECT * FROM tickets WHERE id = %s", (ticket_id,)
-                    )
+                    await cursor.execute("SELECT * FROM tickets WHERE id = %s", (ticket_id,))
                     return await cursor.fetchone()
         except Exception as e:
             logger.error(f"獲取票券資訊失敗: {e}")
@@ -362,11 +346,7 @@ class RealtimeSyncManager:
                             event.ticket_id,
                             event.user_id,
                             event.guild_id,
-                            (
-                                json.dumps(event.data, ensure_ascii=False)
-                                if event.data
-                                else None
-                            ),
+                            (json.dumps(event.data, ensure_ascii=False) if event.data else None),
                             event.timestamp,
                         ),
                     )
@@ -379,20 +359,14 @@ class RealtimeSyncManager:
     async def add_websocket_subscriber(self, websocket):
         """添加 WebSocket 訂閱者"""
         self.subscribers.add(websocket)
-        logger.info(
-            f"WebSocket 客戶端已連接，目前連接數: {len(self.subscribers)}"
-        )
+        logger.info(f"WebSocket 客戶端已連接，目前連接數: {len(self.subscribers)}")
 
     async def remove_websocket_subscriber(self, websocket):
         """移除 WebSocket 訂閱者"""
         self.subscribers.discard(websocket)
-        logger.info(
-            f"WebSocket 客戶端已斷開，目前連接數: {len(self.subscribers)}"
-        )
+        logger.info(f"WebSocket 客戶端已斷開，目前連接數: {len(self.subscribers)}")
 
-    async def get_active_tickets_count(
-        self, guild_id: Optional[int] = None
-    ) -> int:
+    async def get_active_tickets_count(self, guild_id: Optional[int] = None) -> int:
         """獲取活躍票券數量"""
         try:
             async with db_pool.connection() as conn:
@@ -403,9 +377,7 @@ class RealtimeSyncManager:
                             (guild_id,),
                         )
                     else:
-                        await cursor.execute(
-                            "SELECT COUNT(*) FROM tickets WHERE status = 'open'"
-                        )
+                        await cursor.execute("SELECT COUNT(*) FROM tickets WHERE status = 'open'")
 
                     result = await cursor.fetchone()
                     return result[0] if result else 0
@@ -427,10 +399,7 @@ class RealtimeSyncManager:
             online_staff = 0
             for member in guild.members:
                 # 檢查是否有客服角色且在線
-                if any(
-                    role.name in ["客服", "Staff", "管理員", "Admin"]
-                    for role in member.roles
-                ):
+                if any(role.name in ["客服", "Staff", "管理員", "Admin"] for role in member.roles):
                     if member.status != discord.Status.offline:
                         online_staff += 1
 
