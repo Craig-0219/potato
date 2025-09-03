@@ -323,7 +323,8 @@ jobs:
         echo "🤖 自動合併處理完成"
         echo ""
         
-        if [[ "${{ steps.pr-info.outputs.result }}" == *"shouldSkip\":true"* ]]; then
+        PR_INFO='${{ steps.pr-info.outputs.result }}'
+        if [[ "$PR_INFO" == *"shouldSkip\":true"* ]]; then
           echo "⏭️ 跳過處理：沒有找到相關的 PR"
           exit 0
         fi
