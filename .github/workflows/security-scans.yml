@@ -153,11 +153,7 @@ jobs:
         safety check --short-report
         
         # 檢查是否有高風險漏洞
-        if safety check --exit-code; then
-          echo "✅ 未發現已知安全漏洞"
-        else
-          echo "⚠️ 發現潛在安全漏洞，請檢查並更新相關套件"
-        fi
+        safety check --exit-code && echo "✅ 未發現已知安全漏洞" || echo "⚠️ 發現潛在安全漏洞，但繼續執行"
     
     - name: 🔍 Pip-audit 掃描
       run: |
