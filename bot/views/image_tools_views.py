@@ -65,9 +65,7 @@ class ImageFormatSelector(discord.ui.Select):
                 description="支援動畫的格式",
                 emoji="🎬",
             ),
-            discord.SelectOption(
-                label="BMP", value="bmp", description="未壓縮格式", emoji="🔲"
-            ),
+            discord.SelectOption(label="BMP", value="bmp", description="未壓縮格式", emoji="🔲"),
         ]
 
         super().__init__(
@@ -93,12 +91,8 @@ class ImageFormatSelector(discord.ui.Select):
 
         except Exception as e:
             logger.error(f"圖片格式選擇錯誤: {e}")
-            embed = EmbedBuilder.create_error_embed(
-                "❌ 選擇失敗", "格式選擇出現錯誤"
-            )
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            embed = EmbedBuilder.create_error_embed("❌ 選擇失敗", "格式選擇出現錯誤")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 class ImageEffectSelector(discord.ui.Select):
@@ -193,12 +187,8 @@ class ImageEffectSelector(discord.ui.Select):
 
         except Exception as e:
             logger.error(f"圖片特效選擇錯誤: {e}")
-            embed = EmbedBuilder.create_error_embed(
-                "❌ 選擇失敗", "特效選擇出現錯誤"
-            )
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            embed = EmbedBuilder.create_error_embed("❌ 選擇失敗", "特效選擇出現錯誤")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 class ImageToolsControlView(discord.ui.View):
@@ -212,9 +202,7 @@ class ImageToolsControlView(discord.ui.View):
         self.effect_intensity = 1.0
         self.uploaded_image = None
 
-    @discord.ui.button(
-        label="🔄 格式轉換", style=discord.ButtonStyle.primary, emoji="🔄"
-    )
+    @discord.ui.button(label="🔄 格式轉換", style=discord.ButtonStyle.primary, emoji="🔄")
     async def format_convert_button(
         self, interaction: discord.Interaction, button: discord.ui.Button
     ):
@@ -251,19 +239,11 @@ class ImageToolsControlView(discord.ui.View):
 
         except Exception as e:
             logger.error(f"格式轉換按鈕錯誤: {e}")
-            embed = EmbedBuilder.create_error_embed(
-                "❌ 操作失敗", "無法啟動格式轉換功能"
-            )
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            embed = EmbedBuilder.create_error_embed("❌ 操作失敗", "無法啟動格式轉換功能")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(
-        label="🎨 特效處理", style=discord.ButtonStyle.secondary, emoji="🎨"
-    )
-    async def effects_button(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    @discord.ui.button(label="🎨 特效處理", style=discord.ButtonStyle.secondary, emoji="🎨")
+    async def effects_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """特效處理按鈕"""
         try:
             self.selected_operation = ImageOperation.EFFECTS
@@ -297,19 +277,11 @@ class ImageToolsControlView(discord.ui.View):
 
         except Exception as e:
             logger.error(f"特效處理按鈕錯誤: {e}")
-            embed = EmbedBuilder.create_error_embed(
-                "❌ 操作失敗", "無法啟動特效處理功能"
-            )
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            embed = EmbedBuilder.create_error_embed("❌ 操作失敗", "無法啟動特效處理功能")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(
-        label="📦 圖片壓縮", style=discord.ButtonStyle.secondary, emoji="📦"
-    )
-    async def compress_button(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    @discord.ui.button(label="📦 圖片壓縮", style=discord.ButtonStyle.secondary, emoji="📦")
+    async def compress_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """圖片壓縮按鈕"""
         try:
             self.selected_operation = ImageOperation.COMPRESS
@@ -336,26 +308,16 @@ class ImageToolsControlView(discord.ui.View):
 
         except Exception as e:
             logger.error(f"圖片壓縮按鈕錯誤: {e}")
-            embed = EmbedBuilder.create_error_embed(
-                "❌ 操作失敗", "無法啟動圖片壓縮功能"
-            )
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            embed = EmbedBuilder.create_error_embed("❌ 操作失敗", "無法啟動圖片壓縮功能")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(
-        label="📏 尺寸調整", style=discord.ButtonStyle.secondary, emoji="📏"
-    )
-    async def resize_button(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    @discord.ui.button(label="📏 尺寸調整", style=discord.ButtonStyle.secondary, emoji="📏")
+    async def resize_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """尺寸調整按鈕"""
         try:
             self.selected_operation = ImageOperation.RESIZE
 
-            embed = EmbedBuilder.create_info_embed(
-                "📏 圖片尺寸調整", "調整圖片的尺寸和解析度。"
-            )
+            embed = EmbedBuilder.create_info_embed("📏 圖片尺寸調整", "調整圖片的尺寸和解析度。")
 
             embed.add_field(
                 name="📐 預設尺寸",
@@ -376,12 +338,8 @@ class ImageToolsControlView(discord.ui.View):
 
         except Exception as e:
             logger.error(f"尺寸調整按鈕錯誤: {e}")
-            embed = EmbedBuilder.create_error_embed(
-                "❌ 操作失敗", "無法啟動尺寸調整功能"
-            )
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            embed = EmbedBuilder.create_error_embed("❌ 操作失敗", "無法啟動尺寸調整功能")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
     def add_intensity_controls(self):
         """添加強度控制按鈕"""
@@ -453,9 +411,7 @@ class ImageToolsControlView(discord.ui.View):
         # 重新創建主選單
         view = ImageToolsMainView()
 
-        embed = EmbedBuilder.create_info_embed(
-            "🖼️ 圖片處理工具", "選擇要使用的圖片處理功能。"
-        )
+        embed = EmbedBuilder.create_info_embed("🖼️ 圖片處理工具", "選擇要使用的圖片處理功能。")
 
         await interaction.response.edit_message(embed=embed, view=view)
 
@@ -466,19 +422,13 @@ class ImageToolsMainView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=300)
 
-    @discord.ui.button(
-        label="🖼️ 圖片工具", style=discord.ButtonStyle.primary, emoji="🖼️"
-    )
-    async def image_tools_button(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    @discord.ui.button(label="🖼️ 圖片工具", style=discord.ButtonStyle.primary, emoji="🖼️")
+    async def image_tools_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """圖片工具按鈕"""
         try:
             control_view = ImageToolsControlView()
 
-            embed = EmbedBuilder.create_info_embed(
-                "🖼️ 圖片處理工具", "選擇要使用的圖片處理功能。"
-            )
+            embed = EmbedBuilder.create_info_embed("🖼️ 圖片處理工具", "選擇要使用的圖片處理功能。")
 
             embed.add_field(
                 name="🔧 可用功能",
@@ -501,25 +451,15 @@ class ImageToolsMainView(discord.ui.View):
                 inline=True,
             )
 
-            await interaction.response.edit_message(
-                embed=embed, view=control_view
-            )
+            await interaction.response.edit_message(embed=embed, view=control_view)
 
         except Exception as e:
             logger.error(f"圖片工具按鈕錯誤: {e}")
-            embed = EmbedBuilder.create_error_embed(
-                "❌ 系統錯誤", "無法啟動圖片工具"
-            )
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            embed = EmbedBuilder.create_error_embed("❌ 系統錯誤", "無法啟動圖片工具")
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @discord.ui.button(
-        label="📊 使用說明", style=discord.ButtonStyle.secondary, emoji="📊"
-    )
-    async def usage_guide_button(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    @discord.ui.button(label="📊 使用說明", style=discord.ButtonStyle.secondary, emoji="📊")
+    async def usage_guide_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """使用說明按鈕"""
         try:
             embed = EmbedBuilder.create_info_embed(
@@ -556,15 +496,9 @@ class ImageToolsMainView(discord.ui.View):
                 inline=False,
             )
 
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"使用說明錯誤: {e}")
-            embed = EmbedBuilder.create_error_embed(
-                "❌ 顯示錯誤", "無法顯示使用說明"
-            )
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            embed = EmbedBuilder.create_error_embed("❌ 顯示錯誤", "無法顯示使用說明")
+            await interaction.response.send_message(embed=embed, ephemeral=True)

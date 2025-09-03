@@ -51,9 +51,7 @@ class BaseDAO(ABC):
         try:
             async with self.db.connection() as conn:
                 cursor_class = (
-                    conn.cursor
-                    if not dictionary
-                    else lambda: conn.cursor(aiomysql.DictCursor)
+                    conn.cursor if not dictionary else lambda: conn.cursor(aiomysql.DictCursor)
                 )
                 async with cursor_class() as cursor:
                     await cursor.execute(query, params or ())
@@ -67,9 +65,7 @@ class BaseDAO(ABC):
                         return cursor.rowcount
 
         except Exception as e:
-            logger.error(
-                f"[{self.__class__.__name__}] 查詢執行失敗：{query[:100]}... - {e}"
-            )
+            logger.error(f"[{self.__class__.__name__}] 查詢執行失敗：{query[:100]}... - {e}")
             raise
 
     async def insert(self, data: Dict[str, Any]) -> Optional[int]:
@@ -94,9 +90,7 @@ class BaseDAO(ABC):
             logger.error(f"[{self.__class__.__name__}] 插入失敗：{e}")
             raise
 
-    async def update_by_id(
-        self, record_id: Union[int, str], data: Dict[str, Any]
-    ) -> bool:
+    async def update_by_id(self, record_id: Union[int, str], data: Dict[str, Any]) -> bool:
         """通用更新方法（依ID）"""
         if not self.table_name:
             raise NotImplementedError("table_name 必須被設定")
@@ -131,9 +125,7 @@ class BaseDAO(ABC):
             logger.error(f"[{self.__class__.__name__}] 刪除失敗：{e}")
             return False
 
-    async def get_by_id(
-        self, record_id: Union[int, str]
-    ) -> Optional[Dict[str, Any]]:
+    async def get_by_id(self, record_id: Union[int, str]) -> Optional[Dict[str, Any]]:
         """通用查詢方法（依ID）"""
         if not self.table_name:
             raise NotImplementedError("table_name 必須被設定")
@@ -148,9 +140,7 @@ class BaseDAO(ABC):
 
         try:
             query = f"SELECT * FROM {self.table_name} WHERE id = %s"
-            result = await self.execute_query(
-                query, (record_id,), fetch_one=True, dictionary=True
-            )
+            result = await self.execute_query(query, (record_id,), fetch_one=True, dictionary=True)
 
             # 快取結果
             if result:
@@ -187,17 +177,13 @@ class BaseDAO(ABC):
             if limit:
                 query += f" LIMIT {limit}"
 
-            return await self.execute_query(
-                query, params, fetch_all=True, dictionary=True
-            )
+            return await self.execute_query(query, params, fetch_all=True, dictionary=True)
 
         except Exception as e:
             logger.error(f"[{self.__class__.__name__}] 查詢所有記錄失敗：{e}")
             return []
 
-    async def count(
-        self, where_clause: str = None, params: Tuple = None
-    ) -> int:
+    async def count(self, where_clause: str = None, params: Tuple = None) -> int:
         """計算記錄數量"""
         if not self.table_name:
             raise NotImplementedError("table_name 必須被設定")
@@ -254,9 +240,7 @@ class BaseDAO(ABC):
 
             query += f" LIMIT {page_size} OFFSET {offset}"
 
-            records = await self.execute_query(
-                query, params, fetch_all=True, dictionary=True
-            )
+            records = await self.execute_query(query, params, fetch_all=True, dictionary=True)
 
             return records, total
 
@@ -294,18 +278,14 @@ class BaseDAO(ABC):
         if pattern is None:
             self._cache.clear()
         else:
-            keys_to_remove = [
-                key for key in self._cache.keys() if pattern in key
-            ]
+            keys_to_remove = [key for key in self._cache.keys() if pattern in key]
             for key in keys_to_remove:
                 del self._cache[key]
 
     # ===== JSON 處理工具 =====
 
     @staticmethod
-    def safe_json_loads(
-        json_str: Union[str, None], default: Any = None
-    ) -> Any:
+    def safe_json_loads(json_str: Union[str, None], default: Any = None) -> Any:
         """安全的 JSON 解析"""
         if not json_str:
             return default
@@ -394,9 +374,7 @@ class BaseDAO(ABC):
                 async with self.db.connection() as conn:
                     async with conn.cursor() as cursor:
                         for record_id, data in batch:
-                            set_clause = ", ".join(
-                                [f"{key} = %s" for key in data.keys()]
-                            )
+                            set_clause = ", ".join([f"{key} = %s" for key in data.keys()])
                             query = f"UPDATE {self.table_name} SET {set_clause} WHERE id = %s"
                             params = tuple(data.values()) + (record_id,)
 
@@ -435,9 +413,7 @@ class BaseDAO(ABC):
         """驗證資料完整性"""
         if required_fields:
             missing_fields = [
-                field
-                for field in required_fields
-                if field not in data or data[field] is None
+                field for field in required_fields if field not in data or data[field] is None
             ]
             if missing_fields:
                 return False, f"缺少必要欄位：{', '.join(missing_fields)}"
@@ -446,9 +422,7 @@ class BaseDAO(ABC):
 
     # ===== 清理和維護 =====
 
-    async def cleanup_old_records(
-        self, days: int = 90, date_field: str = "created_at"
-    ) -> int:
+    async def cleanup_old_records(self, days: int = 90, date_field: str = "created_at") -> int:
         """清理舊記錄"""
         if not self.table_name:
             return 0
@@ -483,9 +457,7 @@ class BaseDAO(ABC):
                     SELECT COUNT(*) FROM information_schema.tables
                     WHERE table_schema = DATABASE() AND table_name = %s
                 """
-                result = await self.execute_query(
-                    exists_query, (self.table_name,), fetch_one=True
-                )
+                result = await self.execute_query(exists_query, (self.table_name,), fetch_one=True)
                 table_exists = result[0] > 0 if result else False
 
             return {
@@ -609,16 +581,12 @@ def dao_performance_monitor(func):
             execution_time = (datetime.now() - start_time).total_seconds()
 
             if execution_time > 1.0:  # 超過1秒記錄警告
-                logger.warning(
-                    f"DAO 操作 {func.__name__} 執行時間過長：{execution_time:.2f}秒"
-                )
+                logger.warning(f"DAO 操作 {func.__name__} 執行時間過長：{execution_time:.2f}秒")
 
             return result
         except Exception as e:
             execution_time = (datetime.now() - start_time).total_seconds()
-            logger.error(
-                f"DAO 操作 {func.__name__} 失敗（執行時間：{execution_time:.2f}秒）：{e}"
-            )
+            logger.error(f"DAO 操作 {func.__name__} 失敗（執行時間：{execution_time:.2f}秒）：{e}")
             raise
 
     return wrapper

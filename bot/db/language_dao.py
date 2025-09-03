@@ -34,9 +34,7 @@ class LanguageDAO:
                         exists = (await cursor.fetchone())[0] > 0
 
                 if not exists:
-                    logger.warning(
-                        "📋 檢測到語言表格不存在，開始自動初始化..."
-                    )
+                    logger.warning("📋 檢測到語言表格不存在，開始自動初始化...")
                     await self._create_language_tables()
 
                 self._initialized = True
@@ -186,9 +184,7 @@ class LanguageDAO:
             logger.error(f"取得用戶語言錯誤: {e}")
             return None
 
-    async def set_guild_language(
-        self, guild_id: int, language_code: str
-    ) -> bool:
+    async def set_guild_language(self, guild_id: int, language_code: str) -> bool:
         """設定伺服器預設語言"""
         await self._ensure_initialized()
         try:
@@ -213,9 +209,7 @@ class LanguageDAO:
             logger.error(f"設定伺服器語言錯誤: {e}")
             return False
 
-    async def get_guild_language(
-        self, guild_id: int
-    ) -> Optional[Dict[str, Any]]:
+    async def get_guild_language(self, guild_id: int) -> Optional[Dict[str, Any]]:
         """取得伺服器語言設定"""
         await self._ensure_initialized()
         try:
@@ -308,9 +302,7 @@ class LanguageDAO:
             logger.error(f"更新語言使用統計錯誤: {e}")
             return False
 
-    async def get_language_usage_stats(
-        self, guild_id: int, days: int = 30
-    ) -> List[Dict[str, Any]]:
+    async def get_language_usage_stats(self, guild_id: int, days: int = 30) -> List[Dict[str, Any]]:
         """取得語言使用統計"""
         await self._ensure_initialized()
         try:
@@ -346,9 +338,7 @@ class LanguageDAO:
                                 "language_code": row[0],
                                 "total_messages": row[1],
                                 "total_users": row[2],
-                                "avg_accuracy": (
-                                    float(row[3]) if row[3] else None
-                                ),
+                                "avg_accuracy": (float(row[3]) if row[3] else None),
                                 "days_active": row[4],
                             }
                         )
@@ -400,9 +390,7 @@ class LanguageDAO:
             logger.error(f"記錄語言偵測錯誤: {e}")
             return None
 
-    async def update_detection_feedback(
-        self, log_id: int, is_correct: bool
-    ) -> bool:
+    async def update_detection_feedback(self, log_id: int, is_correct: bool) -> bool:
         """更新偵測回饋"""
         await self._ensure_initialized()
         try:
@@ -482,9 +470,7 @@ class LanguageDAO:
                         accuracy_stats[lang] = {
                             "total_detections": total,
                             "correct_detections": correct,
-                            "accuracy_rate": (
-                                correct / total if total > 0 else 0.0
-                            ),
+                            "accuracy_rate": (correct / total if total > 0 else 0.0),
                             "avg_confidence": avg_conf,
                         }
 
@@ -492,9 +478,7 @@ class LanguageDAO:
                         total_correct += correct
 
                     overall_accuracy = (
-                        total_correct / total_detections
-                        if total_detections > 0
-                        else 0.0
+                        total_correct / total_detections if total_detections > 0 else 0.0
                     )
 
                     return {
@@ -517,9 +501,7 @@ class LanguageDAO:
 
     # ========== 批次操作 ==========
 
-    async def get_popular_languages(
-        self, guild_id: int, limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    async def get_popular_languages(self, guild_id: int, limit: int = 10) -> List[Dict[str, Any]]:
         """取得熱門語言列表"""
         await self._ensure_initialized()
         try:

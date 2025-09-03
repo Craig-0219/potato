@@ -23,12 +23,8 @@ class SecurityDashboardView(discord.ui.View):
         super().__init__(timeout=300)
         self.security_stats = security_stats
 
-    @discord.ui.button(
-        label="🔐 MFA 管理", style=discord.ButtonStyle.primary, row=0
-    )
-    async def mfa_management(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    @discord.ui.button(label="🔐 MFA 管理", style=discord.ButtonStyle.primary, row=0)
+    async def mfa_management(self, interaction: discord.Interaction, button: discord.ui.Button):
         """MFA 管理按鈕"""
         try:
             user_id = interaction.user.id
@@ -37,16 +33,12 @@ class SecurityDashboardView(discord.ui.View):
             embed = discord.Embed(
                 title="🔐 MFA 多因素認證管理",
                 color=(
-                    discord.Color.green()
-                    if mfa_status["mfa_enabled"]
-                    else discord.Color.orange()
+                    discord.Color.green() if mfa_status["mfa_enabled"] else discord.Color.orange()
                 ),
             )
 
             # MFA 狀態摘要
-            status_text = (
-                "✅ 已啟用" if mfa_status["mfa_enabled"] else "⚠️ 未完全啟用"
-            )
+            status_text = "✅ 已啟用" if mfa_status["mfa_enabled"] else "⚠️ 未完全啟用"
             embed.add_field(
                 name="📊 當前狀態",
                 value=f"{status_text}\n安全等級: {mfa_status['security_level'].upper()}",
@@ -73,21 +65,15 @@ class SecurityDashboardView(discord.ui.View):
                 interaction, f"❌ MFA 管理載入失敗: {str(e)}", ephemeral=True
             )
 
-    @discord.ui.button(
-        label="👥 角色管理", style=discord.ButtonStyle.secondary, row=0
-    )
-    async def role_management(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    @discord.ui.button(label="👥 角色管理", style=discord.ButtonStyle.secondary, row=0)
+    async def role_management(self, interaction: discord.Interaction, button: discord.ui.Button):
         """角色管理按鈕"""
         try:
             # 檢查權限
             user_id = interaction.user.id
             guild_id = interaction.guild.id if interaction.guild else 0
 
-            if not await rbac_manager.check_permission(
-                user_id, guild_id, Permission.USER_MANAGE
-            ):
+            if not await rbac_manager.check_permission(user_id, guild_id, Permission.USER_MANAGE):
                 await SafeInteractionHandler.safe_response(
                     interaction, "❌ 您沒有管理角色的權限", ephemeral=True
                 )
@@ -125,21 +111,15 @@ class SecurityDashboardView(discord.ui.View):
                 interaction, f"❌ 角色管理載入失敗: {str(e)}", ephemeral=True
             )
 
-    @discord.ui.button(
-        label="🔍 安全審計", style=discord.ButtonStyle.danger, row=0
-    )
-    async def security_audit(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    @discord.ui.button(label="🔍 安全審計", style=discord.ButtonStyle.danger, row=0)
+    async def security_audit(self, interaction: discord.Interaction, button: discord.ui.Button):
         """安全審計按鈕"""
         try:
             # 檢查權限
             user_id = interaction.user.id
             guild_id = interaction.guild.id if interaction.guild else 0
 
-            if not await rbac_manager.check_permission(
-                user_id, guild_id, Permission.SYSTEM_ADMIN
-            ):
+            if not await rbac_manager.check_permission(user_id, guild_id, Permission.SYSTEM_ADMIN):
                 await SafeInteractionHandler.safe_response(
                     interaction, "❌ 您沒有存取安全審計的權限", ephemeral=True
                 )
@@ -173,21 +153,15 @@ class SecurityDashboardView(discord.ui.View):
                 interaction, f"❌ 安全審計載入失敗: {str(e)}", ephemeral=True
             )
 
-    @discord.ui.button(
-        label="🔑 API 密鑰", style=discord.ButtonStyle.secondary, row=1
-    )
-    async def api_key_management(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    @discord.ui.button(label="🔑 API 密鑰", style=discord.ButtonStyle.secondary, row=1)
+    async def api_key_management(self, interaction: discord.Interaction, button: discord.ui.Button):
         """API 密鑰管理按鈕"""
         try:
             # 檢查權限
             user_id = interaction.user.id
             guild_id = interaction.guild.id if interaction.guild else 0
 
-            if not await rbac_manager.check_permission(
-                user_id, guild_id, Permission.API_ADMIN
-            ):
+            if not await rbac_manager.check_permission(user_id, guild_id, Permission.API_ADMIN):
                 await SafeInteractionHandler.safe_response(
                     interaction, "❌ 您沒有管理 API 密鑰的權限", ephemeral=True
                 )
@@ -220,12 +194,8 @@ class SecurityDashboardView(discord.ui.View):
                 ephemeral=True,
             )
 
-    @discord.ui.button(
-        label="📊 系統狀態", style=discord.ButtonStyle.success, row=1
-    )
-    async def system_status(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    @discord.ui.button(label="📊 系統狀態", style=discord.ButtonStyle.success, row=1)
+    async def system_status(self, interaction: discord.Interaction, button: discord.ui.Button):
         """系統狀態按鈕"""
         try:
             embed = discord.Embed(
@@ -261,9 +231,7 @@ class SecurityDashboardView(discord.ui.View):
                 inline=True,
             )
 
-            await SafeInteractionHandler.safe_response(
-                interaction, embed=embed, ephemeral=True
-            )
+            await SafeInteractionHandler.safe_response(interaction, embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"❌ 系統狀態視圖錯誤: {e}")
@@ -280,9 +248,7 @@ class MFASetupView(discord.ui.View):
         self.setup_result = setup_result
 
     @discord.ui.button(label="✅ 完成設置", style=discord.ButtonStyle.success)
-    async def complete_setup(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    async def complete_setup(self, interaction: discord.Interaction, button: discord.ui.Button):
         """完成 MFA 設置"""
         await SafeInteractionHandler.safe_response(
             interaction,
@@ -290,12 +256,8 @@ class MFASetupView(discord.ui.View):
             ephemeral=True,
         )
 
-    @discord.ui.button(
-        label="🔄 重新生成", style=discord.ButtonStyle.secondary
-    )
-    async def regenerate_setup(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    @discord.ui.button(label="🔄 重新生成", style=discord.ButtonStyle.secondary)
+    async def regenerate_setup(self, interaction: discord.Interaction, button: discord.ui.Button):
         """重新生成 MFA 設置"""
         try:
             user_id = interaction.user.id
@@ -319,9 +281,7 @@ class MFASetupView(discord.ui.View):
 
                 embed.set_image(url=setup_result["qr_code"])
 
-                await SafeInteractionHandler.safe_response(
-                    interaction, embed=embed, ephemeral=True
-                )
+                await SafeInteractionHandler.safe_response(interaction, embed=embed, ephemeral=True)
             else:
                 await SafeInteractionHandler.safe_response(
                     interaction,
@@ -352,9 +312,7 @@ class MFAManagementView(discord.ui.View):
 
     def setup_mfa_button(self):
         """設置 MFA 按鈕"""
-        button = discord.ui.Button(
-            label="🔐 設置 MFA", style=discord.ButtonStyle.primary
-        )
+        button = discord.ui.Button(label="🔐 設置 MFA", style=discord.ButtonStyle.primary)
 
         async def callback(interaction):
             await SafeInteractionHandler.safe_response(
@@ -368,9 +326,7 @@ class MFAManagementView(discord.ui.View):
 
     def regenerate_backup_codes_button(self):
         """重新生成備用代碼按鈕"""
-        button = discord.ui.Button(
-            label="🎫 重新生成備用代碼", style=discord.ButtonStyle.secondary
-        )
+        button = discord.ui.Button(label="🎫 重新生成備用代碼", style=discord.ButtonStyle.secondary)
 
         async def callback(interaction):
             try:
@@ -419,9 +375,7 @@ class MFAManagementView(discord.ui.View):
 
     def disable_mfa_button(self):
         """停用 MFA 按鈕"""
-        button = discord.ui.Button(
-            label="❌ 停用 MFA", style=discord.ButtonStyle.danger
-        )
+        button = discord.ui.Button(label="❌ 停用 MFA", style=discord.ButtonStyle.danger)
 
         async def callback(interaction):
             # 創建確認視圖
@@ -454,9 +408,7 @@ class MFADisableConfirmView(discord.ui.View):
         super().__init__(timeout=60)
 
     @discord.ui.button(label="✅ 確認停用", style=discord.ButtonStyle.danger)
-    async def confirm_disable(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    async def confirm_disable(self, interaction: discord.Interaction, button: discord.ui.Button):
         """確認停用 MFA"""
         await SafeInteractionHandler.safe_response(
             interaction,
@@ -465,9 +417,7 @@ class MFADisableConfirmView(discord.ui.View):
         )
 
     @discord.ui.button(label="❌ 取消", style=discord.ButtonStyle.secondary)
-    async def cancel_disable(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    async def cancel_disable(self, interaction: discord.Interaction, button: discord.ui.Button):
         """取消停用"""
         await SafeInteractionHandler.safe_response(
             interaction,
@@ -483,17 +433,11 @@ class RoleManagementView(discord.ui.View):
         super().__init__(timeout=300)
         self.roles = roles
 
-    @discord.ui.button(
-        label="📋 查看所有角色", style=discord.ButtonStyle.primary
-    )
-    async def view_all_roles(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    @discord.ui.button(label="📋 查看所有角色", style=discord.ButtonStyle.primary)
+    async def view_all_roles(self, interaction: discord.Interaction, button: discord.ui.Button):
         """查看所有角色"""
         try:
-            embed = discord.Embed(
-                title="📋 系統角色列表", color=discord.Color.blue()
-            )
+            embed = discord.Embed(title="📋 系統角色列表", color=discord.Color.blue())
 
             # 按層級分組顯示角色
             system_roles = [r for r in self.roles if r.is_system]
@@ -501,13 +445,9 @@ class RoleManagementView(discord.ui.View):
 
             if system_roles:
                 system_role_list = []
-                for role in sorted(
-                    system_roles, key=lambda x: x.level.value, reverse=True
-                ):
+                for role in sorted(system_roles, key=lambda x: x.level.value, reverse=True):
                     status = "🟢" if role.is_active else "🔴"
-                    system_role_list.append(
-                        f"{status} **{role.name}** (級別 {role.level.value})"
-                    )
+                    system_role_list.append(f"{status} **{role.name}** (級別 {role.level.value})")
 
                 embed.add_field(
                     name="🏛️ 系統角色",
@@ -517,13 +457,9 @@ class RoleManagementView(discord.ui.View):
 
             if custom_roles:
                 custom_role_list = []
-                for role in sorted(
-                    custom_roles, key=lambda x: x.level.value, reverse=True
-                ):
+                for role in sorted(custom_roles, key=lambda x: x.level.value, reverse=True):
                     status = "🟢" if role.is_active else "🔴"
-                    custom_role_list.append(
-                        f"{status} **{role.name}** (級別 {role.level.value})"
-                    )
+                    custom_role_list.append(f"{status} **{role.name}** (級別 {role.level.value})")
 
                 embed.add_field(
                     name="👤 自定義角色",
@@ -531,9 +467,7 @@ class RoleManagementView(discord.ui.View):
                     inline=False,
                 )
 
-            await SafeInteractionHandler.safe_response(
-                interaction, embed=embed, ephemeral=True
-            )
+            await SafeInteractionHandler.safe_response(interaction, embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"❌ 角色列表錯誤: {e}")
@@ -542,9 +476,7 @@ class RoleManagementView(discord.ui.View):
             )
 
     @discord.ui.button(label="➕ 創建角色", style=discord.ButtonStyle.success)
-    async def create_role(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    async def create_role(self, interaction: discord.Interaction, button: discord.ui.Button):
         """創建新角色"""
         await SafeInteractionHandler.safe_response(
             interaction,
@@ -561,9 +493,7 @@ class SecurityAuditView(discord.ui.View):
         self.audit_stats = audit_stats
 
     @discord.ui.button(label="🚨 威脅分析", style=discord.ButtonStyle.danger)
-    async def threat_analysis(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    async def threat_analysis(self, interaction: discord.Interaction, button: discord.ui.Button):
         """威脅分析"""
         await SafeInteractionHandler.safe_response(
             interaction,
@@ -572,9 +502,7 @@ class SecurityAuditView(discord.ui.View):
         )
 
     @discord.ui.button(label="📊 生成報告", style=discord.ButtonStyle.primary)
-    async def generate_report(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    async def generate_report(self, interaction: discord.Interaction, button: discord.ui.Button):
         """生成審計報告"""
         await SafeInteractionHandler.safe_response(
             interaction,
@@ -589,12 +517,8 @@ class APIKeyManagementView(discord.ui.View):
     def __init__(self):
         super().__init__(timeout=300)
 
-    @discord.ui.button(
-        label="🔑 創建 API 密鑰", style=discord.ButtonStyle.primary
-    )
-    async def create_api_key(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    @discord.ui.button(label="🔑 創建 API 密鑰", style=discord.ButtonStyle.primary)
+    async def create_api_key(self, interaction: discord.Interaction, button: discord.ui.Button):
         """創建 API 密鑰"""
         try:
             # 創建選擇類型的下拉選單
@@ -625,12 +549,8 @@ class APIKeyManagementView(discord.ui.View):
                 interaction, f"❌ API 密鑰創建失敗: {str(e)}", ephemeral=True
             )
 
-    @discord.ui.button(
-        label="📋 查看密鑰", style=discord.ButtonStyle.secondary
-    )
-    async def view_api_keys(
-        self, interaction: discord.Interaction, button: discord.ui.Button
-    ):
+    @discord.ui.button(label="📋 查看密鑰", style=discord.ButtonStyle.secondary)
+    async def view_api_keys(self, interaction: discord.Interaction, button: discord.ui.Button):
         """查看現有 API 密鑰"""
         await SafeInteractionHandler.safe_response(
             interaction,
@@ -692,9 +612,7 @@ class APIKeyTypeSelectionView(discord.ui.View):
             )
 
             if api_key:
-                embed = discord.Embed(
-                    title="✅ API 密鑰創建成功", color=discord.Color.green()
-                )
+                embed = discord.Embed(title="✅ API 密鑰創建成功", color=discord.Color.green())
 
                 embed.add_field(
                     name="🔑 API 密鑰",
@@ -716,9 +634,7 @@ class APIKeyTypeSelectionView(discord.ui.View):
                     inline=True,
                 )
 
-                await SafeInteractionHandler.safe_response(
-                    interaction, embed=embed, ephemeral=True
-                )
+                await SafeInteractionHandler.safe_response(interaction, embed=embed, ephemeral=True)
             else:
                 await SafeInteractionHandler.safe_response(
                     interaction, "❌ API 密鑰創建失敗", ephemeral=True

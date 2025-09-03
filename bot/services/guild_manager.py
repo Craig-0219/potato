@@ -93,9 +93,7 @@ class GuildManager:
         except Exception as e:
             logger.error(f"❌ 處理伺服器離開失敗: {e}")
 
-    async def on_guild_update(
-        self, before: discord.Guild, after: discord.Guild
-    ):
+    async def on_guild_update(self, before: discord.Guild, after: discord.Guild):
         """處理伺服器更新"""
         try:
             changes = []
@@ -106,24 +104,16 @@ class GuildManager:
 
             # 檢查成員數變化
             if before.member_count != after.member_count:
-                changes.append(
-                    f"成員數: {before.member_count} -> {after.member_count}"
-                )
+                changes.append(f"成員數: {before.member_count} -> {after.member_count}")
 
             # 檢查擁有者變更
             if before.owner_id != after.owner_id:
-                changes.append(
-                    f"擁有者: {before.owner_id} -> {after.owner_id}"
-                )
+                changes.append(f"擁有者: {before.owner_id} -> {after.owner_id}")
                 # 更新權限系統
-                await self._handle_owner_change(
-                    after.id, before.owner_id, after.owner_id
-                )
+                await self._handle_owner_change(after.id, before.owner_id, after.owner_id)
 
             if changes:
-                logger.info(
-                    f"🔄 伺服器更新: {after.name} - {', '.join(changes)}"
-                )
+                logger.info(f"🔄 伺服器更新: {after.name} - {', '.join(changes)}")
 
                 # 更新資料庫資訊
                 await self._update_guild_info(after)
@@ -186,15 +176,11 @@ class GuildManager:
                 "banner_hash": guild.banner.key if guild.banner else None,
                 "description": guild.description,
                 "preferred_locale": (
-                    str(guild.preferred_locale)
-                    if guild.preferred_locale
-                    else "zh-TW"
+                    str(guild.preferred_locale) if guild.preferred_locale else "zh-TW"
                 ),
                 "verification_level": guild.verification_level.name,
                 "mfa_level": (
-                    guild.mfa_level.name
-                    if guild.mfa_level.name == "none"
-                    else "elevated"
+                    guild.mfa_level.name if guild.mfa_level.name == "none" else "elevated"
                 ),
                 "explicit_content_filter": guild.explicit_content_filter.name,
                 "status": "active",
@@ -230,9 +216,7 @@ class GuildManager:
                 "language": "zh-TW",
                 "timezone": "Asia/Taipei",
                 "currency": "TWD",
-                "modules_enabled": json.dumps(
-                    ["ticket", "vote", "welcome", "workflow"]
-                ),
+                "modules_enabled": json.dumps(["ticket", "vote", "welcome", "workflow"]),
                 "features_disabled": json.dumps([]),
                 "notification_channels": json.dumps({}),
                 "alert_settings": json.dumps(
@@ -324,9 +308,7 @@ class GuildManager:
                     "guild_id": guild.id,
                     "plan_type": plan_type,
                     "billing_cycle_start": datetime.now().date(),
-                    "billing_cycle_end": (
-                        datetime.now() + timedelta(days=30)
-                    ).date(),
+                    "billing_cycle_end": (datetime.now() + timedelta(days=30)).date(),
                     "overage_alerts_enabled": True,
                 }
             )
@@ -501,9 +483,7 @@ class GuildManager:
 
             embed.set_footer(
                 text="Potato Bot - 企業級 Discord 管理系統",
-                icon_url=(
-                    self.bot.user.avatar.url if self.bot.user.avatar else None
-                ),
+                icon_url=(self.bot.user.avatar.url if self.bot.user.avatar else None),
             )
 
             await guild.owner.send(embed=embed)
@@ -568,9 +548,7 @@ class GuildManager:
         except Exception as e:
             logger.error(f"❌ 更新伺服器資訊失敗: {e}")
 
-    async def _handle_owner_change(
-        self, guild_id: int, old_owner_id: int, new_owner_id: int
-    ):
+    async def _handle_owner_change(self, guild_id: int, old_owner_id: int, new_owner_id: int):
         """處理伺服器擁有者變更"""
         try:
             # 移除舊擁有者的擁有者角色，改為管理員
@@ -587,9 +565,7 @@ class GuildManager:
                 new_owner_id, guild_id, GuildRole.OWNER, new_owner_id
             )
 
-            logger.info(
-                f"✅ 伺服器擁有者變更處理完成: {old_owner_id} -> {new_owner_id}"
-            )
+            logger.info(f"✅ 伺服器擁有者變更處理完成: {old_owner_id} -> {new_owner_id}")
 
         except Exception as e:
             logger.error(f"❌ 處理擁有者變更失敗: {e}")
@@ -665,9 +641,7 @@ class GuildManager:
                     guild_info = await cursor.fetchone()
 
                     # 權限統計
-                    permission_stats = (
-                        await self.permission_manager.get_guild_stats(guild_id)
-                    )
+                    permission_stats = await self.permission_manager.get_guild_stats(guild_id)
 
                     # 最近統計
                     await cursor.execute(

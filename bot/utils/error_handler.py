@@ -42,9 +42,7 @@ class GlobalErrorHandler:
         ):
             await self.handle_interaction_error(interaction, error)
 
-    async def handle_command_error(
-        self, ctx: commands.Context, error: Exception
-    ):
+    async def handle_command_error(self, ctx: commands.Context, error: Exception):
         """處理傳統命令錯誤"""
         error_type = type(error).__name__
         self._log_error(error_type, error, ctx)
@@ -91,9 +89,7 @@ class GlobalErrorHandler:
                 await ctx.send(embed=embed)
 
             elif isinstance(error, commands.BadArgument):
-                embed = self._create_error_embed(
-                    "參數錯誤", f"❌ 參數格式錯誤：{str(error)}"
-                )
+                embed = self._create_error_embed("參數錯誤", f"❌ 參數格式錯誤：{str(error)}")
                 await ctx.send(embed=embed)
 
             elif isinstance(error, commands.CommandOnCooldown):
@@ -111,9 +107,7 @@ class GlobalErrorHandler:
                 await ctx.send(embed=embed)
 
             elif isinstance(error, commands.NotOwner):
-                embed = self._create_error_embed(
-                    "權限不足", "❌ 此命令只有機器人擁有者可以使用"
-                )
+                embed = self._create_error_embed("權限不足", "❌ 此命令只有機器人擁有者可以使用")
                 await ctx.send(embed=embed)
 
             else:
@@ -126,9 +120,7 @@ class GlobalErrorHandler:
                 await ctx.send(embed=embed)
 
                 # 記錄詳細錯誤
-                logger.error(
-                    f"命令錯誤 [{error_id}] - {ctx.command.name}: {error}"
-                )
+                logger.error(f"命令錯誤 [{error_id}] - {ctx.command.name}: {error}")
                 logger.error(traceback.format_exc())
 
         except Exception as e:
@@ -150,9 +142,7 @@ class GlobalErrorHandler:
                 return  # 靜默處理，不嘗試回應
 
             # 檢查是否已經確認互動
-            if "already been acknowledged" in str(error) or "40060" in str(
-                error
-            ):
+            if "already been acknowledged" in str(error) or "40060" in str(error):
                 logger.warning(f"互動已被確認: {error}")
                 return  # 靜默處理
 
@@ -163,9 +153,7 @@ class GlobalErrorHandler:
                 send_func = interaction.response.send_message
 
             if isinstance(error, discord.app_commands.MissingPermissions):
-                embed = self._create_error_embed(
-                    "權限不足", "❌ 你沒有權限使用此命令"
-                )
+                embed = self._create_error_embed("權限不足", "❌ 你沒有權限使用此命令")
                 await send_func(embed=embed, ephemeral=True)
 
             elif isinstance(error, discord.app_commands.CommandOnCooldown):
@@ -183,9 +171,7 @@ class GlobalErrorHandler:
                 await send_func(embed=embed, ephemeral=True)
 
             elif isinstance(error, discord.app_commands.TransformerError):
-                embed = self._create_error_embed(
-                    "參數錯誤", f"❌ 參數格式錯誤：{str(error)}"
-                )
+                embed = self._create_error_embed("參數錯誤", f"❌ 參數格式錯誤：{str(error)}")
                 await send_func(embed=embed, ephemeral=True)
 
             else:
@@ -199,9 +185,7 @@ class GlobalErrorHandler:
 
                 # 記錄詳細錯誤
                 command_name = getattr(interaction.command, "name", "unknown")
-                logger.error(
-                    f"互動錯誤 [{error_id}] - {command_name}: {error}"
-                )
+                logger.error(f"互動錯誤 [{error_id}] - {command_name}: {error}")
                 logger.error(traceback.format_exc())
 
         except Exception as e:
@@ -241,15 +225,11 @@ class GlobalErrorHandler:
                     embed = self._create_error_embed(
                         "互動失敗", "❌ 互動處理失敗，請重試或聯繫管理員"
                     )
-                    await interaction.response.send_message(
-                        embed=embed, ephemeral=True
-                    )
+                    await interaction.response.send_message(embed=embed, ephemeral=True)
         except Exception as e:
             logger.error(f"處理 View 錯誤時發生錯誤：{e}")
 
-    async def _handle_ticket_command_help(
-        self, ctx: commands.Context, content: str
-    ):
+    async def _handle_ticket_command_help(self, ctx: commands.Context, content: str):
         """處理票券指令錯誤並提供幫助"""
         embed = discord.Embed(
             title="❓ 票券指令使用說明",
@@ -282,9 +262,7 @@ class GlobalErrorHandler:
         embed.set_footer(text="💡 確保指令和參數之間有空格")
         await ctx.send(embed=embed)
 
-    def _create_error_embed(
-        self, title: str, description: str
-    ) -> discord.Embed:
+    def _create_error_embed(self, title: str, description: str) -> discord.Embed:
         """創建錯誤嵌入"""
         embed = discord.Embed(
             title=title,
@@ -300,9 +278,7 @@ class GlobalErrorHandler:
         import random
         import string
 
-        return "".join(
-            random.choices(string.ascii_uppercase + string.digits, k=8)
-        )
+        return "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
 
     def _log_error(
         self,
@@ -312,9 +288,7 @@ class GlobalErrorHandler:
     ):
         """記錄錯誤"""
         # 更新錯誤統計
-        self.error_counts[error_type] = (
-            self.error_counts.get(error_type, 0) + 1
-        )
+        self.error_counts[error_type] = self.error_counts.get(error_type, 0) + 1
 
         # 構建上下文信息
         if isinstance(context, commands.Context):
@@ -325,9 +299,7 @@ class GlobalErrorHandler:
         else:
             ctx_info = "Unknown context"
 
-        logger.error(
-            f"錯誤類型: {error_type} | 上下文: {ctx_info} | 錯誤: {str(error)}"
-        )
+        logger.error(f"錯誤類型: {error_type} | 上下文: {ctx_info} | 錯誤: {str(error)}")
 
     def get_error_stats(self) -> Dict[str, Any]:
         """取得錯誤統計"""
@@ -335,9 +307,7 @@ class GlobalErrorHandler:
         return {
             "total_errors": total_errors,
             "error_types": dict(
-                sorted(
-                    self.error_counts.items(), key=lambda x: x[1], reverse=True
-                )
+                sorted(self.error_counts.items(), key=lambda x: x[1], reverse=True)
             ),
             "top_errors": dict(
                 list(
@@ -385,9 +355,7 @@ class DatabaseErrorHandler:
         return wrapper
 
     @staticmethod
-    async def execute_with_fallback(
-        primary_func, fallback_func, *args, **kwargs
-    ):
+    async def execute_with_fallback(primary_func, fallback_func, *args, **kwargs):
         """帶後備方案的執行"""
         try:
             return await primary_func(*args, **kwargs)
@@ -414,18 +382,13 @@ class ServiceErrorHandler:
             async def wrapper(*args, **kwargs):
                 try:
                     result = await func(*args, **kwargs)
-                    if (
-                        isinstance(result, dict)
-                        and result.get("success") is False
-                    ):
+                    if isinstance(result, dict) and result.get("success") is False:
                         logger.warning(
                             f"服務操作返回失敗 [{service_name}.{func.__name__}]: {result.get('error')}"
                         )
                     return result
                 except Exception as e:
-                    error_msg = (
-                        f"服務錯誤 [{service_name}.{func.__name__}]: {str(e)}"
-                    )
+                    error_msg = f"服務錯誤 [{service_name}.{func.__name__}]: {str(e)}"
                     logger.error(error_msg)
                     logger.error(traceback.format_exc())
 
@@ -458,9 +421,7 @@ class UserFriendlyErrors:
     }
 
     @classmethod
-    def get_user_message(
-        cls, error_type: str, default_message: str = None
-    ) -> str:
+    def get_user_message(cls, error_type: str, default_message: str = None) -> str:
         """取得用戶友善的錯誤訊息"""
         user_message = cls.ERROR_TRANSLATIONS.get(error_type)
         if user_message:
@@ -479,9 +440,7 @@ class ErrorRecovery:
     """錯誤恢復機制"""
 
     @staticmethod
-    async def retry_with_backoff(
-        func, max_retries: int = 3, base_delay: float = 1.0
-    ):
+    async def retry_with_backoff(func, max_retries: int = 3, base_delay: float = 1.0):
         """指數退避重試機制"""
         for attempt in range(max_retries):
             try:
@@ -491,9 +450,7 @@ class ErrorRecovery:
                     raise e
 
                 delay = base_delay * (2**attempt)
-                logger.warning(
-                    f"操作失敗，{delay}秒後重試 ({attempt + 1}/{max_retries}): {e}"
-                )
+                logger.warning(f"操作失敗，{delay}秒後重試 ({attempt + 1}/{max_retries}): {e}")
                 await asyncio.sleep(delay)
 
     @staticmethod

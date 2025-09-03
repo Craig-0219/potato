@@ -157,9 +157,7 @@ class MinecraftEventManager:
                 ),
             )
 
-            logger.info(
-                f"活動建立成功 - ID: {event_id}, 標題: {event_data['title']}"
-            )
+            logger.info(f"活動建立成功 - ID: {event_id}, 標題: {event_data['title']}")
             return event_id
 
         except Exception as e:
@@ -210,18 +208,14 @@ class MinecraftEventManager:
                 (event_id,),
             )
 
-            logger.info(
-                f"玩家報名成功 - 活動ID: {event_id}, 玩家: {discord_id}"
-            )
+            logger.info(f"玩家報名成功 - 活動ID: {event_id}, 玩家: {discord_id}")
             return True
 
         except Exception as e:
             logger.error(f"玩家報名失敗: {e}")
             return False
 
-    async def withdraw_participant(
-        self, event_id: int, discord_id: int
-    ) -> bool:
+    async def withdraw_participant(self, event_id: int, discord_id: int) -> bool:
         """玩家取消報名"""
         try:
             # 檢查參與記錄
@@ -249,9 +243,7 @@ class MinecraftEventManager:
                 (event_id,),
             )
 
-            logger.info(
-                f"玩家取消報名成功 - 活動ID: {event_id}, 玩家: {discord_id}"
-            )
+            logger.info(f"玩家取消報名成功 - 活動ID: {event_id}, 玩家: {discord_id}")
             return True
 
         except Exception as e:
@@ -289,9 +281,7 @@ class MinecraftEventManager:
             logger.error(f"獲取活躍活動失敗 ({guild_id}): {e}")
             return []
 
-    async def get_event_participants(
-        self, event_id: int
-    ) -> List[Dict[str, Any]]:
+    async def get_event_participants(self, event_id: int) -> List[Dict[str, Any]]:
         """獲取活動參與者列表"""
         try:
             participants = await self.db.fetchall(
@@ -326,9 +316,7 @@ class MinecraftEventManager:
             logger.error(f"開始活動失敗 ({event_id}): {e}")
             return False
 
-    async def complete_event(
-        self, event_id: int, results: List[Dict[str, Any]] = None
-    ) -> bool:
+    async def complete_event(self, event_id: int, results: List[Dict[str, Any]] = None) -> bool:
         """完成活動並記錄結果"""
         try:
             # 更新活動狀態
@@ -370,9 +358,7 @@ class MinecraftEventManager:
                 "SELECT * FROM minecraft_events WHERE status IN ('planned', 'registration', 'active')"
             )
 
-            self._active_events = {
-                event["id"]: dict(event) for event in events
-            }
+            self._active_events = {event["id"]: dict(event) for event in events}
             logger.info(f"載入 {len(self._active_events)} 個活躍活動")
 
         except Exception as e:

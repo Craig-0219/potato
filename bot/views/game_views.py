@@ -23,9 +23,7 @@ class GameMenuView(ui.View):
         self.user_economy = user_economy
 
     @ui.button(label="🔢 猜數字", style=discord.ButtonStyle.primary, row=0)
-    async def guess_number_button(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def guess_number_button(self, interaction: discord.Interaction, button: ui.Button):
         """猜數字遊戲按鈕"""
         try:
             # 創建難度選擇視圖
@@ -59,16 +57,10 @@ class GameMenuView(ui.View):
 
         except Exception as e:
             logger.error(f"❌ 猜數字按鈕錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 開始遊戲時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 開始遊戲時發生錯誤。", ephemeral=True)
 
-    @ui.button(
-        label="✂️ 剪刀石頭布", style=discord.ButtonStyle.secondary, row=0
-    )
-    async def rock_paper_scissors_button(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    @ui.button(label="✂️ 剪刀石頭布", style=discord.ButtonStyle.secondary, row=0)
+    async def rock_paper_scissors_button(self, interaction: discord.Interaction, button: ui.Button):
         """剪刀石頭布遊戲按鈕"""
         try:
             view = RockPaperScissorsView(self.game_cog)
@@ -89,14 +81,10 @@ class GameMenuView(ui.View):
 
         except Exception as e:
             logger.error(f"❌ 剪刀石頭布按鈕錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 開始遊戲時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 開始遊戲時發生錯誤。", ephemeral=True)
 
     @ui.button(label="🪙 拋硬幣", style=discord.ButtonStyle.success, row=0)
-    async def coin_flip_button(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def coin_flip_button(self, interaction: discord.Interaction, button: ui.Button):
         """拋硬幣遊戲按鈕"""
         try:
             view = CoinFlipView(self.game_cog, self.user_economy)
@@ -123,14 +111,10 @@ class GameMenuView(ui.View):
 
         except Exception as e:
             logger.error(f"❌ 拋硬幣按鈕錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 開始遊戲時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 開始遊戲時發生錯誤。", ephemeral=True)
 
     @ui.button(label="🎰 輪盤", style=discord.ButtonStyle.danger, row=1)
-    async def roulette_button(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def roulette_button(self, interaction: discord.Interaction, button: ui.Button):
         """輪盤遊戲按鈕"""
         try:
             if self.user_economy.get("coins", 0) < 20:
@@ -163,14 +147,10 @@ class GameMenuView(ui.View):
 
         except Exception as e:
             logger.error(f"❌ 輪盤按鈕錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 開始遊戲時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 開始遊戲時發生錯誤。", ephemeral=True)
 
     @ui.button(label="🧠 問答競賽", style=discord.ButtonStyle.primary, row=1)
-    async def trivia_button(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def trivia_button(self, interaction: discord.Interaction, button: ui.Button):
         """問答競賽按鈕"""
         try:
             view = TriviaView(self.game_cog)
@@ -197,14 +177,10 @@ class GameMenuView(ui.View):
 
         except Exception as e:
             logger.error(f"❌ 問答競賽按鈕錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 開始遊戲時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 開始遊戲時發生錯誤。", ephemeral=True)
 
     @ui.button(label="🎲 骰子遊戲", style=discord.ButtonStyle.secondary, row=1)
-    async def dice_game_button(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def dice_game_button(self, interaction: discord.Interaction, button: ui.Button):
         """骰子遊戲按鈕"""
         try:
             view = DiceGameView(self.game_cog, self.user_economy)
@@ -229,14 +205,10 @@ class GameMenuView(ui.View):
 
         except Exception as e:
             logger.error(f"❌ 骰子遊戲按鈕錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 開始遊戲時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 開始遊戲時發生錯誤。", ephemeral=True)
 
     @ui.button(label="🔙 返回", style=discord.ButtonStyle.gray, row=2)
-    async def back_button(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def back_button(self, interaction: discord.Interaction, button: ui.Button):
         """返回按鈕"""
         try:
             # 這裡可以返回到主選單或關閉視圖
@@ -261,26 +233,18 @@ class DifficultySelectView(ui.View):
         self.game_type = game_type
 
     @ui.button(label="🟢 簡單", style=discord.ButtonStyle.success)
-    async def easy_button(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def easy_button(self, interaction: discord.Interaction, button: ui.Button):
         await self._start_game(interaction, "easy")
 
     @ui.button(label="🟡 中等", style=discord.ButtonStyle.primary)
-    async def medium_button(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def medium_button(self, interaction: discord.Interaction, button: ui.Button):
         await self._start_game(interaction, "medium")
 
     @ui.button(label="🔴 困難", style=discord.ButtonStyle.danger)
-    async def hard_button(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def hard_button(self, interaction: discord.Interaction, button: ui.Button):
         await self._start_game(interaction, "hard")
 
-    async def _start_game(
-        self, interaction: discord.Interaction, difficulty: str
-    ):
+    async def _start_game(self, interaction: discord.Interaction, difficulty: str):
         """開始遊戲"""
         try:
             if self.game_type == "guess_number":
@@ -288,9 +252,7 @@ class DifficultySelectView(ui.View):
 
         except Exception as e:
             logger.error(f"❌ 開始遊戲錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 開始遊戲時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 開始遊戲時發生錯誤。", ephemeral=True)
 
 
 class GuessNumberView(ui.View):
@@ -303,84 +265,58 @@ class GuessNumberView(ui.View):
         self.current_guess = ""
 
     @ui.button(label="1", style=discord.ButtonStyle.secondary, row=0)
-    async def number_1(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def number_1(self, interaction: discord.Interaction, button: ui.Button):
         await self._add_digit(interaction, "1")
 
     @ui.button(label="2", style=discord.ButtonStyle.secondary, row=0)
-    async def number_2(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def number_2(self, interaction: discord.Interaction, button: ui.Button):
         await self._add_digit(interaction, "2")
 
     @ui.button(label="3", style=discord.ButtonStyle.secondary, row=0)
-    async def number_3(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def number_3(self, interaction: discord.Interaction, button: ui.Button):
         await self._add_digit(interaction, "3")
 
     @ui.button(label="4", style=discord.ButtonStyle.secondary, row=0)
-    async def number_4(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def number_4(self, interaction: discord.Interaction, button: ui.Button):
         await self._add_digit(interaction, "4")
 
     @ui.button(label="5", style=discord.ButtonStyle.secondary, row=0)
-    async def number_5(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def number_5(self, interaction: discord.Interaction, button: ui.Button):
         await self._add_digit(interaction, "5")
 
     @ui.button(label="6", style=discord.ButtonStyle.secondary, row=1)
-    async def number_6(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def number_6(self, interaction: discord.Interaction, button: ui.Button):
         await self._add_digit(interaction, "6")
 
     @ui.button(label="7", style=discord.ButtonStyle.secondary, row=1)
-    async def number_7(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def number_7(self, interaction: discord.Interaction, button: ui.Button):
         await self._add_digit(interaction, "7")
 
     @ui.button(label="8", style=discord.ButtonStyle.secondary, row=1)
-    async def number_8(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def number_8(self, interaction: discord.Interaction, button: ui.Button):
         await self._add_digit(interaction, "8")
 
     @ui.button(label="9", style=discord.ButtonStyle.secondary, row=1)
-    async def number_9(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def number_9(self, interaction: discord.Interaction, button: ui.Button):
         await self._add_digit(interaction, "9")
 
     @ui.button(label="0", style=discord.ButtonStyle.secondary, row=1)
-    async def number_0(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def number_0(self, interaction: discord.Interaction, button: ui.Button):
         await self._add_digit(interaction, "0")
 
     @ui.button(label="🔄 清除", style=discord.ButtonStyle.danger, row=2)
-    async def clear_button(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def clear_button(self, interaction: discord.Interaction, button: ui.Button):
         """清除輸入"""
         self.current_guess = ""
         await self._update_display(interaction, "已清除輸入")
 
     @ui.button(label="✅ 猜測", style=discord.ButtonStyle.success, row=2)
-    async def guess_button(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def guess_button(self, interaction: discord.Interaction, button: ui.Button):
         """提交猜測"""
         await self._submit_guess(interaction)
 
     @ui.button(label="❌ 放棄", style=discord.ButtonStyle.gray, row=2)
-    async def give_up_button(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def give_up_button(self, interaction: discord.Interaction, button: ui.Button):
         """放棄遊戲"""
         await self._give_up(interaction)
 
@@ -388,24 +324,14 @@ class GuessNumberView(ui.View):
         """添加數字"""
         if len(self.current_guess) < 3:  # 限制最多3位數
             self.current_guess += digit
-            await self._update_display(
-                interaction, f"當前輸入: {self.current_guess}"
-            )
+            await self._update_display(interaction, f"當前輸入: {self.current_guess}")
         else:
-            await interaction.response.send_message(
-                "❌ 最多只能輸入3位數！", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 最多只能輸入3位數！", ephemeral=True)
 
-    async def _update_display(
-        self, interaction: discord.Interaction, message: str
-    ):
+    async def _update_display(self, interaction: discord.Interaction, message: str):
         """更新顯示"""
         try:
-            embed = (
-                interaction.message.embeds[0].copy()
-                if interaction.message.embeds
-                else None
-            )
+            embed = interaction.message.embeds[0].copy() if interaction.message.embeds else None
 
             if embed:
                 # 更新狀態欄位
@@ -439,15 +365,11 @@ class GuessNumberView(ui.View):
         """提交猜測"""
         try:
             if not self.current_guess:
-                await interaction.response.send_message(
-                    "❌ 請先輸入數字！", ephemeral=True
-                )
+                await interaction.response.send_message("❌ 請先輸入數字！", ephemeral=True)
                 return
 
             if not self.current_guess.isdigit():
-                await interaction.response.send_message(
-                    "❌ 請輸入有效數字！", ephemeral=True
-                )
+                await interaction.response.send_message("❌ 請輸入有效數字！", ephemeral=True)
                 return
 
             guess = int(self.current_guess)
@@ -467,12 +389,8 @@ class GuessNumberView(ui.View):
             # 檢查結果
             if guess == secret_number:
                 # 猜中了！
-                score = (
-                    self.session.data["attempts_left"] + 1
-                )  # 剩餘次數越多分數越高
-                await self.game_cog.end_game_session(
-                    self.session, won=True, score=score
-                )
+                score = self.session.data["attempts_left"] + 1  # 剩餘次數越多分數越高
+                await self.game_cog.end_game_session(self.session, won=True, score=score)
 
                 embed = EmbedBuilder.build(
                     title="🎉 恭喜！您猜中了！",
@@ -523,9 +441,7 @@ class GuessNumberView(ui.View):
 
         except Exception as e:
             logger.error(f"❌ 提交猜測錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 處理猜測時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 處理猜測時發生錯誤。", ephemeral=True)
 
     async def _give_up(self, interaction: discord.Interaction):
         """放棄遊戲"""
@@ -552,21 +468,15 @@ class RockPaperScissorsView(ui.View):
         self.game_cog = game_cog
 
     @ui.button(label="✂️ 剪刀", style=discord.ButtonStyle.secondary)
-    async def scissors_button(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def scissors_button(self, interaction: discord.Interaction, button: ui.Button):
         await self._play_game(interaction, "scissors", "✂️")
 
     @ui.button(label="📄 石頭", style=discord.ButtonStyle.secondary)
-    async def rock_button(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def rock_button(self, interaction: discord.Interaction, button: ui.Button):
         await self._play_game(interaction, "rock", "🗿")
 
     @ui.button(label="🗞️ 布", style=discord.ButtonStyle.secondary)
-    async def paper_button(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def paper_button(self, interaction: discord.Interaction, button: ui.Button):
         await self._play_game(interaction, "paper", "📄")
 
     async def _play_game(
@@ -638,9 +548,7 @@ class RockPaperScissorsView(ui.View):
 
         except Exception as e:
             logger.error(f"❌ 剪刀石頭布遊戲錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 遊戲時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 遊戲時發生錯誤。", ephemeral=True)
 
     def _determine_winner(self, player: str, computer: str) -> str:
         """判斷勝負"""
@@ -669,52 +577,36 @@ class CoinFlipView(ui.View):
         self.bet_amount = 50  # 預設下注金額
 
     @ui.button(label="🔼 增加下注", style=discord.ButtonStyle.secondary, row=0)
-    async def increase_bet(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def increase_bet(self, interaction: discord.Interaction, button: ui.Button):
         """增加下注金額"""
         max_coins = self.user_economy.get("coins", 0)
         if self.bet_amount < min(1000, max_coins):
             self.bet_amount = min(self.bet_amount + 50, min(1000, max_coins))
             await self._update_bet_display(interaction)
         else:
-            await interaction.response.send_message(
-                "❌ 已達到最大下注金額！", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 已達到最大下注金額！", ephemeral=True)
 
     @ui.button(label="🔽 減少下注", style=discord.ButtonStyle.secondary, row=0)
-    async def decrease_bet(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def decrease_bet(self, interaction: discord.Interaction, button: ui.Button):
         """減少下注金額"""
         if self.bet_amount > 10:
             self.bet_amount = max(self.bet_amount - 50, 10)
             await self._update_bet_display(interaction)
         else:
-            await interaction.response.send_message(
-                "❌ 已達到最小下注金額！", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 已達到最小下注金額！", ephemeral=True)
 
     @ui.button(label="👑 正面", style=discord.ButtonStyle.primary, row=1)
-    async def heads_button(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def heads_button(self, interaction: discord.Interaction, button: ui.Button):
         await self._play_coin_flip(interaction, "heads", "👑")
 
     @ui.button(label="🪙 反面", style=discord.ButtonStyle.primary, row=1)
-    async def tails_button(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def tails_button(self, interaction: discord.Interaction, button: ui.Button):
         await self._play_coin_flip(interaction, "tails", "🪙")
 
     async def _update_bet_display(self, interaction: discord.Interaction):
         """更新下注顯示"""
         try:
-            embed = (
-                interaction.message.embeds[0].copy()
-                if interaction.message.embeds
-                else None
-            )
+            embed = interaction.message.embeds[0].copy() if interaction.message.embeds else None
 
             if embed:
                 # 更新下注金額顯示
@@ -747,9 +639,7 @@ class CoinFlipView(ui.View):
             user_coins = self.user_economy.get("coins", 0)
 
             if user_coins < self.bet_amount:
-                await interaction.response.send_message(
-                    "❌ 金幣不足！", ephemeral=True
-                )
+                await interaction.response.send_message("❌ 金幣不足！", ephemeral=True)
                 return
 
             # 扣除下注金額
@@ -796,9 +686,7 @@ class CoinFlipView(ui.View):
             )
 
             # 更新經濟狀態
-            self.user_economy["coins"] = (
-                user_coins - self.bet_amount + winnings
-            )
+            self.user_economy["coins"] = user_coins - self.bet_amount + winnings
 
             # 創建新的視圖
             new_view = CoinFlipView(self.game_cog, self.user_economy)
@@ -812,9 +700,7 @@ class CoinFlipView(ui.View):
 
         except Exception as e:
             logger.error(f"❌ 拋硬幣遊戲錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 遊戲時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 遊戲時發生錯誤。", ephemeral=True)
 
 
 class RouletteView(ui.View):
@@ -839,9 +725,7 @@ class RouletteView(ui.View):
         ],
         row=0,
     )
-    async def bet_type_select(
-        self, interaction: discord.Interaction, select: ui.Select
-    ):
+    async def bet_type_select(self, interaction: discord.Interaction, select: ui.Select):
         """選擇下注類型"""
         self.bet_type = select.values[0]
 
@@ -855,34 +739,24 @@ class RouletteView(ui.View):
             await self._update_bet_display(interaction)
 
     @ui.button(label="🔼 增加下注", style=discord.ButtonStyle.secondary, row=1)
-    async def increase_bet(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def increase_bet(self, interaction: discord.Interaction, button: ui.Button):
         max_coins = self.user_economy.get("coins", 0)
         if self.bet_amount < min(500, max_coins):
             self.bet_amount = min(self.bet_amount + 25, min(500, max_coins))
             await self._update_bet_display(interaction)
         else:
-            await interaction.response.send_message(
-                "❌ 已達到最大下注金額！", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 已達到最大下注金額！", ephemeral=True)
 
     @ui.button(label="🔽 減少下注", style=discord.ButtonStyle.secondary, row=1)
-    async def decrease_bet(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def decrease_bet(self, interaction: discord.Interaction, button: ui.Button):
         if self.bet_amount > 20:
             self.bet_amount = max(self.bet_amount - 25, 20)
             await self._update_bet_display(interaction)
         else:
-            await interaction.response.send_message(
-                "❌ 已達到最小下注金額！", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 已達到最小下注金額！", ephemeral=True)
 
     @ui.button(label="🎰 轉動輪盤", style=discord.ButtonStyle.danger, row=2)
-    async def spin_button(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def spin_button(self, interaction: discord.Interaction, button: ui.Button):
         await self._spin_roulette(interaction)
 
     async def _update_bet_display(self, interaction: discord.Interaction):
@@ -924,15 +798,11 @@ class RouletteView(ui.View):
         """轉動輪盤"""
         try:
             if not self.bet_type:
-                await interaction.response.send_message(
-                    "❌ 請先選擇下注類型！", ephemeral=True
-                )
+                await interaction.response.send_message("❌ 請先選擇下注類型！", ephemeral=True)
                 return
 
             if self.user_economy.get("coins", 0) < self.bet_amount:
-                await interaction.response.send_message(
-                    "❌ 金幣不足！", ephemeral=True
-                )
+                await interaction.response.send_message("❌ 金幣不足！", ephemeral=True)
                 return
 
             # 扣除下注金額
@@ -1046,9 +916,7 @@ class RouletteView(ui.View):
 
         except Exception as e:
             logger.error(f"❌ 輪盤遊戲錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 遊戲時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 遊戲時發生錯誤。", ephemeral=True)
 
 
 class NumberSelectView(ui.View):
@@ -1060,17 +928,12 @@ class NumberSelectView(ui.View):
 
     @ui.select(
         placeholder="選擇數字 (0-36)...",
-        options=[
-            discord.SelectOption(label=str(i), value=str(i))
-            for i in range(0, 37)
-        ][
+        options=[discord.SelectOption(label=str(i), value=str(i)) for i in range(0, 37)][
             :25
         ],  # Discord 限制最多25個選項
         row=0,
     )
-    async def number_select(
-        self, interaction: discord.Interaction, select: ui.Select
-    ):
+    async def number_select(self, interaction: discord.Interaction, select: ui.Select):
         """選擇數字"""
         self.parent_view.bet_value = int(select.values[0])
         await self.parent_view._update_bet_display(interaction)
@@ -1111,9 +974,7 @@ class TriviaView(ui.View):
         self.current_question = None
 
     @ui.button(label="🎯 開始問答", style=discord.ButtonStyle.primary)
-    async def start_trivia(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def start_trivia(self, interaction: discord.Interaction, button: ui.Button):
         """開始問答"""
         try:
             # 隨機選擇問題
@@ -1145,9 +1006,7 @@ class TriviaView(ui.View):
 
         except Exception as e:
             logger.error(f"❌ 開始問答錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 開始問答時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 開始問答時發生錯誤。", ephemeral=True)
 
 
 class TriviaAnswerView(ui.View):
@@ -1159,32 +1018,22 @@ class TriviaAnswerView(ui.View):
         self.question_data = question_data
 
     @ui.button(label="1️⃣", style=discord.ButtonStyle.secondary)
-    async def answer_1(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def answer_1(self, interaction: discord.Interaction, button: ui.Button):
         await self._check_answer(interaction, 0)
 
     @ui.button(label="2️⃣", style=discord.ButtonStyle.secondary)
-    async def answer_2(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def answer_2(self, interaction: discord.Interaction, button: ui.Button):
         await self._check_answer(interaction, 1)
 
     @ui.button(label="3️⃣", style=discord.ButtonStyle.secondary)
-    async def answer_3(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def answer_3(self, interaction: discord.Interaction, button: ui.Button):
         await self._check_answer(interaction, 2)
 
     @ui.button(label="4️⃣", style=discord.ButtonStyle.secondary)
-    async def answer_4(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def answer_4(self, interaction: discord.Interaction, button: ui.Button):
         await self._check_answer(interaction, 3)
 
-    async def _check_answer(
-        self, interaction: discord.Interaction, selected_index: int
-    ):
+    async def _check_answer(self, interaction: discord.Interaction, selected_index: int):
         """檢查答案"""
         try:
             correct_index = self.question_data["correct"]
@@ -1253,9 +1102,7 @@ class TriviaAnswerView(ui.View):
 
         except Exception as e:
             logger.error(f"❌ 檢查答案錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 檢查答案時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 檢查答案時發生錯誤。", ephemeral=True)
 
 
 class DiceGameView(ui.View):
@@ -1273,66 +1120,44 @@ class DiceGameView(ui.View):
         options=[
             discord.SelectOption(label="小 (3-8)", value="small", emoji="⬇️"),
             discord.SelectOption(label="大 (9-18)", value="big", emoji="⬆️"),
-            discord.SelectOption(
-                label="豹子 (相同點數)", value="triple", emoji="💎"
-            ),
-            discord.SelectOption(
-                label="對子 (兩個相同)", value="pair", emoji="👥"
-            ),
-            discord.SelectOption(
-                label="順子 (連續數字)", value="straight", emoji="📈"
-            ),
+            discord.SelectOption(label="豹子 (相同點數)", value="triple", emoji="💎"),
+            discord.SelectOption(label="對子 (兩個相同)", value="pair", emoji="👥"),
+            discord.SelectOption(label="順子 (連續數字)", value="straight", emoji="📈"),
         ],
         row=0,
     )
-    async def prediction_select(
-        self, interaction: discord.Interaction, select: ui.Select
-    ):
+    async def prediction_select(self, interaction: discord.Interaction, select: ui.Select):
         """選擇預測類型"""
         self.prediction = select.values[0]
         await self._update_display(interaction)
 
     @ui.button(label="🔼 增加下注", style=discord.ButtonStyle.secondary, row=1)
-    async def increase_bet(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def increase_bet(self, interaction: discord.Interaction, button: ui.Button):
         max_coins = self.user_economy.get("coins", 0)
         if self.bet_amount < min(300, max_coins):
             self.bet_amount = min(self.bet_amount + 30, min(300, max_coins))
             await self._update_display(interaction)
         else:
-            await interaction.response.send_message(
-                "❌ 已達到最大下注金額！", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 已達到最大下注金額！", ephemeral=True)
 
     @ui.button(label="🔽 減少下注", style=discord.ButtonStyle.secondary, row=1)
-    async def decrease_bet(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def decrease_bet(self, interaction: discord.Interaction, button: ui.Button):
         if self.bet_amount > 30:
             self.bet_amount = max(self.bet_amount - 30, 30)
             await self._update_display(interaction)
         else:
-            await interaction.response.send_message(
-                "❌ 已達到最小下注金額！", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 已達到最小下注金額！", ephemeral=True)
 
     @ui.button(label="🎲 擲骰子", style=discord.ButtonStyle.primary, row=2)
-    async def roll_dice(
-        self, interaction: discord.Interaction, button: ui.Button
-    ):
+    async def roll_dice(self, interaction: discord.Interaction, button: ui.Button):
         """擲骰子"""
         try:
             if not self.prediction:
-                await interaction.response.send_message(
-                    "❌ 請先選擇預測類型！", ephemeral=True
-                )
+                await interaction.response.send_message("❌ 請先選擇預測類型！", ephemeral=True)
                 return
 
             if self.user_economy.get("coins", 0) < self.bet_amount:
-                await interaction.response.send_message(
-                    "❌ 金幣不足！", ephemeral=True
-                )
+                await interaction.response.send_message("❌ 金幣不足！", ephemeral=True)
                 return
 
             # 扣除下注金額
@@ -1434,9 +1259,7 @@ class DiceGameView(ui.View):
 
         except Exception as e:
             logger.error(f"❌ 骰子遊戲錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 遊戲時發生錯誤。", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 遊戲時發生錯誤。", ephemeral=True)
 
     async def _update_display(self, interaction: discord.Interaction):
         """更新顯示"""

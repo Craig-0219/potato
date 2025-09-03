@@ -179,9 +179,7 @@ class FallbackCommands(commands.Cog):
                 color=0x2ECC71,
             )
 
-            embed.add_field(
-                name="🤖 Bot 狀態", value="✅ 運行正常", inline=True
-            )
+            embed.add_field(name="🤖 Bot 狀態", value="✅ 運行正常", inline=True)
 
             embed.add_field(
                 name="📡 延遲",
@@ -189,9 +187,7 @@ class FallbackCommands(commands.Cog):
                 inline=True,
             )
 
-            embed.add_field(
-                name="🏛️ 伺服器數", value=f"{len(self.bot.guilds)}", inline=True
-            )
+            embed.add_field(name="🏛️ 伺服器數", value=f"{len(self.bot.guilds)}", inline=True)
 
             embed.add_field(
                 name="⚠️ 注意事項",
@@ -229,9 +225,7 @@ class FallbackCommands(commands.Cog):
         embed.add_field(
             name="ℹ️ 系統功能",
             value=(
-                "`!bot_status` - 系統狀態\n"
-                "`!guide` - 說明頁面\n"
-                "`!sync` - 同步命令 (管理員)"
+                "`!bot_status` - 系統狀態\n" "`!guide` - 說明頁面\n" "`!sync` - 同步命令 (管理員)"
             ),
             inline=True,
         )

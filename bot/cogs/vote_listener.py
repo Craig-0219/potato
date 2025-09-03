@@ -38,9 +38,7 @@ class VoteListener(commands.Cog):
         # Step 1 - 輸入標題
         if "title" not in session:
             session["title"] = message.content.strip()
-            await message.channel.send(
-                "請輸入投票選項，每行一個（2~20 個）...", delete_after=15
-            )
+            await message.channel.send("請輸入投票選項，每行一個（2~20 個）...", delete_after=15)
             try:
                 await message.delete()
             except discord.Forbidden:
@@ -50,14 +48,10 @@ class VoteListener(commands.Cog):
         # Step 2 - 輸入選項
         if "options" not in session:
             options = [
-                line.strip()
-                for line in message.content.strip().splitlines()
-                if line.strip()
+                line.strip() for line in message.content.strip().splitlines() if line.strip()
             ]
             if not 2 <= len(options) <= 20:
-                await message.channel.send(
-                    "請輸入 2~20 個有效選項。", delete_after=10
-                )
+                await message.channel.send("請輸入 2~20 個有效選項。", delete_after=10)
                 return
             session["options"] = options
             await message.channel.send(
@@ -139,9 +133,9 @@ class VoteListener(commands.Cog):
             and custom_id.startswith("duration_select")
         ):
             minutes = int(values[0])
-            session["end_time"] = interaction.created_at.replace(
-                tzinfo=timezone.utc
-            ) + timedelta(minutes=minutes)
+            session["end_time"] = interaction.created_at.replace(tzinfo=timezone.utc) + timedelta(
+                minutes=minutes
+            )
             session["duration"] = minutes
             await interaction.response.send_message(
                 "✅ 所有項目已完成，請點擊下方按鈕建立投票：",
@@ -152,18 +146,14 @@ class VoteListener(commands.Cog):
 
                 if os.getenv("DEBUG_VERBOSE", "false").lower() == "true":
 
-                    logger.debug(
-                        f"[Listener] 時效設定完成：{session['end_time']}"
-                    )
+                    logger.debug(f"[Listener] 時效設定完成：{session['end_time']}")
             return
 
         # Step 7 - 建立投票（按鈕確認）
         if component_type == 2 and custom_id.startswith("confirm_vote_"):
             await interaction.response.defer(ephemeral=True)
             await cog.finalize_vote(user_id, interaction.guild)
-            await interaction.followup.send(
-                "🎉 投票已建立完成！", ephemeral=True
-            )
+            await interaction.followup.send("🎉 投票已建立完成！", ephemeral=True)
             if os.getenv("DEBUG_VERBOSE", "false").lower() == "true":
 
                 if os.getenv("DEBUG_VERBOSE", "false").lower() == "true":

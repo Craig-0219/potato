@@ -154,9 +154,7 @@ class PotatoBot(commands.Bot):
         intents.guilds = True
         intents.guild_messages = True
         intents.dm_messages = True
-        intents.members = (
-            True  # 重要：需要此權限來接收 on_member_join/remove 事件
-        )
+        intents.members = True  # 重要：需要此權限來接收 on_member_join/remove 事件
 
         super().__init__(
             command_prefix=commands.when_mentioned_or("!"),
@@ -265,9 +263,7 @@ class PotatoBot(commands.Bot):
         for attempt in range(max_retries):
             try:
                 # 1. 建立連接池
-                await init_database(
-                    DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
-                )
+                await init_database(DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME)
                 logger.info("✅ 資料庫連接池建立成功")
 
                 # 2. 統一初始化所有表格
@@ -345,9 +341,7 @@ class PotatoBot(commands.Bot):
                 logger.error(f"❌ 載入擴展 {extension} 失敗：{e}")
                 failed_extensions.append(extension)
 
-        logger.info(
-            f"📦 已載入 {loaded_count}/{len(self.initial_extensions)} 個擴展"
-        )
+        logger.info(f"📦 已載入 {loaded_count}/{len(self.initial_extensions)} 個擴展")
 
         if failed_extensions:
             logger.warning(f"⚠️ 失敗的擴展：{', '.join(failed_extensions)}")
@@ -381,19 +375,13 @@ class PotatoBot(commands.Bot):
 
             if hasattr(self, "persistent_views") and self.persistent_views:
                 validation_results["has_persistent_views"] = True
-                validation_results["persistent_view_count"] = len(
-                    self.persistent_views
-                )
+                validation_results["persistent_view_count"] = len(self.persistent_views)
 
                 for view in self.persistent_views:
                     view_info = {
                         "type": type(view).__name__,
                         "timeout": getattr(view, "timeout", None),
-                        "children_count": (
-                            len(view.children)
-                            if hasattr(view, "children")
-                            else 0
-                        ),
+                        "children_count": (len(view.children) if hasattr(view, "children") else 0),
                     }
                     validation_results["view_details"].append(view_info)
 
@@ -424,13 +412,9 @@ class PotatoBot(commands.Bot):
 
             # 先檢查現有的 Discord 命令
             try:
-                discord_commands = await self.http.get_global_commands(
-                    self.application_id
-                )
+                discord_commands = await self.http.get_global_commands(self.application_id)
                 if discord_commands and len(discord_commands) > 0:
-                    logger.info(
-                        f"✅ Discord 已有 {len(discord_commands)} 個註冊命令，跳過同步"
-                    )
+                    logger.info(f"✅ Discord 已有 {len(discord_commands)} 個註冊命令，跳過同步")
                     return
             except Exception:
                 pass  # 如果檢查失敗，繼續嘗試同步
@@ -442,9 +426,7 @@ class PotatoBot(commands.Bot):
         except discord.HTTPException as e:
             if "429" in str(e) or "Too Many Requests" in str(e):
                 logger.warning("⚠️ 遇到速率限制，停用自動同步")
-                logger.info(
-                    "💡 請等待 24 小時後重試，或設定 SYNC_COMMANDS=false 停用同步"
-                )
+                logger.info("💡 請等待 24 小時後重試，或設定 SYNC_COMMANDS=false 停用同步")
                 # 設定環境變數停用後續同步嘗試
                 import os
 
@@ -482,19 +464,13 @@ class PotatoBot(commands.Bot):
                 asyncio.run(server.serve())
 
             # 在背景執行緒中啟動 API 伺服器
-            self.api_thread = threading.Thread(
-                target=run_api_server, daemon=True
-            )
+            self.api_thread = threading.Thread(target=run_api_server, daemon=True)
             self.api_thread.start()
 
             # 等待伺服器啟動
             await asyncio.sleep(2)
-            logger.info(
-                f"✅ API 伺服器已整合啟動 - http://{api_host}:{api_port}"
-            )
-            logger.info(
-                f"📚 API 文檔位址: http://{api_host}:{api_port}/api/v1/docs"
-            )
+            logger.info(f"✅ API 伺服器已整合啟動 - http://{api_host}:{api_port}")
+            logger.info(f"📚 API 文檔位址: http://{api_host}:{api_port}/api/v1/docs")
 
         except Exception as e:
             logger.error(f"❌ API 伺服器啟動失敗：{e}")
@@ -601,9 +577,7 @@ class PotatoBot(commands.Bot):
                         logger.debug(f"跳過伺服器初始化: {guild.name}")
 
                 except Exception as guild_error:
-                    logger.error(
-                        f"初始化伺服器 {guild.name} 失敗: {guild_error}"
-                    )
+                    logger.error(f"初始化伺服器 {guild.name} 失敗: {guild_error}")
 
             logger.info(f"✅ 完成初始化 {initialization_count} 個新伺服器")
 
@@ -702,11 +676,7 @@ async def database_status(ctx):
 
         embed = discord.Embed(
             title="📊 資料庫狀態",
-            color=(
-                discord.Color.green()
-                if status.get("healthy")
-                else discord.Color.orange()
-            ),
+            color=(discord.Color.green() if status.get("healthy") else discord.Color.orange()),
         )
 
         # 基本資訊
@@ -747,16 +717,13 @@ async def bot_status(ctx):
         embed = EmbedBuilder.status_embed(
             {
                 "overall_status": (
-                    "healthy"
-                    if db_health.get("status") == "healthy"
-                    else "degraded"
+                    "healthy" if db_health.get("status") == "healthy" else "degraded"
                 ),
                 "基本資訊": {
                     "伺服器數量": len(ctx.bot.guilds),
                     "延遲": (
                         f"{round(ctx.bot.latency * 1000)}ms"
-                        if ctx.bot.latency is not None
-                        and not (ctx.bot.latency != ctx.bot.latency)
+                        if ctx.bot.latency is not None and not (ctx.bot.latency != ctx.bot.latency)
                         else "N/A"
                     ),
                     "運行時間": ctx.bot.get_uptime(),
@@ -767,9 +734,7 @@ async def bot_status(ctx):
                 },
                 "擴展": {
                     "已載入": len(ctx.bot.extensions),
-                    "列表": ", ".join(
-                        [ext.split(".")[-1] for ext in ctx.bot.extensions]
-                    ),
+                    "列表": ", ".join([ext.split(".")[-1] for ext in ctx.bot.extensions]),
                 },
             }
         )
@@ -819,9 +784,7 @@ async def health_check(ctx):
 
         # 檢查 Views
         validation = ctx.bot._validate_persistent_views()
-        checks["Persistent Views"] = validation.get(
-            "has_persistent_views", False
-        )
+        checks["Persistent Views"] = validation.get("has_persistent_views", False)
 
         # 檢查擴展
         checks["擴展載入"] = len(ctx.bot.extensions) > 0
@@ -935,9 +898,7 @@ def pre_startup_checks():
     if sys.version_info < (3, 8):
         checks.append("❌ Python 版本必須 >= 3.8")
     else:
-        checks.append(
-            f"✅ Python {sys.version_info.major}.{sys.version_info.minor}"
-        )
+        checks.append(f"✅ Python {sys.version_info.major}.{sys.version_info.minor}")
 
     # 檢查必要模組
     required_modules = ["discord", "aiomysql", "dotenv"]

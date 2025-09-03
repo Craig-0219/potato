@@ -36,19 +36,13 @@ class AICore(commands.Cog):
             ticket = await self.ticket_dao.get_ticket_by_channel(channel.id)
             return ticket is not None
         except Exception as e:
-            logger.error(
-                f"[AI] 票券頻道驗證失敗 {getattr(channel, 'id', None)}: {e}"
-            )
+            logger.error(f"[AI] 票券頻道驗證失敗 {getattr(channel, 'id', None)}: {e}")
             # fallback: 若資料庫失敗則比對名稱
-            return hasattr(channel, "name") and channel.name.startswith(
-                "ticket-"
-            )
+            return hasattr(channel, "name") and channel.name.startswith("ticket-")
 
     # ========== AI 智能回覆指令 ==========
 
-    @app_commands.command(
-        name="ai_suggest", description="為當前票券獲取 AI 智能回覆建議"
-    )
+    @app_commands.command(name="ai_suggest", description="為當前票券獲取 AI 智能回覆建議")
     @app_commands.describe(
         content="要分析的內容（如不提供則分析票券歷史）",
         suggestions_count="建議數量（1-5）",
@@ -61,26 +55,18 @@ class AICore(commands.Cog):
     ):
         """AI 智能回覆建議"""
         if not await self._is_ticket_channel(interaction.channel):
-            await interaction.response.send_message(
-                "❌ 此指令只能在票券頻道中使用", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 此指令只能在票券頻道中使用", ephemeral=True)
             return
 
-        if suggestions_count and (
-            suggestions_count < 1 or suggestions_count > 5
-        ):
-            await interaction.response.send_message(
-                "❌ 建議數量必須在 1-5 之間", ephemeral=True
-            )
+        if suggestions_count and (suggestions_count < 1 or suggestions_count > 5):
+            await interaction.response.send_message("❌ 建議數量必須在 1-5 之間", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
 
         try:
             # 取得票券資訊
-            ticket_info = await self._get_ticket_info_from_channel(
-                interaction.channel
-            )
+            ticket_info = await self._get_ticket_info_from_channel(interaction.channel)
             if not ticket_info:
                 await interaction.followup.send(
                     "❌ 無法取得票券資訊，請確認這是有效的票券頻道",
@@ -101,9 +87,7 @@ class AICore(commands.Cog):
             }
 
             # 獲取 AI 建議
-            ai_result = await self.ai_manager.suggest_reply(
-                content, ticket_context
-            )
+            ai_result = await self.ai_manager.suggest_reply(content, ticket_context)
 
             if not ai_result["success"]:
                 await interaction.followup.send(
@@ -135,9 +119,7 @@ class AICore(commands.Cog):
                 )
 
             # 創建互動式回覆界面
-            view = AIReplyView(
-                suggestions, ai_result["confidence"], self.ai_dao
-            )
+            view = AIReplyView(suggestions, ai_result["confidence"], self.ai_dao)
 
             embed = discord.Embed(title="🤖 AI 智能回覆建議", color=0x00BFFF)
 
@@ -152,8 +134,7 @@ class AICore(commands.Cog):
 
             embed.add_field(
                 name="🏷️ 關鍵字",
-                value=", ".join(ai_result["analysis"].get("keywords", []))
-                or "無",
+                value=", ".join(ai_result["analysis"].get("keywords", [])) or "無",
                 inline=True,
             )
 
@@ -165,48 +146,36 @@ class AICore(commands.Cog):
 
             embed.set_footer(text="點擊下方按鈕查看和使用建議")
 
-            await interaction.followup.send(
-                embed=embed, view=view, ephemeral=True
-            )
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
         except Exception as e:
             logger.error(f"AI 回覆建議錯誤: {e}")
-            await interaction.followup.send(
-                f"❌ 處理過程中發生錯誤：{str(e)}", ephemeral=True
-            )
+            await interaction.followup.send(f"❌ 處理過程中發生錯誤：{str(e)}", ephemeral=True)
 
-    @app_commands.command(
-        name="ai_tags", description="為當前票券獲取 AI 標籤建議"
-    )
+    @app_commands.command(name="ai_tags", description="為當前票券獲取 AI 標籤建議")
     @app_commands.describe(content="要分析的內容（如不提供則分析票券內容）")
     async def ai_suggest_tags(
         self, interaction: discord.Interaction, content: Optional[str] = None
     ):
         """AI 智能標籤建議"""
         if not await self._is_ticket_channel(interaction.channel):
-            await interaction.response.send_message(
-                "❌ 此指令只能在票券頻道中使用", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 此指令只能在票券頻道中使用", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
 
         try:
             # 取得票券資訊
-            ticket_info = await self._get_ticket_info_from_channel(
-                interaction.channel
-            )
+            ticket_info = await self._get_ticket_info_from_channel(interaction.channel)
             if not ticket_info:
-                await interaction.followup.send(
-                    "❌ 無法取得票券資訊", ephemeral=True
-                )
+                await interaction.followup.send("❌ 無法取得票券資訊", ephemeral=True)
                 return
 
             # 如果沒有提供內容，使用票券描述
             if not content:
-                content = ticket_info.get(
-                    "description", ""
-                ) or await self._get_channel_context(interaction.channel)
+                content = ticket_info.get("description", "") or await self._get_channel_context(
+                    interaction.channel
+                )
 
             # 獲取標籤建議
             tag_suggestions = await self.ai_manager.suggest_tags(
@@ -214,9 +183,7 @@ class AICore(commands.Cog):
             )
 
             if not tag_suggestions:
-                await interaction.followup.send(
-                    "❌ 無法為此內容生成標籤建議", ephemeral=True
-                )
+                await interaction.followup.send("❌ 無法為此內容生成標籤建議", ephemeral=True)
                 return
 
             # 儲存建議記錄
@@ -232,9 +199,7 @@ class AICore(commands.Cog):
                 )
 
             # 創建標籤建議界面
-            view = AITagSuggestionView(
-                tag_suggestions, ticket_info["id"], self.ai_dao
-            )
+            view = AITagSuggestionView(tag_suggestions, ticket_info["id"], self.ai_dao)
 
             embed = discord.Embed(title="🏷️ AI 智能標籤建議", color=0xFF6B35)
 
@@ -253,48 +218,36 @@ class AICore(commands.Cog):
 
             embed.set_footer(text="點擊下方按鈕應用標籤")
 
-            await interaction.followup.send(
-                embed=embed, view=view, ephemeral=True
-            )
+            await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
         except Exception as e:
             logger.error(f"AI 標籤建議錯誤: {e}")
-            await interaction.followup.send(
-                f"❌ 處理過程中發生錯誤：{str(e)}", ephemeral=True
-            )
+            await interaction.followup.send(f"❌ 處理過程中發生錯誤：{str(e)}", ephemeral=True)
 
-    @app_commands.command(
-        name="ai_priority", description="為當前票券獲取 AI 優先級評估"
-    )
+    @app_commands.command(name="ai_priority", description="為當前票券獲取 AI 優先級評估")
     @app_commands.describe(content="要分析的內容")
     async def ai_assess_priority(
         self, interaction: discord.Interaction, content: Optional[str] = None
     ):
         """AI 智能優先級評估"""
         if not await self._is_ticket_channel(interaction.channel):
-            await interaction.response.send_message(
-                "❌ 此指令只能在票券頻道中使用", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 此指令只能在票券頻道中使用", ephemeral=True)
             return
 
         await interaction.response.defer(ephemeral=True)
 
         try:
             # 取得票券資訊
-            ticket_info = await self._get_ticket_info_from_channel(
-                interaction.channel
-            )
+            ticket_info = await self._get_ticket_info_from_channel(interaction.channel)
             if not ticket_info:
-                await interaction.followup.send(
-                    "❌ 無法取得票券資訊", ephemeral=True
-                )
+                await interaction.followup.send("❌ 無法取得票券資訊", ephemeral=True)
                 return
 
             # 如果沒有提供內容，使用票券描述
             if not content:
-                content = ticket_info.get(
-                    "description", ""
-                ) or await self._get_channel_context(interaction.channel)
+                content = ticket_info.get("description", "") or await self._get_channel_context(
+                    interaction.channel
+                )
 
             # 建立用戶上下文
             user_context = {
@@ -303,9 +256,7 @@ class AICore(commands.Cog):
             }
 
             # 評估優先級
-            priority_result = await self.ai_manager.assess_priority(
-                content, user_context
-            )
+            priority_result = await self.ai_manager.assess_priority(content, user_context)
 
             # 儲存建議記錄
             await self.ai_dao.save_suggestion(
@@ -355,9 +306,7 @@ class AICore(commands.Cog):
             if priority_result.get("adjustments"):
                 embed.add_field(
                     name="⚖️ 調整因子",
-                    value="\n".join(
-                        [f"• {adj}" for adj in priority_result["adjustments"]]
-                    ),
+                    value="\n".join([f"• {adj}" for adj in priority_result["adjustments"]]),
                     inline=False,
                 )
 
@@ -385,9 +334,7 @@ class AICore(commands.Cog):
 
         except Exception as e:
             logger.error(f"AI 優先級評估錯誤: {e}")
-            await interaction.followup.send(
-                f"❌ 處理過程中發生錯誤：{str(e)}", ephemeral=True
-            )
+            await interaction.followup.send(f"❌ 處理過程中發生錯誤：{str(e)}", ephemeral=True)
 
     # ========== AI 管理指令 ==========
 
@@ -439,9 +386,7 @@ class AICore(commands.Cog):
         try:
             stats = await self.ai_dao.get_statistics(ctx.guild.id, days)
 
-            embed = discord.Embed(
-                title=f"📊 AI 系統統計 (過去 {days} 天)", color=0x00BFFF
-            )
+            embed = discord.Embed(title=f"📊 AI 系統統計 (過去 {days} 天)", color=0x00BFFF)
 
             # 基本統計
             embed.add_field(
@@ -455,8 +400,7 @@ class AICore(commands.Cog):
 
             embed.add_field(
                 name="🎯 品質指標",
-                value=f"平均置信度: {stats['avg_confidence']:.1%}\n"
-                f"期間天數: {days} 天",
+                value=f"平均置信度: {stats['avg_confidence']:.1%}\n" f"期間天數: {days} 天",
                 inline=True,
             )
 
@@ -464,14 +408,8 @@ class AICore(commands.Cog):
             if stats.get("category_breakdown"):
                 category_text = []
                 for category, data in stats["category_breakdown"].items():
-                    rate = (
-                        data["accepted"] / data["total"]
-                        if data["total"] > 0
-                        else 0
-                    )
-                    category_text.append(
-                        f"• {category}: {data['total']} ({rate:.1%})"
-                    )
+                    rate = data["accepted"] / data["total"] if data["total"] > 0 else 0
+                    category_text.append(f"• {category}: {data['total']} ({rate:.1%})")
 
                 embed.add_field(
                     name="📋 分類統計",
@@ -487,9 +425,7 @@ class AICore(commands.Cog):
 
     @ai_group.command(name="history")
     @commands.has_permissions(manage_guild=True)
-    async def ai_history(
-        self, ctx, suggestion_type: str = None, limit: int = 10
-    ):
+    async def ai_history(self, ctx, suggestion_type: str = None, limit: int = 10):
         """查看 AI 建議歷史"""
         if limit < 1 or limit > 50:
             await ctx.send("❌ 限制數量必須在 1-50 之間")
@@ -497,15 +433,11 @@ class AICore(commands.Cog):
 
         valid_types = ["reply", "tag", "priority"]
         if suggestion_type and suggestion_type not in valid_types:
-            await ctx.send(
-                f"❌ 無效的建議類型。有效類型: {', '.join(valid_types)}"
-            )
+            await ctx.send(f"❌ 無效的建議類型。有效類型: {', '.join(valid_types)}")
             return
 
         try:
-            history = await self.ai_dao.get_suggestion_history(
-                ctx.guild.id, suggestion_type, limit
-            )
+            history = await self.ai_dao.get_suggestion_history(ctx.guild.id, suggestion_type, limit)
 
             if not history:
                 await ctx.send("📭 沒有找到建議歷史記錄")
@@ -527,9 +459,7 @@ class AICore(commands.Cog):
                 )
 
             if len(history) > 10:
-                embed.set_footer(
-                    text=f"顯示前 10 筆，共 {len(history)} 筆記錄"
-                )
+                embed.set_footer(text=f"顯示前 10 筆，共 {len(history)} 筆記錄")
 
             await ctx.send(embed=embed)
 
@@ -574,9 +504,7 @@ class AICore(commands.Cog):
                     color=0x28A745,
                 )
 
-                await interaction.edit_original_response(
-                    embed=result_embed, view=None
-                )
+                await interaction.edit_original_response(embed=result_embed, view=None)
 
             async def cancel_callback(interaction):
                 if interaction.user != ctx.author:
@@ -585,20 +513,14 @@ class AICore(commands.Cog):
                     )
                     return
 
-                cancel_embed = discord.Embed(
-                    title="❌ 清理已取消", color=0x6C757D
-                )
+                cancel_embed = discord.Embed(title="❌ 清理已取消", color=0x6C757D)
 
-                await interaction.response.edit_message(
-                    embed=cancel_embed, view=None
-                )
+                await interaction.response.edit_message(embed=cancel_embed, view=None)
 
             confirm_btn = discord.ui.Button(
                 label="確認清理", style=discord.ButtonStyle.green, emoji="✅"
             )
-            cancel_btn = discord.ui.Button(
-                label="取消", style=discord.ButtonStyle.red, emoji="❌"
-            )
+            cancel_btn = discord.ui.Button(label="取消", style=discord.ButtonStyle.red, emoji="❌")
 
             confirm_btn.callback = confirm_callback
             cancel_btn.callback = cancel_callback
@@ -614,15 +536,11 @@ class AICore(commands.Cog):
 
     # ========== 輔助方法 ==========
 
-    async def _get_ticket_info_from_channel(
-        self, channel: discord.TextChannel
-    ) -> Optional[dict]:
+    async def _get_ticket_info_from_channel(self, channel: discord.TextChannel) -> Optional[dict]:
         """從頻道取得票券資訊"""
         try:
             # 優先使用頻道ID直接查詢
-            ticket_info = await self.ticket_dao.get_ticket_by_channel(
-                channel.id
-            )
+            ticket_info = await self.ticket_dao.get_ticket_by_channel(channel.id)
             if ticket_info:
                 return ticket_info
 
@@ -640,9 +558,7 @@ class AICore(commands.Cog):
         except (ValueError, IndexError, TypeError):
             return None
 
-    async def _get_channel_context(
-        self, channel: discord.TextChannel, limit: int = 10
-    ) -> str:
+    async def _get_channel_context(self, channel: discord.TextChannel, limit: int = 10) -> str:
         """從頻道歷史中獲取上下文"""
         try:
             messages = []

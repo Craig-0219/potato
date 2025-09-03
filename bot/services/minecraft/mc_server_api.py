@@ -30,9 +30,7 @@ class MinecraftServerAPI:
     async def connect(self) -> bool:
         """連接到 Minecraft 伺服器"""
         try:
-            self.server = JavaServer.lookup(
-                f"{self.server_host}:{self.server_port}"
-            )
+            self.server = JavaServer.lookup(f"{self.server_host}:{self.server_port}")
             return True
         except Exception as e:
             logger.error(f"無法連接到 Minecraft 伺服器: {e}")
@@ -58,14 +56,8 @@ class MinecraftServerAPI:
                 "online": True,
                 "players": status.players.online,
                 "max_players": status.players.max,
-                "version": (
-                    status.version.name if status.version else "Unknown"
-                ),
-                "motd": (
-                    status.description
-                    if hasattr(status, "description")
-                    else ""
-                ),
+                "version": (status.version.name if status.version else "Unknown"),
+                "motd": (status.description if hasattr(status, "description") else ""),
                 "ping": round(status.latency, 2) if status.latency else None,
                 "timestamp": datetime.now().isoformat(),
             }
@@ -140,9 +132,7 @@ class MinecraftServerAPI:
                             "name": player["name"],
                             "uuid": player_detail.get("uuid", ""),
                             "playtime": player_detail.get("playtime", "N/A"),
-                            "location": player_detail.get(
-                                "location", "Unknown"
-                            ),
+                            "location": player_detail.get("location", "Unknown"),
                             "level": player_detail.get("level", 0),
                             "health": player_detail.get("health", 20),
                         }

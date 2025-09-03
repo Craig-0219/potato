@@ -158,9 +158,7 @@ class SecureTicketDAO:
                     await conn.commit()
 
                     # 返回完整票券數據
-                    await cursor.execute(
-                        "SELECT * FROM tickets WHERE id = %s", (ticket_id,)
-                    )
+                    await cursor.execute("SELECT * FROM tickets WHERE id = %s", (ticket_id,))
                     result = await cursor.fetchone()
 
                     if result:

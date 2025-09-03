@@ -45,11 +45,7 @@ class WorkflowCore(commands.Cog):
                     "user_id": member.id,
                     "username": member.name,
                     "display_name": member.display_name,
-                    "joined_at": (
-                        member.joined_at.isoformat()
-                        if member.joined_at
-                        else None
-                    ),
+                    "joined_at": (member.joined_at.isoformat() if member.joined_at else None),
                 },
             )
 
@@ -67,9 +63,7 @@ class WorkflowCore(commands.Cog):
 
     # ========== 工作流程管理指令 ==========
 
-    @app_commands.command(
-        name="workflow_create", description="創建新的工作流程"
-    )
+    @app_commands.command(name="workflow_create", description="創建新的工作流程")
     @app_commands.describe(name="工作流程名稱", description="工作流程描述")
     async def create_workflow(
         self,
@@ -103,9 +97,7 @@ class WorkflowCore(commands.Cog):
             workflow_id = await workflow_engine.create_workflow(workflow_data)
 
             # 儲存到資料庫
-            await self.workflow_dao.create_workflow(
-                {"id": workflow_id, **workflow_data}
-            )
+            await self.workflow_dao.create_workflow({"id": workflow_id, **workflow_data})
 
             embed = EmbedBuilder.build(
                 title="✅ 工作流程已創建",
@@ -115,9 +107,7 @@ class WorkflowCore(commands.Cog):
 
             embed.add_field(
                 name="📋 基本資訊",
-                value=f"ID: `{workflow_id}`\n"
-                f"狀態: 草稿\n"
-                f"觸發類型: 手動觸發",
+                value=f"ID: `{workflow_id}`\n" f"狀態: 草稿\n" f"觸發類型: 手動觸發",
                 inline=False,
             )
 
@@ -127,9 +117,7 @@ class WorkflowCore(commands.Cog):
                 inline=False,
             )
 
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"創建工作流程失敗: {e}")
@@ -139,9 +127,7 @@ class WorkflowCore(commands.Cog):
 
     @app_commands.command(name="workflow_list", description="查看工作流程列表")
     @app_commands.describe(status="篩選工作流程狀態")
-    async def list_workflows(
-        self, interaction: discord.Interaction, status: Optional[str] = None
-    ):
+    async def list_workflows(self, interaction: discord.Interaction, status: Optional[str] = None):
         """查看工作流程列表"""
         try:
             workflows = workflow_engine.get_workflows(
@@ -155,9 +141,7 @@ class WorkflowCore(commands.Cog):
                     description="目前沒有工作流程",
                     color=0x95A5A6,
                 )
-                await interaction.response.send_message(
-                    embed=embed, ephemeral=True
-                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
                 return
 
             embed = EmbedBuilder.build(
@@ -197,29 +181,19 @@ class WorkflowCore(commands.Cog):
                     inline=False,
                 )
 
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"獲取工作流程列表失敗: {e}")
-            await interaction.response.send_message(
-                f"❌ 獲取列表失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.response.send_message(f"❌ 獲取列表失敗: {str(e)}", ephemeral=True)
 
-    @app_commands.command(
-        name="workflow_execute", description="手動執行工作流程"
-    )
+    @app_commands.command(name="workflow_execute", description="手動執行工作流程")
     @app_commands.describe(workflow_name="工作流程名稱")
-    async def execute_workflow(
-        self, interaction: discord.Interaction, workflow_name: str
-    ):
+    async def execute_workflow(self, interaction: discord.Interaction, workflow_name: str):
         """手動執行工作流程"""
         try:
             # 尋找工作流程
-            workflows = workflow_engine.get_workflows(
-                guild_id=interaction.guild.id
-            )
+            workflows = workflow_engine.get_workflows(guild_id=interaction.guild.id)
             target_workflow = None
 
             for workflow in workflows:
@@ -267,27 +241,17 @@ class WorkflowCore(commands.Cog):
                     inline=False,
                 )
 
-                await interaction.response.send_message(
-                    embed=embed, ephemeral=True
-                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
             else:
-                await interaction.response.send_message(
-                    "❌ 工作流程執行失敗", ephemeral=True
-                )
+                await interaction.response.send_message("❌ 工作流程執行失敗", ephemeral=True)
 
         except Exception as e:
             logger.error(f"執行工作流程失敗: {e}")
-            await interaction.response.send_message(
-                f"❌ 執行失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.response.send_message(f"❌ 執行失敗: {str(e)}", ephemeral=True)
 
-    @app_commands.command(
-        name="workflow_status", description="查看工作流程執行狀態"
-    )
+    @app_commands.command(name="workflow_status", description="查看工作流程執行狀態")
     @app_commands.describe(execution_id="執行ID")
-    async def workflow_status(
-        self, interaction: discord.Interaction, execution_id: str
-    ):
+    async def workflow_status(self, interaction: discord.Interaction, execution_id: str):
         """查看工作流程執行狀態"""
         try:
             status = workflow_engine.get_execution_status(execution_id)
@@ -312,11 +276,7 @@ class WorkflowCore(commands.Cog):
                 color=(
                     0x3498DB
                     if status["status"] == "running"
-                    else (
-                        0x2ECC71
-                        if status["status"] == "completed"
-                        else 0xE74C3C
-                    )
+                    else (0x2ECC71 if status["status"] == "completed" else 0xE74C3C)
                 ),
             )
 
@@ -353,36 +313,24 @@ class WorkflowCore(commands.Cog):
                     inline=False,
                 )
 
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"獲取執行狀態失敗: {e}")
-            await interaction.response.send_message(
-                f"❌ 獲取狀態失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.response.send_message(f"❌ 獲取狀態失敗: {str(e)}", ephemeral=True)
 
-    @app_commands.command(
-        name="workflow_toggle", description="啟用/停用工作流程"
-    )
+    @app_commands.command(name="workflow_toggle", description="啟用/停用工作流程")
     @app_commands.describe(workflow_name="工作流程名稱")
-    async def toggle_workflow(
-        self, interaction: discord.Interaction, workflow_name: str
-    ):
+    async def toggle_workflow(self, interaction: discord.Interaction, workflow_name: str):
         """啟用/停用工作流程"""
         try:
             # 檢查權限
             if not interaction.user.guild_permissions.manage_guild:
-                await interaction.response.send_message(
-                    "❌ 需要管理伺服器權限", ephemeral=True
-                )
+                await interaction.response.send_message("❌ 需要管理伺服器權限", ephemeral=True)
                 return
 
             # 尋找工作流程
-            workflows = workflow_engine.get_workflows(
-                guild_id=interaction.guild.id
-            )
+            workflows = workflow_engine.get_workflows(guild_id=interaction.guild.id)
             target_workflow = None
 
             for workflow in workflows:
@@ -421,29 +369,19 @@ class WorkflowCore(commands.Cog):
                     color=0x2ECC71 if new_status == "active" else 0xF39C12,
                 )
 
-                await interaction.response.send_message(
-                    embed=embed, ephemeral=True
-                )
+                await interaction.response.send_message(embed=embed, ephemeral=True)
             else:
-                await interaction.response.send_message(
-                    "❌ 更新工作流程狀態失敗", ephemeral=True
-                )
+                await interaction.response.send_message("❌ 更新工作流程狀態失敗", ephemeral=True)
 
         except Exception as e:
             logger.error(f"切換工作流程狀態失敗: {e}")
-            await interaction.response.send_message(
-                f"❌ 操作失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.response.send_message(f"❌ 操作失敗: {str(e)}", ephemeral=True)
 
-    @app_commands.command(
-        name="workflow_stats", description="查看工作流程統計"
-    )
+    @app_commands.command(name="workflow_stats", description="查看工作流程統計")
     async def workflow_statistics(self, interaction: discord.Interaction):
         """查看工作流程統計"""
         try:
-            stats = workflow_engine.get_workflow_statistics(
-                guild_id=interaction.guild.id
-            )
+            stats = workflow_engine.get_workflow_statistics(guild_id=interaction.guild.id)
 
             embed = EmbedBuilder.build(
                 title="📊 工作流程統計",
@@ -466,10 +404,7 @@ class WorkflowCore(commands.Cog):
                 embed.add_field(
                     name="📊 狀態分佈",
                     value="\n".join(
-                        [
-                            f"{status}: {count}"
-                            for status, count in status_dist.items()
-                        ]
+                        [f"{status}: {count}" for status, count in status_dist.items()]
                     ),
                     inline=True,
                 )
@@ -480,10 +415,7 @@ class WorkflowCore(commands.Cog):
                 embed.add_field(
                     name="🎯 觸發類型",
                     value="\n".join(
-                        [
-                            f"{trigger_type}: {count}"
-                            for trigger_type, count in trigger_dist.items()
-                        ]
+                        [f"{trigger_type}: {count}" for trigger_type, count in trigger_dist.items()]
                     ),
                     inline=True,
                 )
@@ -496,28 +428,20 @@ class WorkflowCore(commands.Cog):
                     inline=False,
                 )
 
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"獲取工作流程統計失敗: {e}")
-            await interaction.response.send_message(
-                f"❌ 獲取統計失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.response.send_message(f"❌ 獲取統計失敗: {str(e)}", ephemeral=True)
 
     # ========== 快捷工作流程模板 ==========
 
-    @app_commands.command(
-        name="workflow_template", description="創建工作流程模板"
-    )
+    @app_commands.command(name="workflow_template", description="創建工作流程模板")
     @app_commands.describe(template_type="模板類型", name="工作流程名稱")
     @app_commands.choices(
         template_type=[
             app_commands.Choice(name="新成員歡迎", value="member_welcome"),
-            app_commands.Choice(
-                name="票券自動指派", value="ticket_auto_assign"
-            ),
+            app_commands.Choice(name="票券自動指派", value="ticket_auto_assign"),
             app_commands.Choice(name="SLA警告", value="sla_warning"),
             app_commands.Choice(name="定期報告", value="scheduled_report"),
         ]
@@ -529,9 +453,7 @@ class WorkflowCore(commands.Cog):
         try:
             # 檢查權限
             if not interaction.user.guild_permissions.manage_guild:
-                await interaction.response.send_message(
-                    "❌ 需要管理伺服器權限", ephemeral=True
-                )
+                await interaction.response.send_message("❌ 需要管理伺服器權限", ephemeral=True)
                 return
 
             # 獲取模板配置
@@ -548,12 +470,8 @@ class WorkflowCore(commands.Cog):
                 "description": template["description"],
                 "guild_id": interaction.guild.id,
                 "trigger_type": template["trigger"]["type"],
-                "trigger_conditions": template["trigger"].get(
-                    "conditions", []
-                ),
-                "trigger_parameters": template["trigger"].get(
-                    "parameters", {}
-                ),
+                "trigger_conditions": template["trigger"].get("conditions", []),
+                "trigger_parameters": template["trigger"].get("parameters", {}),
                 "actions": template["actions"],
                 "created_by": interaction.user.id,
                 "tags": template.get("tags", []),
@@ -562,9 +480,7 @@ class WorkflowCore(commands.Cog):
             workflow_id = await workflow_engine.create_workflow(workflow_data)
 
             # 儲存到資料庫
-            await self.workflow_dao.create_workflow(
-                {"id": workflow_id, **workflow_data}
-            )
+            await self.workflow_dao.create_workflow({"id": workflow_id, **workflow_data})
 
             embed = EmbedBuilder.build(
                 title="✅ 模板工作流程已創建",
@@ -581,19 +497,13 @@ class WorkflowCore(commands.Cog):
                 inline=False,
             )
 
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"創建模板工作流程失敗: {e}")
-            await interaction.response.send_message(
-                f"❌ 創建失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.response.send_message(f"❌ 創建失敗: {str(e)}", ephemeral=True)
 
-    def _get_workflow_template(
-        self, template_type: str
-    ) -> Optional[Dict[str, Any]]:
+    def _get_workflow_template(self, template_type: str) -> Optional[Dict[str, Any]]:
         """獲取工作流程模板"""
         templates = {
             "member_welcome": {
