@@ -328,13 +328,19 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         path: test-artifacts
+      continue-on-error: true
     
     - name: 🔗 合併覆蓋率報告
       run: |
         echo "📊 合併所有覆蓋率報告..."
         
-        # 收集所有覆蓋率文件
-        find test-artifacts -name "coverage-*.xml" -exec cp {} . \;
+        # 檢查 test-artifacts 目錄是否存在
+        if [[ -d "test-artifacts" ]]; then
+          # 收集所有覆蓋率文件
+          find test-artifacts -name "coverage-*.xml" -exec cp {} . \;
+        else
+          echo "⚠️ test-artifacts 目錄不存在，跳過文件收集"
+        fi
         
         # 如果有覆蓋率文件，合併它們
         if ls coverage-*.xml 1> /dev/null 2>&1; then
