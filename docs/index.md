@@ -57,8 +57,9 @@ Potato Bot 是一個功能完整的 Discord 機器人，採用現代化架構設
 - 🤝 [貢獻指南](getting-started/contributing.md) - 參與開發
 
 ### 系統管理
-- ⚙️ [系統設計](system-design/admin-permissions.md) - 權限管理
-- 🔧 [API 文檔](developer-docs/api-reference.md) - 介面說明
+- ⚙️ [部署指南](administration/deployment.md) - 生產環境部署
+- 🔧 [API 文檔](development/api-reference.md) - 介面說明
+- 🗄️ [系統文檔](development/ADMIN_PERMISSION_SETUP.md) - 權限管理
 
 ## 🏗️ 架構設計
 

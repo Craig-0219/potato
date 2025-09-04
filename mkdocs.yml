@@ -49,31 +49,29 @@ theme:
 # 導航結構
 nav:
   - 🏠 首頁: index.md
-  - 🚀 入門指南:
+  - 🚀 新手入門:
     - 快速開始: getting-started/quickstart.md
     - 專案設置: getting-started/project-setup.md
     - 貢獻指南: getting-started/contributing.md
+    - GitHub 設定: getting-started/github-setup.md
   - 📖 使用者手冊:
-    - 指令大全: user-guide/commands.md
+    - 指令參考: user-guide/commands.md
+    - 詳細指令: user-guide/commands-detailed.md
     - 核心功能:
       - 投票系統: user-guide/features/voting-system.md
-      - 票券系統: user-guide/features/ticket-system.md
-      - AI 助手: user-guide/features/ai-assistant.md
   - 👨‍💻 開發者文檔:
-    - 開發分支維護: developer-docs/branch-maintenance.md
-    - CI/CD 工作流: developer-docs/cicd-workflow.md
-    - API 參考: developer-docs/api-reference.md
-    - 故障排除: developer-docs/troubleshooting.md
-    - GitHub Token 設定: developer-docs/github-token-setup.md
-  - ⚙️ 系統設計:
-    - 管理員權限: system-design/admin-permissions.md
-    - 指令同步: system-design/command-sync.md
-    - 投票模板: system-design/vote-templates.md
-    - 實時系統: system-design/realtime-voting.md
-  - 📚 封存記錄:
-    - 開發藍圖: archive/roadmaps.md
-    - 歷史問題日誌: archive/issue-logs.md
-    - 狀態報告: archive/status-reports.md
+    - API 參考: development/api-reference.md
+    - 分支策略: development/branching.md
+    - CI/CD 指南: development/CI_CD_SETUP_GUIDE.md
+    - 系統設計:
+      - 管理員權限設定: development/ADMIN_PERMISSION_SETUP.md
+      - 指令同步設定: development/COMMAND_SYNC_CONFIG.md
+      - 實時投票系統: development/REALTIME_VOTING_SYSTEM.md
+      - 投票模板系統: development/VOTE_TEMPLATE_SYSTEM.md
+  - 🔧 系統管理:
+    - 部署手冊: administration/deployment.md
+  - 🗄️ 歷史文檔:
+    - 歸檔報告: archive/phase-reports.md
 
 # 文檔目錄
 docs_dir: docs
