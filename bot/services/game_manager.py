@@ -42,9 +42,7 @@ class GameManager:
             self.active_games[game_id] = session_data
 
             # 快取會話數據
-            await cache_manager.set(
-                f"game_session:{game_id}", session_data, 1800
-            )  # 30分鐘
+            await cache_manager.set(f"game_session:{game_id}", session_data, 1800)  # 30分鐘
 
             return game_id
 
@@ -71,26 +69,20 @@ class GameManager:
             logger.error(f"❌ 獲取遊戲會話失敗: {e}")
             return None
 
-    async def update_game_session(
-        self, game_id: str, update_data: Dict[str, Any]
-    ):
+    async def update_game_session(self, game_id: str, update_data: Dict[str, Any]):
         """更新遊戲會話"""
         try:
             if game_id in self.active_games:
                 self.active_games[game_id].update(update_data)
 
                 # 更新快取
-                await cache_manager.set(
-                    f"game_session:{game_id}", self.active_games[game_id], 1800
-                )
+                await cache_manager.set(f"game_session:{game_id}", self.active_games[game_id], 1800)
 
         except Exception as e:
             logger.error(f"❌ 更新遊戲會話失敗: {e}")
             raise
 
-    async def end_game_session(
-        self, game_id: str, result_data: Dict[str, Any]
-    ):
+    async def end_game_session(self, game_id: str, result_data: Dict[str, Any]):
         """結束遊戲會話"""
         try:
             if game_id in self.active_games:
@@ -140,9 +132,7 @@ class GameManager:
         except Exception as e:
             logger.error(f"❌ 保存遊戲結果失敗: {e}")
 
-    async def get_user_game_stats(
-        self, user_id: int, guild_id: int
-    ) -> Dict[str, Any]:
+    async def get_user_game_stats(self, user_id: int, guild_id: int) -> Dict[str, Any]:
         """獲取用戶遊戲統計"""
         try:
             async with db_pool.connection() as conn:
@@ -170,9 +160,7 @@ class GameManager:
                         stats[game_type] = {
                             "total_games": total,
                             "wins": wins,
-                            "win_rate": (
-                                (wins / total * 100) if total > 0 else 0
-                            ),
+                            "win_rate": ((wins / total * 100) if total > 0 else 0),
                             "avg_score": float(avg_score) if avg_score else 0,
                             "best_score": best_score or 0,
                         }
@@ -193,9 +181,7 @@ class GameManager:
         """獲取排行榜"""
         try:
             # 快取鍵
-            cache_key = (
-                f"game_leaderboard:{guild_id}:{game_type}:{metric}:{limit}"
-            )
+            cache_key = f"game_leaderboard:{guild_id}:{game_type}:{metric}:{limit}"
 
             # 嘗試從快取獲取
             cached_result = await cache_manager.get(cache_key)
@@ -252,20 +238,14 @@ class GameManager:
                                 "player_id": player_id,
                                 "total_games": total_games,
                                 "total_wins": total_wins,
-                                "avg_score": (
-                                    float(avg_score) if avg_score else 0
-                                ),
+                                "avg_score": (float(avg_score) if avg_score else 0),
                                 "best_score": best_score or 0,
-                                "win_rate": (
-                                    float(win_rate) * 100 if win_rate else 0
-                                ),
+                                "win_rate": (float(win_rate) * 100 if win_rate else 0),
                             }
                         )
 
                     # 快取結果
-                    await cache_manager.set(
-                        cache_key, leaderboard, 300
-                    )  # 5分鐘快取
+                    await cache_manager.set(cache_key, leaderboard, 300)  # 5分鐘快取
 
                     return leaderboard
 
@@ -282,9 +262,7 @@ class GameManager:
             for game_id, session in self.active_games.items():
                 start_time = session.get("start_time")
                 if isinstance(start_time, str):
-                    start_time = datetime.fromisoformat(
-                        start_time.replace("Z", "+00:00")
-                    )
+                    start_time = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
 
                 # 超過30分鐘視為過期
                 if (current_time - start_time).total_seconds() > 1800:
@@ -330,9 +308,7 @@ class GameManager:
             "guesses": [],
         }
 
-    def process_guess(
-        self, game_data: Dict[str, Any], guess: int
-    ) -> Dict[str, Any]:
+    def process_guess(self, game_data: Dict[str, Any], guess: int) -> Dict[str, Any]:
         """處理猜測"""
         secret_number = game_data["secret_number"]
         game_data["attempts_left"] -= 1
@@ -501,17 +477,13 @@ class GameManager:
                     result = await cursor.fetchone()
 
                     if result:
-                        total_games, unique_players, total_wins, avg_score = (
-                            result
-                        )
+                        total_games, unique_players, total_wins, avg_score = result
                         return {
                             "total_games": total_games or 0,
                             "unique_players": unique_players or 0,
                             "total_wins": total_wins or 0,
                             "win_rate": (
-                                (total_wins / total_games * 100)
-                                if total_games > 0
-                                else 0
+                                (total_wins / total_games * 100) if total_games > 0 else 0
                             ),
                             "avg_score": float(avg_score) if avg_score else 0,
                         }

@@ -71,17 +71,13 @@ class CachedTicketDAO:
 
             if ticket_id:
                 # 失效相關快取
-                await self._invalidate_related_caches(
-                    ticket_data.get("guild_id")
-                )
+                await self._invalidate_related_caches(ticket_data.get("guild_id"))
 
                 # 快取新創建的票券
                 new_ticket = await self.ticket_dao.get_ticket(ticket_id)
                 if new_ticket:
                     cache_key = f"ticket:{ticket_id}"
-                    await self.cache.set(
-                        cache_key, new_ticket, self.DETAIL_TTL
-                    )
+                    await self.cache.set(cache_key, new_ticket, self.DETAIL_TTL)
 
             return ticket_id
 
@@ -92,9 +88,7 @@ class CachedTicketDAO:
     async def update_ticket(self, ticket_id: int, update_data: Dict) -> bool:
         """更新票券（帶快取同步）"""
         try:
-            success = await self.ticket_dao.update_ticket(
-                ticket_id, update_data
-            )
+            success = await self.ticket_dao.update_ticket(ticket_id, update_data)
 
             if success:
                 # 獲取更新後的數據
@@ -103,14 +97,10 @@ class CachedTicketDAO:
                 if updated_ticket:
                     # 更新快取
                     cache_key = f"ticket:{ticket_id}"
-                    await self.cache.set(
-                        cache_key, updated_ticket, self.DETAIL_TTL
-                    )
+                    await self.cache.set(cache_key, updated_ticket, self.DETAIL_TTL)
 
                     # 失效相關快取
-                    await self._invalidate_related_caches(
-                        updated_ticket.get("guild_id")
-                    )
+                    await self._invalidate_related_caches(updated_ticket.get("guild_id"))
 
             return success
 
@@ -180,14 +170,10 @@ class CachedTicketDAO:
     # ========== 快取優化的統計查詢 ==========
 
     @cached("ticket_stats", ttl=60)
-    async def get_ticket_statistics(
-        self, guild_id: int, period_days: int = 7
-    ) -> Dict[str, Any]:
+    async def get_ticket_statistics(self, guild_id: int, period_days: int = 7) -> Dict[str, Any]:
         """獲取票券統計（帶快取）"""
         try:
-            stats = await self.ticket_dao.get_ticket_statistics(
-                guild_id, period_days
-            )
+            stats = await self.ticket_dao.get_ticket_statistics(guild_id, period_days)
 
             # 添加快取資訊到統計中
             cache_stats = await self.cache.get_statistics()
@@ -204,9 +190,7 @@ class CachedTicketDAO:
             return {}
 
     @cached("daily_stats", ttl=3600)  # 每小時更新
-    async def get_daily_statistics(
-        self, guild_id: int, date: str
-    ) -> Dict[str, Any]:
+    async def get_daily_statistics(self, guild_id: int, date: str) -> Dict[str, Any]:
         """獲取每日統計（帶長時間快取）"""
         try:
             return await self.ticket_dao.get_daily_statistics(guild_id, date)
@@ -218,9 +202,7 @@ class CachedTicketDAO:
         """獲取性能指標（實時數據，不快取）"""
         try:
             # 組合多個數據源
-            db_metrics = await self.ticket_dao.get_performance_metrics(
-                guild_id
-            )
+            db_metrics = await self.ticket_dao.get_performance_metrics(guild_id)
             cache_stats = await self.cache.get_statistics()
 
             return {
@@ -256,9 +238,7 @@ class CachedTicketDAO:
         """預載熱點數據"""
         try:
             # 預載最近活躍的票券
-            recent_tickets = await self.ticket_dao.get_recent_active_tickets(
-                limit=50
-            )
+            recent_tickets = await self.ticket_dao.get_recent_active_tickets(limit=50)
 
             for ticket in recent_tickets:
                 cache_key = f"ticket:{ticket['id']}"
@@ -277,9 +257,7 @@ class CachedTicketDAO:
             guild_id = ticket.get("guild_id")
 
             if user_id and guild_id:
-                asyncio.create_task(
-                    self.get_user_tickets(user_id, guild_id, limit=10)
-                )
+                asyncio.create_task(self.get_user_tickets(user_id, guild_id, limit=10))
 
         except Exception as e:
             logger.error(f"❌ 紀錄熱點數據失敗: {e}")
@@ -289,18 +267,14 @@ class CachedTicketDAO:
         try:
             access_key = f"access_count:{cache_key}"
             current_count = await self.cache.get(access_key) or 0
-            await self.cache.set(
-                access_key, current_count + 1, 3600
-            )  # 1小時統計
+            await self.cache.set(access_key, current_count + 1, 3600)  # 1小時統計
 
         except Exception as e:
             logger.error(f"❌ 記錄訪問統計失敗: {e}")
 
     # ========== 批量操作優化 ==========
 
-    async def get_tickets_batch(
-        self, ticket_ids: List[int]
-    ) -> Dict[int, Optional[Dict]]:
+    async def get_tickets_batch(self, ticket_ids: List[int]) -> Dict[int, Optional[Dict]]:
         """批量獲取票券（快取優化）"""
         results = {}
         cache_misses = []
@@ -318,9 +292,7 @@ class CachedTicketDAO:
         # 批量查詢未命中的數據
         if cache_misses:
             try:
-                db_results = await self.ticket_dao.get_tickets_batch(
-                    cache_misses
-                )
+                db_results = await self.ticket_dao.get_tickets_batch(cache_misses)
 
                 # 更新快取並添加到結果
                 for ticket_id, ticket_data in db_results.items():
@@ -328,9 +300,7 @@ class CachedTicketDAO:
 
                     if ticket_data:  # 只快取有效數據
                         cache_key = f"ticket:{ticket_id}"
-                        await self.cache.set(
-                            cache_key, ticket_data, self.DETAIL_TTL
-                        )
+                        await self.cache.set(cache_key, ticket_data, self.DETAIL_TTL)
 
             except Exception as e:
                 logger.error(f"❌ 批量查詢失敗: {e}")
@@ -368,9 +338,7 @@ class CachedTicketDAO:
             logger.info(f"🔥 開始預熱快取: {guild_id}")
 
             # 預熱活躍票券
-            active_tickets, _ = await self.get_guild_tickets(
-                guild_id, "open", limit=20
-            )
+            active_tickets, _ = await self.get_guild_tickets(guild_id, "open", limit=20)
             logger.info(f"預熱活躍票券: {len(active_tickets)} 個")
 
             # 預熱統計數據

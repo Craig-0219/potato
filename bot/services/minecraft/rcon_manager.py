@@ -52,9 +52,7 @@ class RCONManager:
                     logger.error("RCON 密碼未設置")
                     return None
 
-                self._connection = MCRcon(
-                    self.host, self.password, port=self.port
-                )
+                self._connection = MCRcon(self.host, self.password, port=self.port)
                 self._connection.connect()
 
                 logger.info(f"RCON 連線建立成功 ({self.host}:{self.port})")
@@ -131,15 +129,11 @@ class RCONManager:
         """從白名單移除玩家"""
         return await self.execute_command(f"whitelist remove {player}")
 
-    async def kick_player(
-        self, player: str, reason: str = "已被管理員踢出"
-    ) -> Dict[str, Any]:
+    async def kick_player(self, player: str, reason: str = "已被管理員踢出") -> Dict[str, Any]:
         """踢出玩家"""
         return await self.execute_command(f"kick {player} {reason}")
 
-    async def ban_player(
-        self, player: str, reason: str = "已被管理員封禁"
-    ) -> Dict[str, Any]:
+    async def ban_player(self, player: str, reason: str = "已被管理員封禁") -> Dict[str, Any]:
         """封禁玩家"""
         return await self.execute_command(f"ban {player} {reason}")
 
@@ -151,15 +145,11 @@ class RCONManager:
         """伺服器廣播訊息"""
         return await self.execute_command(f"say {message}")
 
-    async def teleport_player(
-        self, player: str, x: int, y: int, z: int
-    ) -> Dict[str, Any]:
+    async def teleport_player(self, player: str, x: int, y: int, z: int) -> Dict[str, Any]:
         """傳送玩家"""
         return await self.execute_command(f"tp {player} {x} {y} {z}")
 
-    async def give_item(
-        self, player: str, item: str, count: int = 1
-    ) -> Dict[str, Any]:
+    async def give_item(self, player: str, item: str, count: int = 1) -> Dict[str, Any]:
         """給予玩家物品"""
         return await self.execute_command(f"give {player} {item} {count}")
 
@@ -184,9 +174,7 @@ class RCONManager:
             results = {}
             for key, cmd in commands.items():
                 result = await self.execute_command(cmd)
-                results[key] = (
-                    result["response"] if result["success"] else None
-                )
+                results[key] = result["response"] if result["success"] else None
 
             return results
 

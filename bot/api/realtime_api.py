@@ -24,9 +24,7 @@ class ConnectionManager:
         self.active_connections: Dict[str, Set[WebSocket]] = {}
         self.guild_subscriptions: Dict[int, Set[WebSocket]] = {}
 
-    async def connect(
-        self, websocket: WebSocket, guild_id: int, client_id: str
-    ):
+    async def connect(self, websocket: WebSocket, guild_id: int, client_id: str):
         """連接新的 WebSocket 客戶端"""
         await websocket.accept()
 
@@ -57,9 +55,7 @@ class ConnectionManager:
                 if not self.guild_subscriptions[guild_id]:
                     del self.guild_subscriptions[guild_id]
 
-            logger.info(
-                f"WebSocket 客戶端已斷開: {client_id}, 公會: {guild_id}"
-            )
+            logger.info(f"WebSocket 客戶端已斷開: {client_id}, 公會: {guild_id}")
         except Exception as e:
             logger.error(f"斷開連接時發生錯誤: {e}")
 
@@ -106,9 +102,7 @@ router = APIRouter(prefix="/api/realtime", tags=["realtime"])
 
 
 @router.websocket("/ws/{guild_id}/{client_id}")
-async def websocket_endpoint(
-    websocket: WebSocket, guild_id: int, client_id: str
-):
+async def websocket_endpoint(websocket: WebSocket, guild_id: int, client_id: str):
     """WebSocket 端點"""
     await manager.connect(websocket, guild_id, client_id)
 
@@ -129,9 +123,7 @@ async def websocket_endpoint(
         while True:
             try:
                 # 等待客戶端訊息（心跳或請求）
-                data = await asyncio.wait_for(
-                    websocket.receive_text(), timeout=30.0
-                )
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
                 message = json.loads(data)
 
                 if message.get("type") == "ping":
@@ -305,9 +297,7 @@ async def get_real_time_vote_stats(guild_id: int) -> Dict[str, Any]:
                         if isinstance(obj, decimal.Decimal):
                             return int(obj)
                         elif isinstance(obj, dict):
-                            return {
-                                k: convert_types(v) for k, v in obj.items()
-                            }
+                            return {k: convert_types(v) for k, v in obj.items()}
                         elif isinstance(obj, list):
                             return [convert_types(item) for item in obj]
                         return obj
@@ -333,30 +323,20 @@ async def get_real_time_vote_stats(guild_id: int) -> Dict[str, Any]:
                 import decimal
 
                 def convert_decimal(value):
-                    return (
-                        int(value)
-                        if isinstance(value, decimal.Decimal)
-                        else (value or 0)
-                    )
+                    return int(value) if isinstance(value, decimal.Decimal) else (value or 0)
 
                 return {
                     "active_votes": process_vote_data(active_votes),
                     "recent_completed": process_vote_data(recent_completed),
                     "today_statistics": {
                         "votes_created": convert_decimal(
-                            today_stats["votes_created_today"]
-                            if today_stats
-                            else 0
+                            today_stats["votes_created_today"] if today_stats else 0
                         ),
                         "votes_completed": convert_decimal(
-                            today_stats["votes_completed_today"]
-                            if today_stats
-                            else 0
+                            today_stats["votes_completed_today"] if today_stats else 0
                         ),
                         "total_participants": convert_decimal(
-                            today_stats["total_participants_today"]
-                            if today_stats
-                            else 0
+                            today_stats["total_participants_today"] if today_stats else 0
                         ),
                     },
                     "summary": {
@@ -420,9 +400,7 @@ async def broadcast_update(guild_id: int, update_type: str = "vote_update"):
             content={
                 "success": True,
                 "message": f"已向公會 {guild_id} 廣播更新",
-                "connections": len(
-                    manager.guild_subscriptions.get(guild_id, set())
-                ),
+                "connections": len(manager.guild_subscriptions.get(guild_id, set())),
             }
         )
 
@@ -437,8 +415,7 @@ async def get_connection_status():
     return JSONResponse(
         content={
             "total_connections": sum(
-                len(connections)
-                for connections in manager.active_connections.values()
+                len(connections) for connections in manager.active_connections.values()
             ),
             "guilds_connected": len(manager.guild_subscriptions),
             "guild_connections": {

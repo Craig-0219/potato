@@ -125,10 +125,7 @@ cors_origins = [
 # 在開發環境中允許所有來源
 import os
 
-if (
-    os.getenv("NODE_ENV") == "development"
-    or os.getenv("ENVIRONMENT") == "development"
-):
+if os.getenv("NODE_ENV") == "development" or os.getenv("ENVIRONMENT") == "development":
     cors_origins = ["*"]
 else:
     # 生產環境允許所有來源（臨時設定，建議之後限制到特定域名）
@@ -143,9 +140,7 @@ app.add_middleware(
     allow_origin_regex=r"https?://localhost:\d+",  # 允許任何 localhost 端口
 )
 
-app.add_middleware(
-    TrustedHostMiddleware, allowed_hosts=["*"]
-)  # 生產環境應該限制具體主機
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])  # 生產環境應該限制具體主機
 
 # 添加限流中間件 (如果可用)
 if HAS_SLOWAPI:
@@ -228,9 +223,7 @@ async def health_check(request: Request):
         }
     except Exception as e:
         logger.error(f"健康檢查失敗: {e}")
-        raise HTTPException(
-            status_code=503, detail="Service Unavailable - Health check failed"
-        )
+        raise HTTPException(status_code=503, detail="Service Unavailable - Health check failed")
 
 
 # 路由模組已啟用，提供完整 API 功能
@@ -294,9 +287,7 @@ async def verify_api_key(request: Request):
         try:
             from bot.services.auth_manager import auth_manager
 
-            success, auth_user, message = await auth_manager.verify_api_key(
-                api_key
-            )
+            success, auth_user, message = await auth_manager.verify_api_key(api_key)
 
             if success and auth_user:
                 return {
@@ -314,9 +305,7 @@ async def verify_api_key(request: Request):
                     "message": message,
                 }
             else:
-                raise HTTPException(
-                    status_code=401, detail=message or "API 金鑰無效"
-                )
+                raise HTTPException(status_code=401, detail=message or "API 金鑰無效")
 
         except ImportError:
             # 如果無法導入 auth_manager，使用備用驗證
@@ -331,14 +320,8 @@ async def verify_api_key(request: Request):
             # 簡單的格式驗證
             if len(key_id) >= 8 and len(key_secret) >= 16:
                 # 模擬驗證成功
-                is_admin = (
-                    "admin" in key_id.lower() or "管理" in key_id.lower()
-                )
-                is_staff = (
-                    is_admin
-                    or "staff" in key_id.lower()
-                    or "客服" in key_id.lower()
-                )
+                is_admin = "admin" in key_id.lower() or "管理" in key_id.lower()
+                is_staff = is_admin or "staff" in key_id.lower() or "客服" in key_id.lower()
 
                 return {
                     "success": True,
@@ -348,11 +331,7 @@ async def verify_api_key(request: Request):
                         "username": f"Bot User {key_id[:8]}",
                         "guild_id": 123456789,
                         "roles": ["Bot User"]
-                        + (
-                            ["Admin"]
-                            if is_admin
-                            else ["Staff"] if is_staff else []
-                        ),
+                        + (["Admin"] if is_admin else ["Staff"] if is_staff else []),
                         "permissions": (
                             ["all"]
                             if is_admin
@@ -407,17 +386,13 @@ except Exception as e:
 
 # 啟用所有路由模組
 try:
-    app.include_router(
-        system.router, prefix=f"{API_BASE_PATH}/system", tags=["system"]
-    )
+    app.include_router(system.router, prefix=f"{API_BASE_PATH}/system", tags=["system"])
     logger.info("✅ System 路由已啟用")
 except Exception as e:
     logger.warning(f"⚠️ System 路由啟用失敗: {e}")
 
 try:
-    app.include_router(
-        tickets.router, prefix=f"{API_BASE_PATH}/tickets", tags=["tickets"]
-    )
+    app.include_router(tickets.router, prefix=f"{API_BASE_PATH}/tickets", tags=["tickets"])
     logger.info("✅ Tickets 路由已啟用")
 except Exception as e:
     logger.warning(f"⚠️ Tickets 路由啟用失敗: {e}")
@@ -436,9 +411,7 @@ except Exception as e:
 try:
     from .routes import oauth
 
-    app.include_router(
-        oauth.router, prefix=f"{API_BASE_PATH}/auth", tags=["oauth"]
-    )
+    app.include_router(oauth.router, prefix=f"{API_BASE_PATH}/auth", tags=["oauth"])
     logger.info("✅ OAuth 路由已啟用")
 except Exception as e:
     logger.warning(f"⚠️ OAuth 路由啟用失敗: {e}")
@@ -555,9 +528,7 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             try:
                 # 等待客戶端訊息
-                data = await asyncio.wait_for(
-                    websocket.receive_text(), timeout=30.0
-                )
+                data = await asyncio.wait_for(websocket.receive_text(), timeout=30.0)
                 message = json.loads(data)
 
                 # 處理不同類型的訊息
@@ -568,9 +539,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     await websocket_manager.send_personal_message(
                         {
                             "type": "pong",
-                            "timestamp": datetime.now(
-                                timezone.utc
-                            ).isoformat(),
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
                         },
                         websocket,
                     )
@@ -584,9 +553,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             {
                                 "type": "auth_success",
                                 "message": "認證成功",
-                                "timestamp": datetime.now(
-                                    timezone.utc
-                                ).isoformat(),
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
                             },
                             websocket,
                         )
@@ -595,9 +562,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             {
                                 "type": "auth_error",
                                 "message": "認證失敗：缺少 token",
-                                "timestamp": datetime.now(
-                                    timezone.utc
-                                ).isoformat(),
+                                "timestamp": datetime.now(timezone.utc).isoformat(),
                             },
                             websocket,
                         )
@@ -609,9 +574,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             "type": "test_response",
                             "message": "測試訊息收到",
                             "original_message": message,
-                            "timestamp": datetime.now(
-                                timezone.utc
-                            ).isoformat(),
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
                         },
                         websocket,
                     )
@@ -622,9 +585,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         {
                             "type": "unknown_message",
                             "message": f"未知訊息類型: {message_type}",
-                            "timestamp": datetime.now(
-                                timezone.utc
-                            ).isoformat(),
+                            "timestamp": datetime.now(timezone.utc).isoformat(),
                         },
                         websocket,
                     )
@@ -678,15 +639,9 @@ def update_bot_status(bot_instance):
     if bot_instance:
         bot_status_cache.update(
             {
-                "name": (
-                    str(bot_instance.user)
-                    if bot_instance.user
-                    else "Potato Bot"
-                ),
+                "name": (str(bot_instance.user) if bot_instance.user else "Potato Bot"),
                 "guilds": len(bot_instance.guilds),
-                "status": (
-                    "online" if bot_instance.is_ready() else "connecting"
-                ),
+                "status": ("online" if bot_instance.is_ready() else "connecting"),
                 "startup_time": getattr(bot_instance, "startup_time", None),
             }
         )
@@ -726,13 +681,9 @@ async def get_bot_info():
             for module_name, module in sys.modules.items():
                 if hasattr(module, "bot"):
                     candidate = getattr(module, "bot")
-                    if hasattr(candidate, "user") and hasattr(
-                        candidate, "guilds"
-                    ):
+                    if hasattr(candidate, "user") and hasattr(candidate, "guilds"):
                         bot_instance = candidate
-                        logger.info(
-                            f"Bot 實例已找到 (方法3): {bot_instance.user}"
-                        )
+                        logger.info(f"Bot 實例已找到 (方法3): {bot_instance.user}")
                         break
 
         # 更新 Bot 狀態快取
@@ -741,12 +692,8 @@ async def get_bot_info():
                 {
                     "name": str(bot_instance.user),
                     "guilds": len(bot_instance.guilds),
-                    "status": (
-                        "online" if bot_instance.is_ready() else "connecting"
-                    ),
-                    "startup_time": getattr(
-                        bot_instance, "startup_time", None
-                    ),
+                    "status": ("online" if bot_instance.is_ready() else "connecting"),
+                    "startup_time": getattr(bot_instance, "startup_time", None),
                 }
             )
             logger.info(f"Bot 狀態已更新: {len(bot_instance.guilds)} 個伺服器")
@@ -757,9 +704,7 @@ async def get_bot_info():
             import discord
 
             try:
-                delta = (
-                    discord.utils.utcnow() - bot_status_cache["startup_time"]
-                )
+                delta = discord.utils.utcnow() - bot_status_cache["startup_time"]
                 uptime_seconds = int(delta.total_seconds())
             except Exception as e:
                 logger.warning(f"計算運行時間失敗: {e}")
@@ -794,14 +739,10 @@ async def start_api_server():
         host = "0.0.0.0"
         port = 8000
 
-        logger.info(
-            f"📚 API 文檔位址: http://{host}:{port}{API_BASE_PATH}/docs"
-        )
+        logger.info(f"📚 API 文檔位址: http://{host}:{port}{API_BASE_PATH}/docs")
 
         # 使用 uvicorn 啟動伺服器
-        config = uvicorn.Config(
-            app, host=host, port=port, log_level="info", access_log=True
-        )
+        config = uvicorn.Config(app, host=host, port=port, log_level="info", access_log=True)
         server = uvicorn.Server(config)
         await server.serve()
 

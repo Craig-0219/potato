@@ -66,9 +66,7 @@ class TicketBase(BaseModel):
     """票券基礎模型"""
 
     type: str = Field(..., description="票券類型")
-    priority: TicketPriority = Field(
-        default=TicketPriority.MEDIUM, description="優先級"
-    )
+    priority: TicketPriority = Field(default=TicketPriority.MEDIUM, description="優先級")
     title: Optional[str] = Field(None, description="票券標題")
     description: Optional[str] = Field(None, description="票券描述")
 
@@ -103,9 +101,7 @@ class TicketResponse(BaseModel):
     discord_id: str = Field(..., description="創建者 Discord ID")
     username: str = Field(..., description="創建者用戶名")
     assigned_to: Optional[int] = Field(None, description="指派給用戶 ID")
-    assigned_to_username: Optional[str] = Field(
-        None, description="指派給用戶名"
-    )
+    assigned_to_username: Optional[str] = Field(None, description="指派給用戶名")
     channel_id: Optional[int] = Field(None, description="頻道 ID")
     created_at: datetime = Field(..., description="創建時間")
     updated_at: Optional[datetime] = Field(None, description="更新時間")
@@ -125,9 +121,7 @@ class TicketSearchQuery(BaseModel):
     assigned_to: Optional[int] = Field(None, description="指派給用戶篩選")
     tag: Optional[str] = Field(None, description="標籤篩選")
     created_after: Optional[datetime] = Field(None, description="創建時間起始")
-    created_before: Optional[datetime] = Field(
-        None, description="創建時間結束"
-    )
+    created_before: Optional[datetime] = Field(None, description="創建時間結束")
     keyword: Optional[str] = Field(None, description="關鍵字搜尋")
 
 
@@ -141,9 +135,7 @@ class TicketStatistics(BaseModel):
     high_priority: int = Field(..., description="高優先級票券數")
     medium_priority: int = Field(..., description="中優先級票券數")
     low_priority: int = Field(..., description="低優先級票券數")
-    avg_resolution_time: Optional[float] = Field(
-        None, description="平均解決時間（小時）"
-    )
+    avg_resolution_time: Optional[float] = Field(None, description="平均解決時間（小時）")
     avg_rating: Optional[float] = Field(None, description="平均評分")
     period_start: datetime = Field(..., description="統計期間開始")
     period_end: datetime = Field(..., description="統計期間結束")
@@ -156,9 +148,7 @@ class StaffPerformance(BaseModel):
     username: str = Field(..., description="客服用戶名")
     total_assigned: int = Field(..., description="總指派票券數")
     total_completed: int = Field(..., description="已完成票券數")
-    avg_completion_time: Optional[float] = Field(
-        None, description="平均完成時間（小時）"
-    )
+    avg_completion_time: Optional[float] = Field(None, description="平均完成時間（小時）")
     avg_rating: Optional[float] = Field(None, description="平均評分")
     current_workload: int = Field(..., description="當前工作量")
     efficiency_score: Optional[float] = Field(None, description="效率評分")
@@ -221,9 +211,7 @@ class AutomationExecution(BaseModel):
     success: bool = Field(..., description="執行是否成功")
     execution_time_ms: int = Field(..., description="執行時間（毫秒）")
     trigger_data: Dict[str, Any] = Field(..., description="觸發數據")
-    action_results: List[Dict[str, Any]] = Field(
-        ..., description="動作執行結果"
-    )
+    action_results: List[Dict[str, Any]] = Field(..., description="動作執行結果")
     error_message: Optional[str] = Field(None, description="錯誤信息")
 
 
@@ -234,9 +222,7 @@ class APIKeyCreate(BaseModel):
     name: str = Field(..., description="金鑰名稱")
     permission_level: str = Field(..., description="權限等級")
     guild_id: Optional[int] = Field(None, description="限制伺服器 ID")
-    expires_days: Optional[int] = Field(
-        None, ge=1, le=365, description="過期天數"
-    )
+    expires_days: Optional[int] = Field(None, ge=1, le=365, description="過期天數")
 
 
 class APIKeyResponse(BaseModel):

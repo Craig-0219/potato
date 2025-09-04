@@ -93,9 +93,7 @@ class APIKeyManager:
 
             expires_at = None
             if expires_days:
-                expires_at = datetime.now(timezone.utc) + timedelta(
-                    days=expires_days
-                )
+                expires_at = datetime.now(timezone.utc) + timedelta(days=expires_days)
 
             api_key = APIKey(
                 key_id=key_id,
@@ -136,10 +134,7 @@ class APIKeyManager:
                 return None
 
             # 檢查過期時間
-            if (
-                api_key.expires_at
-                and datetime.now(timezone.utc) > api_key.expires_at
-            ):
+            if api_key.expires_at and datetime.now(timezone.utc) > api_key.expires_at:
                 api_key.is_active = False
                 return None
 
@@ -234,9 +229,7 @@ async def get_current_user(
             if not permission_level:
                 permissions = jwt_payload.get("permissions", {})
                 if permissions.get("is_owner"):
-                    permission_level = (
-                        "super_admin"  # 伺服器擁有者獲得最高權限
-                    )
+                    permission_level = "super_admin"  # 伺服器擁有者獲得最高權限
                 elif permissions.get("is_admin"):
                     permission_level = "admin"
                 elif permissions.get("is_staff"):
@@ -279,9 +272,7 @@ def require_permission(required_level: PermissionLevel):
         required_level_value = permission_hierarchy.get(required_level, 999)
 
         if user_level < required_level_value:
-            raise HTTPException(
-                status_code=403, detail=f"需要 {required_level} 或更高權限"
-            )
+            raise HTTPException(status_code=403, detail=f"需要 {required_level} 或更高權限")
 
         return user
 
@@ -292,6 +283,4 @@ def require_permission(required_level: PermissionLevel):
 require_read_permission = require_permission(PermissionLevel.READ_ONLY)
 require_write_permission = require_permission(PermissionLevel.WRITE)
 require_admin_permission = require_permission(PermissionLevel.ADMIN)
-require_super_admin_permission = require_permission(
-    PermissionLevel.SUPER_ADMIN
-)
+require_super_admin_permission = require_permission(PermissionLevel.SUPER_ADMIN)

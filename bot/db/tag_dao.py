@@ -33,9 +33,7 @@ class TagDAO:
                         exists = (await cursor.fetchone())[0] > 0
 
                 if not exists:
-                    logger.warning(
-                        "📋 檢測到標籤系統表格不存在，開始自動初始化..."
-                    )
+                    logger.warning("📋 檢測到標籤系統表格不存在，開始自動初始化...")
                     from bot.db.database_manager import get_database_manager
 
                     db_manager = get_database_manager()
@@ -233,9 +231,7 @@ class TagDAO:
 
     # ========== 標籤映射管理 ==========
 
-    async def add_tag_to_ticket(
-        self, ticket_id: int, tag_id: int, added_by: int
-    ) -> bool:
+    async def add_tag_to_ticket(self, ticket_id: int, tag_id: int, added_by: int) -> bool:
         """為票券添加標籤"""
         await self._ensure_initialized()
         try:
@@ -281,9 +277,7 @@ class TagDAO:
             logger.error(f"添加標籤到票券錯誤：{e}")
             return False
 
-    async def remove_tag_from_ticket(
-        self, ticket_id: int, tag_id: int
-    ) -> bool:
+    async def remove_tag_from_ticket(self, ticket_id: int, tag_id: int) -> bool:
         """從票券移除標籤"""
         await self._ensure_initialized()
         try:
@@ -330,9 +324,7 @@ class TagDAO:
             logger.error(f"取得票券標籤錯誤：{e}")
             return []
 
-    async def get_tickets_by_tag(
-        self, tag_id: int, limit: int = 50
-    ) -> List[Dict[str, Any]]:
+    async def get_tickets_by_tag(self, tag_id: int, limit: int = 50) -> List[Dict[str, Any]]:
         """取得使用特定標籤的票券列表"""
         await self._ensure_initialized()
         try:
@@ -361,9 +353,7 @@ class TagDAO:
 
     # ========== 使用統計 ==========
 
-    async def get_tag_usage_stats(
-        self, guild_id: int, days: int = 30
-    ) -> List[Dict[str, Any]]:
+    async def get_tag_usage_stats(self, guild_id: int, days: int = 30) -> List[Dict[str, Any]]:
         """取得標籤使用統計"""
         await self._ensure_initialized()
         try:
@@ -439,18 +429,14 @@ class TagDAO:
                     rule_id = cursor.lastrowid
                     await conn.commit()
 
-                    logger.info(
-                        f"創建自動標籤規則成功: {rule_name} (ID: {rule_id})"
-                    )
+                    logger.info(f"創建自動標籤規則成功: {rule_name} (ID: {rule_id})")
                     return rule_id
 
         except Exception as e:
             logger.error(f"創建自動標籤規則錯誤：{e}")
             return None
 
-    async def get_auto_rules(
-        self, guild_id: int, is_active: bool = True
-    ) -> List[Dict[str, Any]]:
+    async def get_auto_rules(self, guild_id: int, is_active: bool = True) -> List[Dict[str, Any]]:
         """取得自動標籤規則"""
         await self._ensure_initialized()
         try:
@@ -503,16 +489,11 @@ class TagDAO:
                 if rule["trigger_type"] == "keyword":
                     keywords = rule["trigger_value"].lower().split(",")
                     content_lower = content.lower()
-                    should_apply = any(
-                        keyword.strip() in content_lower
-                        for keyword in keywords
-                    )
+                    should_apply = any(keyword.strip() in content_lower for keyword in keywords)
 
                 elif rule["trigger_type"] == "ticket_type":
                     target_types = rule["trigger_value"].split(",")
-                    should_apply = ticket_type in [
-                        t.strip() for t in target_types
-                    ]
+                    should_apply = ticket_type in [t.strip() for t in target_types]
 
                 elif rule["trigger_type"] == "user_role" and user_roles:
                     target_roles = [
@@ -528,9 +509,7 @@ class TagDAO:
                     )  # 系統自動添加
                     if success:
                         applied_tags.append(rule["tag_id"])
-                        logger.info(
-                            f"自動應用標籤規則: {rule['rule_name']} -> 票券 #{ticket_id}"
-                        )
+                        logger.info(f"自動應用標籤規則: {rule['rule_name']} -> 票券 #{ticket_id}")
 
             return applied_tags
 
@@ -540,9 +519,7 @@ class TagDAO:
 
     # ========== 搜索和過濾 ==========
 
-    async def search_tags(
-        self, guild_id: int, query: str, limit: int = 20
-    ) -> List[Dict[str, Any]]:
+    async def search_tags(self, guild_id: int, query: str, limit: int = 20) -> List[Dict[str, Any]]:
         """搜索標籤"""
         await self._ensure_initialized()
         try:
@@ -579,9 +556,7 @@ class TagDAO:
             logger.error(f"搜索標籤錯誤：{e}")
             return []
 
-    async def get_popular_tags(
-        self, guild_id: int, limit: int = 10
-    ) -> List[Dict[str, Any]]:
+    async def get_popular_tags(self, guild_id: int, limit: int = 10) -> List[Dict[str, Any]]:
         """取得熱門標籤"""
         await self._ensure_initialized()
         try:

@@ -14,9 +14,7 @@ from shared.logger import logger
 class AIReplyView(discord.ui.View):
     """AI 回覆建議選擇界面"""
 
-    def __init__(
-        self, suggestions: List[Dict[str, Any]], confidence: float, ai_dao
-    ):
+    def __init__(self, suggestions: List[Dict[str, Any]], confidence: float, ai_dao):
         super().__init__(timeout=300)  # 5分鐘超時
         self.suggestions = suggestions
         self.confidence = confidence
@@ -59,17 +57,13 @@ class AIReplyView(discord.ui.View):
 
         async def callback(interaction: discord.Interaction):
             if index >= len(self.suggestions):
-                await interaction.response.send_message(
-                    "❌ 無效的建議選擇", ephemeral=True
-                )
+                await interaction.response.send_message("❌ 無效的建議選擇", ephemeral=True)
                 return
 
             suggestion = self.suggestions[index]
 
             # 創建模態對話框讓用戶編輯回覆
-            modal = AIReplyEditModal(
-                suggestion["text"], suggestion, self.ai_dao
-            )
+            modal = AIReplyEditModal(suggestion["text"], suggestion, self.ai_dao)
             await interaction.response.send_modal(modal)
 
         return callback
@@ -113,9 +107,7 @@ class AIReplyView(discord.ui.View):
 class AIReplyEditModal(discord.ui.Modal):
     """AI 回覆編輯模態對話框"""
 
-    def __init__(
-        self, suggested_text: str, suggestion: Dict[str, Any], ai_dao
-    ):
+    def __init__(self, suggested_text: str, suggestion: Dict[str, Any], ai_dao):
         super().__init__(title="編輯 AI 建議回覆")
         self.suggestion = suggestion
         self.ai_dao = ai_dao
@@ -147,9 +139,7 @@ class AIReplyEditModal(discord.ui.Modal):
             reply_content = self.reply_input.value.strip()
 
             if not reply_content:
-                await interaction.response.send_message(
-                    "❌ 回覆內容不能為空", ephemeral=True
-                )
+                await interaction.response.send_message("❌ 回覆內容不能為空", ephemeral=True)
                 return
 
             # 處理評分
@@ -181,9 +171,7 @@ class AIReplyEditModal(discord.ui.Modal):
                     inline=False,
                 )
 
-            await interaction.response.send_message(
-                embed=success_embed, ephemeral=True
-            )
+            await interaction.response.send_message(embed=success_embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"AI 回覆提交錯誤: {e}")
@@ -195,9 +183,7 @@ class AIReplyEditModal(discord.ui.Modal):
 class AITagSuggestionView(discord.ui.View):
     """AI 標籤建議應用界面"""
 
-    def __init__(
-        self, tag_suggestions: List[Dict[str, Any]], ticket_id: int, ai_dao
-    ):
+    def __init__(self, tag_suggestions: List[Dict[str, Any]], ticket_id: int, ai_dao):
         super().__init__(timeout=300)
         self.tag_suggestions = tag_suggestions
         self.ticket_id = ticket_id
@@ -314,17 +300,12 @@ class AITagSelect(discord.ui.Select):
                 title="✅ 標籤已應用",
                 description=f"已成功應用以下標籤：\n"
                 + "\n".join(
-                    [
-                        f"• `{tag['tag_name']}` ({tag['confidence']:.1%})"
-                        for tag in selected_tags
-                    ]
+                    [f"• `{tag['tag_name']}` ({tag['confidence']:.1%})" for tag in selected_tags]
                 ),
                 color=0x28A745,
             )
 
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"標籤選擇錯誤: {e}")
@@ -428,9 +409,7 @@ class AIPriorityView(discord.ui.View):
         if self.priority_result.get("adjustments"):
             embed.add_field(
                 name="⚖️ 調整因子",
-                value="\n".join(
-                    [f"• {adj}" for adj in self.priority_result["adjustments"]]
-                ),
+                value="\n".join([f"• {adj}" for adj in self.priority_result["adjustments"]]),
                 inline=True,
             )
 
@@ -508,15 +487,12 @@ class AIFeedbackModal(discord.ui.Modal):
                     color=0x28A745,
                 )
 
-                embed.add_field(
-                    name="您的評分", value=f"{rating}/5 ⭐", inline=True
-                )
+                embed.add_field(name="您的評分", value=f"{rating}/5 ⭐", inline=True)
 
                 if comment:
                     embed.add_field(
                         name="您的評論",
-                        value=comment[:100]
-                        + ("..." if len(comment) > 100 else ""),
+                        value=comment[:100] + ("..." if len(comment) > 100 else ""),
                         inline=False,
                     )
             else:
@@ -526,9 +502,7 @@ class AIFeedbackModal(discord.ui.Modal):
                     color=0xDC3545,
                 )
 
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"AI 回饋提交錯誤: {e}")

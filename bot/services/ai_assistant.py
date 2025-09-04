@@ -200,9 +200,7 @@ class AIAssistantManager:
 
         try:
             # 檢查速率限制
-            if not await self._check_rate_limit(
-                ai_request.user_id, ai_request.provider
-            ):
+            if not await self._check_rate_limit(ai_request.user_id, ai_request.provider):
                 return AIResponse(
                     request_id=request_id,
                     content="",
@@ -236,9 +234,7 @@ class AIAssistantManager:
             response_time = time.time() - start_time
 
             # 記錄使用量
-            await self._record_usage(
-                ai_request.user_id, tokens_used, ai_request.provider
-            )
+            await self._record_usage(ai_request.user_id, tokens_used, ai_request.provider)
 
             return AIResponse(
                 request_id=request_id,
@@ -249,9 +245,7 @@ class AIAssistantManager:
                 success=True,
                 metadata={
                     "task_type": ai_request.task_type.value,
-                    "model_used": self.models.get(ai_request.provider, {}).get(
-                        "chat", "unknown"
-                    ),
+                    "model_used": self.models.get(ai_request.provider, {}).get("chat", "unknown"),
                 },
             )
 
@@ -267,9 +261,7 @@ class AIAssistantManager:
                 error_message=str(e),
             )
 
-    async def _build_prompt(
-        self, ai_request: AIRequest
-    ) -> List[Dict[str, str]]:
+    async def _build_prompt(self, ai_request: AIRequest) -> List[Dict[str, str]]:
         """構建格式化的提示詞"""
         try:
             template = self.prompt_templates.get(ai_request.task_type)
@@ -278,9 +270,7 @@ class AIAssistantManager:
 
             # 替換模板變量
             context = ai_request.context or {}
-            user_prompt = template["user"].format(
-                prompt=ai_request.prompt, **context
-            )
+            user_prompt = template["user"].format(prompt=ai_request.prompt, **context)
 
             messages = [
                 {"role": "system", "content": template["system"]},
@@ -347,9 +337,7 @@ class AIAssistantManager:
 
                     if response.status != 200:
                         error_text = await response.text()
-                        raise Exception(
-                            f"OpenAI API錯誤 {response.status}: {error_text}"
-                        )
+                        raise Exception(f"OpenAI API錯誤 {response.status}: {error_text}")
 
                     result = await response.json()
 
@@ -391,9 +379,7 @@ class AIAssistantManager:
                 if msg["role"] == "system":
                     system_message = msg["content"]
                 else:
-                    claude_messages.append(
-                        {"role": msg["role"], "content": msg["content"]}
-                    )
+                    claude_messages.append({"role": msg["role"], "content": msg["content"]})
 
             payload = {
                 "model": model,
@@ -415,17 +401,12 @@ class AIAssistantManager:
 
                     if response.status != 200:
                         error_text = await response.text()
-                        raise Exception(
-                            f"Claude API錯誤 {response.status}: {error_text}"
-                        )
+                        raise Exception(f"Claude API錯誤 {response.status}: {error_text}")
 
                     result = await response.json()
 
                     content = result["content"][0]["text"]
-                    tokens_used = (
-                        result["usage"]["input_tokens"]
-                        + result["usage"]["output_tokens"]
-                    )
+                    tokens_used = result["usage"]["input_tokens"] + result["usage"]["output_tokens"]
 
                     return content, tokens_used
 
@@ -460,9 +441,7 @@ class AIAssistantManager:
 
     # ========== 速率限制和使用統計 ==========
 
-    async def _check_rate_limit(
-        self, user_id: int, provider: AIProvider
-    ) -> bool:
+    async def _check_rate_limit(self, user_id: int, provider: AIProvider) -> bool:
         """檢查速率限制"""
         try:
             cache_key = f"ai_rate_limit:{provider.value}:{user_id}"
@@ -478,9 +457,7 @@ class AIAssistantManager:
                 return False
 
             # 增加計數
-            await cache_manager.set(
-                cache_key, current_count + 1, 60
-            )  # 1分鐘過期
+            await cache_manager.set(cache_key, current_count + 1, 60)  # 1分鐘過期
 
             return True
 
@@ -488,9 +465,7 @@ class AIAssistantManager:
             logger.error(f"❌ 檢查速率限制失敗: {e}")
             return True  # 檢查失敗時允許通過
 
-    async def _record_usage(
-        self, user_id: int, tokens_used: int, provider: AIProvider
-    ):
+    async def _record_usage(self, user_id: int, tokens_used: int, provider: AIProvider):
         """記錄使用量"""
         try:
             # 記錄到緩存
@@ -500,19 +475,13 @@ class AIAssistantManager:
             daily_usage = await cache_manager.get(daily_key) or 0
             monthly_usage = await cache_manager.get(monthly_key) or 0
 
-            await cache_manager.set(
-                daily_key, daily_usage + tokens_used, 86400
-            )  # 24小時
-            await cache_manager.set(
-                monthly_key, monthly_usage + tokens_used, 2592000
-            )  # 30天
+            await cache_manager.set(daily_key, daily_usage + tokens_used, 86400)  # 24小時
+            await cache_manager.set(monthly_key, monthly_usage + tokens_used, 2592000)  # 30天
 
         except Exception as e:
             logger.error(f"❌ 記錄使用量失敗: {e}")
 
-    async def get_user_usage(
-        self, user_id: int, provider: AIProvider
-    ) -> Dict[str, int]:
+    async def get_user_usage(self, user_id: int, provider: AIProvider) -> Dict[str, int]:
         """獲取用戶使用量統計"""
         try:
             daily_key = f"ai_usage_daily:{provider.value}:{user_id}"
@@ -524,12 +493,8 @@ class AIAssistantManager:
             return {
                 "daily_tokens": daily_usage,
                 "monthly_tokens": monthly_usage,
-                "daily_limit": self.rate_limits.get(provider, {"rpm": 10})[
-                    "rpm"
-                ],
-                "monthly_limit": self.rate_limits.get(
-                    provider, {"tpm": 10000}
-                )["tpm"],
+                "daily_limit": self.rate_limits.get(provider, {"rpm": 10})["rpm"],
+                "monthly_limit": self.rate_limits.get(provider, {"tpm": 10000})["tpm"],
             }
 
         except Exception as e:
@@ -730,26 +695,20 @@ class EnhancedAIAssistant:
             if self.conversation_manager:
                 # 獲取或創建對話會話
                 session_id = f"{guild_id}_{user_id}"
-                existing_session = await self.conversation_manager.get_session(
-                    session_id
-                )
+                existing_session = await self.conversation_manager.get_session(session_id)
 
                 if not existing_session:
                     # 創建新會話
-                    session = (
-                        await self.conversation_manager.start_conversation(
-                            user_id=user_id,
-                            guild_id=guild_id,
-                            channel_id=channel_id,
-                            initial_message=message,
-                        )
+                    session = await self.conversation_manager.start_conversation(
+                        user_id=user_id,
+                        guild_id=guild_id,
+                        channel_id=channel_id,
+                        initial_message=message,
                     )
                     session_id = session.session_id
 
                 # 處理訊息
-                response = await self.conversation_manager.process_message(
-                    session_id, message
-                )
+                response = await self.conversation_manager.process_message(session_id, message)
                 if response:
                     return response
 
@@ -763,13 +722,9 @@ class EnhancedAIAssistant:
                 provider=AIProvider.OPENAI,
             )
 
-            legacy_response = await self.legacy_manager.process_request(
-                request
-            )
+            legacy_response = await self.legacy_manager.process_request(request)
             return (
-                legacy_response.content
-                if legacy_response.success
-                else "抱歉，我無法處理您的請求。"
+                legacy_response.content if legacy_response.success else "抱歉，我無法處理您的請求。"
             )
 
         except Exception as e:
@@ -784,9 +739,7 @@ class EnhancedAIAssistant:
             return None
 
         try:
-            result = await self.intent_recognizer.recognize_intent(
-                text, user_id, context or {}
-            )
+            result = await self.intent_recognizer.recognize_intent(text, user_id, context or {})
             return result.intent if result.confidence > 0.5 else None
         except Exception as e:
             logger.error(f"❌ 意圖識別失敗: {e}")
@@ -826,9 +779,7 @@ class EnhancedAIAssistant:
             logger.error(f"❌ 引導式對話開始失敗: {e}")
             return None
 
-    async def get_conversation_stats(
-        self, user_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+    async def get_conversation_stats(self, user_id: Optional[str] = None) -> Dict[str, Any]:
         """獲取對話統計"""
         stats = {
             "legacy_available": True,
@@ -836,9 +787,7 @@ class EnhancedAIAssistant:
         }
 
         if self.conversation_manager:
-            sessions = await self.conversation_manager.list_active_sessions(
-                user_id
-            )
+            sessions = await self.conversation_manager.list_active_sessions(user_id)
             stats.update(
                 {
                     "active_sessions": len(sessions),
@@ -847,9 +796,7 @@ class EnhancedAIAssistant:
             )
 
         if self.ai_engine:
-            stats["ai_engine_stats"] = (
-                await self.ai_engine.get_usage_statistics()
-            )
+            stats["ai_engine_stats"] = await self.ai_engine.get_usage_statistics()
 
         return stats
 
@@ -862,15 +809,11 @@ class EnhancedAIAssistant:
         }
 
         if self.ai_engine:
-            health["components"][
-                "ai_engine"
-            ] = await self.ai_engine.health_check()
+            health["components"]["ai_engine"] = await self.ai_engine.health_check()
 
         if self.conversation_manager:
             health["components"]["conversation_manager"] = {
-                "active_sessions": len(
-                    await self.conversation_manager.list_active_sessions()
-                ),
+                "active_sessions": len(await self.conversation_manager.list_active_sessions()),
                 "status": "healthy",
             }
 

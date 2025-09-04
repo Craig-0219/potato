@@ -165,12 +165,8 @@ class AutomationDAO(BaseDAO):
                             rule_data["guild_id"],
                             rule_data.get("status", "draft"),
                             rule_data["trigger_type"],
-                            json.dumps(
-                                rule_data.get("trigger_conditions", [])
-                            ),
-                            json.dumps(
-                                rule_data.get("trigger_parameters", {})
-                            ),
+                            json.dumps(rule_data.get("trigger_conditions", [])),
+                            json.dumps(rule_data.get("trigger_parameters", {})),
                             json.dumps(rule_data["actions"]),
                             rule_data.get("created_by", 0),
                             json.dumps(rule_data.get("tags", [])),
@@ -195,9 +191,7 @@ class AutomationDAO(BaseDAO):
             logger.error(f"創建自動化規則失敗: {e}")
             raise
 
-    async def update_rule(
-        self, rule_id: str, updates: Dict[str, Any], updated_by: int
-    ) -> bool:
+    async def update_rule(self, rule_id: str, updates: Dict[str, Any], updated_by: int) -> bool:
         """更新自動化規則"""
         try:
             async with self.db.connection() as conn:
@@ -224,15 +218,11 @@ class AutomationDAO(BaseDAO):
 
                     if "trigger_conditions" in updates:
                         set_clauses.append("trigger_conditions = %s")
-                        params.append(
-                            json.dumps(updates["trigger_conditions"])
-                        )
+                        params.append(json.dumps(updates["trigger_conditions"]))
 
                     if "trigger_parameters" in updates:
                         set_clauses.append("trigger_parameters = %s")
-                        params.append(
-                            json.dumps(updates["trigger_parameters"])
-                        )
+                        params.append(json.dumps(updates["trigger_parameters"]))
 
                     if "actions" in updates:
                         set_clauses.append("actions = %s")
@@ -263,9 +253,7 @@ class AutomationDAO(BaseDAO):
                     await conn.commit()
 
                     # 記錄變更歷史
-                    await self._log_rule_history(
-                        rule_id, updated_by, "updated", updates
-                    )
+                    await self._log_rule_history(rule_id, updated_by, "updated", updates)
 
                     return cursor.rowcount > 0
 
@@ -301,12 +289,8 @@ class AutomationDAO(BaseDAO):
                         "guild_id": result[3],
                         "status": result[4],
                         "trigger_type": result[5],
-                        "trigger_conditions": (
-                            json.loads(result[6]) if result[6] else []
-                        ),
-                        "trigger_parameters": (
-                            json.loads(result[7]) if result[7] else {}
-                        ),
+                        "trigger_conditions": (json.loads(result[6]) if result[6] else []),
+                        "trigger_parameters": (json.loads(result[7]) if result[7] else {}),
                         "actions": json.loads(result[8]) if result[8] else [],
                         "created_by": result[9],
                         "created_at": result[10],
@@ -349,16 +333,12 @@ class AutomationDAO(BaseDAO):
                 conditions.append("trigger_type = %s")
                 params.append(trigger_type)
 
-            where_clause = (
-                "WHERE " + " AND ".join(conditions) if conditions else ""
-            )
+            where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
 
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     # 獲取總數
-                    count_sql = (
-                        f"SELECT COUNT(*) FROM automation_rules {where_clause}"
-                    )
+                    count_sql = f"SELECT COUNT(*) FROM automation_rules {where_clause}"
                     await cursor.execute(count_sql, params)
                     total_count = (await cursor.fetchone())[0]
 
@@ -396,11 +376,7 @@ class AutomationDAO(BaseDAO):
                                 "execution_count": result[10],
                                 "success_count": result[11],
                                 "failure_count": result[12],
-                                "tags": (
-                                    json.loads(result[13])
-                                    if result[13]
-                                    else []
-                                ),
+                                "tags": (json.loads(result[13]) if result[13] else []),
                                 "priority": result[14],
                             }
                         )
@@ -417,9 +393,7 @@ class AutomationDAO(BaseDAO):
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     # 記錄刪除歷史
-                    await self._log_rule_history(
-                        rule_id, deleted_by, "deleted", {}
-                    )
+                    await self._log_rule_history(rule_id, deleted_by, "deleted", {})
 
                     # 刪除規則（級聯刪除相關記錄）
                     await cursor.execute(
@@ -452,12 +426,8 @@ class AutomationDAO(BaseDAO):
                             execution_data["id"],
                             execution_data["rule_id"],
                             execution_data["guild_id"],
-                            json.dumps(
-                                execution_data.get("trigger_event", {})
-                            ),
-                            execution_data.get(
-                                "started_at", datetime.now(timezone.utc)
-                            ),
+                            json.dumps(execution_data.get("trigger_event", {})),
+                            execution_data.get("started_at", datetime.now(timezone.utc)),
                             execution_data.get("user_id"),
                             execution_data.get("channel_id"),
                             execution_data.get("message_id"),
@@ -471,9 +441,7 @@ class AutomationDAO(BaseDAO):
             logger.error(f"創建執行記錄失敗: {e}")
             raise
 
-    async def update_execution(
-        self, execution_id: str, updates: Dict[str, Any]
-    ) -> bool:
+    async def update_execution(self, execution_id: str, updates: Dict[str, Any]) -> bool:
         """更新執行記錄"""
         try:
             async with self.db.connection() as conn:
@@ -552,9 +520,7 @@ class AutomationDAO(BaseDAO):
                 conditions.append("started_at >= %s")
                 params.append(start_date)
 
-            where_clause = (
-                "WHERE " + " AND ".join(conditions) if conditions else ""
-            )
+            where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
 
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
@@ -595,9 +561,7 @@ class AutomationDAO(BaseDAO):
                                 "success": result[6],
                                 "executed_actions": result[7],
                                 "failed_actions": result[8],
-                                "execution_time": (
-                                    float(result[9]) if result[9] else 0.0
-                                ),
+                                "execution_time": (float(result[9]) if result[9] else 0.0),
                                 "error_message": result[10],
                                 "user_id": result[11],
                                 "channel_id": result[12],
@@ -612,9 +576,7 @@ class AutomationDAO(BaseDAO):
 
     # ========== 統計操作 ==========
 
-    async def update_rule_statistics(
-        self, rule_id: str, execution_time: float, success: bool
-    ):
+    async def update_rule_statistics(self, rule_id: str, execution_time: float, success: bool):
         """更新規則統計"""
         try:
             today = datetime.now(timezone.utc).date()
@@ -662,9 +624,7 @@ class AutomationDAO(BaseDAO):
         except Exception as e:
             logger.error(f"更新規則統計失敗: {e}")
 
-    async def get_rule_statistics(
-        self, rule_id: str, days: int = 30
-    ) -> Dict[str, Any]:
+    async def get_rule_statistics(self, rule_id: str, days: int = 30) -> Dict[str, Any]:
         """獲取規則統計"""
         try:
             end_date = datetime.now(timezone.utc).date()
@@ -713,14 +673,10 @@ class AutomationDAO(BaseDAO):
                         "success_count": overall_stats[1] or 0,
                         "failure_count": overall_stats[2] or 0,
                         "success_rate": (
-                            (overall_stats[1] / overall_stats[0] * 100)
-                            if overall_stats[0]
-                            else 0
+                            (overall_stats[1] / overall_stats[0] * 100) if overall_stats[0] else 0
                         ),
                         "avg_execution_time": (
-                            float(overall_stats[3])
-                            if overall_stats[3]
-                            else 0.0
+                            float(overall_stats[3]) if overall_stats[3] else 0.0
                         ),
                         "daily_stats": [
                             {
@@ -805,14 +761,10 @@ class AutomationDAO(BaseDAO):
                         "success_count": overall_stats[3] or 0,
                         "failure_count": overall_stats[4] or 0,
                         "success_rate": (
-                            (overall_stats[3] / overall_stats[2] * 100)
-                            if overall_stats[2]
-                            else 0
+                            (overall_stats[3] / overall_stats[2] * 100) if overall_stats[2] else 0
                         ),
                         "avg_execution_time": (
-                            float(overall_stats[5])
-                            if overall_stats[5]
-                            else 0.0
+                            float(overall_stats[5]) if overall_stats[5] else 0.0
                         ),
                         "trigger_distribution": [
                             {"type": trigger[0], "count": trigger[1]}
@@ -901,9 +853,7 @@ class AutomationDAO(BaseDAO):
                                 "id": result[0],
                                 "changed_by": result[1],
                                 "change_type": result[2],
-                                "changes": (
-                                    json.loads(result[3]) if result[3] else {}
-                                ),
+                                "changes": (json.loads(result[3]) if result[3] else {}),
                                 "created_at": result[4],
                             }
                         )
@@ -944,9 +894,7 @@ class AutomationDAO(BaseDAO):
     async def cleanup_old_statistics(self, days: int = 365) -> int:
         """清理舊的統計數據"""
         try:
-            cutoff_date = datetime.now(timezone.utc).date() - timedelta(
-                days=days
-            )
+            cutoff_date = datetime.now(timezone.utc).date() - timedelta(days=days)
 
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
