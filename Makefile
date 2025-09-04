@@ -1,173 +1,124 @@
-# Makefile
-# 專案自動化任務
-
-.PHONY: help install dev-install test lint format security clean docs pre-commit-install run-bot run-api health-check
+# Potato Bot 重構後 Makefile
+.PHONY: help install dev-install format lint test security clean run
 
 # 預設目標
+.DEFAULT_GOAL := help
+
+# 變數定義
+PYTHON := python3
+PIP := pip3
+SRC_DIR := src
+TEST_DIR := tests
+VENV_DIR := .venv
+
+# 說明
 help: ## 顯示可用命令
-	@echo "Potato Bot - 可用命令："
-	@echo ""
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@echo "Potato Bot 開發命令："
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
 # 安裝依賴
 install: ## 安裝生產依賴
-	pip install -r requirements.txt
+	$(PIP) install -r requirements.txt
 
 dev-install: ## 安裝開發依賴
-	pip install -e ".[dev]"
+	$(PIP) install -r requirements.txt
+	$(PIP) install pre-commit pytest-cov black isort flake8 mypy bandit
 	pre-commit install
 
-# 測試相關
-test: ## 運行所有測試
-	python -m pytest tests/ -v
+# 虛擬環境
+venv: ## 創建虛擬環境
+	$(PYTHON) -m venv $(VENV_DIR)
+	@echo "請執行: source $(VENV_DIR)/bin/activate"
 
-test-unit: ## 運行單元測試
-	python -m pytest tests/unit/ -v -m "unit"
+# 程式碼格式化
+format: ## 格式化程式碼
+	@echo "🎨 格式化程式碼..."
+	black $(SRC_DIR)/ $(TEST_DIR)/
+	isort $(SRC_DIR)/ $(TEST_DIR)/
+	@echo "✅ 格式化完成"
 
-test-integration: ## 運行整合測試
-	python -m pytest tests/integration/ -v -m "integration"
+# 程式碼檢查
+lint: ## 程式碼品質檢查
+	@echo "🔍 執行程式碼檢查..."
+	flake8 $(SRC_DIR)/ $(TEST_DIR)/
+	mypy $(SRC_DIR)/
+	@echo "✅ 程式碼檢查完成"
 
-test-coverage: ## 運行測試並生成覆蓋率報告
-	python -m pytest tests/ --cov=bot --cov-report=html --cov-report=term-missing
+# 安全掃描
+security: ## 安全漏洞掃描
+	@echo "🛡️ 執行安全掃描..."
+	bandit -r $(SRC_DIR)/ -f json -o bandit-report.json
+	safety check
+	@echo "✅ 安全掃描完成"
 
-# 代碼品質
-lint: ## 檢查代碼風格
-	flake8 bot/ shared/ tests/
-	mypy bot/ shared/
+# 執行測試
+test: ## 執行測試
+	@echo "🧪 執行測試..."
+	pytest $(TEST_DIR)/ -v --cov=$(SRC_DIR) --cov-report=html --cov-report=term-missing
+	@echo "✅ 測試完成"
 
-format: ## 格式化代碼
-	black bot/ shared/ tests/
-	isort bot/ shared/ tests/
+# 快速測試 (無覆蓋率)
+test-quick: ## 快速測試 (無覆蓋率報告)
+	@echo "⚡ 快速測試..."
+	pytest $(TEST_DIR)/ -v
+	@echo "✅ 快速測試完成"
 
-format-check: ## 檢查代碼格式
-	black --check bot/ shared/ tests/
-	isort --check-only bot/ shared/ tests/
+# 執行特定測試
+test-unit: ## 執行單元測試
+	pytest $(TEST_DIR)/unit/ -v
 
-security: ## 安全性檢查
-	bandit -r bot/ shared/ -f json -o bandit-report.json
-	@echo "安全檢查完成，報告已生成：bandit-report.json"
+test-integration: ## 執行整合測試
+	pytest $(TEST_DIR)/integration/ -v
 
-# Pre-commit hooks
+# 品質檢查 (全套)
+quality: format lint security ## 執行完整品質檢查
+
+# 清理
+clean: ## 清理產生的檔案
+	@echo "🧹 清理檔案..."
+	find . -type f -name "*.pyc" -delete
+	find . -type d -name "__pycache__" -exec rm -rf {} +
+	find . -type d -name "*.egg-info" -exec rm -rf {} +
+	rm -rf htmlcov/
+	rm -rf .coverage
+	rm -rf .pytest_cache/
+	rm -rf bandit-report.json
+	@echo "✅ 清理完成"
+
+# 啟動機器人
+run: ## 啟動 Potato Bot
+	@echo "🚀 啟動 Potato Bot..."
+	$(PYTHON) start.py
+
+# 開發模式啟動
+dev-run: ## 開發模式啟動 (自動重載)
+	@echo "🔧 開發模式啟動..."
+	$(PYTHON) start.py --dev
+
+# Docker 相關 (如果需要)
+docker-build: ## 建構 Docker 映像
+	docker build -t potato-bot .
+
+docker-run: ## 執行 Docker 容器
+	docker run --env-file .env potato-bot
+
+# Pre-commit 相關
 pre-commit-install: ## 安裝 pre-commit hooks
 	pre-commit install
 
-pre-commit-run: ## 手動運行 pre-commit 檢查
+pre-commit-run: ## 執行 pre-commit 檢查
 	pre-commit run --all-files
 
-# 運行服務
-run-bot: ## 啟動 Discord Bot
-	python bot/main.py
+# 重置開發環境
+reset-dev: clean dev-install ## 重置開發環境
 
-run-api: ## 啟動 API 服務
-	uvicorn bot.api.app:app --host 0.0.0.0 --port 8000 --reload
-
-run-web: ## 啟動 Web 界面 (開發模式)
-	cd web-ui && npm run dev
-
-# 健康檢查
-health-check: ## 檢查系統健康狀態
-	python -c "from bot.services.system_monitor import SystemMonitor; import asyncio; asyncio.run(SystemMonitor().get_system_health())"
-
-# 資料庫相關
-db-migrate: ## 執行資料庫遷移
-	python -c "from bot.db.database_manager import DatabaseManager; import asyncio; asyncio.run(DatabaseManager().run_migrations())"
-
-db-backup: ## 創建資料庫備份
-	python -c "from bot.services.backup_service import BackupService; import asyncio; asyncio.run(BackupService().create_backup())"
-
-# 清理
-clean: ## 清理臨時文件
-	find . -type f -name "*.pyc" -delete
-	find . -type d -name "__pycache__" -delete
-	find . -type d -name ".pytest_cache" -delete
-	find . -type f -name ".coverage" -delete
-	find . -type d -name "htmlcov" -delete
-	find . -type f -name "bandit-report.json" -delete
-
-clean-logs: ## 清理日誌文件
-	find . -name "*.log" -type f -delete
-	find . -name "*.log.*" -type f -delete
-
-# 開發工具
-debug-logs: ## 啟用除錯日誌
-	@echo "設置除錯環境變數..."
-	@echo "export DEBUG=true"
-	@echo "export DEBUG_VERBOSE=true"
-	@echo "export LOG_LEVEL=DEBUG"
-
-setup-env: ## 創建環境變數範例文件
-	@if [ ! -f .env ]; then \
-		cp .env.example .env; \
-		echo "已創建 .env 文件，請編輯配置"; \
-	else \
-		echo ".env 文件已存在"; \
-	fi
-
-# 文檔相關
-docs-serve: ## 啟動文檔服務器
-	mkdocs serve
-
-docs-build: ## 構建文檔
-	mkdocs build
-
-# Git 相關
-git-hooks: ## 設置 Git hooks
-	pre-commit install
-	@echo "Git hooks 已安裝"
+# CI/CD 模擬
+ci-test: quality test ## 模擬 CI 流程
 
 # 部署相關
-docker-build: ## 構建 Docker 映像
-	docker build -t potato-bot:latest .
+build: quality test ## 建構檢查
+	@echo "🏗️ 建構檢查完成，可以部署"
 
-docker-run: ## 運行 Docker 容器
-	docker run -d --name potato-bot --env-file .env -p 8000:8000 potato-bot:latest
-
-# 品質檢查
-quality-check: format-check lint security test ## 完整品質檢查
-
-# CI/CD 相關
-ci-test: ## CI 環境測試
-	python -m pytest tests/ --cov=bot --cov-report=xml --cov-fail-under=70
-
-ci-build: ## CI 環境構建檢查
-	python -m pip install --upgrade pip
-	pip install -e ".[dev]"
-	make quality-check
-
-# 開發工作流程
-dev-setup: dev-install pre-commit-install setup-env ## 完整開發環境設置
-	@echo "開發環境設置完成！"
-	@echo "下一步："
-	@echo "1. 編輯 .env 文件配置"
-	@echo "2. 運行 'make test' 確保測試通過"
-	@echo "3. 運行 'make run-bot' 啟動機器人"
-
-# 技術債務處理
-tech-debt-check: ## 檢查技術債務
-	@echo "檢查技術債務..."
-	@echo "代碼複雜度："
-	@find bot/ -name "*.py" -exec wc -l {} + | sort -n | tail -10
-	@echo ""
-	@echo "TODO 項目："
-	@grep -r "TODO\|FIXME\|XXX" bot/ || echo "沒有發現 TODO 項目"
-
-debug-cleanup: ## 清理除錯代碼
-	python scripts/cleanup_debug_logs.py
-
-# 監控和分析
-analyze-performance: ## 性能分析
-	@echo "生成性能分析報告..."
-	python -c "from bot.services.system_monitor import SystemMonitor; import asyncio; asyncio.run(SystemMonitor().generate_performance_report())"
-
-monitor-memory: ## 記憶體使用監控
-	@echo "記憶體使用情況："
-	ps aux | grep python | grep -v grep
-
-# 專案統計
-stats: ## 專案統計
-	@echo "專案統計："
-	@echo "Python 文件數：" $(shell find bot/ shared/ -name "*.py" | wc -l)
-	@echo "代碼行數：" $(shell find bot/ shared/ -name "*.py" -exec wc -l {} + | tail -1 | cut -d' ' -f1)
-	@echo "測試文件數：" $(shell find tests/ -name "*.py" | wc -l)
-	@echo "函數定義：" $(shell grep -r "def " bot/ shared/ | wc -l)
-	@echo "類別定義：" $(shell grep -r "class " bot/ shared/ | wc -l)
+# 版本管理
+version: ## 顯示版本資訊
+	@grep version pyproject.toml

@@ -1,0 +1,34 @@
+# Coverage 配置 - 重構後版本
+[run]
+source = src
+omit = 
+    */tests/*
+    */venv/*
+    */.venv/*
+    */migrations/*
+    */test_*.py
+    */__pycache__/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+
+# 設定最低覆蓋率
+fail_under = 70
+
+# 顯示缺失的行號
+show_missing = True
+
+# 跳過覆蓋率為 100% 的檔案
+skip_covered = False
+
+[html]
+directory = htmlcov
+
+[xml]
+output = coverage.xml

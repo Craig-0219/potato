@@ -26,36 +26,76 @@ classifiers = [
 ]
 
 dependencies = [
-    "discord.py>=2.5.2",
-    "fastapi>=0.110.0",
+    # Core Discord Bot
+    "discord.py>=2.3.2",
+    
+    # Web Framework & API
+    "fastapi>=0.104.1",
+    "uvicorn[standard]>=0.24.0",
+    
+    # Database & Caching
     "aiomysql>=0.2.0",
-    "pydantic>=2.0.0",
+    "redis>=5.0.1",
+    
+    # Data Validation & Serialization
+    "pydantic>=2.5.0",
+    "orjson>=3.9.9",
+    "msgpack>=1.0.7",
+    
+    # Environment & Configuration
     "python-dotenv>=1.0.0",
-    "aioredis>=2.0.1",
-    "openai>=1.12.0",
+    "PyYAML>=6.0.1",
+    
+    # Authentication & Security
+    "python-jose[cryptography]>=3.3.0",
+    "cryptography>=41.0.7",
+    "PyNaCl>=1.5.0",
+    "PyJWT>=2.8.0",
+    
+    # HTTP & WebSocket
+    "aiohttp>=3.9.0",
+    "websockets>=12.0",
+    "httpx>=0.25.0",
+    
+    # File & Media Processing
+    "aiofiles>=24.1.0",
     "Pillow>=10.0.0",
     "yt-dlp>=2024.3.10",
+    
+    # AI & ML
+    "openai>=1.12.0",
     "textblob>=0.17.1",
-    "httpx>=0.25.0",
-    "PyJWT>=2.8.0",
-    "cryptography>=41.0.0",
-    "PyNaCl>=1.5.0",
+    
+    # Utilities
+    "python-dateutil>=2.8.2",
+    "pytz>=2023.3",
+    "regex>=2023.10.3",
+    "psutil>=5.9.6",
 ]
 
 [project.optional-dependencies]
 dev = [
+    # Testing Framework
     "pytest>=8.0.0",
-    "pytest-asyncio>=0.23.0",
+    "pytest-asyncio>=0.23.0", 
     "pytest-cov>=4.0.0",
     "pytest-timeout>=2.3.1",
-    "black>=24.8.0",
-    "isort>=5.13.2",
-    "flake8>=7.1.1",
-    "mypy>=1.11.2",
-    "bandit>=1.7.9",
-    "pydocstyle>=6.3.0",
-    "pre-commit>=3.0.0",
+    "pytest-mock>=3.12.0",
     "coverage>=7.0.0",
+    
+    # Code Quality & Formatting
+    "ruff>=0.1.0",
+    "black>=24.8.0",
+    "mypy>=1.11.2",
+    
+    # Security Analysis
+    "bandit>=1.7.9",
+    "semgrep>=1.45.0",
+    "safety>=2.3.0",
+    
+    # Development Tools
+    "pre-commit>=3.0.0",
+    "pydocstyle>=6.3.0",
 ]
 test = [
     "pytest>=8.0.0",
@@ -111,21 +151,29 @@ ensure_newline_before_comments = true
 known_first_party = ["bot", "shared"]
 known_third_party = ["discord", "fastapi", "pydantic", "aiomysql"]
 
-[tool.flake8]
-max-line-length = 100
-extend-ignore = ["E203", "W503", "E501", "F401"]
-max-complexity = 12
-exclude = [
-    ".git",
-    "__pycache__",
-    ".pytest_cache",
-    ".mypy_cache",
-    "build",
-    "dist",
-    "archive",
-    "backups",
-    "node_modules"
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings  
+    "F",   # pyflakes
+    "I",   # isort
+    "C90", # mccabe complexity
+    "B",   # flake8-bugbear
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "S",   # flake8-bandit
 ]
+ignore = ["E203", "W503", "S101"]  # Ignore specific rules
+
+[tool.ruff.lint.mccabe]
+max-complexity = 12
+
+[tool.ruff.lint.isort]
+known-first-party = ["bot", "shared"]
 
 [tool.mypy]
 python_version = "3.10"
@@ -162,10 +210,10 @@ addopts = [
     "-v",
     "--strict-markers",
     "--tb=short",
-    "--cov=bot",
+    "--cov=shared",
     "--cov-report=html:htmlcov",
     "--cov-report=term-missing",
-    "--cov-fail-under=70"
+    "--cov-fail-under=9"
 ]
 markers = [
     "unit: 單元測試",

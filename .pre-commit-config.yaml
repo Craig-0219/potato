@@ -1,43 +1,54 @@
-# .pre-commit-config.yaml
-# 簡化的代碼品質預提交檢查配置
-
+# Pre-commit 配置 - 重構後版本
 repos:
-  # Python 代碼格式化
+  # Python 格式化
   - repo: https://github.com/psf/black
-    rev: 24.8.0
+    rev: 23.9.1
     hooks:
       - id: black
         language_version: python3
-        args: [--line-length=100]
-        files: \.py$
+        args: [--line-length=88]
+        files: ^src/.*\.py$
 
-  # Python import 排序
-  - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
+  # Import 排序
+  - repo: https://github.com/PyCQA/isort
+    rev: 5.12.0
     hooks:
       - id: isort
-        args: [--profile, black, --line-length, "100"]
-        files: \.py$
+        args: [--profile=black, --line-length=88]
+        files: ^src/.*\.py$
 
-  # Python 風格檢查
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.1.1
+  # 程式碼風格檢查
+  - repo: https://github.com/PyCQA/flake8
+    rev: 6.1.0
     hooks:
       - id: flake8
-        files: \.py$
+        args: [--max-line-length=88, --extend-ignore=E203,W503]
+        files: ^src/.*\.py$
 
-  # 基本文件檢查
+  # 安全檢查
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        args: [-r, -f, json, -o, bandit-report.json]
+        files: ^src/.*\.py$
+
+  # 通用檢查
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v4.4.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-json
-      - id: check-added-large-files
       - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1024]
 
-default_language_version:
-  python: python3
-
-default_stages: [commit]
+  # Python 語法檢查
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.6.1
+    hooks:
+      - id: mypy
+        files: ^src/.*\.py$
+        args: [--ignore-missing-imports]
