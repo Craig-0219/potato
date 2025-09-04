@@ -1,13 +1,14 @@
-# Potato Discord Bot - Development Branch
+# 🥔 Potato Discord Bot
 
-[![Version](https://img.shields.io/badge/version-2025.08.30-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-3.1.0-blue.svg)](VERSION)
 [![Discord Bot](https://img.shields.io/badge/Discord-Bot-7289DA.svg)](https://discord.com)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![CI/CD](https://img.shields.io/badge/CI/CD-Active-success.svg)](https://github.com/actions)
 [![Tests](https://img.shields.io/badge/Tests-Passing-success.svg)](#testing)
 [![Security](https://img.shields.io/badge/Security-Scanned-green.svg)](#security)
+[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](docs/index.md)
 
-> **多功能社群管理機器人** - 開發分支，包含完整的 CI/CD 流程和測試框架
+> **企業級 Discord 社群管理機器人** - 現代化架構 • AI 整合 • Web 管理介面
 
 ## 🚀 快速開始
 
@@ -36,58 +37,104 @@ nano .env
 
 ## 📦 核心功能
 
-- 🎫 **智能客服系統** - 自動票券管理、問題分類、智能回覆
-- 🗳️ **社群互動工具** - 投票民調、意見收集、活動管理
-- 🌍 **多語言國際化** - 7+ 語言支援、文化適應、自動檢測
-- 🎮 **遊戲社群整合** - Minecraft 整合、多遊戲支援、玩家管理
-- 🤖 **AI 智能助手** - 智能問答、內容審核、社群分析
-- 🔒 **社群安全管理** - 自動審核、行為分析、安全防護
-- 🌐 **社群儀表板** - 數據分析、成長追蹤、管理工具
+=== "🎫 **智能客服系統**"
+    - 自動票券管理、SLA 監控
+    - 智能分類、自動路由
+    - 評分系統、工作流自動化
 
-## 🏗️ 分支架構
+=== "🤖 **AI 整合平台**"
+    - 多平台支援 (OpenAI、Anthropic、Gemini)
+    - 智能對話、內容審核
+    - 用量管理、成本控制
 
-- **`dev`** - 開發分支 (當前) - 包含完整的 CI/CD 和測試框架
-- **`main`** - 生產主分支 - 穩定版本，包含託管部署流程
-- **`ptero`** - 部署分支 - 純淨生產版本，無開發工具
+=== "🗳️ **實時投票系統**"
+    - 動態結果更新、多種模式
+    - 權限控制、匿名投票
+    - 詳細統計報告
+
+=== "💰 **虛擬經濟系統**"
+    - 積分獎勵、服務計費
+    - 每日獎勵、交易記錄
+    - 完整財務追蹤
+
+=== "🌐 **Web 管理介面**"
+    - 現代化 Next.js 前端
+    - 實時數據監控
+    - 直觀配置管理
+
+## 🏗️ 專案架構
+
+```mermaid
+graph TB
+    A[Discord Client] --> B[Bot Core]
+    B --> C[Feature Modules]
+    B --> D[Shared Services]
+    B --> E[Web API]
+    
+    C --> F[Ticket System]
+    C --> G[Voting System]
+    C --> H[AI Assistant]
+    C --> I[Economy System]
+    
+    D --> J[Database Layer]
+    D --> K[Cache Layer]
+    E --> L[Next.js Frontend]
+    
+    J --> M[(MySQL)]
+    K --> N[(Redis)]
+```
+
+### 分支策略
+- **`feature/*`** - 功能開發分支
+- **`develop`** - 開發整合分支 (當前)
+- **`main`** - 生產穩定分支
+- **`ptero`** - 部署分支 (純淨版)
 
 ## 🔄 CI/CD 流程
 
 ### GitHub Actions 工作流程
 
-1. **🧠 Smart Change Detection** - 智能變更檢測
+1. **🤖 Auto Merge** - 自動合併
+   - PR 標籤檢測 (`auto-merge`)
+   - 自動代碼審查驗證
+   - 條件滿足時自動合併
+
+2. **🧠 Smart Change Detection** - 智能變更檢測
    - 自動分析變更類型和影響範圍
    - 動態調整後續檢查策略
    - 節省 40-60% 執行時間
 
-2. **🛡️ Code Quality** - 代碼品質檢查
-   - Ruff 格式化和 Lint 檢查
-   - 自動代碼修復和格式化
+3. **🛡️ Code Quality** - 代碼品質檢查
+   - Black 代碼格式化檢查
+   - isort 導入排序檢查
+   - Flake8 代碼風格檢查
    - 品質報告生成
 
-3. **🧪 Test Coverage** - 測試覆蓋率
-   - 完整測試套件執行
+4. **🧪 Test Coverage** - 測試覆蓋率
+   - pytest 測試套件執行
    - 覆蓋率報告生成
-   - E2E 測試驗證
+   - Codecov 整合
 
-4. **🛡️ Security Scans** - 安全掃描
+5. **🛡️ Security Scans** - 安全掃描
    - Bandit 靜態安全分析
-   - 依賴漏洞掃描
-   - Secrets 檢測
+   - Semgrep 進階安全掃描
+   - Safety 依賴漏洞掃描
+   - pip-audit 套件安全檢查
 
-5. **🚀 Production Deployment** - 生產部署
-   - 自動化部署流程
-   - 健康檢查驗證
-   - 回滾機制
-
-6. **🚨 Emergency Rollback** - 緊急回滾
-   - 一鍵回滾機制
-   - 備份和恢復
-   - 事件通知
+6. **🚀 Production Deployment** - 生產部署
+   - 自動化部署到 ptero 分支
+   - 部署前合規檢查
+   - 自動版本標籤創建
 
 ### 部署流程
 
-- dev → main: 合併請求觸發完整 CI/CD
+- develop → main: 穩定功能合併到生產分支
 - main → ptero: 自動部署到託管服務
+
+### 分支策略
+- **只允許 develop → main** - 嚴格的分支保護規則
+- **feature/* → develop** - 功能開發流程
+- **main** - 僅包含生產級別文件
 
 ## 📋 系統要求
 
@@ -112,10 +159,10 @@ nano .env
 - **Prometheus** - 監控和指標
 
 ### 開發工具
-- **Ruff** - Python 代碼格式化和檢查
+- **Black/isort/Flake8** - Python 代碼格式化和檢查
 - **pytest** - 測試框架
 - **Coverage** - 測試覆蓋率分析
-- **Bandit** - 安全漏洞掃描
+- **Bandit/Semgrep** - 安全漏洞掃描
 - **GitHub Actions** - CI/CD 自動化
 
 ## 🧪 測試 {#testing}
@@ -146,31 +193,33 @@ bandit -r bot/ shared/
 
 # 依賴漏洞掃描
 safety check
+pip-audit
 
-# Secrets 檢測
-detect-secrets scan --all-files
+# 進階安全掃描
+semgrep --config=auto bot/ shared/
 ```
 
 ### 安全特性
-- 自動 Secrets 檢測
-- 依賴漏洞監控
-- 靜態代碼安全分析
-- 定時安全掃描
+- Bandit 靜態安全分析
+- Semgrep 進階安全掃描
+- 依賴漏洞監控 (Safety + pip-audit)
+- CI/CD 整合安全檢查
 
 ## 💻 開發指南
 
 ### 提交流程
 1. 建立功能分支: `git checkout -b feature/xxx`
 2. 開發和測試: `pytest`
-3. 代碼品質檢查: `ruff check --fix .`
+3. 代碼品質檢查: `black . && isort . && flake8 .`
 4. 提交變更: `git commit -m "feat: xxx"`
 5. 推送和建立 PR: `git push origin feature/xxx`
 
 ### CI/CD 流程
-- PR 觸發完整檢查流程
+- PR 觸發完整檢查流程 (Auto-merge 可用)
 - 智能變更檢測優化執行時間
 - 自動化代碼品質和安全檢查
-- 測試覆蓋率驗證
+- 測試覆蓋率驗證和 Codecov 整合
+- develop → main → ptero 自動部署
 
 ---
 
