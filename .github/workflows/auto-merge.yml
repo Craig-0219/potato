@@ -161,12 +161,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prInfo.number,
-              body: `🤖 **自動合併已啟用**
-              
-✅ 所有檢查通過後將自動合併到 \`${prInfo.baseBranch}\` 分支
-🔄 合併方式: ${prInfo.baseBranch === 'main' ? 'Squash' : 'Merge'}
-              
-感謝 @${prInfo.author} 的貢獻！ 🚀`
+              body: \`🤖 **自動合併已啟用**\n\n✅ 所有檢查通過後將自動合併到 \\\`\${prInfo.baseBranch}\\\` 分支\n🔄 合併方式: \${prInfo.baseBranch === 'main' ? 'Squash' : 'Merge'}\n\n感謝 @\${prInfo.author} 的貢獻！ 🚀\`
             });
             
           } catch (error) {
@@ -177,11 +172,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prInfo.number,
-              body: `❌ **自動合併設置失敗**
-              
-錯誤: ${error.message}
-              
-請檢查 PR 狀態或手動處理合併。`
+              body: \`❌ **自動合併設置失敗**\n\n錯誤: \${error.message}\n\n請檢查 PR 狀態或手動處理合併。\`
             });
             
             throw error;

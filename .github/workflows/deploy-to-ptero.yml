@@ -175,15 +175,9 @@ jobs:
           git merge --strategy-option=theirs --no-edit $MAIN_COMMIT
         fi
         
-        # 更新 commit 訊息
-        DEPLOY_MESSAGE="🚀 Deploy: ${{ needs.pre-deploy-check.outputs.commit_message }}
-
-📅 部署時間: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
-🎯 來源 commit: $MAIN_COMMIT
-🌿 目標分支: ptero
-
-🤖 自動部署 by GitHub Actions"
-
+        # 更新 commit 訊息  
+        DEPLOY_MESSAGE="🚀 Deploy: ${{ needs.pre-deploy-check.outputs.commit_message }}\n\n📅 部署時間: $(date -u '+%Y-%m-%d %H:%M:%S UTC')\n🎯 來源 commit: $MAIN_COMMIT\n🌿 目標分支: ptero\n\n🤖 自動部署 by GitHub Actions"
+        
         git commit --amend -m "$DEPLOY_MESSAGE" || echo "無需修改 commit"
     
     - name: 🚀 推送到 Ptero
@@ -210,14 +204,7 @@ jobs:
         DEPLOY_TAG="deploy-$(date -u '+%Y%m%d-%H%M%S')"
         COMMIT_SHA=$(git rev-parse HEAD)
         
-        git tag -a "$DEPLOY_TAG" -m "🚀 Production deployment
-
-📅 部署時間: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
-🎯 來源: main branch
-🌿 部署到: ptero branch  
-📝 Commit: $COMMIT_SHA
-
-🤖 自動創建 by GitHub Actions"
+        git tag -a "$DEPLOY_TAG" -m "🚀 Production deployment\n\n📅 部署時間: $(date -u '+%Y-%m-%d %H:%M:%S UTC')\n🎯 來源: main branch\n🌿 部署到: ptero branch\n📝 Commit: $COMMIT_SHA\n\n🤖 自動創建 by GitHub Actions"
         
         # 推送標籤
         git push origin "$DEPLOY_TAG"
