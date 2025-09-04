@@ -54,40 +54,47 @@ nano .env
 
 ### GitHub Actions 工作流程
 
-1. **🧠 Smart Change Detection** - 智能變更檢測
+1. **🤖 Auto Merge** - 自動合併
+   - PR 標籤檢測 (`auto-merge`)
+   - 自動代碼審查驗證
+   - 條件滿足時自動合併
+
+2. **🧠 Smart Change Detection** - 智能變更檢測
    - 自動分析變更類型和影響範圍
    - 動態調整後續檢查策略
    - 節省 40-60% 執行時間
 
-2. **🛡️ Code Quality** - 代碼品質檢查
-   - Ruff 格式化和 Lint 檢查
-   - 自動代碼修復和格式化
+3. **🛡️ Code Quality** - 代碼品質檢查
+   - Black 代碼格式化檢查
+   - isort 導入排序檢查
+   - Flake8 代碼風格檢查
    - 品質報告生成
 
-3. **🧪 Test Coverage** - 測試覆蓋率
-   - 完整測試套件執行
+4. **🧪 Test Coverage** - 測試覆蓋率
+   - pytest 測試套件執行
    - 覆蓋率報告生成
-   - E2E 測試驗證
+   - Codecov 整合
 
-4. **🛡️ Security Scans** - 安全掃描
+5. **🛡️ Security Scans** - 安全掃描
    - Bandit 靜態安全分析
-   - 依賴漏洞掃描
-   - Secrets 檢測
+   - Semgrep 進階安全掃描
+   - Safety 依賴漏洞掃描
+   - pip-audit 套件安全檢查
 
-5. **🚀 Production Deployment** - 生產部署
-   - 自動化部署流程
-   - 健康檢查驗證
-   - 回滾機制
-
-6. **🚨 Emergency Rollback** - 緊急回滾
-   - 一鍵回滾機制
-   - 備份和恢復
-   - 事件通知
+6. **🚀 Production Deployment** - 生產部署
+   - 自動化部署到 ptero 分支
+   - 部署前合規檢查
+   - 自動版本標籤創建
 
 ### 部署流程
 
-- dev → main: 合併請求觸發完整 CI/CD
+- develop → main: 穩定功能合併到生產分支
 - main → ptero: 自動部署到託管服務
+
+### 分支策略
+- **只允許 develop → main** - 嚴格的分支保護規則
+- **feature/* → develop** - 功能開發流程
+- **main** - 僅包含生產級別文件
 
 ## 📋 系統要求
 
@@ -112,10 +119,10 @@ nano .env
 - **Prometheus** - 監控和指標
 
 ### 開發工具
-- **Ruff** - Python 代碼格式化和檢查
+- **Black/isort/Flake8** - Python 代碼格式化和檢查
 - **pytest** - 測試框架
 - **Coverage** - 測試覆蓋率分析
-- **Bandit** - 安全漏洞掃描
+- **Bandit/Semgrep** - 安全漏洞掃描
 - **GitHub Actions** - CI/CD 自動化
 
 ## 🧪 測試 {#testing}
@@ -146,31 +153,33 @@ bandit -r bot/ shared/
 
 # 依賴漏洞掃描
 safety check
+pip-audit
 
-# Secrets 檢測
-detect-secrets scan --all-files
+# 進階安全掃描
+semgrep --config=auto bot/ shared/
 ```
 
 ### 安全特性
-- 自動 Secrets 檢測
-- 依賴漏洞監控
-- 靜態代碼安全分析
-- 定時安全掃描
+- Bandit 靜態安全分析
+- Semgrep 進階安全掃描
+- 依賴漏洞監控 (Safety + pip-audit)
+- CI/CD 整合安全檢查
 
 ## 💻 開發指南
 
 ### 提交流程
 1. 建立功能分支: `git checkout -b feature/xxx`
 2. 開發和測試: `pytest`
-3. 代碼品質檢查: `ruff check --fix .`
+3. 代碼品質檢查: `black . && isort . && flake8 .`
 4. 提交變更: `git commit -m "feat: xxx"`
 5. 推送和建立 PR: `git push origin feature/xxx`
 
 ### CI/CD 流程
-- PR 觸發完整檢查流程
+- PR 觸發完整檢查流程 (Auto-merge 可用)
 - 智能變更檢測優化執行時間
 - 自動化代碼品質和安全檢查
-- 測試覆蓋率驗證
+- 測試覆蓋率驗證和 Codecov 整合
+- develop → main → ptero 自動部署
 
 ---
 
