@@ -162,20 +162,20 @@ GEMINI_API_KEY=你的Gemini金鑰
 
 ### 取得協助
 
-- 📖 [詳細文檔](../developer-docs/troubleshooting.md)
+- 📖 [詳細文檔]
 - 🐛 [提交問題](https://github.com/Craig-0219/potato/issues)
-- 💬 [社群支援](https://discord.gg/your-server)
+- 💬 [社群支援]
 
 ## 📚 下一步
 
 機器人運行成功後：
 
 1. **用戶指南** - [了解所有功能](../user-guide/commands.md)
-2. **管理設定** - [配置權限和功能](../system-design/admin-permissions.md)
+2. **管理設定** - [配置權限和功能](../development/ADMIN_PERMISSION_SETUP.md)
 3. **開發環境** - [設置開發環境](project-setup.md)
 
 ---
 
 🎉 **恭喜！** 你已經成功部署 Potato Bot！
 
-需要更多幫助？查看我們的 [完整使用指南](../user-guide/commands.md) 或 [系統管理文檔](../system-design/admin-permissions.md)。
+需要更多幫助？查看我們的 [完整使用指南](../user-guide/commands.md) 或 [系統管理文檔](../development/ADMIN_PERMISSION_SETUP.md)。

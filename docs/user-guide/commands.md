@@ -282,5 +282,5 @@
 📚 **需要更多幫助？**
 
 - 查看 [功能詳解](features/voting-system.md)
-- 閱讀 [管理員指南](../system-design/admin-permissions.md)
-- 加入 [支援社群](https://discord.gg/your-server)
+- 閱讀 [管理員指南](../development/ADMIN_PERMISSION_SETUP.md)
+- 加入 [支援社群] 以獲得協助

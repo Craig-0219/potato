@@ -280,17 +280,17 @@ Closes #123"
 ## 📚 開發資源
 
 - 🛠️ [專案設置指南](project-setup.md)
-- 🏗️ [系統架構文檔](../system-design/admin-permissions.md)
-- 🔧 [API 參考](../developer-docs/api-reference.md)
-- 🧪 [測試指南](../developer-docs/troubleshooting.md)
+- 🏗️ [系統架構文檔](../development/ADMIN_PERMISSION_SETUP.md)
+- 🔧 [API 參考](../development/api-reference.md)
+- 🧪 [測試指南]
 
 ## 📞 取得協助
 
 遇到問題？我們隨時為您提供協助：
 
-- 💬 [Discord 社群](https://discord.gg/your-server)
+- 💬 [Discord 社群]
 - 🐛 [GitHub Issues](https://github.com/Craig-0219/potato/issues)
-- 📧 [Email 支援](mailto:support@your-domain.com)
+- 📧 [Email 支援]
 
 ---
 

@@ -1,13 +1,14 @@
-# Potato Discord Bot - Development Branch
+# 🥔 Potato Discord Bot
 
-[![Version](https://img.shields.io/badge/version-2025.08.30-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-3.1.0-blue.svg)](VERSION)
 [![Discord Bot](https://img.shields.io/badge/Discord-Bot-7289DA.svg)](https://discord.com)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![CI/CD](https://img.shields.io/badge/CI/CD-Active-success.svg)](https://github.com/actions)
 [![Tests](https://img.shields.io/badge/Tests-Passing-success.svg)](#testing)
 [![Security](https://img.shields.io/badge/Security-Scanned-green.svg)](#security)
+[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](docs/index.md)
 
-> **多功能社群管理機器人** - 開發分支，包含完整的 CI/CD 流程和測試框架
+> **企業級 Discord 社群管理機器人** - 現代化架構 • AI 整合 • Web 管理介面
 
 ## 🚀 快速開始
 
@@ -36,19 +37,58 @@ nano .env
 
 ## 📦 核心功能
 
-- 🎫 **智能客服系統** - 自動票券管理、問題分類、智能回覆
-- 🗳️ **社群互動工具** - 投票民調、意見收集、活動管理
-- 🌍 **多語言國際化** - 7+ 語言支援、文化適應、自動檢測
-- 🎮 **遊戲社群整合** - Minecraft 整合、多遊戲支援、玩家管理
-- 🤖 **AI 智能助手** - 智能問答、內容審核、社群分析
-- 🔒 **社群安全管理** - 自動審核、行為分析、安全防護
-- 🌐 **社群儀表板** - 數據分析、成長追蹤、管理工具
+=== "🎫 **智能客服系統**"
+    - 自動票券管理、SLA 監控
+    - 智能分類、自動路由
+    - 評分系統、工作流自動化
 
-## 🏗️ 分支架構
+=== "🤖 **AI 整合平台**"
+    - 多平台支援 (OpenAI、Anthropic、Gemini)
+    - 智能對話、內容審核
+    - 用量管理、成本控制
 
-- **`dev`** - 開發分支 (當前) - 包含完整的 CI/CD 和測試框架
-- **`main`** - 生產主分支 - 穩定版本，包含託管部署流程
-- **`ptero`** - 部署分支 - 純淨生產版本，無開發工具
+=== "🗳️ **實時投票系統**"
+    - 動態結果更新、多種模式
+    - 權限控制、匿名投票
+    - 詳細統計報告
+
+=== "💰 **虛擬經濟系統**"
+    - 積分獎勵、服務計費
+    - 每日獎勵、交易記錄
+    - 完整財務追蹤
+
+=== "🌐 **Web 管理介面**"
+    - 現代化 Next.js 前端
+    - 實時數據監控
+    - 直觀配置管理
+
+## 🏗️ 專案架構
+
+```mermaid
+graph TB
+    A[Discord Client] --> B[Bot Core]
+    B --> C[Feature Modules]
+    B --> D[Shared Services]
+    B --> E[Web API]
+    
+    C --> F[Ticket System]
+    C --> G[Voting System]
+    C --> H[AI Assistant]
+    C --> I[Economy System]
+    
+    D --> J[Database Layer]
+    D --> K[Cache Layer]
+    E --> L[Next.js Frontend]
+    
+    J --> M[(MySQL)]
+    K --> N[(Redis)]
+```
+
+### 分支策略
+- **`feature/*`** - 功能開發分支
+- **`dev`** - 開發整合分支 (當前)
+- **`main`** - 生產穩定分支
+- **`ptero`** - 部署分支 (純淨版)
 
 ## 🔄 CI/CD 流程
 

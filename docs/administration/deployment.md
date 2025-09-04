@@ -299,7 +299,7 @@ git push origin dev
 
 ### 聯繫支援
 如需技術支援或發現系統錯誤，請：
-1. 查看 [GitHub Issues](https://github.com/{repository}/issues)
+1. 查看 [GitHub Issues](https://github.com/Craig-0219/potato/issues)
 2. 創建新的 Issue 並包含：
    - 錯誤描述和重現步驟
    - 相關的 GitHub Actions 運行 ID
