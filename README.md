@@ -1,178 +1,185 @@
-# Potato Discord Bot
+# 🥔 Potato Bot - Production Hosting
 
-[![Version](https://img.shields.io/badge/version-2025.08.30-blue.svg)](VERSION)
-[![Discord Bot](https://img.shields.io/badge/Discord-Bot-7289DA.svg)](https://discord.com)
-[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![CI/CD](https://img.shields.io/badge/CI/CD-Active-success.svg)](https://github.com/actions)
-[![Tests](https://img.shields.io/badge/Tests-Passing-success.svg)](#testing)
-[![Security](https://img.shields.io/badge/Security-Scanned-green.svg)](#security)
+> **Enterprise-grade Discord bot with modern architecture, AI integration, and comprehensive features**
 
-> **多功能社群管理機器人** - 穩定版本，適用於生產環境部署
-
-## 🚀 快速開始
-
-### 跨平台啟動
+## 🚀 Quick Deploy
 
 ```bash
-# Python 啟動器 (推薦)
+# 1. Install dependencies (using modern package management)
+pip install -e .
+
+# 2. Configure environment
+cp .env.example .env
+nano .env  # Edit with your settings
+
+# 3. Start bot
+python start.py
+```
+
+## 🏗️ Project Architecture
+
+This project follows a **Domain-Driven Design (DDD)** architecture with modern Python practices:
+
+```
+src/
+├── potato_bot/           # Main bot application
+│   ├── features/        # Feature-based modules
+│   │   ├── tickets/     # Ticket system domain
+│   │   ├── economy/     # Economy system domain
+│   │   ├── security/    # Security & moderation
+│   │   ├── ai/          # AI integration
+│   │   └── ...         # Other domains
+│   ├── core/           # Core infrastructure
+│   └── main.py         # Application entry point
+├── potato_shared/      # Shared utilities & config
+└── tests/             # Comprehensive test suite
+```
+
+## 📦 Core Features
+
+### 🎫 **Ticket System**
+- Multi-category support with SLA monitoring
+- Auto-assignment and smart routing  
+- Rating system and advanced analytics
+- Customizable workflows and templates
+
+### 🤖 **AI Integration** 
+- OpenAI, Anthropic, Gemini API support
+- Content analysis and sentiment detection
+- Smart conversation management
+- Daily usage quotas and rate limiting
+
+### 💰 **Economy System**
+- Virtual currency with daily bonuses
+- Service costs integration
+- User balance tracking
+
+### 🎵 **Music & Entertainment**
+- YouTube integration with playlist support
+- Gaming features and mini-games
+- Content moderation tools
+
+### ⚙️ **Management & Automation**
+- Guild management workflows
+- Auto-moderation and filtering
+- Dashboard with real-time monitoring
+- Comprehensive logging system
+
+## 🔧 Configuration
+
+Essential environment variables in `.env`:
+
+```env
+# Discord Bot
+DISCORD_TOKEN=your_bot_token_here
+DISCORD_CLIENT_ID=your_client_id
+
+# Database  
+DB_HOST=localhost
+DB_USER=your_db_user  
+DB_PASSWORD=your_db_password
+DB_NAME=potato_bot
+
+# AI Services (Optional)
+OPENAI_API_KEY=your_openai_key
+ANTHROPIC_API_KEY=your_anthropic_key
+GEMINI_API_KEY=your_gemini_key
+
+# Features
+TICKET_AUTO_ASSIGNMENT=true
+ECONOMY_ENABLED=true
+CONTENT_ANALYSIS_ENABLED=true
+```
+
+See `.env.example` for complete configuration options.
+
+## 🚀 Deployment Options
+
+### 🦕 Pterodactyl Panel
+```bash
+# Startup Command
 python start.py
 
-# Linux/macOS
-./start.sh
-
-# Windows
-start.bat
+# Environment Variables  
+# Configure in Pterodactyl environment tab
+DISCORD_TOKEN=your_token_here
+DB_HOST=database_host
 ```
 
-### 環境配置
+### 🐳 Docker
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY . .
+RUN pip install -e .
+EXPOSE 8000
+CMD ["python", "start.py"]
+```
 
+### 🖥️ VPS/Cloud
 ```bash
-# 複製配置範例
+git clone -b ptero https://github.com/Craig-0219/potato.git
+cd potato
+pip install -e .
 cp .env.example .env
-
-# 編輯配置文件
-nano .env
+python start.py
 ```
 
-## 📦 核心功能
+## 🔧 Development Setup
 
-- 🎫 **智能客服系統** - 自動票券管理、問題分類、智能回覆
-- 🗳️ **社群互動工具** - 投票民調、意見收集、活動管理
-- 🌍 **多語言國際化** - 7+ 語言支援、文化適應、自動檢測
-- 🎮 **遊戲社群整合** - Minecraft 整合、多遊戲支援、玩家管理
-- 🤖 **AI 智能助手** - 智能問答、內容審核、社群分析
-- 🔒 **社群安全管理** - 自動審核、行為分析、安全防護
-- 🌐 **社群儀表板** - 數據分析、成長追蹤、管理工具
+For contributors and developers:
 
-## 🏗️ 分支架構
-
-- **`main`** - 生產主分支 (當前) - 穩定版本，適合生產環境部署
-- **`dev`** - 開發分支 - 包含最新功能和完整的 CI/CD 測試框架
-- **`ptero`** - 部署分支 - 純淨生產版本，專為託管環境優化
-
-## 🔄 CI/CD 流程
-
-### GitHub Actions 工作流程
-
-1. **🧠 Smart Change Detection** - 智能變更檢測
-   - 自動分析變更類型和影響範圍
-   - 動態調整後續檢查策略
-   - 節省 40-60% 執行時間
-
-2. **🛡️ Code Quality** - 代碼品質檢查
-   - Ruff 格式化和 Lint 檢查
-   - 自動代碼修復和格式化
-   - 品質報告生成
-
-3. **🧪 Test Coverage** - 測試覆蓋率
-   - 完整測試套件執行
-   - 覆蓋率報告生成
-   - E2E 測試驗證
-
-4. **🛡️ Security Scans** - 安全掃描
-   - Bandit 靜態安全分析
-   - 依賴漏洞掃描
-   - Secrets 檢測
-
-5. **🚀 Production Deployment** - 生產部署
-   - 自動化部署流程
-   - 健康檢查驗證
-   - 回滾機制
-
-6. **🚨 Emergency Rollback** - 緊急回滾
-   - 一鍵回滾機制
-   - 備份和恢復
-   - 事件通知
-
-### 部署流程
-
-- dev → main: 穩定功能合併到生產分支
-- main → ptero: 自動部署到託管環境
-- 生產環境持續監控和健康檢查
-
-## 📋 系統要求
-
-### 運行環境
-- Python 3.10+
-- PostgreSQL 或 SQLite
-- Redis (可選)
-- Discord Bot Token
-
-### 開發環境
-- Git
-- pytest (測試框架)
-- ruff (代碼格式化和檢查)
-- coverage (測試覆蓋率)
-
-## 🛠️ 技術棧
-
-- **Discord.py** - Discord API 整合
-- **FastAPI** - 現代 Web API 框架
-- **PostgreSQL** - 主要資料庫
-- **Redis** - 快取和會話管理
-- **Prometheus** - 監控和指標
-
-### 開發工具
-- **Ruff** - Python 代碼格式化和檢查
-- **pytest** - 測試框架
-- **Coverage** - 測試覆蓋率分析
-- **Bandit** - 安全漏洞掃描
-- **GitHub Actions** - CI/CD 自動化
-
-## 🧪 測試 {#testing}
-
-### 運行測試
 ```bash
-# 完整測試套件
+# Clone with development dependencies
+git clone https://github.com/Craig-0219/potato.git
+cd potato
+
+# Install with development dependencies
+pip install -e ".[dev]"
+
+# Run tests
 pytest
 
-# 包含覆蓋率報告
-pytest --cov=bot --cov=shared --cov-report=html
+# Format code
+black src/ tests/
+ruff check src/ tests/ --fix
 
-# E2E 測試
-pytest tests/e2e/ -v
+# Security scan
+bandit -r src/
+semgrep src/
 ```
 
-### 測試類型
-- **單元測試** - 核心功能測試
-- **整合測試** - 組件間交互測試
-- **E2E 測試** - 端到端功能測試
+## 📊 System Requirements
 
-## 🛡️ 安全 {#security}
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| **Python** | 3.10+ | 3.11+ |
+| **RAM** | 512MB | 1GB+ |  
+| **CPU** | 1 Core | 2+ Cores |
+| **Storage** | 2GB | 5GB+ |
+| **Network** | Stable | High-speed |
 
-### 安全檢查
-```bash
-# 靜態安全分析
-bandit -r bot/ shared/
+## 🔍 Health Monitoring
 
-# 依賴漏洞掃描
-safety check
+Built-in health checks:
+- **API Endpoint**: `GET /health` (Port 8000)
+- **Database**: Connection status
+- **Discord**: API connectivity  
+- **Resources**: Memory/CPU usage
 
-# Secrets 檢測
-detect-secrets scan --all-files
-```
+## 🛠️ Troubleshooting
 
-### 安全特性
-- 自動 Secrets 檢測
-- 依賴漏洞監控
-- 靜態代碼安全分析
-- 定時安全掃描
+**Common Issues:**
+- `ModuleNotFoundError`: Run `pip install -r requirements.txt`
+- `Database connection failed`: Check DB credentials in `.env`
+- `Discord API error`: Verify bot token and permissions
+- `Port already in use`: Change `API_PORT` in `.env`
 
-## 💻 開發指南
+## 📞 Support
 
-### 提交流程
-1. 建立功能分支: `git checkout -b feature/xxx`
-2. 開發和測試: `pytest`
-3. 代碼品質檢查: `ruff check --fix .`
-4. 提交變更: `git commit -m "feat: xxx"`
-5. 推送和建立 PR: `git push origin feature/xxx`
-
-### CI/CD 流程
-- PR 觸發完整檢查流程
-- 智能變更檢測優化執行時間
-- 自動化代碼品質和安全檢查
-- 測試覆蓋率驗證
+- 🐛 **Bug Reports**: GitHub Issues
+- 💬 **Discord Support**: [Join Server](https://discord.gg/your-server)
+- 📖 **Documentation**: Check `.env.example` for all options
 
 ---
-
-**📝 注意：** 這是開發分支，包含完整的 CI/CD 流程和測試框架。生產部署請使用 `main` 分支。
+🥔 **Production Ready** • ⚡ **High Performance** • 🔧 **Easy Deploy**

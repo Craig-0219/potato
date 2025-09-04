@@ -103,19 +103,19 @@ class PotatoBotStarter:
                 elif package == "aiomysql":
                     pass
 
-                    print(f"✅ aiomysql")
+                    print("✅ aiomysql")
                 elif package == "python-dotenv":
                     pass
 
-                    print(f"✅ python-dotenv")
+                    print("✅ python-dotenv")
                 elif package == "fastapi":
                     pass
 
-                    print(f"✅ fastapi")
+                    print("✅ fastapi")
                 elif package == "uvicorn":
                     pass
 
-                    print(f"✅ uvicorn")
+                    print("✅ uvicorn")
             except ImportError:
                 print(f"❌ {package}")
                 missing_packages.append(package)
@@ -178,7 +178,7 @@ class PotatoBotStarter:
 
     def show_system_info(self):
         """顯示系統資訊"""
-        print(f"\n💻 系統資訊:")
+        print("\n💻 系統資訊:")
         print(f"   作業系統: {platform.system()} {platform.release()}")
         print(f"   架構: {platform.machine()}")
         print(f"   Python: {platform.python_version()}")
