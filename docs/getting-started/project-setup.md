@@ -322,9 +322,9 @@ make db-backup
 
 ## 📚 開發資源
 
-- 🛠️ [API 文檔](../development/api-reference.md)
-- 🔍 [故障排除]
-- 🏗️ [系統架構](../development/ADMIN_PERMISSION_SETUP.md)
+- 🛠️ [API 文檔](../developer-docs/api-reference.md)
+- 🔍 [故障排除](../developer-docs/troubleshooting.md)
+- 🏗️ [系統架構](../system-design/admin-permissions.md)
 - 📖 [貢獻指南](contributing.md)
 
 ---
@@ -333,4 +333,4 @@ make db-backup
 
 現在你已經擁有一個功能完整的開發環境。開始你的第一個功能開發吧！
 
-需要協助？查看我們的 [貢獻指南](contributing.md) 或加入 [Discord 討論]。
+需要協助？查看我們的 [貢獻指南](contributing.md) 或加入 [Discord 討論](https://discord.gg/your-server)。

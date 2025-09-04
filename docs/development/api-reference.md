@@ -516,6 +516,6 @@ curl -o potato-bot-api.json https://your-domain.com/api/postman-collection.json
 
 🚀 **開始 API 整合！**
 
-我們的 API 設計簡單易用，文檔詳盡。有任何問題請參考相關故障排除指南。
+我們的 API 設計簡單易用，文檔詳盡。有任何問題請參考 [故障排除指南](troubleshooting.md) 或 [聯繫技術支援](#)。
 
-需要更多功能？查看 [系統設計文檔](ADMIN_PERMISSION_SETUP.md) 了解完整架構。
+需要更多功能？查看 [系統設計文檔](../system-design/admin-permissions.md) 了解完整架構。

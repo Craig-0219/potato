@@ -96,7 +96,7 @@ graph TB
 
 - 📚 **完整文檔** - 正在閱讀
 - 🐛 **問題回報** - [GitHub Issues](https://github.com/Craig-0219/potato/issues)
-- 💬 **社群討論** - [Discord 伺服器]
+- 💬 **社群討論** - [Discord 伺服器](https://discord.gg/your-server)
 - 🚀 **版本發布** - [Releases](https://github.com/Craig-0219/potato/releases)
 
 ---
