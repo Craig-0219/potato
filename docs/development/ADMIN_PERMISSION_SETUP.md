@@ -230,9 +230,9 @@ tail -f logs/system.log | grep -i "api_key"
 
 ## 📚 相關文檔
 
-- **[🚀 快速入門指南](../user-guides/QUICKSTART_v2.2.0.md)** - 系統部署教學
-- **[🛠️ API 參考文檔](../development/API_REFERENCE.md)** - 完整 API 說明
-- **[🔒 安全配置指南](SECURITY_SETUP.md)** - 系統安全設置
+- **[🚀 快速入門指南](../getting-started/quickstart.md)** - 系統部署教學
+- **[🛠️ API 參考文檔](api-reference.md)** - 完整 API 說明
+- **[🔒 安全配置指南](../user-guide/SECURITY_SETUP.md)** - 系統安全設置
 - **[📋 使用手冊](../user-guides/USER_MANUAL.md)** - 詳細功能說明
 
 ---
@@ -251,6 +251,6 @@ tail -f logs/system.log | grep -i "api_key"
 
 ### 🔑 **安全的權限管理，強大的系統控制**
 
-**[📖 完整文檔](../README.md) • [🚀 快速部署](../user-guides/QUICKSTART_v2.2.0.md) • [🛠️ 開發指南](../development/)**
+**[📖 完整文檔](../index.md) • [🚀 快速部署](../getting-started/quickstart.md) • [🛠️ 開發指南](../development/)**
 
 </div>
