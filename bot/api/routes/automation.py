@@ -26,9 +26,7 @@ router = APIRouter()
 # limiter = Limiter(key_func=get_remote_address)
 
 
-@router.get(
-    "/rules", response_model=PaginatedResponse, summary="獲取自動化規則列表"
-)
+@router.get("/rules", response_model=PaginatedResponse, summary="獲取自動化規則列表")
 # @limiter.limit("20/minute")
 async def get_automation_rules(
     guild_id: Optional[int] = Query(None),
@@ -96,9 +94,7 @@ async def create_automation_rule(
         return {
             "success": True,
             "message": "自動化規則創建成功",
-            "data": {
-                "rule_id": "rule_" + datetime.now().strftime("%Y%m%d_%H%M%S")
-            },
+            "data": {"rule_id": "rule_" + datetime.now().strftime("%Y%m%d_%H%M%S")},
         }
 
     except Exception as e:

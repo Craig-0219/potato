@@ -113,12 +113,8 @@ class Workflow:
     actions: List[WorkflowAction]  # 動作列表
     status: WorkflowStatus = WorkflowStatus.DRAFT
     created_by: int = 0  # 創建者ID
-    created_at: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
-    updated_at: datetime = field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     execution_count: int = 0  # 執行次數
     last_executed: Optional[datetime] = None
     tags: List[str] = field(default_factory=list)
@@ -138,26 +134,14 @@ class WorkflowEngine:
 
     def _register_builtin_actions(self):
         """註冊內建動作處理器"""
-        self._action_registry[ActionType.SEND_MESSAGE] = (
-            self._action_send_message
-        )
-        self._action_registry[ActionType.ASSIGN_TICKET] = (
-            self._action_assign_ticket
-        )
+        self._action_registry[ActionType.SEND_MESSAGE] = self._action_send_message
+        self._action_registry[ActionType.ASSIGN_TICKET] = self._action_assign_ticket
         self._action_registry[ActionType.ADD_TAG] = self._action_add_tag
-        self._action_registry[ActionType.CHANGE_PRIORITY] = (
-            self._action_change_priority
-        )
-        self._action_registry[ActionType.NOTIFY_USER] = (
-            self._action_notify_user
-        )
+        self._action_registry[ActionType.CHANGE_PRIORITY] = self._action_change_priority
+        self._action_registry[ActionType.NOTIFY_USER] = self._action_notify_user
         self._action_registry[ActionType.DELAY] = self._action_delay
-        self._action_registry[ActionType.BRANCH_CONDITION] = (
-            self._action_branch_condition
-        )
-        self._action_registry[ActionType.CLOSE_TICKET] = (
-            self._action_close_ticket
-        )
+        self._action_registry[ActionType.BRANCH_CONDITION] = self._action_branch_condition
+        self._action_registry[ActionType.CLOSE_TICKET] = self._action_close_ticket
 
     # ========== 工作流程管理 ==========
 
@@ -171,8 +155,7 @@ class WorkflowEngine:
             trigger = WorkflowTrigger(
                 type=TriggerType(trigger_data.get("type", "manual")),
                 conditions=[
-                    WorkflowCondition(**cond)
-                    for cond in trigger_data.get("conditions", [])
+                    WorkflowCondition(**cond) for cond in trigger_data.get("conditions", [])
                 ],
                 parameters=trigger_data.get("parameters", {}),
             )
@@ -185,8 +168,7 @@ class WorkflowEngine:
                     type=ActionType(action_data["type"]),
                     parameters=action_data.get("parameters", {}),
                     conditions=[
-                        WorkflowCondition(**cond)
-                        for cond in action_data.get("conditions", [])
+                        WorkflowCondition(**cond) for cond in action_data.get("conditions", [])
                     ],
                     delay_seconds=action_data.get("delay_seconds", 0),
                     retry_count=action_data.get("retry_count", 0),
@@ -209,18 +191,14 @@ class WorkflowEngine:
             self.workflows[workflow_id] = workflow
             self._register_trigger(workflow)
 
-            logger.info(
-                f"✅ 工作流程已創建: {workflow.name} (ID: {workflow_id})"
-            )
+            logger.info(f"✅ 工作流程已創建: {workflow.name} (ID: {workflow_id})")
             return workflow_id
 
         except Exception as e:
             logger.error(f"❌ 創建工作流程失敗: {e}")
             raise
 
-    async def update_workflow(
-        self, workflow_id: str, updates: Dict[str, Any]
-    ) -> bool:
+    async def update_workflow(self, workflow_id: str, updates: Dict[str, Any]) -> bool:
         """更新工作流程"""
         try:
             if workflow_id not in self.workflows:
@@ -242,16 +220,11 @@ class WorkflowEngine:
             if "trigger" in updates:
                 trigger_data = updates["trigger"]
                 workflow.trigger = WorkflowTrigger(
-                    type=TriggerType(
-                        trigger_data.get("type", workflow.trigger.type.value)
-                    ),
+                    type=TriggerType(trigger_data.get("type", workflow.trigger.type.value)),
                     conditions=[
-                        WorkflowCondition(**cond)
-                        for cond in trigger_data.get("conditions", [])
+                        WorkflowCondition(**cond) for cond in trigger_data.get("conditions", [])
                     ],
-                    parameters=trigger_data.get(
-                        "parameters", workflow.trigger.parameters
-                    ),
+                    parameters=trigger_data.get("parameters", workflow.trigger.parameters),
                 )
 
             # 更新動作
@@ -263,8 +236,7 @@ class WorkflowEngine:
                         type=ActionType(action_data["type"]),
                         parameters=action_data.get("parameters", {}),
                         conditions=[
-                            WorkflowCondition(**cond)
-                            for cond in action_data.get("conditions", [])
+                            WorkflowCondition(**cond) for cond in action_data.get("conditions", [])
                         ],
                         delay_seconds=action_data.get("delay_seconds", 0),
                         retry_count=action_data.get("retry_count", 0),
@@ -297,8 +269,7 @@ class WorkflowEngine:
             running_executions = [
                 exec_id
                 for exec_id, execution in self.executions.items()
-                if execution.workflow_id == workflow_id
-                and execution.status == "running"
+                if execution.workflow_id == workflow_id and execution.status == "running"
             ]
 
             for exec_id in running_executions:
@@ -329,9 +300,7 @@ class WorkflowEngine:
         if workflow.id not in self.trigger_handlers[trigger_type]:
             self.trigger_handlers[trigger_type].append(workflow.id)
 
-    async def _execute_action(
-        self, action: WorkflowAction, execution: WorkflowExecution
-    ):
+    async def _execute_action(self, action: WorkflowAction, execution: WorkflowExecution):
         """執行單個動作"""
         if action.type not in self._action_registry:
             raise ValueError(f"未知的動作類型: {action.type.value}")
@@ -346,17 +315,13 @@ class WorkflowEngine:
 
     # ========== 內建動作處理器 ==========
 
-    async def _action_send_message(
-        self, action: WorkflowAction, execution: WorkflowExecution
-    ):
+    async def _action_send_message(self, action: WorkflowAction, execution: WorkflowExecution):
         """發送訊息動作"""
         # 這裡需要整合Discord bot的訊息發送功能
         logger.info(f"📨 發送訊息: {action.parameters.get('message', '')}")
         return {"status": "sent", "message": action.parameters.get("message")}
 
-    async def _action_assign_ticket(
-        self, action: WorkflowAction, execution: WorkflowExecution
-    ):
+    async def _action_assign_ticket(self, action: WorkflowAction, execution: WorkflowExecution):
         """指派票券動作"""
         # 這裡需要整合票券系統的指派功能
         logger.info(f"🎫 指派票券: {action.parameters}")
@@ -365,16 +330,12 @@ class WorkflowEngine:
             "ticket_id": execution.trigger_data.get("ticket_id"),
         }
 
-    async def _action_add_tag(
-        self, action: WorkflowAction, execution: WorkflowExecution
-    ):
+    async def _action_add_tag(self, action: WorkflowAction, execution: WorkflowExecution):
         """添加標籤動作"""
         logger.info(f"🏷️ 添加標籤: {action.parameters.get('tags', [])}")
         return {"status": "tagged", "tags": action.parameters.get("tags", [])}
 
-    async def _action_change_priority(
-        self, action: WorkflowAction, execution: WorkflowExecution
-    ):
+    async def _action_change_priority(self, action: WorkflowAction, execution: WorkflowExecution):
         """變更優先級動作"""
         logger.info(f"⚡ 變更優先級: {action.parameters.get('priority')}")
         return {
@@ -382,9 +343,7 @@ class WorkflowEngine:
             "priority": action.parameters.get("priority"),
         }
 
-    async def _action_notify_user(
-        self, action: WorkflowAction, execution: WorkflowExecution
-    ):
+    async def _action_notify_user(self, action: WorkflowAction, execution: WorkflowExecution):
         """通知用戶動作"""
         logger.info(f"🔔 通知用戶: {action.parameters}")
         return {
@@ -392,26 +351,20 @@ class WorkflowEngine:
             "user_id": action.parameters.get("user_id"),
         }
 
-    async def _action_delay(
-        self, action: WorkflowAction, execution: WorkflowExecution
-    ):
+    async def _action_delay(self, action: WorkflowAction, execution: WorkflowExecution):
         """延遲動作"""
         delay_seconds = action.parameters.get("seconds", 0)
         logger.info(f"⏱️ 延遲: {delay_seconds}秒")
         await asyncio.sleep(delay_seconds)
         return {"status": "delayed", "seconds": delay_seconds}
 
-    async def _action_branch_condition(
-        self, action: WorkflowAction, execution: WorkflowExecution
-    ):
+    async def _action_branch_condition(self, action: WorkflowAction, execution: WorkflowExecution):
         """條件分支動作"""
         # 實現條件分支邏輯
         logger.info(f"🔀 條件分支: {action.parameters}")
         return {"status": "branched", "condition_result": True}
 
-    async def _action_close_ticket(
-        self, action: WorkflowAction, execution: WorkflowExecution
-    ):
+    async def _action_close_ticket(self, action: WorkflowAction, execution: WorkflowExecution):
         """關閉票券動作"""
         logger.info(f"🔒 關閉票券: {execution.trigger_data.get('ticket_id')}")
         return {
@@ -421,9 +374,7 @@ class WorkflowEngine:
 
     # ========== 條件檢查 ==========
 
-    def _check_conditions(
-        self, conditions: List[WorkflowCondition], data: Dict[str, Any]
-    ) -> bool:
+    def _check_conditions(self, conditions: List[WorkflowCondition], data: Dict[str, Any]) -> bool:
         """檢查條件"""
         if not conditions:
             return True
@@ -432,9 +383,7 @@ class WorkflowEngine:
 
         for condition in conditions:
             field_value = self._get_nested_value(data, condition.field)
-            result = self._evaluate_condition(
-                field_value, condition.operator, condition.value
-            )
+            result = self._evaluate_condition(field_value, condition.operator, condition.value)
             results.append((result, condition.logic))
 
         # 評估邏輯表達式
@@ -453,9 +402,7 @@ class WorkflowEngine:
 
         return value
 
-    def _evaluate_condition(
-        self, field_value: Any, operator: str, compare_value: Any
-    ) -> bool:
+    def _evaluate_condition(self, field_value: Any, operator: str, compare_value: Any) -> bool:
         """評估單個條件"""
         try:
             if operator == "==":
@@ -537,9 +484,7 @@ class WorkflowEngine:
             logger.error(f"❌ 取消執行失敗: {e}")
             return False
 
-    def get_execution_status(
-        self, execution_id: str
-    ) -> Optional[Dict[str, Any]]:
+    def get_execution_status(self, execution_id: str) -> Optional[Dict[str, Any]]:
         """獲取執行狀態"""
         if execution_id not in self.executions:
             return None
@@ -557,16 +502,12 @@ class WorkflowEngine:
             "status": execution.status,
             "current_action": execution.current_action,
             "start_time": execution.start_time.isoformat(),
-            "end_time": (
-                execution.end_time.isoformat() if execution.end_time else None
-            ),
+            "end_time": (execution.end_time.isoformat() if execution.end_time else None),
             "errors": execution.errors,
             "progress": self._calculate_execution_progress(execution),
         }
 
-    def _calculate_execution_progress(
-        self, execution: WorkflowExecution
-    ) -> Dict[str, Any]:
+    def _calculate_execution_progress(self, execution: WorkflowExecution) -> Dict[str, Any]:
         """計算執行進度"""
         if execution.workflow_id not in self.workflows:
             return {"completed": 0, "total": 0, "percentage": 0}
@@ -584,9 +525,7 @@ class WorkflowEngine:
                 current_index = i + 1
                 break
 
-        percentage = (
-            (current_index / total_actions * 100) if total_actions > 0 else 100
-        )
+        percentage = (current_index / total_actions * 100) if total_actions > 0 else 100
 
         return {
             "completed": current_index,
@@ -619,9 +558,7 @@ class WorkflowEngine:
                     "action_count": len(workflow.actions),
                     "execution_count": workflow.execution_count,
                     "last_executed": (
-                        workflow.last_executed.isoformat()
-                        if workflow.last_executed
-                        else None
+                        workflow.last_executed.isoformat() if workflow.last_executed else None
                     ),
                     "created_at": workflow.created_at.isoformat(),
                     "tags": workflow.tags,
@@ -632,16 +569,11 @@ class WorkflowEngine:
 
     def get_workflow_statistics(self, guild_id: int = None) -> Dict[str, Any]:
         """獲取工作流程統計"""
-        workflows = [
-            w
-            for w in self.workflows.values()
-            if not guild_id or w.guild_id == guild_id
-        ]
+        workflows = [w for w in self.workflows.values() if not guild_id or w.guild_id == guild_id]
         executions = [
             e
             for e in self.executions.values()
-            if not guild_id
-            or self.workflows.get(e.workflow_id, {}).guild_id == guild_id
+            if not guild_id or self.workflows.get(e.workflow_id, {}).guild_id == guild_id
         ]
 
         status_counts = {}
@@ -657,9 +589,7 @@ class WorkflowEngine:
         execution_status_counts = {}
         for execution in executions:
             status = execution.status
-            execution_status_counts[status] = (
-                execution_status_counts.get(status, 0) + 1
-            )
+            execution_status_counts[status] = execution_status_counts.get(status, 0) + 1
 
         return {
             "total_workflows": len(workflows),
@@ -669,26 +599,17 @@ class WorkflowEngine:
             "status_distribution": status_counts,
             "trigger_distribution": trigger_counts,
             "execution_status_distribution": execution_status_counts,
-            "average_execution_time": self._calculate_average_execution_time(
-                executions
-            ),
+            "average_execution_time": self._calculate_average_execution_time(executions),
         }
 
-    def _calculate_average_execution_time(
-        self, executions: List[WorkflowExecution]
-    ) -> float:
+    def _calculate_average_execution_time(self, executions: List[WorkflowExecution]) -> float:
         """計算平均執行時間"""
-        completed_executions = [
-            e for e in executions if e.status == "completed" and e.end_time
-        ]
+        completed_executions = [e for e in executions if e.status == "completed" and e.end_time]
 
         if not completed_executions:
             return 0.0
 
-        total_time = sum(
-            (e.end_time - e.start_time).total_seconds()
-            for e in completed_executions
-        )
+        total_time = sum((e.end_time - e.start_time).total_seconds() for e in completed_executions)
 
         return total_time / len(completed_executions)
 

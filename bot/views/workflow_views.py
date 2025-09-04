@@ -30,9 +30,7 @@ class WorkflowDesignerView(View):
 
         self.add_item(WorkflowListSelect(user_id))
 
-    async def interaction_check(
-        self, interaction: discord.Interaction
-    ) -> bool:
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
         """檢查用戶權限"""
         if interaction.user.id != self.user_id:
             await interaction.response.send_message(
@@ -41,9 +39,7 @@ class WorkflowDesignerView(View):
             return False
 
         if not interaction.user.guild_permissions.manage_guild:
-            await interaction.response.send_message(
-                "❌ 需要管理伺服器權限", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 需要管理伺服器權限", ephemeral=True)
             return False
 
         return True
@@ -53,9 +49,7 @@ class CreateWorkflowButton(Button):
     """創建工作流程按鈕"""
 
     def __init__(self):
-        super().__init__(
-            label="📝 創建新工作流程", style=discord.ButtonStyle.primary, row=0
-        )
+        super().__init__(label="📝 創建新工作流程", style=discord.ButtonStyle.primary, row=0)
 
     async def callback(self, interaction: discord.Interaction):
         modal = CreateWorkflowModal()
@@ -66,9 +60,7 @@ class EditWorkflowButton(Button):
     """編輯工作流程按鈕"""
 
     def __init__(self):
-        super().__init__(
-            label="✏️ 編輯工作流程", style=discord.ButtonStyle.secondary, row=0
-        )
+        super().__init__(label="✏️ 編輯工作流程", style=discord.ButtonStyle.secondary, row=0)
 
     async def callback(self, interaction: discord.Interaction):
         view = WorkflowEditView(interaction.user.id, self.view.workflow_id)
@@ -79,9 +71,7 @@ class EditWorkflowButton(Button):
             color=0x3498DB,
         )
 
-        await interaction.response.send_message(
-            embed=embed, view=view, ephemeral=True
-        )
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 
 class WorkflowListSelect(Select):
@@ -99,15 +89,11 @@ class WorkflowListSelect(Select):
             )
         ]
 
-        super().__init__(
-            placeholder="選擇要編輯的工作流程...", options=options, row=1
-        )
+        super().__init__(placeholder="選擇要編輯的工作流程...", options=options, row=1)
 
     async def callback(self, interaction: discord.Interaction):
         if self.values[0] == "loading":
-            await interaction.response.send_message(
-                "⏳ 正在載入工作流程列表...", ephemeral=True
-            )
+            await interaction.response.send_message("⏳ 正在載入工作流程列表...", ephemeral=True)
             return
 
         workflow_id = self.values[0]
@@ -119,9 +105,7 @@ class WorkflowListSelect(Select):
             color=0x3498DB,
         )
 
-        await interaction.response.send_message(
-            embed=embed, view=view, ephemeral=True
-        )
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
 
 class WorkflowEditView(View):
@@ -133,9 +117,7 @@ class WorkflowEditView(View):
         self.workflow_id = workflow_id
 
     @button(label="🎯 編輯觸發器", style=discord.ButtonStyle.primary, row=0)
-    async def edit_trigger_button(
-        self, interaction: discord.Interaction, button: Button
-    ):
+    async def edit_trigger_button(self, interaction: discord.Interaction, button: Button):
         """編輯觸發器"""
         view = TriggerEditView(self.user_id, self.workflow_id)
 
@@ -145,14 +127,10 @@ class WorkflowEditView(View):
             color=0xE74C3C,
         )
 
-        await interaction.response.send_message(
-            embed=embed, view=view, ephemeral=True
-        )
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
     @button(label="⚙️ 編輯動作", style=discord.ButtonStyle.secondary, row=0)
-    async def edit_actions_button(
-        self, interaction: discord.Interaction, button: Button
-    ):
+    async def edit_actions_button(self, interaction: discord.Interaction, button: Button):
         """編輯動作"""
         view = ActionsEditView(self.user_id, self.workflow_id)
 
@@ -162,14 +140,10 @@ class WorkflowEditView(View):
             color=0x3498DB,
         )
 
-        await interaction.response.send_message(
-            embed=embed, view=view, ephemeral=True
-        )
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
     @button(label="🔄 測試工作流程", style=discord.ButtonStyle.success, row=1)
-    async def test_workflow_button(
-        self, interaction: discord.Interaction, button: Button
-    ):
+    async def test_workflow_button(self, interaction: discord.Interaction, button: Button):
         """測試工作流程"""
         try:
             # 執行測試
@@ -195,20 +169,14 @@ class WorkflowEditView(View):
                     color=0xE74C3C,
                 )
 
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"測試工作流程失敗: {e}")
-            await interaction.response.send_message(
-                f"❌ 測試失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.response.send_message(f"❌ 測試失敗: {str(e)}", ephemeral=True)
 
     @button(label="💾 儲存設定", style=discord.ButtonStyle.success, row=1)
-    async def save_workflow_button(
-        self, interaction: discord.Interaction, button: Button
-    ):
+    async def save_workflow_button(self, interaction: discord.Interaction, button: Button):
         """儲存工作流程設定"""
         try:
             # 這裡應該將工作流程引擎中的設定同步到資料庫
@@ -218,15 +186,11 @@ class WorkflowEditView(View):
                 color=0x2ECC71,
             )
 
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"儲存工作流程失敗: {e}")
-            await interaction.response.send_message(
-                f"❌ 儲存失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.response.send_message(f"❌ 儲存失敗: {str(e)}", ephemeral=True)
 
 
 class TriggerEditView(View):
@@ -239,17 +203,13 @@ class TriggerEditView(View):
         self.add_item(TriggerTypeSelect())
 
     @button(label="➕ 添加條件", style=discord.ButtonStyle.secondary, row=1)
-    async def add_condition_button(
-        self, interaction: discord.Interaction, button: Button
-    ):
+    async def add_condition_button(self, interaction: discord.Interaction, button: Button):
         """添加觸發條件"""
         modal = AddConditionModal(self.workflow_id)
         await interaction.response.send_modal(modal)
 
     @button(label="🗑️ 清除條件", style=discord.ButtonStyle.danger, row=1)
-    async def clear_conditions_button(
-        self, interaction: discord.Interaction, button: Button
-    ):
+    async def clear_conditions_button(self, interaction: discord.Interaction, button: Button):
         """清除所有條件"""
         embed = EmbedBuilder.build(
             title="✅ 條件已清除",
@@ -320,9 +280,7 @@ class ActionsEditView(View):
         self.workflow_id = workflow_id
 
     @button(label="➕ 添加動作", style=discord.ButtonStyle.primary, row=0)
-    async def add_action_button(
-        self, interaction: discord.Interaction, button: Button
-    ):
+    async def add_action_button(self, interaction: discord.Interaction, button: Button):
         """添加動作"""
         view = ActionTypeView(self.user_id, self.workflow_id)
 
@@ -332,14 +290,10 @@ class ActionsEditView(View):
             color=0x3498DB,
         )
 
-        await interaction.response.send_message(
-            embed=embed, view=view, ephemeral=True
-        )
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
     @button(label="📋 查看動作", style=discord.ButtonStyle.secondary, row=0)
-    async def view_actions_button(
-        self, interaction: discord.Interaction, button: Button
-    ):
+    async def view_actions_button(self, interaction: discord.Interaction, button: Button):
         """查看現有動作"""
         # 獲取工作流程的動作列表
         embed = EmbedBuilder.build(
@@ -349,16 +303,12 @@ class ActionsEditView(View):
         )
 
         # 這裡應該顯示實際的動作列表
-        embed.add_field(
-            name="暫無動作", value="請添加動作來構建工作流程", inline=False
-        )
+        embed.add_field(name="暫無動作", value="請添加動作來構建工作流程", inline=False)
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @button(label="🗑️ 清除動作", style=discord.ButtonStyle.danger, row=1)
-    async def clear_actions_button(
-        self, interaction: discord.Interaction, button: Button
-    ):
+    async def clear_actions_button(self, interaction: discord.Interaction, button: Button):
         """清除所有動作"""
         embed = EmbedBuilder.build(
             title="✅ 動作已清除",
@@ -422,9 +372,7 @@ class ActionTypeSelect(Select):
             ),
         ]
 
-        super().__init__(
-            placeholder="選擇動作類型...", options=options, max_values=1
-        )
+        super().__init__(placeholder="選擇動作類型...", options=options, max_values=1)
 
     async def callback(self, interaction: discord.Interaction):
         action_type = self.values[0]
@@ -448,9 +396,7 @@ class ActionTypeSelect(Select):
                 description=f"已添加動作: **{action_type}**",
                 color=0x2ECC71,
             )
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
 # ========== Modal 表單 ==========
@@ -500,9 +446,7 @@ class CreateWorkflowModal(Modal):
 
             # 儲存到資料庫
             workflow_dao = WorkflowDAO()
-            await workflow_dao.create_workflow(
-                {"id": workflow_id, **workflow_data}
-            )
+            await workflow_dao.create_workflow({"id": workflow_id, **workflow_data})
 
             embed = EmbedBuilder.build(
                 title="✅ 工作流程已創建",
@@ -512,24 +456,18 @@ class CreateWorkflowModal(Modal):
 
             embed.add_field(
                 name="📋 基本資訊",
-                value=f"ID: `{workflow_id}`\n"
-                f"狀態: 草稿\n"
-                f"觸發類型: 手動觸發",
+                value=f"ID: `{workflow_id}`\n" f"狀態: 草稿\n" f"觸發類型: 手動觸發",
                 inline=False,
             )
 
             # 顯示編輯界面
             view = WorkflowEditView(interaction.user.id, workflow_id)
 
-            await interaction.response.send_message(
-                embed=embed, view=view, ephemeral=True
-            )
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
         except Exception as e:
             logger.error(f"創建工作流程失敗: {e}")
-            await interaction.response.send_message(
-                f"❌ 創建失敗: {str(e)}", ephemeral=True
-            )
+            await interaction.response.send_message(f"❌ 創建失敗: {str(e)}", ephemeral=True)
 
 
 class AddConditionModal(Modal):
@@ -695,14 +633,10 @@ class DelayActionModal(Modal):
                 color=0x2ECC71,
             )
 
-            await interaction.response.send_message(
-                embed=embed, ephemeral=True
-            )
+            await interaction.response.send_message(embed=embed, ephemeral=True)
 
         except ValueError:
-            await interaction.response.send_message(
-                "❌ 請輸入有效的數字", ephemeral=True
-            )
+            await interaction.response.send_message("❌ 請輸入有效的數字", ephemeral=True)
 
 
 # ========== 工作流程統計視圖 ==========
@@ -716,13 +650,9 @@ class WorkflowStatsView(View):
         self.user_id = user_id
 
     @button(label="📊 詳細統計", style=discord.ButtonStyle.primary, row=0)
-    async def detailed_stats_button(
-        self, interaction: discord.Interaction, button: Button
-    ):
+    async def detailed_stats_button(self, interaction: discord.Interaction, button: Button):
         """顯示詳細統計"""
-        stats = workflow_engine.get_workflow_statistics(
-            guild_id=interaction.guild.id
-        )
+        stats = workflow_engine.get_workflow_statistics(guild_id=interaction.guild.id)
 
         embed = EmbedBuilder.build(
             title="📊 工作流程詳細統計",
@@ -742,9 +672,7 @@ class WorkflowStatsView(View):
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @button(label="📈 執行趨勢", style=discord.ButtonStyle.secondary, row=0)
-    async def execution_trend_button(
-        self, interaction: discord.Interaction, button: Button
-    ):
+    async def execution_trend_button(self, interaction: discord.Interaction, button: Button):
         """顯示執行趨勢"""
         embed = EmbedBuilder.build(
             title="📈 工作流程執行趨勢",
@@ -753,8 +681,6 @@ class WorkflowStatsView(View):
         )
 
         # 這裡可以添加圖表或趨勢數據
-        embed.add_field(
-            name="趨勢分析", value="執行趨勢圖表功能開發中...", inline=False
-        )
+        embed.add_field(name="趨勢分析", value="執行趨勢圖表功能開發中...", inline=False)
 
         await interaction.response.send_message(embed=embed, ephemeral=True)

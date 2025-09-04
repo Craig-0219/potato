@@ -107,16 +107,12 @@ class TagManager:
 
             # 檢查標籤是否已存在
             existing_tags = await self.tag_dao.get_tags_by_guild(guild_id)
-            if any(
-                tag["name"].lower() == name.lower() for tag in existing_tags
-            ):
+            if any(tag["name"].lower() == name.lower() for tag in existing_tags):
                 return False, f"標籤名稱 '{name}' 已存在", None
 
             # 設定預設值
             if not color:
-                color = self.default_categories.get(category, {}).get(
-                    "color", "#808080"
-                )
+                color = self.default_categories.get(category, {}).get("color", "#808080")
 
             if not emoji and category in self.default_categories:
                 emoji = self.default_categories[category]["emoji"]
@@ -134,9 +130,7 @@ class TagManager:
             )
 
             if tag_id:
-                logger.info(
-                    f"標籤創建成功: {display_name} ({name}) by {created_by}"
-                )
+                logger.info(f"標籤創建成功: {display_name} ({name}) by {created_by}")
                 return True, f"標籤 '{display_name}' 創建成功", tag_id
             else:
                 return False, "創建標籤失敗，請稍後再試", None
@@ -157,17 +151,13 @@ class TagManager:
                 "category",
                 "is_active",
             ]
-            filtered_kwargs = {
-                k: v for k, v in kwargs.items() if k in valid_fields
-            }
+            filtered_kwargs = {k: v for k, v in kwargs.items() if k in valid_fields}
 
             if not filtered_kwargs:
                 return False, "沒有有效的更新欄位"
 
             # 驗證顏色格式
-            if "color" in filtered_kwargs and not self._validate_color(
-                filtered_kwargs["color"]
-            ):
+            if "color" in filtered_kwargs and not self._validate_color(filtered_kwargs["color"]):
                 return False, "顏色格式無效，請使用 HEX 格式"
 
             success = await self.tag_dao.update_tag(tag_id, **filtered_kwargs)
@@ -192,9 +182,7 @@ class TagManager:
             success = await self.tag_dao.delete_tag(tag_id)
 
             if success:
-                logger.info(
-                    f"標籤已刪除: {tag['display_name']} (ID: {tag_id})"
-                )
+                logger.info(f"標籤已刪除: {tag['display_name']} (ID: {tag_id})")
                 return True, f"標籤 '{tag['display_name']}' 已刪除"
             else:
                 return False, "刪除標籤失敗"
@@ -215,14 +203,10 @@ class TagManager:
             if not tag:
                 return False, "標籤不存在"
 
-            success = await self.tag_dao.add_tag_to_ticket(
-                ticket_id, tag_id, added_by
-            )
+            success = await self.tag_dao.add_tag_to_ticket(ticket_id, tag_id, added_by)
 
             if success:
-                logger.info(
-                    f"標籤添加成功: 票券 #{ticket_id} + {tag['display_name']}"
-                )
+                logger.info(f"標籤添加成功: 票券 #{ticket_id} + {tag['display_name']}")
                 return True, f"已為票券添加標籤 '{tag['display_name']}'"
             else:
                 return False, "添加標籤失敗"
@@ -231,9 +215,7 @@ class TagManager:
             logger.error(f"添加標籤錯誤：{e}")
             return False, f"添加過程中發生錯誤：{str(e)}"
 
-    async def remove_tag_from_ticket(
-        self, ticket_id: int, tag_id: int
-    ) -> Tuple[bool, str]:
+    async def remove_tag_from_ticket(self, ticket_id: int, tag_id: int) -> Tuple[bool, str]:
         """從票券移除標籤"""
         try:
             # 檢查標籤是否存在
@@ -241,14 +223,10 @@ class TagManager:
             if not tag:
                 return False, "標籤不存在"
 
-            success = await self.tag_dao.remove_tag_from_ticket(
-                ticket_id, tag_id
-            )
+            success = await self.tag_dao.remove_tag_from_ticket(ticket_id, tag_id)
 
             if success:
-                logger.info(
-                    f"標籤移除成功: 票券 #{ticket_id} - {tag['display_name']}"
-                )
+                logger.info(f"標籤移除成功: 票券 #{ticket_id} - {tag['display_name']}")
                 return True, f"已從票券移除標籤 '{tag['display_name']}'"
             else:
                 return False, "移除標籤失敗"
@@ -285,9 +263,7 @@ class TagManager:
 
             if applied_tags:
                 tag_names = [tag["display_name"] for tag in applied_tags]
-                logger.info(
-                    f"自動應用標籤: 票券 #{ticket_id} -> {', '.join(tag_names)}"
-                )
+                logger.info(f"自動應用標籤: 票券 #{ticket_id} -> {', '.join(tag_names)}")
 
             return applied_tags
 
@@ -347,39 +323,29 @@ class TagManager:
 
     # ========== 搜索與統計 ==========
 
-    async def search_tags(
-        self, guild_id: int, query: str, limit: int = 20
-    ) -> List[Dict[str, Any]]:
+    async def search_tags(self, guild_id: int, query: str, limit: int = 20) -> List[Dict[str, Any]]:
         """搜索標籤"""
         try:
             if len(query.strip()) < 2:
                 return []
 
-            tags = await self.tag_dao.search_tags(
-                guild_id, query.strip(), limit
-            )
+            tags = await self.tag_dao.search_tags(guild_id, query.strip(), limit)
             return tags
 
         except Exception as e:
             logger.error(f"搜索標籤錯誤：{e}")
             return []
 
-    async def get_tag_statistics(
-        self, guild_id: int, days: int = 30
-    ) -> Dict[str, Any]:
+    async def get_tag_statistics(self, guild_id: int, days: int = 30) -> Dict[str, Any]:
         """取得標籤使用統計"""
         try:
             # 取得使用統計
-            usage_stats = await self.tag_dao.get_tag_usage_stats(
-                guild_id, days
-            )
+            usage_stats = await self.tag_dao.get_tag_usage_stats(guild_id, days)
 
             # 計算總體統計
             total_tags = len(usage_stats)
             total_usage = sum(tag["usage_count"] or 0 for tag in usage_stats)
-            active_tags = len(
-                [tag for tag in usage_stats if (tag["usage_count"] or 0) > 0]
-            )
+            active_tags = len([tag for tag in usage_stats if (tag["usage_count"] or 0) > 0])
 
             # 分類統計
             category_stats = {}
@@ -422,9 +388,7 @@ class TagManager:
             for tag_data in self.system_tags:
                 # 檢查標籤是否已存在
                 existing_tags = await self.tag_dao.get_tags_by_guild(guild_id)
-                if any(
-                    tag["name"] == tag_data["name"] for tag in existing_tags
-                ):
+                if any(tag["name"] == tag_data["name"] for tag in existing_tags):
                     continue
 
                 tag_id = await self.tag_dao.create_tag(
@@ -440,9 +404,7 @@ class TagManager:
                 if tag_id:
                     created_count += 1
 
-            logger.info(
-                f"初始化預設標籤完成: 伺服器 {guild_id}，創建 {created_count} 個標籤"
-            )
+            logger.info(f"初始化預設標籤完成: 伺服器 {guild_id}，創建 {created_count} 個標籤")
             return (
                 True,
                 f"成功初始化 {created_count} 個預設標籤",
@@ -473,9 +435,7 @@ class TagManager:
         pattern = r"^#[0-9A-Fa-f]{6}$"
         return bool(re.match(pattern, color))
 
-    def format_tag_display(
-        self, tag: Dict[str, Any], include_usage: bool = False
-    ) -> str:
+    def format_tag_display(self, tag: Dict[str, Any], include_usage: bool = False) -> str:
         """格式化標籤顯示"""
         emoji = tag.get("emoji", "")
         display_name = tag.get("display_name", tag.get("name", ""))
@@ -494,9 +454,7 @@ class TagManager:
             category, {"name": category, "emoji": "🏷️", "color": "#808080"}
         )
 
-    async def get_formatted_tag_list(
-        self, guild_id: int, category: str = None
-    ) -> str:
+    async def get_formatted_tag_list(self, guild_id: int, category: str = None) -> str:
         """取得格式化的標籤列表"""
         try:
             tags = await self.tag_dao.get_tags_by_guild(guild_id, category)
@@ -519,9 +477,7 @@ class TagManager:
                 lines.append(f"\n**{cat_info['emoji']} {cat_info['name']}**")
 
                 for tag in cat_tags:
-                    tag_display = self.format_tag_display(
-                        tag, include_usage=True
-                    )
+                    tag_display = self.format_tag_display(tag, include_usage=True)
                     lines.append(f"• {tag_display}")
 
             return "\n".join(lines)

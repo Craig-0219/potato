@@ -1,0 +1,261 @@
+name: 🚀 Deploy to Ptero
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: '強制部署 (跳過檢查)'
+        type: boolean
+        default: false
+      target_commit:
+        description: '指定部署的 commit SHA (可選)'
+        type: string
+        required: false
+
+permissions:
+  contents: write
+  actions: read
+
+env:
+  TARGET_BRANCH: ptero
+  
+jobs:
+  pre-deploy-check:
+    name: 🔍 部署前檢查
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+      commit_sha: ${{ steps.check.outputs.commit_sha }}
+      commit_message: ${{ steps.check.outputs.commit_message }}
+    
+    steps:
+    - name: 📥 檢出程式碼
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # 需要完整歷史來比較分支
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: 🔍 執行部署檢查
+      id: check
+      run: |
+        echo "🔍 執行部署前檢查..."
+        
+        # 獲取目標 commit
+        if [[ "${{ github.event.inputs.target_commit }}" != "" ]]; then
+          TARGET_COMMIT="${{ github.event.inputs.target_commit }}"
+          echo "🎯 使用指定的 commit: $TARGET_COMMIT"
+        else
+          TARGET_COMMIT="${{ github.sha }}"
+          echo "🎯 使用當前 commit: $TARGET_COMMIT"
+        fi
+        
+        # 獲取 commit 信息
+        COMMIT_MESSAGE=$(git log -1 --pretty=format:"%s" $TARGET_COMMIT)
+        COMMIT_AUTHOR=$(git log -1 --pretty=format:"%an" $TARGET_COMMIT)
+        
+        echo "📝 Commit 訊息: $COMMIT_MESSAGE"
+        echo "👤 作者: $COMMIT_AUTHOR"
+        
+        # 檢查 ptero 分支是否存在
+        if git show-ref --quiet refs/remotes/origin/ptero; then
+          echo "✅ Ptero 分支已存在"
+          
+          # 檢查是否有新的變更
+          if git diff --quiet origin/ptero...$TARGET_COMMIT; then
+            echo "⚠️ 沒有新的變更需要部署"
+            if [[ "${{ github.event.inputs.force_deploy }}" == "true" ]]; then
+              echo "🔄 強制部署模式，繼續執行"
+              SHOULD_DEPLOY="true"
+            else
+              echo "⏭️ 跳過部署"
+              SHOULD_DEPLOY="false"
+            fi
+          else
+            echo "🆕 檢測到新變更，準備部署"
+            SHOULD_DEPLOY="true"
+            
+            # 顯示變更摘要
+            echo "📊 變更摘要:"
+            git diff --stat origin/ptero...$TARGET_COMMIT
+          fi
+        else
+          echo "🆕 Ptero 分支不存在，將建立新分支"
+          SHOULD_DEPLOY="true"
+        fi
+        
+        # 檢查是否為緊急修復
+        if [[ "$COMMIT_MESSAGE" == *"hotfix"* ]] || [[ "$COMMIT_MESSAGE" == *"urgent"* ]] || [[ "$COMMIT_MESSAGE" == *"emergency"* ]]; then
+          echo "🚨 檢測到緊急修復，優先部署"
+          SHOULD_DEPLOY="true"
+        fi
+        
+        echo "should_deploy=$SHOULD_DEPLOY" >> $GITHUB_OUTPUT
+        echo "commit_sha=$TARGET_COMMIT" >> $GITHUB_OUTPUT
+        echo "commit_message=$COMMIT_MESSAGE" >> $GITHUB_OUTPUT
+
+  production-compliance:
+    name: 🛡️ 生產合規檢查
+    runs-on: ubuntu-latest
+    needs: pre-deploy-check
+    if: needs.pre-deploy-check.outputs.should_deploy == 'true' && github.event.inputs.force_deploy != 'true'
+    timeout-minutes: 3
+    
+    steps:
+    - name: 📥 檢出程式碼
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ needs.pre-deploy-check.outputs.commit_sha }}
+    
+    - name: 🛡️ 執行生產檔案合規檢查
+      run: |
+        echo "🔍 執行生產檔案合規檢查..."
+        chmod +x .github/scripts/production-compliance-check.sh
+        .github/scripts/production-compliance-check.sh
+        
+        echo "✅ 生產合規檢查通過"
+
+  deploy-to-ptero:
+    name: 🚀 部署到 Ptero
+    runs-on: ubuntu-latest
+    needs: [pre-deploy-check, production-compliance]
+    if: always() && needs.pre-deploy-check.outputs.should_deploy == 'true' && (needs.production-compliance.result == 'success' || needs.production-compliance.result == 'skipped')
+    timeout-minutes: 10
+    
+    steps:
+    - name: 📥 檢出程式碼
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+        ref: ${{ needs.pre-deploy-check.outputs.commit_sha }}
+    
+    - name: ⚙️ 配置 Git
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git config --local push.default simple
+    
+    - name: 🌿 準備 Ptero 分支
+      run: |
+        echo "🌿 準備 ptero 分支..."
+        
+        # 檢查遠程 ptero 分支是否存在
+        if git ls-remote --exit-code --heads origin ptero; then
+          echo "✅ 遠程 ptero 分支存在，檢出分支"
+          git fetch origin ptero:ptero
+          git checkout ptero
+        else
+          echo "🆕 建立新的 ptero 分支"
+          git checkout -b ptero
+        fi
+        
+        # 顯示當前分支狀態
+        echo "📊 當前分支: $(git branch --show-current)"
+        echo "📊 最新 commit: $(git log -1 --oneline)"
+    
+    - name: 🔄 同步 Main 到 Ptero
+      run: |
+        echo "🔄 同步 main 分支內容到 ptero..."
+        
+        # 確保我們在 ptero 分支上
+        git checkout ptero
+        
+        # 合併 main 分支的變更
+        MAIN_COMMIT="${{ needs.pre-deploy-check.outputs.commit_sha }}"
+        echo "📥 合併 commit: $MAIN_COMMIT"
+        
+        # 執行合併 (策略：接受 main 分支的所有變更)
+        if git merge $MAIN_COMMIT --strategy-option=theirs --no-edit; then
+          echo "✅ 合併成功"
+        else
+          echo "⚠️ 合併時發生衝突，使用 theirs 策略解決"
+          git merge --strategy-option=theirs --no-edit $MAIN_COMMIT
+        fi
+        
+        # 更新 commit 訊息  
+        DEPLOY_MESSAGE="🚀 Deploy: ${{ needs.pre-deploy-check.outputs.commit_message }}\n\n📅 部署時間: $(date -u '+%Y-%m-%d %H:%M:%S UTC')\n🎯 來源 commit: $MAIN_COMMIT\n🌿 目標分支: ptero\n\n🤖 自動部署 by GitHub Actions"
+        
+        git commit --amend -m "$DEPLOY_MESSAGE" || echo "無需修改 commit"
+    
+    - name: 🚀 推送到 Ptero
+      run: |
+        echo "🚀 推送變更到 ptero 分支..."
+        
+        # 推送到遠程 ptero 分支
+        git push origin ptero
+        
+        echo "✅ 成功推送到 ptero 分支"
+        
+        # 顯示部署結果
+        echo "📊 部署結果:"
+        echo "  🌿 目標分支: ptero"
+        echo "  📝 Commit SHA: $(git rev-parse HEAD)"
+        echo "  📅 部署時間: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+    
+    - name: 🎯 創建部署標籤
+      if: github.event_name == 'push'
+      run: |
+        echo "🏷️ 創建部署標籤..."
+        
+        # 創建部署標籤
+        DEPLOY_TAG="deploy-$(date -u '+%Y%m%d-%H%M%S')"
+        COMMIT_SHA=$(git rev-parse HEAD)
+        
+        git tag -a "$DEPLOY_TAG" -m "🚀 Production deployment\n\n📅 部署時間: $(date -u '+%Y-%m-%d %H:%M:%S UTC')\n🎯 來源: main branch\n🌿 部署到: ptero branch\n📝 Commit: $COMMIT_SHA\n\n🤖 自動創建 by GitHub Actions"
+        
+        # 推送標籤
+        git push origin "$DEPLOY_TAG"
+        
+        echo "✅ 創建部署標籤: $DEPLOY_TAG"
+
+  post-deploy-notification:
+    name: 📢 部署通知
+    runs-on: ubuntu-latest
+    needs: [pre-deploy-check, production-compliance, deploy-to-ptero]
+    if: always() && needs.pre-deploy-check.outputs.should_deploy == 'true'
+    timeout-minutes: 2
+    
+    steps:
+    - name: 📊 生成部署報告
+      run: |
+        echo "📊 部署執行報告"
+        echo "=========================="
+        echo "🎯 目標分支: ptero"
+        echo "📝 Commit: ${{ needs.pre-deploy-check.outputs.commit_sha }}"
+        echo "💬 訊息: ${{ needs.pre-deploy-check.outputs.commit_message }}"
+        echo "⏰ 部署時間: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+        echo ""
+        
+        # 檢查各階段結果
+        echo "📋 執行結果:"
+        
+        if [[ "${{ needs.production-compliance.result }}" == "success" ]]; then
+          echo "  🛡️ 生產合規檢查: ✅ 通過"
+        elif [[ "${{ needs.production-compliance.result }}" == "skipped" ]]; then
+          echo "  🛡️ 生產合規檢查: ⏭️ 跳過 (強制部署)"
+        else
+          echo "  🛡️ 生產合規檢查: ❌ 失敗"
+        fi
+        
+        if [[ "${{ needs.deploy-to-ptero.result }}" == "success" ]]; then
+          echo "  🚀 部署執行: ✅ 成功"
+          echo ""
+          echo "🎉 部署完成！Ptero 分支已更新到最新版本"
+          echo "🔗 檢查部署: https://github.com/${{ github.repository }}/tree/ptero"
+        else
+          echo "  🚀 部署執行: ❌ 失敗"
+          echo ""
+          echo "❌ 部署失敗！請檢查執行日誌並手動處理"
+          echo "💡 建議檢查:"
+          echo "  1. 分支衝突問題"
+          echo "  2. 權限配置"
+          echo "  3. 生產合規檢查結果"
+        fi
+        
+        echo ""
+        echo "📈 部署統計:"
+        echo "  🔄 自動部署次數: ${{ github.run_number }}"
+        echo "  ⚡ 工作流程 ID: ${{ github.run_id }}"

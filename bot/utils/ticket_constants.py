@@ -287,17 +287,11 @@ def create_priority_options() -> List[discord.SelectOption]:
 
 def create_rating_options() -> List[discord.SelectOption]:
     return [
-        discord.SelectOption(
-            label="⭐ 1星 - 非常不滿意", value="1", emoji="⭐"
-        ),
+        discord.SelectOption(label="⭐ 1星 - 非常不滿意", value="1", emoji="⭐"),
         discord.SelectOption(label="⭐⭐ 2星 - 不滿意", value="2", emoji="⭐"),
         discord.SelectOption(label="⭐⭐⭐ 3星 - 普通", value="3", emoji="⭐"),
-        discord.SelectOption(
-            label="⭐⭐⭐⭐ 4星 - 滿意", value="4", emoji="⭐"
-        ),
-        discord.SelectOption(
-            label="⭐⭐⭐⭐⭐ 5星 - 非常滿意", value="5", emoji="⭐"
-        ),
+        discord.SelectOption(label="⭐⭐⭐⭐ 4星 - 滿意", value="4", emoji="⭐"),
+        discord.SelectOption(label="⭐⭐⭐⭐⭐ 5星 - 非常滿意", value="5", emoji="⭐"),
     ]
 
 
@@ -360,9 +354,7 @@ def escape_markdown(text: str) -> str:
     return text
 
 
-def create_progress_indicator(
-    current: int, total: int, length: int = 10
-) -> str:
+def create_progress_indicator(current: int, total: int, length: int = 10) -> str:
     if total == 0:
         bar = "□" * length
     else:

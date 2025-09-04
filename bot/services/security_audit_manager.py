@@ -361,9 +361,7 @@ class SecurityAuditManager:
         # 保持最近1小時的記錄
         cutoff_time = event.timestamp - timedelta(hours=1)
         self.suspicious_activity_cache[user_key] = [
-            t
-            for t in self.suspicious_activity_cache[user_key]
-            if t > cutoff_time
+            t for t in self.suspicious_activity_cache[user_key] if t > cutoff_time
         ]
 
         # 檢測異常頻率
@@ -464,9 +462,7 @@ class SecurityAuditManager:
             except Exception as e:
                 logger.error(f"評估安全規則失敗 {rule_id}: {e}")
 
-    async def _rule_matches_event(
-        self, rule: SecurityRule, event: SecurityEvent
-    ) -> bool:
+    async def _rule_matches_event(self, rule: SecurityRule, event: SecurityEvent) -> bool:
         """檢查規則是否匹配事件"""
         conditions = rule.conditions
 
@@ -534,9 +530,7 @@ class SecurityAuditManager:
 
         return False
 
-    async def _evaluate_volume_rule(
-        self, conditions: Dict[str, Any], event: SecurityEvent
-    ) -> bool:
+    async def _evaluate_volume_rule(self, conditions: Dict[str, Any], event: SecurityEvent) -> bool:
         """評估數量規則"""
         volume_threshold = conditions.get("volume_threshold", 1000)
         time_window = conditions.get("time_window", 3600)
@@ -559,9 +553,7 @@ class SecurityAuditManager:
 
         return total_volume >= volume_threshold
 
-    async def _execute_rule_actions(
-        self, rule: SecurityRule, event: SecurityEvent
-    ):
+    async def _execute_rule_actions(self, rule: SecurityRule, event: SecurityEvent):
         """執行規則動作"""
         for action in rule.actions:
             action_type = action.get("type")
@@ -570,9 +562,7 @@ class SecurityAuditManager:
                 if action_type == "alert":
                     await self._send_security_alert(rule, event, action)
                 elif action_type == "temporary_ban":
-                    await self._apply_temporary_restriction(
-                        event.user_id, action
-                    )
+                    await self._apply_temporary_restriction(event.user_id, action)
                 elif action_type == "require_approval":
                     await self._require_approval(event, action)
                 elif action_type == "log_detail":
@@ -601,30 +591,22 @@ class SecurityAuditManager:
         logger.warning(f"🚨 安全警報: {rule.name} - {severity.upper()}")
         # 這裡可以整合外部警報系統
 
-    async def _apply_temporary_restriction(
-        self, user_id: int, action: Dict[str, Any]
-    ):
+    async def _apply_temporary_restriction(self, user_id: int, action: Dict[str, Any]):
         """應用臨時限制"""
         duration = action.get("duration", 1800)  # 預設30分鐘
-        restriction_end = datetime.now(timezone.utc) + timedelta(
-            seconds=duration
-        )
+        restriction_end = datetime.now(timezone.utc) + timedelta(seconds=duration)
 
         # 記錄限制
         logger.info(f"⚠️ 對用戶 {user_id} 應用臨時限制，持續 {duration} 秒")
         # 實際限制邏輯需要與Bot的權限系統整合
 
-    async def _require_approval(
-        self, event: SecurityEvent, action: Dict[str, Any]
-    ):
+    async def _require_approval(self, event: SecurityEvent, action: Dict[str, Any]):
         """要求審批"""
         # 將事件標記為需要審批
         logger.info(f"📋 事件 {event.id} 需要管理員審批")
         # 可以發送通知給管理員
 
-    async def _log_detailed_information(
-        self, event: SecurityEvent, action: Dict[str, Any]
-    ):
+    async def _log_detailed_information(self, event: SecurityEvent, action: Dict[str, Any]):
         """記錄詳細資訊"""
         detailed_info = {
             "event_id": event.id,
@@ -653,9 +635,7 @@ class SecurityAuditManager:
             if isinstance(value, str):
                 sanitized_value = value
                 for pattern in sensitive_patterns:
-                    sanitized_value = re.sub(
-                        pattern, "[REDACTED]", sanitized_value
-                    )
+                    sanitized_value = re.sub(pattern, "[REDACTED]", sanitized_value)
                 sanitized_data[key] = sanitized_value
             else:
                 sanitized_data[key] = value
@@ -674,10 +654,7 @@ class SecurityAuditManager:
         ]
 
         for key in data.keys():
-            if any(
-                sensitive_key in key.lower()
-                for sensitive_key in sensitive_keys
-            ):
+            if any(sensitive_key in key.lower() for sensitive_key in sensitive_keys):
                 return True
 
         return False
@@ -721,9 +698,7 @@ class SecurityAuditManager:
             }
             return session_id
         else:
-            self.active_sessions[session_key]["last_activity"] = datetime.now(
-                timezone.utc
-            )
+            self.active_sessions[session_key]["last_activity"] = datetime.now(timezone.utc)
             return self.active_sessions[session_key]["session_id"]
 
     async def cleanup_expired_sessions(self):
@@ -758,26 +733,17 @@ class SecurityAuditManager:
             relevant_events = [
                 event
                 for event in self.event_buffer
-                if (
-                    event.guild_id == guild_id
-                    and start_date <= event.timestamp <= end_date
-                )
+                if (event.guild_id == guild_id and start_date <= event.timestamp <= end_date)
             ]
 
             # 分析違規情況
-            violations = await self._analyze_compliance_violations(
-                relevant_events, standard
-            )
+            violations = await self._analyze_compliance_violations(relevant_events, standard)
 
             # 生成摘要
-            summary = await self._generate_compliance_summary(
-                relevant_events, standard
-            )
+            summary = await self._generate_compliance_summary(relevant_events, standard)
 
             # 提供建議
-            recommendations = await self._generate_compliance_recommendations(
-                violations, standard
-            )
+            recommendations = await self._generate_compliance_recommendations(violations, standard)
 
             report = ComplianceReport(
                 id=report_id,
@@ -792,9 +758,7 @@ class SecurityAuditManager:
                 recommendations=recommendations,
             )
 
-            logger.info(
-                f"✅ 合規報告已生成: {standard.value} for guild {guild_id}"
-            )
+            logger.info(f"✅ 合規報告已生成: {standard.value} for guild {guild_id}")
             return report
 
         except Exception as e:
@@ -810,16 +774,11 @@ class SecurityAuditManager:
         if standard == ComplianceStandard.GDPR:
             # GDPR相關檢查
             data_access_events = [
-                e
-                for e in events
-                if e.event_type == SecurityEventType.DATA_ACCESS
+                e for e in events if e.event_type == SecurityEventType.DATA_ACCESS
             ]
 
             for event in data_access_events:
-                if (
-                    event.risk_level == RiskLevel.HIGH
-                    and "personal_data" in str(event.details)
-                ):
+                if event.risk_level == RiskLevel.HIGH and "personal_data" in str(event.details):
                     violations.append(
                         {
                             "type": "unauthorized_personal_data_access",
@@ -833,9 +792,7 @@ class SecurityAuditManager:
         elif standard == ComplianceStandard.SOX:
             # SOX相關檢查
             financial_events = [
-                e
-                for e in events
-                if "financial" in str(e.resource) or "audit" in str(e.resource)
+                e for e in events if "financial" in str(e.resource) or "audit" in str(e.resource)
             ]
 
             for event in financial_events:
@@ -858,25 +815,13 @@ class SecurityAuditManager:
         """生成合規摘要"""
         return {
             "total_events": len(events),
-            "high_risk_events": len(
-                [e for e in events if e.risk_level == RiskLevel.HIGH]
-            ),
-            "critical_events": len(
-                [e for e in events if e.risk_level == RiskLevel.CRITICAL]
-            ),
+            "high_risk_events": len([e for e in events if e.risk_level == RiskLevel.HIGH]),
+            "critical_events": len([e for e in events if e.risk_level == RiskLevel.CRITICAL]),
             "data_access_events": len(
-                [
-                    e
-                    for e in events
-                    if e.event_type == SecurityEventType.DATA_ACCESS
-                ]
+                [e for e in events if e.event_type == SecurityEventType.DATA_ACCESS]
             ),
             "user_management_events": len(
-                [
-                    e
-                    for e in events
-                    if e.event_type == SecurityEventType.USER_MANAGEMENT
-                ]
+                [e for e in events if e.event_type == SecurityEventType.USER_MANAGEMENT]
             ),
             "unique_users": len(set(e.user_id for e in events)),
             "compliance_standard": standard.value,
@@ -933,9 +878,7 @@ class SecurityAuditManager:
 
     # ========== 統計和報告 ==========
 
-    async def get_security_statistics(
-        self, guild_id: int, days: int = 30
-    ) -> Dict[str, Any]:
+    async def get_security_statistics(self, guild_id: int, days: int = 30) -> Dict[str, Any]:
         """獲取安全統計資訊"""
         cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
 
@@ -948,9 +891,7 @@ class SecurityAuditManager:
         return {
             "total_events": len(relevant_events),
             "events_by_type": self._count_events_by_type(relevant_events),
-            "events_by_risk_level": self._count_events_by_risk_level(
-                relevant_events
-            ),
+            "events_by_risk_level": self._count_events_by_risk_level(relevant_events),
             "top_users": self._get_top_users_by_activity(relevant_events),
             "suspicious_activities": len(
                 [
@@ -960,17 +901,11 @@ class SecurityAuditManager:
                 ]
             ),
             "security_violations": len(
-                [
-                    e
-                    for e in relevant_events
-                    if e.event_type == SecurityEventType.SECURITY_VIOLATION
-                ]
+                [e for e in relevant_events if e.event_type == SecurityEventType.SECURITY_VIOLATION]
             ),
         }
 
-    def _count_events_by_type(
-        self, events: List[SecurityEvent]
-    ) -> Dict[str, int]:
+    def _count_events_by_type(self, events: List[SecurityEvent]) -> Dict[str, int]:
         """按類型統計事件"""
         counts = {}
         for event in events:
@@ -978,9 +913,7 @@ class SecurityAuditManager:
             counts[event_type] = counts.get(event_type, 0) + 1
         return counts
 
-    def _count_events_by_risk_level(
-        self, events: List[SecurityEvent]
-    ) -> Dict[str, int]:
+    def _count_events_by_risk_level(self, events: List[SecurityEvent]) -> Dict[str, int]:
         """按風險等級統計事件"""
         counts = {}
         for event in events:
@@ -1001,13 +934,11 @@ class SecurityAuditManager:
             if event.risk_level in [RiskLevel.HIGH, RiskLevel.CRITICAL]:
                 user_counts[user_id]["high_risk_count"] += 1
 
-        sorted_users = sorted(
-            user_counts.items(), key=lambda x: x[1]["count"], reverse=True
-        )[:limit]
-
-        return [
-            {"user_id": user_id, **stats} for user_id, stats in sorted_users
+        sorted_users = sorted(user_counts.items(), key=lambda x: x[1]["count"], reverse=True)[
+            :limit
         ]
+
+        return [{"user_id": user_id, **stats} for user_id, stats in sorted_users]
 
 
 # 全域實例

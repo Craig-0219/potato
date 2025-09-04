@@ -20,10 +20,7 @@ class ProductionLogFilter(logging.Filter):
 
     def filter(self, record):
         # 生產環境下過濾 DEBUG 等級的日誌
-        if (
-            os.getenv("NODE_ENV") == "production"
-            or os.getenv("ENVIRONMENT") == "production"
-        ):
+        if os.getenv("NODE_ENV") == "production" or os.getenv("ENVIRONMENT") == "production":
             return record.levelno >= logging.INFO
         return True
 
@@ -107,8 +104,7 @@ class LogManager:
     def _create_formatter(self) -> logging.Formatter:
         """創建日誌格式器"""
         is_production = (
-            os.getenv("NODE_ENV") == "production"
-            or os.getenv("ENVIRONMENT") == "production"
+            os.getenv("NODE_ENV") == "production" or os.getenv("ENVIRONMENT") == "production"
         )
 
         if is_production:

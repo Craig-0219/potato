@@ -60,9 +60,7 @@ class ArchiveDAO(BaseDAO):
                     LIMIT %s
                     """
 
-                    await cursor.execute(
-                        query, (guild_id, cutoff_date, batch_size)
-                    )
+                    await cursor.execute(query, (guild_id, cutoff_date, batch_size))
                     tickets_to_archive = await cursor.fetchall()
 
                     archived_count = 0
@@ -81,14 +79,10 @@ class ArchiveDAO(BaseDAO):
                             "rating": ticket["rating"],
                             "rating_feedback": ticket["rating_feedback"],
                             "created_at": (
-                                ticket["created_at"].isoformat()
-                                if ticket["created_at"]
-                                else None
+                                ticket["created_at"].isoformat() if ticket["created_at"] else None
                             ),
                             "closed_at": (
-                                ticket["closed_at"].isoformat()
-                                if ticket["closed_at"]
-                                else None
+                                ticket["closed_at"].isoformat() if ticket["closed_at"] else None
                             ),
                             "closed_by": ticket["closed_by"],
                             "close_reason": ticket["close_reason"],
@@ -96,11 +90,7 @@ class ArchiveDAO(BaseDAO):
                         }
 
                         messages_data = {
-                            "messages": (
-                                ticket["messages"]
-                                if ticket["messages"]
-                                else ""
-                            ),
+                            "messages": (ticket["messages"] if ticket["messages"] else ""),
                             "message_count": ticket["message_count"],
                         }
 
@@ -169,9 +159,7 @@ class ArchiveDAO(BaseDAO):
                     LIMIT %s
                     """
 
-                    await cursor.execute(
-                        query, (guild_id, cutoff_date, batch_size)
-                    )
+                    await cursor.execute(query, (guild_id, cutoff_date, batch_size))
                     votes_to_archive = await cursor.fetchall()
 
                     archived_count = 0
@@ -200,34 +188,24 @@ class ArchiveDAO(BaseDAO):
                             "multiple_choice": vote["multiple_choice"],
                             "anonymous": vote["anonymous"],
                             "created_at": (
-                                vote["created_at"].isoformat()
-                                if vote["created_at"]
-                                else None
+                                vote["created_at"].isoformat() if vote["created_at"] else None
                             ),
                             "end_time": (
-                                vote["end_time"].isoformat()
-                                if vote["end_time"]
-                                else None
+                                vote["end_time"].isoformat() if vote["end_time"] else None
                             ),
                             "status": vote["status"],
                             "total_voters": vote["total_voters"],
                         }
 
                         options_data = (
-                            json.loads(vote["options_data"])
-                            if vote["options_data"]
-                            else []
+                            json.loads(vote["options_data"]) if vote["options_data"] else []
                         )
                         responses_data = [
                             {
                                 "user_id": str(r["user_id"]),
                                 "username": r["username"],
                                 "selected_option": r["selected_option"],
-                                "voted_at": (
-                                    r["voted_at"].isoformat()
-                                    if r["voted_at"]
-                                    else None
-                                ),
+                                "voted_at": (r["voted_at"].isoformat() if r["voted_at"] else None),
                             }
                             for r in responses
                         ]
@@ -277,9 +255,7 @@ class ArchiveDAO(BaseDAO):
             logger.error(f"歸檔舊投票失敗: {e}")
             return {"error": str(e)}
 
-    async def archive_user_activity(
-        self, guild_id: int, period: str = "monthly"
-    ) -> Dict[str, int]:
+    async def archive_user_activity(self, guild_id: int, period: str = "monthly") -> Dict[str, int]:
         """歸檔用戶活動資料"""
         try:
             async with self.db.connection() as conn:
@@ -287,13 +263,9 @@ class ArchiveDAO(BaseDAO):
 
                     # 根據期間設定日期範圍
                     if period == "monthly":
-                        start_date = datetime.now().replace(day=1) - timedelta(
-                            days=32
-                        )
+                        start_date = datetime.now().replace(day=1) - timedelta(days=32)
                         start_date = start_date.replace(day=1)
-                        end_date = datetime.now().replace(day=1) - timedelta(
-                            days=1
-                        )
+                        end_date = datetime.now().replace(day=1) - timedelta(days=1)
                     elif period == "weekly":
                         start_date = datetime.now() - timedelta(days=14)
                         end_date = datetime.now() - timedelta(days=7)
@@ -409,9 +381,7 @@ class ArchiveDAO(BaseDAO):
                                 WHERE ta.original_ticket_id = t.id
                             )
                             """
-                            await cursor.execute(
-                                delete_query, (guild_id, cutoff_date)
-                            )
+                            await cursor.execute(delete_query, (guild_id, cutoff_date))
                             deleted_count = cursor.rowcount
 
                     elif data_type == "votes":
@@ -427,9 +397,7 @@ class ArchiveDAO(BaseDAO):
                                 WHERE va.original_vote_id = v.id
                             )
                             """
-                            await cursor.execute(
-                                delete_query, (guild_id, cutoff_date)
-                            )
+                            await cursor.execute(delete_query, (guild_id, cutoff_date))
                             deleted_count = cursor.rowcount
 
                     elif data_type == "logs":
@@ -448,9 +416,7 @@ class ArchiveDAO(BaseDAO):
                                 DELETE FROM {table}
                                 WHERE guild_id = %s AND created_at <= %s
                                 """
-                                await cursor.execute(
-                                    clean_query, (guild_id, cutoff_date)
-                                )
+                                await cursor.execute(clean_query, (guild_id, cutoff_date))
                                 deleted_count += cursor.rowcount
                             except Exception:
                                 continue  # 如果表不存在就跳過
@@ -468,9 +434,7 @@ class ArchiveDAO(BaseDAO):
                     )
                     await conn.commit()
 
-                    logger.info(
-                        f"清理 {data_type} 資料完成: 刪除了 {deleted_count} 筆記錄"
-                    )
+                    logger.info(f"清理 {data_type} 資料完成: 刪除了 {deleted_count} 筆記錄")
                     return {
                         "deleted": deleted_count,
                         "data_type": data_type,
@@ -498,9 +462,7 @@ class ArchiveDAO(BaseDAO):
                     # 解析JSON欄位
                     for schedule in schedules:
                         if schedule["conditions"]:
-                            schedule["conditions"] = json.loads(
-                                schedule["conditions"]
-                            )
+                            schedule["conditions"] = json.loads(schedule["conditions"])
 
                     return schedules
 
@@ -508,9 +470,7 @@ class ArchiveDAO(BaseDAO):
             logger.error(f"獲取清理排程失敗: {e}")
             return []
 
-    async def create_cleanup_schedule(
-        self, guild_id: int, schedule_config: Dict[str, Any]
-    ) -> int:
+    async def create_cleanup_schedule(self, guild_id: int, schedule_config: Dict[str, Any]) -> int:
         """創建清理排程"""
         try:
             async with self.db.connection() as conn:
@@ -524,9 +484,7 @@ class ArchiveDAO(BaseDAO):
                     elif schedule_config["schedule_type"] == "monthly":
                         next_run = now + timedelta(days=30)
                     else:
-                        next_run = now + timedelta(
-                            days=schedule_config.get("custom_days", 7)
-                        )
+                        next_run = now + timedelta(days=schedule_config.get("custom_days", 7))
 
                     query = """
                     INSERT INTO cleanup_schedules (

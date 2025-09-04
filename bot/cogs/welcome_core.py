@@ -83,10 +83,8 @@ class WelcomeCore(commands.Cog):
                 "welcome_color": 0x00FF00,
             }
 
-            success, message = (
-                await self.welcome_manager.update_welcome_settings(
-                    ctx.guild.id, **default_settings
-                )
+            success, message = await self.welcome_manager.update_welcome_settings(
+                ctx.guild.id, **default_settings
             )
 
             if success:
@@ -114,9 +112,7 @@ class WelcomeCore(commands.Cog):
 
     @welcome_group.command(name="channel")
     @commands.has_permissions(manage_guild=True)
-    async def welcome_channel(
-        self, ctx, channel: Optional[discord.TextChannel] = None
-    ):
+    async def welcome_channel(self, ctx, channel: Optional[discord.TextChannel] = None):
         """設定歡迎頻道"""
         try:
             channel_id = channel.id if channel else None
@@ -135,9 +131,7 @@ class WelcomeCore(commands.Cog):
 
     @welcome_group.command(name="leave_channel")
     @commands.has_permissions(manage_guild=True)
-    async def leave_channel(
-        self, ctx, channel: Optional[discord.TextChannel] = None
-    ):
+    async def leave_channel(self, ctx, channel: Optional[discord.TextChannel] = None):
         """設定離開頻道"""
         try:
             channel_id = channel.id if channel else None
@@ -159,10 +153,8 @@ class WelcomeCore(commands.Cog):
     async def welcome_message(self, ctx, *, message: str):
         """設定歡迎訊息"""
         try:
-            success, result = (
-                await self.welcome_manager.update_welcome_settings(
-                    ctx.guild.id, welcome_message=message
-                )
+            success, result = await self.welcome_manager.update_welcome_settings(
+                ctx.guild.id, welcome_message=message
             )
 
             if success:
@@ -195,10 +187,8 @@ class WelcomeCore(commands.Cog):
     async def leave_message(self, ctx, *, message: str):
         """設定離開訊息"""
         try:
-            success, result = (
-                await self.welcome_manager.update_welcome_settings(
-                    ctx.guild.id, leave_message=message
-                )
+            success, result = await self.welcome_manager.update_welcome_settings(
+                ctx.guild.id, leave_message=message
             )
 
             if success:
@@ -217,9 +207,7 @@ class WelcomeCore(commands.Cog):
     async def autorole_group(self, ctx):
         """自動身分組管理"""
         if ctx.invoked_subcommand is None:
-            await ctx.send(
-                "請使用 `!welcome autorole add/remove/list` 管理自動身分組"
-            )
+            await ctx.send("請使用 `!welcome autorole add/remove/list` 管理自動身分組")
 
     @autorole_group.command(name="add")
     @commands.has_permissions(manage_guild=True)
@@ -236,9 +224,7 @@ class WelcomeCore(commands.Cog):
                 return
 
             # 取得現有設定
-            settings = await self.welcome_dao.get_welcome_settings(
-                ctx.guild.id
-            )
+            settings = await self.welcome_dao.get_welcome_settings(ctx.guild.id)
             current_roles = settings.get("auto_roles", []) if settings else []
 
             if role.id in current_roles:
@@ -266,9 +252,7 @@ class WelcomeCore(commands.Cog):
         """移除自動身分組"""
         try:
             # 取得現有設定
-            settings = await self.welcome_dao.get_welcome_settings(
-                ctx.guild.id
-            )
+            settings = await self.welcome_dao.get_welcome_settings(ctx.guild.id)
             current_roles = settings.get("auto_roles", []) if settings else []
 
             if role.id not in current_roles:
@@ -295,9 +279,7 @@ class WelcomeCore(commands.Cog):
     async def autorole_list(self, ctx):
         """查看自動身分組清單"""
         try:
-            settings = await self.welcome_dao.get_welcome_settings(
-                ctx.guild.id
-            )
+            settings = await self.welcome_dao.get_welcome_settings(ctx.guild.id)
 
             if not settings or not settings.get("auto_roles"):
                 await ctx.send("📋 目前沒有設定自動身分組")
@@ -313,9 +295,7 @@ class WelcomeCore(commands.Cog):
                 else:
                     role_list.append(f"• <已刪除的身分組> (ID: {role_id})")
 
-            embed.description = (
-                "\n".join(role_list) if role_list else "沒有有效的自動身分組"
-            )
+            embed.description = "\n".join(role_list) if role_list else "沒有有效的自動身分組"
             embed.set_footer(
                 text=f"啟用狀態: {'✅ 已啟用' if settings.get('auto_role_enabled') else '❌ 已停用'}"
             )
@@ -333,10 +313,8 @@ class WelcomeCore(commands.Cog):
     async def welcome_enable(self, ctx):
         """啟用歡迎系統"""
         try:
-            success, message = (
-                await self.welcome_manager.update_welcome_settings(
-                    ctx.guild.id, is_enabled=True
-                )
+            success, message = await self.welcome_manager.update_welcome_settings(
+                ctx.guild.id, is_enabled=True
             )
 
             if success:
@@ -353,10 +331,8 @@ class WelcomeCore(commands.Cog):
     async def welcome_disable(self, ctx):
         """停用歐迎系統"""
         try:
-            success, message = (
-                await self.welcome_manager.update_welcome_settings(
-                    ctx.guild.id, is_enabled=False
-                )
+            success, message = await self.welcome_manager.update_welcome_settings(
+                ctx.guild.id, is_enabled=False
             )
 
             if success:
@@ -374,9 +350,7 @@ class WelcomeCore(commands.Cog):
         """測試歡迎訊息"""
         try:
             test_member = member or ctx.author
-            result = await self.welcome_manager.test_welcome_message(
-                ctx.guild, test_member
-            )
+            result = await self.welcome_manager.test_welcome_message(ctx.guild, test_member)
 
             if not result["success"]:
                 await ctx.send(f"❌ 測試失敗：{result['message']}")
@@ -404,9 +378,7 @@ class WelcomeCore(commands.Cog):
                 f"🎨 嵌入訊息: {'✅' if settings.get('welcome_embed_enabled') else '❌'}",
             ]
 
-            embed.add_field(
-                name="⚙️ 設定狀態", value="\n".join(status_list), inline=False
-            )
+            embed.add_field(name="⚙️ 設定狀態", value="\n".join(status_list), inline=False)
 
             await ctx.send(embed=embed)
 
@@ -416,9 +388,7 @@ class WelcomeCore(commands.Cog):
 
     @welcome_group.command(name="simulate")
     @commands.has_permissions(manage_guild=True)
-    async def welcome_simulate(
-        self, ctx, member: Optional[discord.Member] = None
-    ):
+    async def welcome_simulate(self, ctx, member: Optional[discord.Member] = None):
         """模擬成員加入事件（用於測試歡迎系統）"""
         try:
             test_member = member or ctx.author
@@ -455,9 +425,7 @@ class WelcomeCore(commands.Cog):
                 role_list = []
                 for role_id in result["roles_assigned"]:
                     role = ctx.guild.get_role(role_id)
-                    role_list.append(
-                        role.mention if role else f"未知身分組 ({role_id})"
-                    )
+                    role_list.append(role.mention if role else f"未知身分組 ({role_id})")
 
                 embed.add_field(
                     name="🎭 分配身分組",
@@ -465,9 +433,7 @@ class WelcomeCore(commands.Cog):
                     inline=False,
                 )
             else:
-                embed.add_field(
-                    name="🎭 分配身分組", value="❌ 無身分組分配", inline=False
-                )
+                embed.add_field(name="🎭 分配身分組", value="❌ 無身分組分配", inline=False)
 
             if result["errors"]:
                 embed.add_field(
@@ -501,9 +467,7 @@ class WelcomeCore(commands.Cog):
             welcome_listener.recent_updates.discard(member.id)
 
             # 強制處理歡迎事件
-            await welcome_listener._handle_welcome_with_tracking(
-                member, "強制處理"
-            )
+            await welcome_listener._handle_welcome_with_tracking(member, "強制處理")
 
             await ctx.send(f"✅ 已強制處理 {member.mention} 的歡迎事件")
 
@@ -516,23 +480,15 @@ class WelcomeCore(commands.Cog):
     async def welcome_status(self, ctx):
         """查看歡迎系統狀態"""
         try:
-            settings = await self.welcome_dao.get_welcome_settings(
-                ctx.guild.id
-            )
+            settings = await self.welcome_dao.get_welcome_settings(ctx.guild.id)
 
             embed = discord.Embed(
                 title="🎉 歡迎系統狀態",
-                color=(
-                    0x00FF00
-                    if settings and settings.get("is_enabled")
-                    else 0xFF6B6B
-                ),
+                color=(0x00FF00 if settings and settings.get("is_enabled") else 0xFF6B6B),
             )
 
             if not settings:
-                embed.description = (
-                    "❌ 歡迎系統尚未設定\n使用 `!welcome setup` 初始化系統"
-                )
+                embed.description = "❌ 歡迎系統尚未設定\n使用 `!welcome setup` 初始化系統"
                 await ctx.send(embed=embed)
                 return
 
@@ -568,9 +524,7 @@ class WelcomeCore(commands.Cog):
                 f"自動身分組: {'✅' if settings.get('auto_role_enabled') else '❌'}",
             ]
 
-            embed.add_field(
-                name="⚙️ 功能設定", value="\n".join(features), inline=True
-            )
+            embed.add_field(name="⚙️ 功能設定", value="\n".join(features), inline=True)
 
             # 自動身分組數量
             auto_roles_count = len(settings.get("auto_roles", []))
@@ -617,11 +571,7 @@ class WelcomeCore(commands.Cog):
             processed_members = 0
 
             for member in ctx.guild.members:
-                if (
-                    not member.bot
-                    and member.joined_at
-                    and member.joined_at > recent_threshold
-                ):
+                if not member.bot and member.joined_at and member.joined_at > recent_threshold:
 
                     checked_members += 1
                     logger.info(f"🔍 刷新檢查成員: {member}")
@@ -630,9 +580,7 @@ class WelcomeCore(commands.Cog):
                     import asyncio
 
                     await asyncio.sleep(0.1)
-                    await welcome_listener._handle_welcome_with_tracking(
-                        member, "手動刷新"
-                    )
+                    await welcome_listener._handle_welcome_with_tracking(member, "手動刷新")
                     processed_members += 1
 
             embed = discord.Embed(title="✅ 歡迎系統已刷新", color=0x00FF00)
@@ -702,9 +650,7 @@ class WelcomeCore(commands.Cog):
                 for event_name in member_events:
                     listeners = ctx.bot.extra_events.get(event_name, [])
                     if listeners:
-                        listener_status.append(
-                            f"✅ {event_name}: {len(listeners)} 個"
-                        )
+                        listener_status.append(f"✅ {event_name}: {len(listeners)} 個")
                     else:
                         listener_status.append(f"❌ {event_name}: 無監聽器")
             else:
@@ -737,14 +683,10 @@ class WelcomeCore(commands.Cog):
             else:
                 perm_status.append("❌ 無法檢查權限")
 
-            embed.add_field(
-                name="🔐 Bot 權限", value="\n".join(perm_status), inline=True
-            )
+            embed.add_field(name="🔐 Bot 權限", value="\n".join(perm_status), inline=True)
 
             # 4. 檢查歡迎設定
-            settings = await self.welcome_dao.get_welcome_settings(
-                ctx.guild.id
-            )
+            settings = await self.welcome_dao.get_welcome_settings(ctx.guild.id)
             settings_status = []
 
             if settings:
@@ -754,21 +696,15 @@ class WelcomeCore(commands.Cog):
                     settings_status.append("❌ 歡迎系統已停用")
 
                 if settings.get("welcome_channel_id"):
-                    channel = ctx.guild.get_channel(
-                        settings["welcome_channel_id"]
-                    )
+                    channel = ctx.guild.get_channel(settings["welcome_channel_id"])
                     if channel:
-                        settings_status.append(
-                            f"✅ 歡迎頻道: {channel.mention}"
-                        )
+                        settings_status.append(f"✅ 歡迎頻道: {channel.mention}")
                     else:
                         settings_status.append("❌ 歡迎頻道不存在")
                 else:
                     settings_status.append("⚠️ 未設定歡迎頻道")
 
-                if settings.get("auto_role_enabled") and settings.get(
-                    "auto_roles"
-                ):
+                if settings.get("auto_role_enabled") and settings.get("auto_roles"):
                     settings_status.append("✅ 自動身分組已設定")
                 else:
                     settings_status.append("⚠️ 未設定自動身分組")
@@ -790,17 +726,13 @@ class WelcomeCore(commands.Cog):
                 )
 
             if not welcome_listener:
-                suggestions.append(
-                    "🔄 重新載入歡迎監聽器：`!reload welcome_listener`"
-                )
+                suggestions.append("🔄 重新載入歡迎監聽器：`!reload welcome_listener`")
 
             if not settings or not settings.get("is_enabled"):
                 suggestions.append("⚙️ 設定歡迎系統：`!welcome setup`")
 
             if not suggestions and all_intents_ok:
-                suggestions.append(
-                    "✅ 系統配置正常，使用 `!welcome simulate` 測試功能"
-                )
+                suggestions.append("✅ 系統配置正常，使用 `!welcome simulate` 測試功能")
 
             if suggestions:
                 embed.add_field(
@@ -832,17 +764,13 @@ class WelcomeCore(commands.Cog):
                 await ctx.send("❌ 天數必須在 1-365 之間")
                 return
 
-            stats = await self.welcome_manager.get_welcome_statistics(
-                ctx.guild.id, days
-            )
+            stats = await self.welcome_manager.get_welcome_statistics(ctx.guild.id, days)
 
             if not stats:
                 await ctx.send("❌ 無法取得統計資料")
                 return
 
-            embed = discord.Embed(
-                title=f"📊 歡迎系統統計 (過去 {days} 天)", color=0x3498DB
-            )
+            embed = discord.Embed(title=f"📊 歡迎系統統計 (過去 {days} 天)", color=0x3498DB)
 
             # 基礎統計
             embed.add_field(

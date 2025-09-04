@@ -110,16 +110,12 @@ class TicketManager:
                 return False, "尚未設定票券分類頻道", None
 
             category = user.guild.get_channel(category_id)
-            if not category or not isinstance(
-                category, discord.CategoryChannel
-            ):
+            if not category or not isinstance(category, discord.CategoryChannel):
                 return False, "票券分類頻道不存在", None
 
             # 生成頻道名稱（包含優先級標識）
             ticket_id = await self.repository.get_next_ticket_id()
-            priority_prefix = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(
-                priority, "🟡"
-            )
+            priority_prefix = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(priority, "🟡")
             channel_name = f"{priority_prefix}ticket-{ticket_id:04d}-{user.display_name[:8]}"
 
             # 設定權限
@@ -148,9 +144,7 @@ class TicketManager:
         """建立頻道權限覆寫"""
         overwrites = {
             # 預設角色：無法查看
-            user.guild.default_role: discord.PermissionOverwrite(
-                read_messages=False
-            ),
+            user.guild.default_role: discord.PermissionOverwrite(read_messages=False),
             # 票券創建者：完整權限
             user: discord.PermissionOverwrite(
                 read_messages=True,
@@ -200,12 +194,8 @@ class TicketManager:
             from bot.utils.ticket_constants import TicketConstants
             from bot.views.ticket_views import TicketControlView
 
-            priority_emoji = TicketConstants.PRIORITY_EMOJIS.get(
-                priority, "🟡"
-            )
-            priority_color = TicketConstants.PRIORITY_COLORS.get(
-                priority, 0x00FF00
-            )
+            priority_emoji = TicketConstants.PRIORITY_EMOJIS.get(priority, "🟡")
+            priority_color = TicketConstants.PRIORITY_COLORS.get(priority, 0x00FF00)
 
             embed = discord.Embed(
                 title=f"🎫 票券 #{ticket_id:04d}",
@@ -239,16 +229,12 @@ class TicketManager:
             # 控制面板（包含優先級顯示）
             view = TicketControlView(ticket_id=ticket_id, priority=priority)
 
-            await channel.send(
-                content=f"{user.mention}", embed=embed, view=view
-            )
+            await channel.send(content=f"{user.mention}", embed=embed, view=view)
 
         except Exception as e:
             logger.error(f"發送歡迎訊息錯誤：{e}")
 
-    async def _try_auto_assign(
-        self, ticket_id: int, guild: discord.Guild, settings: Dict
-    ):
+    async def _try_auto_assign(self, ticket_id: int, guild: discord.Guild, settings: Dict):
         """嘗試自動分配"""
         try:
             support_roles = settings.get("support_roles", [])
@@ -274,21 +260,15 @@ class TicketManager:
 
                 assigned_staff = random.choice(online_staff)
 
-                success = await self.repository.assign_ticket(
-                    ticket_id, assigned_staff.id, 0
-                )
+                success = await self.repository.assign_ticket(ticket_id, assigned_staff.id, 0)
                 if success:
                     # 通知被分配的客服
                     try:
-                        await assigned_staff.send(
-                            f"📋 你被自動分配了票券 #{ticket_id:04d}"
-                        )
+                        await assigned_staff.send(f"📋 你被自動分配了票券 #{ticket_id:04d}")
                     except:
                         pass
 
-                    logger.info(
-                        f"自動分配票券 #{ticket_id:04d} 給 {assigned_staff}"
-                    )
+                    logger.info(f"自動分配票券 #{ticket_id:04d} 給 {assigned_staff}")
 
         except Exception as e:
             logger.error(f"自動分配錯誤：{e}")
@@ -316,23 +296,17 @@ class TicketManager:
 
             if applied_tags:
                 tag_names = [tag["display_name"] for tag in applied_tags]
-                logger.info(
-                    f"票券 #{ticket_id} 自動應用標籤: {', '.join(tag_names)}"
-                )
+                logger.info(f"票券 #{ticket_id} 自動應用標籤: {', '.join(tag_names)}")
 
         except Exception as e:
             logger.error(f"應用自動標籤錯誤：{e}")
 
     # ===== 票券關閉 =====
 
-    async def close_ticket(
-        self, ticket_id: int, closed_by: int, reason: str = None
-    ) -> bool:
+    async def close_ticket(self, ticket_id: int, closed_by: int, reason: str = None) -> bool:
         """關閉票券"""
         try:
-            success = await self.repository.close_ticket(
-                ticket_id, closed_by, reason
-            )
+            success = await self.repository.close_ticket(ticket_id, closed_by, reason)
 
             if success:
                 # 發布即時同步事件
@@ -347,15 +321,11 @@ class TicketManager:
                 # 自動匯出聊天記錄
                 try:
                     # 首先嘗試從資料庫匯出
-                    transcript_path = (
-                        await self.transcript_manager.export_transcript(
-                            ticket_id, "html"
-                        )
+                    transcript_path = await self.transcript_manager.export_transcript(
+                        ticket_id, "html"
                     )
                     if transcript_path:
-                        logger.info(
-                            f"✅ 票券 #{ticket_id:04d} 聊天記錄已匯出: {transcript_path}"
-                        )
+                        logger.info(f"✅ 票券 #{ticket_id:04d} 聊天記錄已匯出: {transcript_path}")
                     else:
                         # 如果資料庫中沒有記錄，嘗試從 Discord 頻道匯入歷史訊息並匯出
                         logger.info(
@@ -363,23 +333,15 @@ class TicketManager:
                         )
 
                         # 獲取票券資訊以取得頻道 ID
-                        ticket_info = await self.repository.get_ticket_by_id(
-                            ticket_id
-                        )
+                        ticket_info = await self.repository.get_ticket_by_id(ticket_id)
                         if ticket_info and ticket_info.get("channel_id"):
                             # 這裡需要 bot 實例來獲取頻道，但在當前架構下較難實現
                             # 建議使用背景任務或在關閉票券的指令中直接處理
-                            logger.warning(
-                                f"⚠️ 票券 #{ticket_id:04d} 需要手動匯入頻道歷史訊息"
-                            )
+                            logger.warning(f"⚠️ 票券 #{ticket_id:04d} 需要手動匯入頻道歷史訊息")
                         else:
-                            logger.warning(
-                                f"⚠️ 票券 #{ticket_id:04d} 聊天記錄匯出失敗或無記錄"
-                            )
+                            logger.warning(f"⚠️ 票券 #{ticket_id:04d} 聊天記錄匯出失敗或無記錄")
                 except Exception as transcript_error:
-                    logger.error(
-                        f"❌ 票券 #{ticket_id:04d} 聊天記錄匯出錯誤: {transcript_error}"
-                    )
+                    logger.error(f"❌ 票券 #{ticket_id:04d} 聊天記錄匯出錯誤: {transcript_error}")
 
                 logger.info(f"關閉票券 #{ticket_id:04d}")
 
@@ -391,14 +353,10 @@ class TicketManager:
 
     # ===== 票券指派 =====
 
-    async def assign_ticket(
-        self, ticket_id: int, assigned_to: int, assigned_by: int
-    ) -> bool:
+    async def assign_ticket(self, ticket_id: int, assigned_to: int, assigned_by: int) -> bool:
         """指派票券"""
         try:
-            success = await self.repository.assign_ticket(
-                ticket_id, assigned_to, assigned_by
-            )
+            success = await self.repository.assign_ticket(ticket_id, assigned_to, assigned_by)
 
             if success:
                 # 發布即時同步事件
@@ -420,17 +378,13 @@ class TicketManager:
 
     # ===== 評分系統 =====
 
-    async def save_rating(
-        self, ticket_id: int, rating: int, feedback: str = None
-    ) -> bool:
+    async def save_rating(self, ticket_id: int, rating: int, feedback: str = None) -> bool:
         """保存票券評分"""
         try:
             if not 1 <= rating <= 5:
                 return False
 
-            success = await self.repository.save_rating(
-                ticket_id, rating, feedback
-            )
+            success = await self.repository.save_rating(ticket_id, rating, feedback)
 
             if success:
                 # 發布即時同步事件
@@ -460,9 +414,7 @@ class TicketManager:
     ) -> bool:
         """發送用戶通知"""
         try:
-            embed = discord.Embed(
-                title=title, description=message, color=color
-            )
+            embed = discord.Embed(title=title, description=message, color=color)
             embed.set_footer(text="票券系統通知")
 
             await user.send(embed=embed)
@@ -484,9 +436,7 @@ class TicketManager:
     ) -> bool:
         """發送頻道通知"""
         try:
-            embed = discord.Embed(
-                title=title, description=message, color=color
-            )
+            embed = discord.Embed(title=title, description=message, color=color)
 
             await channel.send(embed=embed)
             return True
@@ -500,9 +450,7 @@ class TicketManager:
 
     # ===== SLA 監控 =====
 
-    async def handle_overdue_ticket(
-        self, ticket: Dict, guild: discord.Guild
-    ) -> bool:
+    async def handle_overdue_ticket(self, ticket: Dict, guild: discord.Guild) -> bool:
         """處理超時票券"""
         try:
             from bot.utils.ticket_constants import TicketConstants
@@ -525,9 +473,7 @@ class TicketManager:
             actual_overdue = overdue_minutes - target_minutes
 
             # 建立警告訊息
-            priority_emoji = TicketConstants.PRIORITY_EMOJIS.get(
-                ticket["priority"], "🟡"
-            )
+            priority_emoji = TicketConstants.PRIORITY_EMOJIS.get(ticket["priority"], "🟡")
 
             embed = discord.Embed(
                 title="⚠️ SLA 超時警告",
@@ -588,16 +534,12 @@ class TicketManager:
 
     # ===== 系統維護 =====
 
-    async def cleanup_old_tickets(
-        self, guild_id: int, hours_threshold: int = 24
-    ) -> int:
+    async def cleanup_old_tickets(self, guild_id: int, hours_threshold: int = 24) -> int:
         """清理舊的無活動票券"""
         try:
             # 這裡可以實作自動關閉無活動票券的邏輯
             # 暫時返回0，因為需要在 repository 中實作相關方法
-            logger.info(
-                f"執行票券清理 - 伺服器: {guild_id}, 閾值: {hours_threshold}小時"
-            )
+            logger.info(f"執行票券清理 - 伺服器: {guild_id}, 閾值: {hours_threshold}小時")
             return 0
 
         except Exception as e:

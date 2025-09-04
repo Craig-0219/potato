@@ -164,9 +164,7 @@ class PlayerManager:
             logger.error(f"解除綁定失敗: {e}")
             return False
 
-    async def get_bound_player(
-        self, discord_id: int
-    ) -> Optional[Dict[str, Any]]:
+    async def get_bound_player(self, discord_id: int) -> Optional[Dict[str, Any]]:
         """獲取 Discord 用戶綁定的 Minecraft 玩家資訊"""
         try:
             result = await self.db.fetchone(
@@ -185,9 +183,7 @@ class PlayerManager:
             logger.error(f"獲取綁定玩家失敗: {e}")
             return None
 
-    async def get_player_by_uuid(
-        self, minecraft_uuid: str
-    ) -> Optional[Dict[str, Any]]:
+    async def get_player_by_uuid(self, minecraft_uuid: str) -> Optional[Dict[str, Any]]:
         """根據 UUID 獲取玩家資訊"""
         try:
             result = await self.db.fetchone(
@@ -206,9 +202,7 @@ class PlayerManager:
             logger.error(f"獲取玩家資訊失敗 ({minecraft_uuid}): {e}")
             return None
 
-    async def update_player_activity(
-        self, online_players: List[Dict[str, Any]]
-    ):
+    async def update_player_activity(self, online_players: List[Dict[str, Any]]):
         """更新玩家活動狀態"""
         try:
             current_time = datetime.now()
@@ -243,9 +237,7 @@ class PlayerManager:
         except Exception as e:
             logger.error(f"更新玩家活動失敗: {e}")
 
-    async def get_player_statistics(
-        self, minecraft_uuid: str
-    ) -> Dict[str, Any]:
+    async def get_player_statistics(self, minecraft_uuid: str) -> Dict[str, Any]:
         """獲取玩家統計資訊"""
         try:
             stats = await self.db.fetchone(
@@ -267,15 +259,11 @@ class PlayerManager:
                 (minecraft_uuid,),
             )
 
-            activity_summary = {
-                row["activity_type"]: row["count"] for row in recent_activity
-            }
+            activity_summary = {row["activity_type"]: row["count"] for row in recent_activity}
 
             result = dict(stats)
             result["recent_activity"] = activity_summary
-            result["playtime_formatted"] = self._format_playtime(
-                stats["total_playtime"]
-            )
+            result["playtime_formatted"] = self._format_playtime(stats["total_playtime"])
 
             return result
 
@@ -283,9 +271,7 @@ class PlayerManager:
             logger.error(f"獲取玩家統計失敗 ({minecraft_uuid}): {e}")
             return {}
 
-    async def update_player_stats(
-        self, minecraft_uuid: str, stats_data: Dict[str, Any]
-    ):
+    async def update_player_stats(self, minecraft_uuid: str, stats_data: Dict[str, Any]):
         """更新玩家統計資料"""
         try:
             # 建構更新語句
