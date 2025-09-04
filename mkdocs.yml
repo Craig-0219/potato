@@ -1,0 +1,144 @@
+# MkDocs 配置 - Potato Bot 專案文檔
+site_name: Potato Bot Project Documentation
+site_url: https://craig-0219.github.io/potato/
+site_description: 全功能 Discord 機器人 - 完整文檔
+repo_url: https://github.com/Craig-0219/potato
+repo_name: Craig-0219/potato
+edit_uri: edit/develop/docs/
+
+# 主題配置
+theme:
+  name: material
+  language: zh-TW
+  palette:
+    # 淺色模式
+    - scheme: default
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-7
+        name: 切換到深色模式
+    # 深色模式
+    - scheme: slate
+      primary: deep purple
+      accent: purple
+      toggle:
+        icon: material/brightness-4
+        name: 切換到淺色模式
+  
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.path
+    - navigation.top
+    - navigation.footer
+    - toc.integrate
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+    - content.action.edit
+    - content.action.view
+
+  icon:
+    logo: material/robot
+    repo: fontawesome/brands/github
+
+# 導航結構
+nav:
+  - 🏠 首頁: index.md
+  - 🚀 入門指南:
+    - 快速開始: getting-started/quickstart.md
+    - 專案設置: getting-started/project-setup.md
+    - 貢獻指南: getting-started/contributing.md
+  - 📖 使用者手冊:
+    - 指令大全: user-guide/commands.md
+    - 核心功能:
+      - 投票系統: user-guide/features/voting-system.md
+      - 票券系統: user-guide/features/ticket-system.md
+      - AI 助手: user-guide/features/ai-assistant.md
+  - 👨‍💻 開發者文檔:
+    - 開發分支維護: developer-docs/branch-maintenance.md
+    - CI/CD 工作流: developer-docs/cicd-workflow.md
+    - API 參考: developer-docs/api-reference.md
+    - 故障排除: developer-docs/troubleshooting.md
+    - GitHub Token 設定: developer-docs/github-token-setup.md
+  - ⚙️ 系統設計:
+    - 管理員權限: system-design/admin-permissions.md
+    - 指令同步: system-design/command-sync.md
+    - 投票模板: system-design/vote-templates.md
+    - 實時系統: system-design/realtime-voting.md
+  - 📚 封存記錄:
+    - 開發藍圖: archive/roadmaps.md
+    - 歷史問題日誌: archive/issue-logs.md
+    - 狀態報告: archive/status-reports.md
+
+# 文檔目錄
+docs_dir: docs
+
+# 輸出目錄 
+site_dir: site
+
+# Markdown 擴展
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+      emoji_index: !!python/name:materialx.emoji.twemoji
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: Craig-0219
+      repo: potato
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# 外掛
+plugins:
+  - search:
+      lang: zh
+  - minify:
+      minify_html: true
+
+# 額外的 CSS 和 JS
+extra_css:
+  - stylesheets/extra.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Craig-0219/potato
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/your-server
+  generator: false
+
+# 版權資訊
+copyright: Copyright &copy; 2025 Craig-0219 - Potato Bot Project
