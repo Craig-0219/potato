@@ -42,6 +42,18 @@ def format_duration(duration: Union[timedelta, int]) -> str:
     return f"{days} 天"
 
 
+def format_time_delta(delta: timedelta) -> str:
+    """格式化時間差 - format_duration的別名
+
+    Args:
+        delta: 時間差對象
+
+    Returns:
+        str: 格式化的時間差字符串
+    """
+    return format_duration(delta)
+
+
 def get_time_ago(timestamp: datetime) -> str:
     """取得相對時間"""
     if not timestamp:

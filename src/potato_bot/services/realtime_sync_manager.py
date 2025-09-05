@@ -21,20 +21,23 @@ except ImportError:
     websockets = None
 
 try:
-    import aioredis
+    import redis.asyncio as redis
 
     REDIS_AVAILABLE = True
-    REDIS_TYPE = "aioredis"
+    REDIS_TYPE = "redis-py"
+    aioredis = redis  # 為了向後相容
 except ImportError:
     try:
-        import redis.asyncio as redis
+        import aioredis
 
         REDIS_AVAILABLE = True
-        REDIS_TYPE = "redis-py"
+        REDIS_TYPE = "aioredis"
+        redis = aioredis  # 為了向後相容
     except ImportError:
         REDIS_AVAILABLE = False
         REDIS_TYPE = None
         redis = None
+        aioredis = None
 
 import aiomysql
 
