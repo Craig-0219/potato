@@ -112,8 +112,20 @@ jobs:
     - name: 🛡️ 執行生產檔案合規檢查
       run: |
         echo "🔍 執行生產檔案合規檢查..."
-        chmod +x .github/scripts/production-compliance-check.sh
-        .github/scripts/production-compliance-check.sh
+        
+        # 檢查是否存在開發文件
+        echo "檢查開發文件..."
+        if [ -d "tests/" ] || [ -f "pytest.ini" ] || [ -d "docs/development/" ]; then
+          echo "❌ 發現開發文件，不符合生產要求"
+          exit 1
+        fi
+        
+        # 檢查核心文件存在
+        echo "檢查核心文件..."
+        if [ ! -f "bot/main.py" ] || [ ! -f "shared/config.py" ]; then
+          echo "❌ 缺少核心文件"
+          exit 1
+        fi
         
         echo "✅ 生產合規檢查通過"
 
