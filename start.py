@@ -14,7 +14,17 @@ from pathlib import Path
 class PotatoBotStarter:
     def __init__(self):
         self.root_dir = Path(__file__).parent
-        self.bot_file = self.root_dir / "bot" / "main.py"
+        # 智能尋找主程式位置
+        potential_bot_files = [
+            self.root_dir / "src" / "potato_bot" / "main.py",  # 新架構
+            self.root_dir / "bot" / "main.py",  # 舊架構
+        ]
+        self.bot_file = None
+        for bot_file in potential_bot_files:
+            if bot_file.exists():
+                self.bot_file = bot_file
+                break
+        
         self.env_file = self.root_dir / ".env"
         self.env_example = self.root_dir / ".env.example"
 
@@ -103,19 +113,19 @@ class PotatoBotStarter:
                 elif package == "aiomysql":
                     pass
 
-                    print(f"✅ aiomysql")
+                    print("✅ aiomysql")
                 elif package == "python-dotenv":
                     pass
 
-                    print(f"✅ python-dotenv")
+                    print("✅ python-dotenv")
                 elif package == "fastapi":
                     pass
 
-                    print(f"✅ fastapi")
+                    print("✅ fastapi")
                 elif package == "uvicorn":
                     pass
 
-                    print(f"✅ uvicorn")
+                    print("✅ uvicorn")
             except ImportError:
                 print(f"❌ {package}")
                 missing_packages.append(package)
@@ -167,18 +177,19 @@ class PotatoBotStarter:
 
     def check_bot_file(self):
         """檢查 Bot 主程式"""
-        print(f"\n🤖 檢查 Bot 主程式: {self.bot_file}")
-
-        if not self.bot_file.exists():
-            print("❌ 未找到 bot/main.py")
+        if self.bot_file is None:
+            print("\n🤖 檢查 Bot 主程式: 尋找中...")
+            print("❌ 未找到 Bot 主程式")
+            print("   預期位置: src/potato_bot/main.py 或 bot/main.py")
             return False
-
+        
+        print(f"\n🤖 檢查 Bot 主程式: {self.bot_file}")
         print("✅ Bot 主程式存在")
         return True
 
     def show_system_info(self):
         """顯示系統資訊"""
-        print(f"\n💻 系統資訊:")
+        print("\n💻 系統資訊:")
         print(f"   作業系統: {platform.system()} {platform.release()}")
         print(f"   架構: {platform.machine()}")
         print(f"   Python: {platform.python_version()}")
