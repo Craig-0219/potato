@@ -482,7 +482,8 @@ class GuildPermissionManager:
             async with self.db.connection() as conn:
                 async with conn.cursor(aiomysql.DictCursor) as cursor:
                     await cursor.execute(
-                        "SELECT * FROM guild_info WHERE guild_id = %s", (guild_id,)
+                        "SELECT * FROM guild_info WHERE guild_id = %s",
+                        (guild_id,),
                     )
                     result = await cursor.fetchone()
                     return dict(result) if result else None

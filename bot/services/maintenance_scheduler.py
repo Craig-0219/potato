@@ -376,7 +376,10 @@ class MaintenanceScheduler:
         await self._save_execution_record(execution)
 
     async def _handle_task_failure(
-        self, task: MaintenanceTask, execution: TaskExecution, error_message: str
+        self,
+        task: MaintenanceTask,
+        execution: TaskExecution,
+        error_message: str,
     ):
         """處理任務失敗"""
         task.failure_count += 1
@@ -668,7 +671,10 @@ class MaintenanceScheduler:
                     export_request = ExportRequest(
                         export_type=export_type,
                         format=format_type,
-                        date_range=(datetime.now() - timedelta(days=7), datetime.now()),
+                        date_range=(
+                            datetime.now() - timedelta(days=7),
+                            datetime.now(),
+                        ),
                         requester_id=0,  # 系統報告
                     )
 

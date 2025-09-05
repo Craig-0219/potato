@@ -128,7 +128,8 @@ class ImageToolsCog(commands.Cog):
                 file = discord.File(io.BytesIO(result.image_data), filename=filename)
 
                 embed = EmbedBuilder.create_success_embed(
-                    "✅ 格式轉換完成", f"已成功轉換為 **{target_format.upper()}** 格式"
+                    "✅ 格式轉換完成",
+                    f"已成功轉換為 **{target_format.upper()}** 格式",
                 )
 
                 embed.add_field(
@@ -142,7 +143,11 @@ class ImageToolsCog(commands.Cog):
                 )
 
                 if target_format in ["jpeg", "webp"]:
-                    embed.add_field(name="🎚️ 品質設定", value=f"壓縮品質: {quality}%", inline=True)
+                    embed.add_field(
+                        name="🎚️ 品質設定",
+                        value=f"壓縮品質: {quality}%",
+                        inline=True,
+                    )
 
                 embed.set_footer(text=f"處理者: {interaction.user.display_name}")
 
@@ -150,7 +155,8 @@ class ImageToolsCog(commands.Cog):
 
             else:
                 embed = EmbedBuilder.create_error_embed(
-                    "❌ 轉換失敗", result.error_message or "格式轉換過程中發生未知錯誤"
+                    "❌ 轉換失敗",
+                    result.error_message or "格式轉換過程中發生未知錯誤",
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -162,7 +168,9 @@ class ImageToolsCog(commands.Cog):
 
     @app_commands.command(name="apply_effect", description="為圖片添加特效")
     @app_commands.describe(
-        image="要處理的圖片附件", effect="特效類型", intensity="特效強度 (0.1-2.0)"
+        image="要處理的圖片附件",
+        effect="特效類型",
+        intensity="特效強度 (0.1-2.0)",
     )
     @app_commands.choices(
         effect=[
@@ -219,7 +227,8 @@ class ImageToolsCog(commands.Cog):
                 file = discord.File(io.BytesIO(result.image_data), filename=filename)
 
                 embed = EmbedBuilder.create_success_embed(
-                    f"🎨 {effect.title()} 特效已套用", f"特效強度: **{intensity}**"
+                    f"🎨 {effect.title()} 特效已套用",
+                    f"特效強度: **{intensity}**",
                 )
 
                 embed.add_field(
@@ -336,7 +345,8 @@ class ImageToolsCog(commands.Cog):
 
             else:
                 embed = EmbedBuilder.create_error_embed(
-                    "❌ 壓縮失敗", result.error_message or "壓縮過程中發生未知錯誤"
+                    "❌ 壓縮失敗",
+                    result.error_message or "壓縮過程中發生未知錯誤",
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
 

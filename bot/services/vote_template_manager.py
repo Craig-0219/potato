@@ -279,12 +279,22 @@ class VoteTemplateManager:
         ]
 
     async def search_templates(
-        self, query: str, guild_id: Optional[int] = None, user_id: Optional[int] = None
+        self,
+        query: str,
+        guild_id: Optional[int] = None,
+        user_id: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
         """搜尋模板"""
         try:
             all_templates = []
-            categories = ["poll", "schedule", "food", "rating", "game", "custom"]
+            categories = [
+                "poll",
+                "schedule",
+                "food",
+                "rating",
+                "game",
+                "custom",
+            ]
 
             for category in categories:
                 templates = await self.get_templates_by_category(category, guild_id, user_id)

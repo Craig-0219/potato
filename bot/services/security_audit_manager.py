@@ -644,7 +644,14 @@ class SecurityAuditManager:
 
     def _contains_sensitive_data(self, data: Dict[str, Any]) -> bool:
         """檢查是否包含敏感數據"""
-        sensitive_keys = ["password", "token", "key", "secret", "private", "credential"]
+        sensitive_keys = [
+            "password",
+            "token",
+            "key",
+            "secret",
+            "private",
+            "credential",
+        ]
 
         for key in data.keys():
             if any(sensitive_key in key.lower() for sensitive_key in sensitive_keys):

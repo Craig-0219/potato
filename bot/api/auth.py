@@ -258,7 +258,9 @@ async def get_current_user(
 def require_permission(required_level: PermissionLevel):
     """權限檢查裝飾器"""
 
-    def permission_checker(user: APIUser = Depends(get_current_user)) -> APIUser:
+    def permission_checker(
+        user: APIUser = Depends(get_current_user),
+    ) -> APIUser:
         permission_hierarchy = {
             PermissionLevel.READ_ONLY: 0,
             PermissionLevel.WRITE: 1,

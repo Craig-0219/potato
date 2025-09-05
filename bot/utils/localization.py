@@ -48,7 +48,7 @@ class LocalizedCommand:
                 try:
                     user_lang_info = await self.language_dao.get_user_language(
                         user_id=interaction.user.id,
-                        guild_id=interaction.guild.id if interaction.guild else None,
+                        guild_id=(interaction.guild.id if interaction.guild else None),
                     )
 
                     user_lang = user_lang_info["language_code"] if user_lang_info else default_lang
@@ -92,7 +92,7 @@ class LocalizedCommand:
                 try:
                     user_lang_info = await self.language_dao.get_user_language(
                         user_id=interaction.user.id,
-                        guild_id=interaction.guild.id if interaction.guild else None,
+                        guild_id=(interaction.guild.id if interaction.guild else None),
                     )
 
                     user_lang = user_lang_info["language_code"] if user_lang_info else default_lang
@@ -142,7 +142,11 @@ class LocalizedResponse:
         **kwargs,
     ) -> discord.Embed:
         """創建本地化的 Embed"""
-        user_lang = getattr(interaction, "user_language", self.language_manager.default_language)
+        user_lang = getattr(
+            interaction,
+            "user_language",
+            self.language_manager.default_language,
+        )
 
         title = self.get_text(title_key, user_lang, **kwargs)
 
@@ -163,7 +167,11 @@ class LocalizedResponse:
         **kwargs,
     ) -> None:
         """發送本地化回應"""
-        user_lang = getattr(interaction, "user_language", self.language_manager.default_language)
+        user_lang = getattr(
+            interaction,
+            "user_language",
+            self.language_manager.default_language,
+        )
         message = self.get_text(message_key, user_lang, **kwargs)
 
         if embed:

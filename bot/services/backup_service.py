@@ -183,10 +183,22 @@ class BackupService:
             if self.backup_config["compression_enabled"]:
                 backup_file = backup_file.with_suffix(".json.gz")
                 with gzip.open(backup_file, "wt", encoding="utf-8") as f:
-                    json.dump(backup_data, f, indent=2, ensure_ascii=False, default=str)
+                    json.dump(
+                        backup_data,
+                        f,
+                        indent=2,
+                        ensure_ascii=False,
+                        default=str,
+                    )
             else:
                 with open(backup_file, "w", encoding="utf-8") as f:
-                    json.dump(backup_data, f, indent=2, ensure_ascii=False, default=str)
+                    json.dump(
+                        backup_data,
+                        f,
+                        indent=2,
+                        ensure_ascii=False,
+                        default=str,
+                    )
 
             # 計算檔案大小
             file_size_mb = backup_file.stat().st_size / 1024 / 1024

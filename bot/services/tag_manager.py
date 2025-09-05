@@ -99,7 +99,11 @@ class TagManager:
 
             # 驗證顏色格式
             if color and not self._validate_color(color):
-                return False, "顏色格式無效，請使用 HEX 格式（如 #FF0000）", None
+                return (
+                    False,
+                    "顏色格式無效，請使用 HEX 格式（如 #FF0000）",
+                    None,
+                )
 
             # 檢查標籤是否已存在
             existing_tags = await self.tag_dao.get_tags_by_guild(guild_id)
@@ -280,7 +284,12 @@ class TagManager:
         """創建自動標籤規則"""
         try:
             # 驗證觸發類型
-            valid_trigger_types = ["keyword", "ticket_type", "user_role", "channel"]
+            valid_trigger_types = [
+                "keyword",
+                "ticket_type",
+                "user_role",
+                "channel",
+            ]
             if trigger_type not in valid_trigger_types:
                 return (
                     False,
@@ -348,9 +357,11 @@ class TagManager:
                 category_stats[category]["usage"] += tag["usage_count"] or 0
 
             # 熱門標籤
-            popular_tags = sorted(usage_stats, key=lambda x: (x["usage_count"] or 0), reverse=True)[
-                :10
-            ]
+            popular_tags = sorted(
+                usage_stats,
+                key=lambda x: (x["usage_count"] or 0),
+                reverse=True,
+            )[:10]
 
             return {
                 "total_tags": total_tags,
@@ -394,7 +405,11 @@ class TagManager:
                     created_count += 1
 
             logger.info(f"初始化預設標籤完成: 伺服器 {guild_id}，創建 {created_count} 個標籤")
-            return True, f"成功初始化 {created_count} 個預設標籤", created_count
+            return (
+                True,
+                f"成功初始化 {created_count} 個預設標籤",
+                created_count,
+            )
 
         except Exception as e:
             logger.error(f"初始化預設標籤錯誤：{e}")

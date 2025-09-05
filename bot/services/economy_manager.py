@@ -207,7 +207,7 @@ class EconomyManager:
                             "total_wins": total_wins,
                             "daily_games": 0 if should_reset else daily_games,
                             "daily_wins": 0 if should_reset else daily_wins,
-                            "daily_claimed": False if should_reset else daily_claimed,
+                            "daily_claimed": (False if should_reset else daily_claimed),
                             "last_checkin": last_checkin,
                             "win_rate": (
                                 (total_wins / total_games * 100) if total_games > 0 else 0
@@ -914,7 +914,10 @@ class EconomyManager:
         return settings
 
     async def enable_cross_platform_sync(
-        self, guild_id: int, minecraft_api_endpoint: str, minecraft_server_key: str
+        self,
+        guild_id: int,
+        minecraft_api_endpoint: str,
+        minecraft_server_key: str,
     ) -> bool:
         """啟用跨平台同步"""
         try:
@@ -1266,7 +1269,8 @@ class EconomyManager:
                 adjustment_factor = 1.1
                 settings.message_coins = min(10, int(settings.message_coins * adjustment_factor))
                 settings.voice_coins_per_minute = min(
-                    20, int(settings.voice_coins_per_minute * adjustment_factor)
+                    20,
+                    int(settings.voice_coins_per_minute * adjustment_factor),
                 )
 
                 logger.info(f"📈 伺服器 {guild_id} 通縮率 {abs(inflation_rate):.2%}，提高獎勵倍率")

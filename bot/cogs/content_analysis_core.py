@@ -51,7 +51,9 @@ class ContentAnalysisCog(commands.Cog):
     async def content_analysis_interface(self, interaction: discord.Interaction):
         """統一內容分析管理界面"""
         try:
-            from bot.views.content_analysis_views import ContentAnalysisMainView
+            from bot.views.content_analysis_views import (
+                ContentAnalysisMainView,
+            )
 
             view = ContentAnalysisMainView()
 
@@ -123,7 +125,9 @@ class ContentAnalysisCog(commands.Cog):
                 # 扣除費用
                 if cost_info["cost"] > 0:
                     await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, -cost_info["cost"]
+                        interaction.user.id,
+                        interaction.guild.id,
+                        -cost_info["cost"],
                     )
 
                 # 記錄使用量
@@ -154,7 +158,11 @@ class ContentAnalysisCog(commands.Cog):
 
                 # 分析的文本（截取顯示）
                 display_text = text[:200] + ("..." if len(text) > 200 else "")
-                embed.add_field(name="📝 分析文本", value=f"```{display_text}```", inline=False)
+                embed.add_field(
+                    name="📝 分析文本",
+                    value=f"```{display_text}```",
+                    inline=False,
+                )
 
                 # 詳細分數
                 embed.add_field(
@@ -241,7 +249,9 @@ class ContentAnalysisCog(commands.Cog):
                 # 扣除費用
                 if cost_info["cost"] > 0:
                     await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, -cost_info["cost"]
+                        interaction.user.id,
+                        interaction.guild.id,
+                        -cost_info["cost"],
                     )
 
                 # 記錄使用量
@@ -269,7 +279,11 @@ class ContentAnalysisCog(commands.Cog):
 
                 # 分析的文本（截取顯示）
                 display_text = text[:200] + ("..." if len(text) > 200 else "")
-                embed.add_field(name="📝 檢查文本", value=f"```{display_text}```", inline=False)
+                embed.add_field(
+                    name="📝 檢查文本",
+                    value=f"```{display_text}```",
+                    inline=False,
+                )
 
                 # 毒性分數
                 embed.add_field(
@@ -305,7 +319,11 @@ class ContentAnalysisCog(commands.Cog):
                 # 標記的詞彙
                 if toxicity.flagged_phrases:
                     flagged_text = ", ".join(list(set(toxicity.flagged_phrases))[:5])
-                    embed.add_field(name="🚩 標記詞彙", value=f"```{flagged_text}```", inline=False)
+                    embed.add_field(
+                        name="🚩 標記詞彙",
+                        value=f"```{flagged_text}```",
+                        inline=False,
+                    )
 
                 # 處理信息
                 embed.add_field(
@@ -366,7 +384,9 @@ class ContentAnalysisCog(commands.Cog):
                 # 扣除費用
                 if cost_info["cost"] > 0:
                     await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, -cost_info["cost"]
+                        interaction.user.id,
+                        interaction.guild.id,
+                        -cost_info["cost"],
                     )
 
                 # 記錄使用量
@@ -516,7 +536,9 @@ class ContentAnalysisCog(commands.Cog):
                 # 扣除費用
                 if cost_info["cost"] > 0:
                     await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, -cost_info["cost"]
+                        interaction.user.id,
+                        interaction.guild.id,
+                        -cost_info["cost"],
                     )
 
                 # 記錄使用量
@@ -539,7 +561,11 @@ class ContentAnalysisCog(commands.Cog):
 
                 # 分析的文本（截取顯示）
                 display_text = text[:300] + ("..." if len(text) > 300 else "")
-                embed.add_field(name="📝 分析文本", value=f"```{display_text}```", inline=False)
+                embed.add_field(
+                    name="📝 分析文本",
+                    value=f"```{display_text}```",
+                    inline=False,
+                )
 
                 # 情感分析結果
                 if result.sentiment:
@@ -662,7 +688,9 @@ class ContentAnalysisCog(commands.Cog):
                 # 扣除費用
                 if cost_info["cost"] > 0:
                     await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, -cost_info["cost"]
+                        interaction.user.id,
+                        interaction.guild.id,
+                        -cost_info["cost"],
                     )
 
                 # 記錄使用量
@@ -726,7 +754,11 @@ class ContentAnalysisCog(commands.Cog):
 
                 # 熱門關鍵詞
                 keywords = stats["top_keywords"]
-                embed.add_field(name="🔑 熱門關鍵詞", value=", ".join(keywords[:10]), inline=False)
+                embed.add_field(
+                    name="🔑 熱門關鍵詞",
+                    value=", ".join(keywords[:10]),
+                    inline=False,
+                )
 
                 # 費用信息
                 if cost_info["cost"] > 0:

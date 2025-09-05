@@ -48,7 +48,10 @@ class ImageFormatSelector(discord.ui.Select):
                 emoji="🖼️",
             ),
             discord.SelectOption(
-                label="JPEG", value="jpeg", description="高壓縮比，適合照片", emoji="📸"
+                label="JPEG",
+                value="jpeg",
+                description="高壓縮比，適合照片",
+                emoji="📸",
             ),
             discord.SelectOption(
                 label="WEBP",
@@ -57,12 +60,20 @@ class ImageFormatSelector(discord.ui.Select):
                 emoji="🌐",
             ),
             discord.SelectOption(
-                label="GIF", value="gif", description="支援動畫的格式", emoji="🎬"
+                label="GIF",
+                value="gif",
+                description="支援動畫的格式",
+                emoji="🎬",
             ),
             discord.SelectOption(label="BMP", value="bmp", description="未壓縮格式", emoji="🔲"),
         ]
 
-        super().__init__(placeholder="選擇目標格式...", min_values=1, max_values=1, options=options)
+        super().__init__(
+            placeholder="選擇目標格式...",
+            min_values=1,
+            max_values=1,
+            options=options,
+        )
 
     async def callback(self, interaction: discord.Interaction):
         """格式選擇回調"""
@@ -139,7 +150,12 @@ class ImageEffectSelector(discord.ui.Select):
             ),
         ]
 
-        super().__init__(placeholder="選擇特效類型...", min_values=1, max_values=1, options=options)
+        super().__init__(
+            placeholder="選擇特效類型...",
+            min_values=1,
+            max_values=1,
+            options=options,
+        )
 
     async def callback(self, interaction: discord.Interaction):
         """特效選擇回調"""
@@ -205,7 +221,8 @@ class ImageToolsControlView(discord.ui.View):
             self.add_item(self.create_back_button())
 
             embed = EmbedBuilder.create_info_embed(
-                "🔄 圖片格式轉換", "選擇要轉換的目標格式，然後上傳圖片進行轉換。"
+                "🔄 圖片格式轉換",
+                "選擇要轉換的目標格式，然後上傳圖片進行轉換。",
             )
 
             embed.add_field(

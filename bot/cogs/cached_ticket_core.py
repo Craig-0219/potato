@@ -322,9 +322,11 @@ class CachedTicketCore(commands.Cog):
             )
 
             for ticket in tickets[:10]:  # 最多顯示10張
-                status_emoji = {"open": "🟢", "closed": "🔴", "pending": "🟡"}.get(
-                    ticket.get("status", "unknown"), "⚪"
-                )
+                status_emoji = {
+                    "open": "🟢",
+                    "closed": "🔴",
+                    "pending": "🟡",
+                }.get(ticket.get("status", "unknown"), "⚪")
 
                 embed.add_field(
                     name=f"{status_emoji} 票券 #{ticket.get('id')}",
@@ -356,7 +358,10 @@ class CachedTicketCore(commands.Cog):
     )
     @app_commands.default_permissions(administrator=True)
     async def cache_control(
-        self, interaction: discord.Interaction, action: str, target: str = "all"
+        self,
+        interaction: discord.Interaction,
+        action: str,
+        target: str = "all",
     ):
         """快取控制命令"""
         try:
@@ -388,7 +393,8 @@ class CachedTicketCore(commands.Cog):
                 stats = await cache_manager.get_statistics()
 
                 embed = EmbedBuilder.build(
-                    title="📊 快取詳細統計", color=TicketConstants.COLORS["info"]
+                    title="📊 快取詳細統計",
+                    color=TicketConstants.COLORS["info"],
                 )
 
                 embed.add_field(
@@ -431,7 +437,8 @@ class CachedTicketCore(commands.Cog):
                     title="🏥 快取健康檢查",
                     description=f"狀態：{health.get('status', '未知')}",
                     color=status_colors.get(
-                        health.get("status"), TicketConstants.COLORS["secondary"]
+                        health.get("status"),
+                        TicketConstants.COLORS["secondary"],
                     ),
                 )
 

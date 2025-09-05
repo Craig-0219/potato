@@ -291,7 +291,10 @@ class ArchiveDAO(BaseDAO):
                     HAVING tickets_count > 0 OR votes_count > 0
                     """
 
-                    await cursor.execute(activity_query, (guild_id, guild_id, start_date, end_date))
+                    await cursor.execute(
+                        activity_query,
+                        (guild_id, guild_id, start_date, end_date),
+                    )
                     user_activities = await cursor.fetchall()
 
                     archived_count = 0
@@ -426,7 +429,8 @@ class ArchiveDAO(BaseDAO):
                     VALUES (%s, %s, %s, %s)
                     """
                     await cursor.execute(
-                        log_query, (guild_id, data_type, deleted_count, cutoff_date)
+                        log_query,
+                        (guild_id, data_type, deleted_count, cutoff_date),
                     )
                     await conn.commit()
 

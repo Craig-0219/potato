@@ -47,10 +47,14 @@ class WebAuthCommands(commands.Cog):
 
     @app_commands.command(name="create-api-key", description="創建 API 金鑰")
     @app_commands.describe(
-        name="API 金鑰名稱", expires_days="過期天數 (0 表示永不過期，預設 30 天)"
+        name="API 金鑰名稱",
+        expires_days="過期天數 (0 表示永不過期，預設 30 天)",
     )
     async def create_api_key(
-        self, interaction: discord.Interaction, name: str, expires_days: int = 30
+        self,
+        interaction: discord.Interaction,
+        name: str,
+        expires_days: int = 30,
     ):
         """創建 API 金鑰"""
         try:

@@ -77,21 +77,30 @@ class EmbedBuilder:
     def success(title: str, description: str = None, **kwargs) -> discord.Embed:
         """建立成功嵌入"""
         return EmbedBuilder.build(
-            title=f"✅ {title}", description=description, color="success", **kwargs
+            title=f"✅ {title}",
+            description=description,
+            color="success",
+            **kwargs,
         )
 
     @staticmethod
     def error(title: str, description: str = None, **kwargs) -> discord.Embed:
         """建立錯誤嵌入"""
         return EmbedBuilder.build(
-            title=f"❌ {title}", description=description, color="error", **kwargs
+            title=f"❌ {title}",
+            description=description,
+            color="error",
+            **kwargs,
         )
 
     @staticmethod
     def warning(title: str, description: str = None, **kwargs) -> discord.Embed:
         """建立警告嵌入"""
         return EmbedBuilder.build(
-            title=f"⚠️ {title}", description=description, color="warning", **kwargs
+            title=f"⚠️ {title}",
+            description=description,
+            color="warning",
+            **kwargs,
         )
 
     @staticmethod
@@ -198,7 +207,11 @@ class EmbedBuilder:
 
             # 基本統計
             if "total" in stats:
-                embed.add_field(name="📈 總計", value=f"**總數：** {stats['total']:,}", inline=True)
+                embed.add_field(
+                    name="📈 總計",
+                    value=f"**總數：** {stats['total']:,}",
+                    inline=True,
+                )
 
             # 處理其他統計數據
             for key, value in stats.items():
@@ -225,7 +238,9 @@ class EmbedBuilder:
 
     @staticmethod
     def help_embed(
-        commands_data: List[Dict[str, Any]], title: str = "📋 命令幫助", **kwargs
+        commands_data: List[Dict[str, Any]],
+        title: str = "📋 命令幫助",
+        **kwargs,
     ) -> discord.Embed:
         """建立幫助嵌入"""
         try:
@@ -260,7 +275,9 @@ class EmbedBuilder:
         """建立分頁嵌入"""
         try:
             embed = EmbedBuilder.build(
-                title=f"{title} (第 {page}/{total_pages} 頁)", color="info", **kwargs
+                title=f"{title} (第 {page}/{total_pages} 頁)",
+                color="info",
+                **kwargs,
             )
 
             if not items:
@@ -344,9 +361,11 @@ class EmbedBuilder:
             embed = EmbedBuilder.build(title=title, color=color, **kwargs)
 
             # 整體狀態
-            status_emoji = {"healthy": "✅", "degraded": "⚠️", "unhealthy": "❌"}.get(
-                overall_status, "❓"
-            )
+            status_emoji = {
+                "healthy": "✅",
+                "degraded": "⚠️",
+                "unhealthy": "❌",
+            }.get(overall_status, "❓")
 
             embed.add_field(
                 name="📈 整體狀態",
@@ -385,7 +404,13 @@ class EmbedBuilder:
             chunk = items[i : i + max_per_field]
             field_num = (i // max_per_field) + 1
 
-            fields.append({"name": f"項目 {field_num}", "value": "\n".join(chunk), "inline": True})
+            fields.append(
+                {
+                    "name": f"項目 {field_num}",
+                    "value": "\n".join(chunk),
+                    "inline": True,
+                }
+            )
 
         return fields
 

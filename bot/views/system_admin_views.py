@@ -92,7 +92,9 @@ class SystemAdminPanel(BaseView):
     async def close_button(self, interaction: discord.Interaction, button: Button):
         """關閉面板按鈕"""
         embed = discord.Embed(
-            title="✅ 管理面板已關閉", description="系統管理面板已關閉", color=0x95A5A6
+            title="✅ 管理面板已關閉",
+            description="系統管理面板已關閉",
+            color=0x95A5A6,
         )
         await interaction.response.edit_message(embed=embed, view=None)
         self.stop()
@@ -102,7 +104,9 @@ class SystemAdminPanel(BaseView):
         settings = await self.ticket_dao.get_settings(guild.id)
 
         embed = discord.Embed(
-            title="🎫 票券系統設定", description="當前票券系統配置狀態", color=0x3498DB
+            title="🎫 票券系統設定",
+            description="當前票券系統配置狀態",
+            color=0x3498DB,
         )
 
         # 基本設定
@@ -136,7 +140,9 @@ class SystemAdminPanel(BaseView):
         settings = await self.welcome_dao.get_welcome_settings(guild.id)
 
         embed = discord.Embed(
-            title="🎉 歡迎系統設定", description="當前歡迎系統配置狀態", color=0x2ECC71
+            title="🎉 歡迎系統設定",
+            description="當前歡迎系統配置狀態",
+            color=0x2ECC71,
         )
 
         if not settings:
@@ -287,7 +293,11 @@ class SystemAdminPanel(BaseView):
 
     def _create_system_tools_embed(self) -> discord.Embed:
         """創建系統工具嵌入"""
-        embed = discord.Embed(title="🔧 系統工具", description="系統維護和管理工具", color=0x95A5A6)
+        embed = discord.Embed(
+            title="🔧 系統工具",
+            description="系統維護和管理工具",
+            color=0x95A5A6,
+        )
 
         embed.add_field(
             name="🧹 資料清理",
@@ -368,7 +378,9 @@ class TicketSettingsView(View):
         settings = await self.ticket_dao.get_settings(guild.id)
 
         embed = discord.Embed(
-            title="🎫 票券系統設定", description="當前票券系統配置狀態", color=0x3498DB
+            title="🎫 票券系統設定",
+            description="當前票券系統配置狀態",
+            color=0x3498DB,
         )
 
         # 基本設定狀態
@@ -438,7 +450,9 @@ class WelcomeSettingsView(View):
     async def set_channels_button(self, interaction: discord.Interaction, button: Button):
         """設定歡迎和離開頻道"""
         embed = discord.Embed(
-            title="📺 頻道設定", description="選擇歡迎和離開訊息的頻道", color=0x3498DB
+            title="📺 頻道設定",
+            description="選擇歡迎和離開訊息的頻道",
+            color=0x3498DB,
         )
 
         view = WelcomeChannelSelectView(self.user_id)
@@ -551,10 +565,16 @@ class ChannelSelect(discord.ui.ChannelSelect):
 
                 if success:
                     embed = discord.Embed(
-                        title="✅ 歡迎頻道已設定", description=message, color=0x2ECC71
+                        title="✅ 歡迎頻道已設定",
+                        description=message,
+                        color=0x2ECC71,
                     )
                 else:
-                    embed = discord.Embed(title="❌ 設定失敗", description=message, color=0xE74C3C)
+                    embed = discord.Embed(
+                        title="❌ 設定失敗",
+                        description=message,
+                        color=0xE74C3C,
+                    )
 
                 await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -567,10 +587,16 @@ class ChannelSelect(discord.ui.ChannelSelect):
 
                 if success:
                     embed = discord.Embed(
-                        title="✅ 離開頻道已設定", description=message, color=0x2ECC71
+                        title="✅ 離開頻道已設定",
+                        description=message,
+                        color=0x2ECC71,
                     )
                 else:
-                    embed = discord.Embed(title="❌ 設定失敗", description=message, color=0xE74C3C)
+                    embed = discord.Embed(
+                        title="❌ 設定失敗",
+                        description=message,
+                        color=0xE74C3C,
+                    )
 
                 await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -634,10 +660,16 @@ class RoleSelect(discord.ui.RoleSelect):
 
                 if success:
                     embed = discord.Embed(
-                        title="✅ 自動身分組已設定", description=message, color=0x2ECC71
+                        title="✅ 自動身分組已設定",
+                        description=message,
+                        color=0x2ECC71,
                     )
                 else:
-                    embed = discord.Embed(title="❌ 設定失敗", description=message, color=0xE74C3C)
+                    embed = discord.Embed(
+                        title="❌ 設定失敗",
+                        description=message,
+                        color=0xE74C3C,
+                    )
 
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -872,7 +904,9 @@ class SystemToolsView(View):
     async def cleanup_button(self, interaction: discord.Interaction, button: Button):
         """資料清理工具"""
         embed = discord.Embed(
-            title="🧹 資料清理系統", description="選擇要執行的清理操作", color=0x95A5A6
+            title="🧹 資料清理系統",
+            description="選擇要執行的清理操作",
+            color=0x95A5A6,
         )
         embed.add_field(
             name="🗑️ 基礎清理",
@@ -906,7 +940,9 @@ class SystemToolsView(View):
             inline=True,
         )
         embed.add_field(
-            name="⏰ 時間範圍", value="• 最近7天\n• 最近30天\n• 自定義範圍", inline=True
+            name="⏰ 時間範圍",
+            value="• 最近7天\n• 最近30天\n• 自定義範圍",
+            inline=True,
         )
         view = DataExportView(self.user_id)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -1371,7 +1407,11 @@ class VoteChannelSelect(discord.ui.ChannelSelect):
                 description=f"預設投票頻道已設定為 {channel.mention}",
                 color=0x2ECC71,
             )
-            embed.add_field(name="📋 說明", value="新建立的投票將自動發布到此頻道", inline=False)
+            embed.add_field(
+                name="📋 說明",
+                value="新建立的投票將自動發布到此頻道",
+                inline=False,
+            )
         else:
             embed = discord.Embed(
                 title="❌ 設定失敗",
@@ -1405,7 +1445,9 @@ class AnnounceChannelSelect(discord.ui.ChannelSelect):
                 color=0x2ECC71,
             )
             embed.add_field(
-                name="📋 說明", value="投票結束後的結果將自動公告到此頻道", inline=False
+                name="📋 說明",
+                value="投票結束後的結果將自動公告到此頻道",
+                inline=False,
             )
         else:
             embed = discord.Embed(
@@ -1471,7 +1513,9 @@ class ChannelClearSelect(Select):
         if not text_channels:
             options = [
                 discord.SelectOption(
-                    label="無可用頻道", value="none", description="沒有找到文字頻道"
+                    label="無可用頻道",
+                    value="none",
+                    description="沒有找到文字頻道",
                 )
             ]
         else:
@@ -1626,7 +1670,13 @@ class BackToClearSelectButton(Button):
 class FinalConfirmView(View):
     """最終確認視圖"""
 
-    def __init__(self, user_id: int, channel: discord.TextChannel, clear_type: str, timeout=60):
+    def __init__(
+        self,
+        user_id: int,
+        channel: discord.TextChannel,
+        clear_type: str,
+        timeout=60,
+    ):
         super().__init__(timeout=timeout)
         self.user_id = user_id
         self.channel = channel
@@ -1669,7 +1719,9 @@ class FinalConfirmView(View):
             )
 
             embed.add_field(
-                name="📊 清空統計", value=f"共刪除 {deleted_count} 條訊息", inline=False
+                name="📊 清空統計",
+                value=f"共刪除 {deleted_count} 條訊息",
+                inline=False,
             )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
@@ -1934,7 +1986,8 @@ class ClearByUserModal(Modal):
 
             if not target_user:
                 await interaction.response.send_message(
-                    "❌ 找不到指定的用戶，請檢查用戶ID或@提及格式", ephemeral=True
+                    "❌ 找不到指定的用戶，請檢查用戶ID或@提及格式",
+                    ephemeral=True,
                 )
                 return
 
@@ -2100,7 +2153,11 @@ class ConfirmCleanupView(View):
                     description=f"清理過程中發生錯誤：{result.error}",
                     color=0xE74C3C,
                 )
-                embed.add_field(name="💡 建議", value="請稍後重試，或聯繫系統管理員", inline=False)
+                embed.add_field(
+                    name="💡 建議",
+                    value="請稍後重試，或聯繫系統管理員",
+                    inline=False,
+                )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -2225,7 +2282,11 @@ class ExportFormatView(View):
                 description=f"正在匯出{self._get_data_type_name()}為{format_type.upper()}格式",
                 color=0xF39C12,
             )
-            embed.add_field(name="⏳ 預計時間", value="1-3 分鐘（取決於資料量）", inline=True)
+            embed.add_field(
+                name="⏳ 預計時間",
+                value="1-3 分鐘（取決於資料量）",
+                inline=True,
+            )
             await interaction.followup.send(embed=embed, ephemeral=True)
 
             # 執行匯出
@@ -2393,7 +2454,9 @@ class VoteAdminView(View):
         """投票設定按鈕"""
         try:
             embed = discord.Embed(
-                title="🛠️ 投票系統設定", description="投票系統功能管理", color=0xF39C12
+                title="🛠️ 投票系統設定",
+                description="投票系統功能管理",
+                color=0xF39C12,
             )
 
             embed.add_field(
@@ -2485,7 +2548,7 @@ class ActiveVoteManageView(View):
 
                 embed.add_field(
                     name="🏆 活躍創建者 (TOP 3)",
-                    value="\n".join(creators_info) if creators_info else "無資料",
+                    value=("\n".join(creators_info) if creators_info else "無資料"),
                     inline=False,
                 )
 
@@ -2782,7 +2845,11 @@ class VoteConfirmActionView(View):
     @button(label="❌ 取消", style=discord.ButtonStyle.secondary)
     async def cancel_action(self, interaction: discord.Interaction, button: Button):
         """取消操作"""
-        embed = discord.Embed(title="❌ 操作已取消", description="沒有執行任何變更", color=0x95A5A6)
+        embed = discord.Embed(
+            title="❌ 操作已取消",
+            description="沒有執行任何變更",
+            color=0x95A5A6,
+        )
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
 

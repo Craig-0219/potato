@@ -171,7 +171,7 @@ class DatabaseManager:
                             "count": table_count,
                             "initialized": self._initialized,
                         },
-                        "status": "healthy" if self._initialized else "initializing",
+                        "status": ("healthy" if self._initialized else "initializing"),
                     }
         except Exception as e:
             logger.error(f"獲取系統狀態失敗: {e}")
@@ -837,7 +837,9 @@ class DatabaseManager:
         """創建企業級安全系統表格 - Phase 6"""
         try:
             # 使用專門的安全表格初始化模組
-            from bot.db.migrations.security_tables import initialize_security_system
+            from bot.db.migrations.security_tables import (
+                initialize_security_system,
+            )
 
             await initialize_security_system()
 

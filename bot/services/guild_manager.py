@@ -77,7 +77,12 @@ class GuildManager:
 
             # 記錄離開事件
             await self._log_guild_event(
-                guild.id, None, "guild_leave", "guild_management", "Bot left guild", {}
+                guild.id,
+                None,
+                "guild_leave",
+                "guild_management",
+                "Bot left guild",
+                {},
             )
 
             # 可選：清理快取
@@ -215,7 +220,11 @@ class GuildManager:
                 "features_disabled": json.dumps([]),
                 "notification_channels": json.dumps({}),
                 "alert_settings": json.dumps(
-                    {"sla_alerts": True, "error_alerts": True, "security_alerts": True}
+                    {
+                        "sla_alerts": True,
+                        "error_alerts": True,
+                        "security_alerts": True,
+                    }
                 ),
                 "security_level": "medium",
                 "require_mfa_for_admin": False,
@@ -474,7 +483,7 @@ class GuildManager:
 
             embed.set_footer(
                 text="Potato Bot - 企業級 Discord 管理系統",
-                icon_url=self.bot.user.avatar.url if self.bot.user.avatar else None,
+                icon_url=(self.bot.user.avatar.url if self.bot.user.avatar else None),
             )
 
             await guild.owner.send(embed=embed)

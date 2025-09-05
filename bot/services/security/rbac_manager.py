@@ -405,7 +405,7 @@ class RBACManager:
                 {
                     "role_id": role_id,
                     "assigned_by": assigned_by,
-                    "expires_at": expires_at.isoformat() if expires_at else None,
+                    "expires_at": (expires_at.isoformat() if expires_at else None),
                 },
             )
 
@@ -439,7 +439,13 @@ class RBACManager:
                         SET is_active = FALSE, revoked_by = %s, revoked_at = %s
                         WHERE user_id = %s AND guild_id = %s AND role_id = %s AND is_active = TRUE
                     """,
-                        (revoked_by, datetime.now(), user_id, guild_id, role_id),
+                        (
+                            revoked_by,
+                            datetime.now(),
+                            user_id,
+                            guild_id,
+                            role_id,
+                        ),
                     )
 
                     affected_rows = cursor.rowcount
@@ -709,7 +715,7 @@ class RBACManager:
                                 "role_description": row[2],
                                 "assigned_by": row[3],
                                 "assigned_at": row[4].isoformat(),
-                                "expires_at": row[5].isoformat() if row[5] else None,
+                                "expires_at": (row[5].isoformat() if row[5] else None),
                                 "is_active": row[6],
                             }
                         )
@@ -753,7 +759,11 @@ class RBACManager:
         ).total_seconds() < self.cache_ttl
 
     async def _log_rbac_event(
-        self, user_id: int, guild_id: int, event_type: str, details: Dict[str, Any]
+        self,
+        user_id: int,
+        guild_id: int,
+        event_type: str,
+        details: Dict[str, Any],
     ):
         """記錄 RBAC 事件"""
         try:

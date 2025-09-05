@@ -188,7 +188,8 @@ async def get_ticket(ticket_id: int, user: APIUser = Depends(require_read_permis
 @router.post("/", response_model=BaseResponse, summary="創建新票券", status_code=201)
 # @limiter.limit("10/minute")
 async def create_ticket(
-    ticket_data: TicketCreate, user: APIUser = Depends(require_write_permission)
+    ticket_data: TicketCreate,
+    user: APIUser = Depends(require_write_permission),
 ):
     """創建新的票券"""
     try:
@@ -302,7 +303,9 @@ async def close_ticket(
 
         # 關閉票券
         success = await ticket_manager.close_ticket(
-            ticket_id=ticket_id, closed_by=0, reason=reason  # API 關閉，使用特殊用戶 ID
+            ticket_id=ticket_id,
+            closed_by=0,
+            reason=reason,  # API 關閉，使用特殊用戶 ID
         )
 
         if not success:
@@ -320,7 +323,9 @@ async def close_ticket(
 @router.post("/{ticket_id}/assign", response_model=BaseResponse, summary="指派票券")
 # @limiter.limit("20/minute")
 async def assign_ticket(
-    ticket_id: int, assigned_to: int, user: APIUser = Depends(require_write_permission)
+    ticket_id: int,
+    assigned_to: int,
+    user: APIUser = Depends(require_write_permission),
 ):
     """將票券指派給指定用戶"""
     try:
@@ -377,7 +382,11 @@ async def rate_ticket(
         raise HTTPException(status_code=500, detail="保存評分失敗")
 
 
-@router.get("/statistics/overview", response_model=TicketStatistics, summary="獲取票券統計概覽")
+@router.get(
+    "/statistics/overview",
+    response_model=TicketStatistics,
+    summary="獲取票券統計概覽",
+)
 # @limiter.limit("10/minute")
 async def get_ticket_statistics(
     guild_id: Optional[int] = Query(None, description="伺服器 ID 篩選"),

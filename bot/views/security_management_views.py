@@ -189,7 +189,9 @@ class SecurityDashboardView(discord.ui.View):
         except Exception as e:
             logger.error(f"❌ API 密鑰管理視圖錯誤: {e}")
             await SafeInteractionHandler.safe_response(
-                interaction, f"❌ API 密鑰管理載入失敗: {str(e)}", ephemeral=True
+                interaction,
+                f"❌ API 密鑰管理載入失敗: {str(e)}",
+                ephemeral=True,
             )
 
     @discord.ui.button(label="📊 系統狀態", style=discord.ButtonStyle.success, row=1)
@@ -363,7 +365,9 @@ class MFAManagementView(discord.ui.View):
             except Exception as e:
                 logger.error(f"❌ 備用代碼生成錯誤: {e}")
                 await SafeInteractionHandler.safe_response(
-                    interaction, f"❌ 備用代碼生成失敗: {str(e)}", ephemeral=True
+                    interaction,
+                    f"❌ 備用代碼生成失敗: {str(e)}",
+                    ephemeral=True,
                 )
 
         button.callback = callback
@@ -416,7 +420,9 @@ class MFADisableConfirmView(discord.ui.View):
     async def cancel_disable(self, interaction: discord.Interaction, button: discord.ui.Button):
         """取消停用"""
         await SafeInteractionHandler.safe_response(
-            interaction, "✅ 已取消停用 MFA，您的帳戶保持安全保護。", ephemeral=True
+            interaction,
+            "✅ 已取消停用 MFA，您的帳戶保持安全保護。",
+            ephemeral=True,
         )
 
 
@@ -581,7 +587,10 @@ class APIKeyTypeSelectionView(discord.ui.View):
                 emoji="👑",
             ),
             discord.SelectOption(
-                label="服務密鑰", value="service", description="系統間通訊", emoji="🔧"
+                label="服務密鑰",
+                value="service",
+                description="系統間通訊",
+                emoji="🔧",
             ),
         ],
     )
@@ -605,7 +614,11 @@ class APIKeyTypeSelectionView(discord.ui.View):
             if api_key:
                 embed = discord.Embed(title="✅ API 密鑰創建成功", color=discord.Color.green())
 
-                embed.add_field(name="🔑 API 密鑰", value=f"```{api_key.key}```", inline=False)
+                embed.add_field(
+                    name="🔑 API 密鑰",
+                    value=f"```{api_key.key}```",
+                    inline=False,
+                )
 
                 embed.add_field(
                     name="ℹ️ 密鑰資訊",

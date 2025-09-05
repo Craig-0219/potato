@@ -186,7 +186,7 @@ async def get_system_info(user: APIUser = Depends(require_read_permission)):
                 "version": "1.8.0",
                 "python_version": f"{os.sys.version_info.major}.{os.sys.version_info.minor}.{os.sys.version_info.micro}",
                 "platform": os.name,
-                "architecture": psutil.WINDOWS if os.name == "nt" else psutil.LINUX,
+                "architecture": (psutil.WINDOWS if os.name == "nt" else psutil.LINUX),
                 "start_time": datetime.now(),  # TODO: 實際啟動時間
                 "timezone": str(datetime.now().astimezone().tzinfo),
                 "features": [
@@ -205,9 +205,15 @@ async def get_system_info(user: APIUser = Depends(require_read_permission)):
 
 
 # API 金鑰管理端點
-@router.get("/api-keys", response_model=List[APIKeyResponse], summary="獲取 API 金鑰列表")
+@router.get(
+    "/api-keys",
+    response_model=List[APIKeyResponse],
+    summary="獲取 API 金鑰列表",
+)
 # @limiter.limit("10/minute")
-async def get_api_keys(user: APIUser = Depends(require_super_admin_permission)):
+async def get_api_keys(
+    user: APIUser = Depends(require_super_admin_permission),
+):
     """獲取所有 API 金鑰（不包含實際金鑰值）"""
     try:
         from ..auth import get_api_key_manager
@@ -238,10 +244,16 @@ async def get_api_keys(user: APIUser = Depends(require_super_admin_permission)):
         raise HTTPException(status_code=500, detail="獲取 API 金鑰列表失敗")
 
 
-@router.post("/api-keys", response_model=BaseResponse, summary="創建 API 金鑰", status_code=201)
+@router.post(
+    "/api-keys",
+    response_model=BaseResponse,
+    summary="創建 API 金鑰",
+    status_code=201,
+)
 # @limiter.limit("5/minute")
 async def create_api_key(
-    key_data: APIKeyCreate, user: APIUser = Depends(require_super_admin_permission)
+    key_data: APIKeyCreate,
+    user: APIUser = Depends(require_super_admin_permission),
 ):
     """創建新的 API 金鑰"""
     try:
@@ -405,7 +417,11 @@ async def get_bot_settings(user: APIUser = Depends(require_admin_permission)):
         raise HTTPException(status_code=500, detail="獲取 Bot 設定失敗")
 
 
-@router.post("/bot-settings/{section}", response_model=BaseResponse, summary="更新 Bot 設定")
+@router.post(
+    "/bot-settings/{section}",
+    response_model=BaseResponse,
+    summary="更新 Bot 設定",
+)
 async def update_bot_settings(
     section: str,
     settings: Dict[str, Any],
@@ -508,8 +524,8 @@ async def get_bot_commands(user: APIUser = Depends(require_read_permission)):
                     "name": command.name,
                     "description": command.help or "無描述",
                     "type": "text",
-                    "module": command.cog_name if command.cog_name else "unknown",
-                    "aliases": list(command.aliases) if command.aliases else [],
+                    "module": (command.cog_name if command.cog_name else "unknown"),
+                    "aliases": (list(command.aliases) if command.aliases else []),
                 }
             )
 
@@ -529,7 +545,11 @@ async def get_bot_commands(user: APIUser = Depends(require_read_permission)):
         raise HTTPException(status_code=500, detail="獲取 Bot 指令列表失敗")
 
 
-@router.post("/bot-reload-extension", response_model=BaseResponse, summary="重新載入 Bot 擴展")
+@router.post(
+    "/bot-reload-extension",
+    response_model=BaseResponse,
+    summary="重新載入 Bot 擴展",
+)
 async def reload_bot_extension(
     extension_name: str, user: APIUser = Depends(require_admin_permission)
 ):
@@ -548,7 +568,10 @@ async def reload_bot_extension(
         return {
             "success": True,
             "message": f"擴展 {extension_name} 已成功重新載入",
-            "data": {"extension": extension_name, "reloaded_at": datetime.now()},
+            "data": {
+                "extension": extension_name,
+                "reloaded_at": datetime.now(),
+            },
         }
 
     except Exception as e:

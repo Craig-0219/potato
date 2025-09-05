@@ -107,7 +107,10 @@ app = FastAPI(
         "url": "https://github.com/your-repo/potato-bot",
         "email": "support@potato-bot.com",
     },
-    license_info={"name": "MIT License", "url": "https://opensource.org/licenses/MIT"},
+    license_info={
+        "name": "MIT License",
+        "url": "https://opensource.org/licenses/MIT",
+    },
 )
 
 # 添加中間件
@@ -333,7 +336,11 @@ async def verify_api_key(request: Request):
                             ["all"]
                             if is_admin
                             else (
-                                ["tickets.read", "tickets.write", "statistics.read"]
+                                [
+                                    "tickets.read",
+                                    "tickets.write",
+                                    "statistics.read",
+                                ]
                                 if is_staff
                                 else ["tickets.read_own"]
                             )
@@ -391,7 +398,11 @@ except Exception as e:
     logger.warning(f"⚠️ Tickets 路由啟用失敗: {e}")
 
 try:
-    app.include_router(analytics.router, prefix=f"{API_BASE_PATH}/analytics", tags=["analytics"])
+    app.include_router(
+        analytics.router,
+        prefix=f"{API_BASE_PATH}/analytics",
+        tags=["analytics"],
+    )
     logger.info("✅ Analytics 路由已啟用")
 except Exception as e:
     logger.warning(f"⚠️ Analytics 路由啟用失敗: {e}")
@@ -406,14 +417,20 @@ except Exception as e:
     logger.warning(f"⚠️ OAuth 路由啟用失敗: {e}")
 
 try:
-    app.include_router(automation.router, prefix=f"{API_BASE_PATH}/automation", tags=["automation"])
+    app.include_router(
+        automation.router,
+        prefix=f"{API_BASE_PATH}/automation",
+        tags=["automation"],
+    )
     logger.info("✅ Automation 路由已啟用")
 except Exception as e:
     logger.warning(f"⚠️ Automation 路由啟用失敗: {e}")
 
 try:
     app.include_router(
-        security_routes.router, prefix=f"{API_BASE_PATH}/security", tags=["security"]
+        security_routes.router,
+        prefix=f"{API_BASE_PATH}/security",
+        tags=["security"],
     )
 
     # 跨平台經濟系統路由 - Phase 5 Stage 4
@@ -622,9 +639,9 @@ def update_bot_status(bot_instance):
     if bot_instance:
         bot_status_cache.update(
             {
-                "name": str(bot_instance.user) if bot_instance.user else "Potato Bot",
+                "name": (str(bot_instance.user) if bot_instance.user else "Potato Bot"),
                 "guilds": len(bot_instance.guilds),
-                "status": "online" if bot_instance.is_ready() else "connecting",
+                "status": ("online" if bot_instance.is_ready() else "connecting"),
                 "startup_time": getattr(bot_instance, "startup_time", None),
             }
         )
@@ -675,7 +692,7 @@ async def get_bot_info():
                 {
                     "name": str(bot_instance.user),
                     "guilds": len(bot_instance.guilds),
-                    "status": "online" if bot_instance.is_ready() else "connecting",
+                    "status": ("online" if bot_instance.is_ready() else "connecting"),
                     "startup_time": getattr(bot_instance, "startup_time", None),
                 }
             )

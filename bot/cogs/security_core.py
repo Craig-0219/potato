@@ -20,7 +20,11 @@ from bot.services.security_audit_manager import (
     security_audit_manager,
 )
 from bot.utils.embed_builder import EmbedBuilder
-from bot.views.security_views import AlertView, ComplianceReportView, SecurityView
+from bot.views.security_views import (
+    AlertView,
+    ComplianceReportView,
+    SecurityView,
+)
 from shared.logger import logger
 
 
@@ -141,7 +145,10 @@ class SecurityCore(commands.Cog):
 
     @app_commands.command(name="security_events", description="查看安全事件記錄")
     @app_commands.describe(
-        event_type="事件類型", risk_level="風險等級", user="指定用戶", days="查看天數"
+        event_type="事件類型",
+        risk_level="風險等級",
+        user="指定用戶",
+        days="查看天數",
     )
     @app_commands.choices(
         event_type=[
@@ -246,7 +253,11 @@ class SecurityCore(commands.Cog):
                         f"資源: {event['resource'][:30]}{'...' if len(event['resource']) > 30 else ''}"
                     )
 
-                embed.add_field(name="🕐 最新事件", value="\n\n".join(events_text), inline=False)
+                embed.add_field(
+                    name="🕐 最新事件",
+                    value="\n\n".join(events_text),
+                    inline=False,
+                )
 
             # 篩選條件摘要
             filters = []
@@ -486,7 +497,11 @@ class SecurityCore(commands.Cog):
                 if len(report.violations) > 3:
                     violation_text.append(f"...還有 {len(report.violations) - 3} 個違規")
 
-                embed.add_field(name="⚠️ 主要違規", value="\n".join(violation_text), inline=False)
+                embed.add_field(
+                    name="⚠️ 主要違規",
+                    value="\n".join(violation_text),
+                    inline=False,
+                )
 
             # 建議
             if report.recommendations:
@@ -545,7 +560,9 @@ class SecurityCore(commands.Cog):
 
             # 創建嵌入式訊息
             embed = EmbedBuilder.build(
-                title="📚 合規報告歷史", description="歷史合規報告記錄", color=0x9B59B6
+                title="📚 合規報告歷史",
+                description="歷史合規報告記錄",
+                color=0x9B59B6,
             )
 
             if not reports:
@@ -727,7 +744,9 @@ class SecurityCore(commands.Cog):
     # ========== 錯誤處理 ==========
 
     async def cog_app_command_error(
-        self, interaction: discord.Interaction, error: app_commands.AppCommandError
+        self,
+        interaction: discord.Interaction,
+        error: app_commands.AppCommandError,
     ):
         """處理應用指令錯誤"""
         logger.error(f"安全管理指令錯誤: {error}")

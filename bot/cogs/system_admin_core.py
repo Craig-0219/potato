@@ -39,7 +39,9 @@ class SystemAdmin(commands.Cog):
             )
 
             embed.add_field(
-                name="💡 使用說明", value="點擊下方按鈕進入相應的設定頁面", inline=False
+                name="💡 使用說明",
+                value="點擊下方按鈕進入相應的設定頁面",
+                inline=False,
             )
 
             view = SystemAdminPanel(user_id=interaction.user.id)
@@ -195,7 +197,11 @@ class SystemAdmin(commands.Cog):
                             f"❌ **{btype.title()}**: {result.get('error', '未知錯誤')}"
                         )
 
-                embed.add_field(name="📋 備份詳情", value="\n".join(backup_details), inline=False)
+                embed.add_field(
+                    name="📋 備份詳情",
+                    value="\n".join(backup_details),
+                    inline=False,
+                )
 
                 embed.add_field(
                     name="📊 總計",
@@ -217,7 +223,11 @@ class SystemAdmin(commands.Cog):
                         f"❌ **{btype.title()}**: {result.get('error', '未知錯誤')}"
                     )
 
-                embed.add_field(name="❌ 錯誤詳情", value="\n".join(error_details), inline=False)
+                embed.add_field(
+                    name="❌ 錯誤詳情",
+                    value="\n".join(error_details),
+                    inline=False,
+                )
 
             embed.set_footer(text=f"由 {interaction.user.display_name} 執行")
             await interaction.edit_original_response(embed=embed)
@@ -245,7 +255,12 @@ class SystemAdmin(commands.Cog):
         ]
     )
     @app_commands.default_permissions(administrator=True)
-    async def database(self, interaction: discord.Interaction, action: str, target: str = "all"):
+    async def database(
+        self,
+        interaction: discord.Interaction,
+        action: str,
+        target: str = "all",
+    ):
         """資料庫管理面板"""
         try:
             await interaction.response.defer(ephemeral=True)
@@ -416,7 +431,9 @@ class SystemAdmin(commands.Cog):
             elif action == "stats":
                 # 查看資料庫統計
                 try:
-                    from bot.services.statistics_manager import StatisticsManager
+                    from bot.services.statistics_manager import (
+                        StatisticsManager,
+                    )
 
                     stats_manager = StatisticsManager()
 

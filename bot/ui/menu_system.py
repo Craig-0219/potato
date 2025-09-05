@@ -80,7 +80,12 @@ class MainMenuView(discord.ui.View):
     🏠 主選單視圖
     """
 
-    def __init__(self, bot: commands.Bot, user_id: int, contextual_options: Dict[str, Any] = None):
+    def __init__(
+        self,
+        bot: commands.Bot,
+        user_id: int,
+        contextual_options: Dict[str, Any] = None,
+    ):
         super().__init__(timeout=300)
         self.bot = bot
         self.user_id = user_id
@@ -196,11 +201,23 @@ class AdminMenuView(discord.ui.View):
             color=0xE74C3C,
         )
 
-        embed.add_field(name="📊 系統狀態", value="• 即時監控\n• 性能分析\n• 使用統計", inline=True)
+        embed.add_field(
+            name="📊 系統狀態",
+            value="• 即時監控\n• 性能分析\n• 使用統計",
+            inline=True,
+        )
 
-        embed.add_field(name="👥 用戶管理", value="• 權限設定\n• 角色管理\n• 活動追蹤", inline=True)
+        embed.add_field(
+            name="👥 用戶管理",
+            value="• 權限設定\n• 角色管理\n• 活動追蹤",
+            inline=True,
+        )
 
-        embed.add_field(name="⚡ 快速操作", value="• 批量處理\n• 緊急控制\n• 系統維護", inline=True)
+        embed.add_field(
+            name="⚡ 快速操作",
+            value="• 批量處理\n• 緊急控制\n• 系統維護",
+            inline=True,
+        )
 
         return embed
 
@@ -251,7 +268,11 @@ class AdminMenuView(discord.ui.View):
                 for guild in self.bot.guilds:
                     votes = await vote_dao.get_active_votes(guild.id)
                     active_votes += len(votes) if votes else 0
-                embed.add_field(name="🗳️ 進行中投票", value=f"{active_votes} 個", inline=True)
+                embed.add_field(
+                    name="🗳️ 進行中投票",
+                    value=f"{active_votes} 個",
+                    inline=True,
+                )
             except Exception:
                 embed.add_field(name="🗳️ 進行中投票", value="N/A", inline=True)
 
@@ -275,7 +296,11 @@ class AdminMenuView(discord.ui.View):
             # 如果獲取失敗，使用基本資訊
             embed.add_field(name="🤖 Bot 狀態", value="✅ 在線", inline=True)
             embed.add_field(name="📶 延遲", value="N/A", inline=True)
-            embed.add_field(name="🏠 伺服器數", value=f"{len(self.bot.guilds)} 個", inline=True)
+            embed.add_field(
+                name="🏠 伺服器數",
+                value=f"{len(self.bot.guilds)} 個",
+                inline=True,
+            )
 
         view = SystemMonitoringView(self.bot, self.user_id)
         await interaction.response.edit_message(embed=embed, view=view)
@@ -774,7 +799,11 @@ class VoteMenuView(discord.ui.View):
                         f"• **{vote['title'][:30]}...**\n  {status} | {vote['total_votes']} 票"
                     )
 
-                embed.add_field(name="📋 最近投票", value="\n".join(vote_list), inline=False)
+                embed.add_field(
+                    name="📋 最近投票",
+                    value="\n".join(vote_list),
+                    inline=False,
+                )
 
             embed.add_field(
                 name="⚙️ 更多功能",
@@ -932,7 +961,11 @@ class WelcomeMenuView(discord.ui.View):
                     ),
                     color=0x2ECC71,
                 )
-                embed.add_field(name="📍 頻道", value=result.get("channel", "未設定"), inline=True)
+                embed.add_field(
+                    name="📍 頻道",
+                    value=result.get("channel", "未設定"),
+                    inline=True,
+                )
                 embed.add_field(name="✅ 狀態", value="預覽成功", inline=True)
                 await interaction.response.send_message(embed=embed, ephemeral=True)
                 return
@@ -1073,7 +1106,9 @@ class SettingsMenuView(discord.ui.View):
     async def basic_settings(self, interaction: discord.Interaction, button: discord.ui.Button):
         """基本設定"""
         embed = discord.Embed(
-            title="🔧 基本設定", description="**Bot 基本配置選項**", color=0x3498DB
+            title="🔧 基本設定",
+            description="**Bot 基本配置選項**",
+            color=0x3498DB,
         )
 
         embed.add_field(
@@ -1148,10 +1183,18 @@ class SettingsMenuView(discord.ui.View):
                 feature_modules.append(f"✅ {cog_name}")
 
         if core_modules:
-            embed.add_field(name="🔧 核心模組", value="\n".join(core_modules[:10]), inline=True)
+            embed.add_field(
+                name="🔧 核心模組",
+                value="\n".join(core_modules[:10]),
+                inline=True,
+            )
 
         if feature_modules:
-            embed.add_field(name="🎮 功能模組", value="\n".join(feature_modules[:10]), inline=True)
+            embed.add_field(
+                name="🎮 功能模組",
+                value="\n".join(feature_modules[:10]),
+                inline=True,
+            )
 
         embed.add_field(
             name="📈 統計",
@@ -1195,7 +1238,9 @@ class SystemMonitoringView(discord.ui.View):
         cpu_percent = psutil.cpu_percent(interval=1)
 
         embed = discord.Embed(
-            title="📈 即時系統狀態", description="**系統資源使用狀態**", color=0x27AE60
+            title="📈 即時系統狀態",
+            description="**系統資源使用狀態**",
+            color=0x27AE60,
         )
 
         embed.add_field(
@@ -1295,7 +1340,11 @@ class UserManagementView(discord.ui.View):
             inline=True,
         )
 
-        embed.add_field(name="🔧 管理功能", value="• 成員查詢\n• 角色管理\n• 權限設定", inline=True)
+        embed.add_field(
+            name="🔧 管理功能",
+            value="• 成員查詢\n• 角色管理\n• 權限設定",
+            inline=True,
+        )
 
         return embed
 
@@ -1363,7 +1412,7 @@ class UserManagementView(discord.ui.View):
 
         embed.add_field(
             name="🏆 角色列表",
-            value="\n".join(reversed(roles_list)) if roles_list else "無自定義角色",
+            value=("\n".join(reversed(roles_list)) if roles_list else "無自定義角色"),
             inline=False,
         )
 
@@ -1394,7 +1443,9 @@ class AdminSettingsView(discord.ui.View):
     async def create_main_embed(self) -> discord.Embed:
         """創建管理員設定主選單"""
         embed = discord.Embed(
-            title="🔧 系統設定中心", description="**Bot 進階配置選項**", color=0x34495E
+            title="🔧 系統設定中心",
+            description="**Bot 進階配置選項**",
+            color=0x34495E,
         )
 
         embed.add_field(
@@ -1417,7 +1468,9 @@ class AdminSettingsView(discord.ui.View):
     async def module_management(self, interaction: discord.Interaction, button: discord.ui.Button):
         """模組管理功能"""
         embed = discord.Embed(
-            title="📊 模組管理中心", description="**已載入的 Bot 模組**", color=0x9B59B6
+            title="📊 模組管理中心",
+            description="**已載入的 Bot 模組**",
+            color=0x9B59B6,
         )
 
         # 分類模組
@@ -1511,7 +1564,9 @@ class QuickActionsView(discord.ui.View):
     async def create_main_embed(self) -> discord.Embed:
         """創建快速操作主選單"""
         embed = discord.Embed(
-            title="⚡ 快速操作中心", description="**一鍵式管理操作**", color=0xE74C3C
+            title="⚡ 快速操作中心",
+            description="**一鍵式管理操作**",
+            color=0xE74C3C,
         )
 
         embed.add_field(
@@ -1520,9 +1575,17 @@ class QuickActionsView(discord.ui.View):
             inline=True,
         )
 
-        embed.add_field(name="🛠️ 管理工具", value="• 快速重啟\n• 清理快取\n• 權限檢查", inline=True)
+        embed.add_field(
+            name="🛠️ 管理工具",
+            value="• 快速重啟\n• 清理快取\n• 權限檢查",
+            inline=True,
+        )
 
-        embed.add_field(name="⚠️ 注意事項", value="部分操作不可復原，請謹慎使用", inline=False)
+        embed.add_field(
+            name="⚠️ 注意事項",
+            value="部分操作不可復原，請謹慎使用",
+            inline=False,
+        )
 
         return embed
 
@@ -1530,7 +1593,9 @@ class QuickActionsView(discord.ui.View):
     async def system_check(self, interaction: discord.Interaction, button: discord.ui.Button):
         """系統狀態檢查"""
         embed = discord.Embed(
-            title="🔄 系統狀態檢查", description="**快速系統檢查結果**", color=0x27AE60
+            title="🔄 系統狀態檢查",
+            description="**快速系統檢查結果**",
+            color=0x27AE60,
         )
 
         # 檢查各個系統組件
@@ -1578,7 +1643,9 @@ class QuickActionsView(discord.ui.View):
     async def emergency_mode(self, interaction: discord.Interaction, button: discord.ui.Button):
         """緊急模式"""
         embed = discord.Embed(
-            title="⚠️ 緊急模式", description="**系統緊急操作選項**", color=0xE74C3C
+            title="⚠️ 緊急模式",
+            description="**系統緊急操作選項**",
+            color=0xE74C3C,
         )
 
         embed.add_field(
@@ -1829,11 +1896,23 @@ class MenuSystemManager:
             color=0x3498DB,
         )
 
-        embed.add_field(name="🤖 AI 功能", value="智能對話、意圖識別、引導式操作", inline=True)
+        embed.add_field(
+            name="🤖 AI 功能",
+            value="智能對話、意圖識別、引導式操作",
+            inline=True,
+        )
 
-        embed.add_field(name="🎫 支援系統", value="票券管理、問題追蹤、客服支援", inline=True)
+        embed.add_field(
+            name="🎫 支援系統",
+            value="票券管理、問題追蹤、客服支援",
+            inline=True,
+        )
 
-        embed.add_field(name="🗳️ 協作工具", value="投票系統、歡迎設定、團隊管理", inline=True)
+        embed.add_field(
+            name="🗳️ 協作工具",
+            value="投票系統、歡迎設定、團隊管理",
+            inline=True,
+        )
 
         embed.add_field(name="🎮 娛樂功能", value="小遊戲、音樂播放、互動娛樂", inline=True)
 

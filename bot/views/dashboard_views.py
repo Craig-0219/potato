@@ -106,7 +106,11 @@ class ChartNavigationSelect(Select):
                 dataset_info.append(f"• {label}: {data_points} 個數據點")
 
             if dataset_info:
-                embed.add_field(name="📊 數據集信息", value="\n".join(dataset_info), inline=False)
+                embed.add_field(
+                    name="📊 數據集信息",
+                    value="\n".join(dataset_info),
+                    inline=False,
+                )
 
         # 添加圖表選項
         if chart.options:
@@ -116,7 +120,11 @@ class ChartNavigationSelect(Select):
                     options_text.append(f"• {key}: {'是' if value else '否'}")
 
             if options_text:
-                embed.add_field(name="⚙️ 圖表設定", value="\n".join(options_text[:3]), inline=True)
+                embed.add_field(
+                    name="⚙️ 圖表設定",
+                    value="\n".join(options_text[:3]),
+                    inline=True,
+                )
 
         # 添加數據標籤資訊
         if chart.labels:
@@ -160,7 +168,11 @@ class ChartDisplayView(View):
         )
 
         for analysis in trend_analysis:
-            embed.add_field(name=analysis["metric"], value=analysis["description"], inline=False)
+            embed.add_field(
+                name=analysis["metric"],
+                value=analysis["description"],
+                inline=False,
+            )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -245,7 +257,12 @@ class ChartDisplayView(View):
                 )
 
             if not analyses:
-                analyses.append({"metric": "📋 分析結果", "description": "無足夠數據進行趨勢分析"})
+                analyses.append(
+                    {
+                        "metric": "📋 分析結果",
+                        "description": "無足夠數據進行趨勢分析",
+                    }
+                )
 
             return analyses
 
@@ -457,7 +474,11 @@ class ExportOptionsModal(Modal):
     async def on_submit(self, interaction: discord.Interaction):
         try:
             export_format = self.format_choice.value.lower()
-            include_charts = self.include_charts.value.lower() in ["yes", "y", "是"]
+            include_charts = self.include_charts.value.lower() in [
+                "yes",
+                "y",
+                "是",
+            ]
 
             if export_format not in ["json", "csv", "txt"]:
                 await interaction.response.send_message("❌ 不支援的導出格式", ephemeral=True)

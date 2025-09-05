@@ -142,7 +142,9 @@ async def sync_economy_data(
                             )
                         else:
                             await economy_manager.subtract_coins(
-                                request.user_id, request.guild_id, abs(difference)
+                                request.user_id,
+                                request.guild_id,
+                                abs(difference),
                             )
                     elif currency == "gems":
                         await economy_manager.add_gems(
@@ -368,7 +370,13 @@ async def admin_economy_adjust(
                     await economy_manager.trigger_cross_platform_sync(user_id, guild_id)
                     sync_results.append({"user_id": user_id, "status": "triggered"})
                 except Exception as e:
-                    sync_results.append({"user_id": user_id, "status": "failed", "error": str(e)})
+                    sync_results.append(
+                        {
+                            "user_id": user_id,
+                            "status": "failed",
+                            "error": str(e),
+                        }
+                    )
 
             result = {"sync_results": sync_results}
 

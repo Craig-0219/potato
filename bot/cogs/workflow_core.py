@@ -12,7 +12,11 @@ from discord import app_commands
 from discord.ext import commands
 
 from bot.db.workflow_dao import WorkflowDAO
-from bot.services.workflow_engine import TriggerType, WorkflowStatus, workflow_engine
+from bot.services.workflow_engine import (
+    TriggerType,
+    WorkflowStatus,
+    workflow_engine,
+)
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 
@@ -62,7 +66,10 @@ class WorkflowCore(commands.Cog):
     @app_commands.command(name="workflow_create", description="創建新的工作流程")
     @app_commands.describe(name="工作流程名稱", description="工作流程描述")
     async def create_workflow(
-        self, interaction: discord.Interaction, name: str, description: str = ""
+        self,
+        interaction: discord.Interaction,
+        name: str,
+        description: str = "",
     ):
         """創建工作流程"""
         try:
@@ -269,7 +276,7 @@ class WorkflowCore(commands.Cog):
                 color=(
                     0x3498DB
                     if status["status"] == "running"
-                    else 0x2ECC71 if status["status"] == "completed" else 0xE74C3C
+                    else (0x2ECC71 if status["status"] == "completed" else 0xE74C3C)
                 ),
             )
 
@@ -348,7 +355,9 @@ class WorkflowCore(commands.Cog):
             if success:
                 # 更新資料庫
                 await self.workflow_dao.update_workflow(
-                    target_workflow["id"], {"status": new_status}, interaction.user.id
+                    target_workflow["id"],
+                    {"status": new_status},
+                    interaction.user.id,
                 )
 
                 status_text = "啟用" if new_status == "active" else "停用"
@@ -509,7 +518,10 @@ class WorkflowCore(commands.Cog):
                             "message": "歡迎 {user_mention} 加入伺服器！",
                         },
                     },
-                    {"type": "assign_role", "parameters": {"role_name": "新成員"}},
+                    {
+                        "type": "assign_role",
+                        "parameters": {"role_name": "新成員"},
+                    },
                 ],
                 "tags": ["歡迎", "自動化"],
             },
@@ -522,7 +534,10 @@ class WorkflowCore(commands.Cog):
                         "type": "assign_ticket",
                         "parameters": {"assignment_method": "least_workload"},
                     },
-                    {"type": "add_tag", "parameters": {"tags": ["auto-assigned"]}},
+                    {
+                        "type": "add_tag",
+                        "parameters": {"tags": ["auto-assigned"]},
+                    },
                 ],
                 "tags": ["票券", "指派", "自動化"],
             },
@@ -547,7 +562,10 @@ class WorkflowCore(commands.Cog):
                             "message": "⚠️ 票券 {ticket_id} 即將違反SLA！",
                         },
                     },
-                    {"type": "change_priority", "parameters": {"priority": "high"}},
+                    {
+                        "type": "change_priority",
+                        "parameters": {"priority": "high"},
+                    },
                 ],
                 "tags": ["SLA", "警告", "優先級"],
             },

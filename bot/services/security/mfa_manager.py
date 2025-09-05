@@ -139,7 +139,13 @@ class MFAManager:
                             is_enabled = VALUES(is_enabled),
                             updated_at = VALUES(created_at)
                     """,
-                        (user_id, MFAMethod.TOTP.value, secret, False, datetime.now()),
+                        (
+                            user_id,
+                            MFAMethod.TOTP.value,
+                            secret,
+                            False,
+                            datetime.now(),
+                        ),
                     )
                     await conn.commit()
 
@@ -389,7 +395,11 @@ class MFAManager:
                         SELECT id FROM user_mfa
                         WHERE user_id = %s AND method_type = %s AND secret_key = %s AND is_enabled = TRUE
                     """,
-                        (user_id, MFAMethod.BACKUP_CODES.value, encrypted_code),
+                        (
+                            user_id,
+                            MFAMethod.BACKUP_CODES.value,
+                            encrypted_code,
+                        ),
                     )
                     result = await cursor.fetchone()
 
@@ -406,7 +416,10 @@ class MFAManager:
 
                         # 記錄成功使用
                         await self._log_mfa_event(
-                            user_id, MFAMethod.BACKUP_CODES, True, "備用代碼驗證成功"
+                            user_id,
+                            MFAMethod.BACKUP_CODES,
+                            True,
+                            "備用代碼驗證成功",
                         )
                         await self._reset_attempt_count(user_id, MFAMethod.BACKUP_CODES)
 
@@ -436,7 +449,10 @@ class MFAManager:
                         # 代碼無效
                         await self._increment_attempt_count(user_id, MFAMethod.BACKUP_CODES)
                         await self._log_mfa_event(
-                            user_id, MFAMethod.BACKUP_CODES, False, "備用代碼無效"
+                            user_id,
+                            MFAMethod.BACKUP_CODES,
+                            False,
+                            "備用代碼無效",
                         )
 
                         return {
@@ -491,7 +507,7 @@ class MFAManager:
             for method_type, is_enabled, created_at in methods:
                 mfa_methods[method_type] = {
                     "enabled": is_enabled,
-                    "setup_date": created_at.isoformat() if created_at else None,
+                    "setup_date": (created_at.isoformat() if created_at else None),
                 }
                 if is_enabled:
                     has_enabled_mfa = True

@@ -112,7 +112,11 @@ class SystemMonitor:
                 if hasattr(connection, "_messages"):
                     cached_messages = len(connection._messages)
                     await self._record_metric(
-                        "bot", "cached_messages", cached_messages, "count", "cache"
+                        "bot",
+                        "cached_messages",
+                        cached_messages,
+                        "count",
+                        "cache",
                     )
 
             # 每個伺服器的統計
@@ -126,7 +130,11 @@ class SystemMonitor:
                     [m for m in guild.members if m.status != discord.Status.offline]
                 )
                 await self._record_metric(
-                    guild_id, "online_members", online_members, "count", "guild"
+                    guild_id,
+                    "online_members",
+                    online_members,
+                    "count",
+                    "guild",
                 )
 
         except Exception as e:
@@ -144,7 +152,11 @@ class SystemMonitor:
                     result = await cursor.fetchone()
                     active_tickets = result["count"] if result else 0
                     await self._record_metric(
-                        "tickets", "active_tickets", active_tickets, "count", "tickets"
+                        "tickets",
+                        "active_tickets",
+                        active_tickets,
+                        "count",
+                        "tickets",
                     )
 
                     # 今日新建票券數

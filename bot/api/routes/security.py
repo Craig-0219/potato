@@ -123,7 +123,10 @@ async def get_compliance_report(
                 "compliance_score": 0.95,
                 "last_assessment": datetime.now(),
                 "status": "compliant",
-                "recommendations": ["定期更新數據保護政策", "加強訪問控制監控"],
+                "recommendations": [
+                    "定期更新數據保護政策",
+                    "加強訪問控制監控",
+                ],
                 "report_url": f"/api/v1/security/reports/{standard.lower()}_report.{format}",
             },
         }

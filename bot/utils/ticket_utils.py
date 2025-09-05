@@ -48,7 +48,9 @@ class TicketPermissionChecker:
 
     @staticmethod
     def can_manage_ticket(
-        user: discord.Member, ticket_info: Dict[str, Any], support_roles: List[int]
+        user: discord.Member,
+        ticket_info: Dict[str, Any],
+        support_roles: List[int],
     ) -> bool:
         """檢查是否可以管理票券"""
         if not user or not ticket_info:
@@ -63,7 +65,9 @@ class TicketPermissionChecker:
 
     @staticmethod
     def can_close_ticket(
-        user: discord.Member, ticket_info: Dict[str, Any], support_roles: List[int]
+        user: discord.Member,
+        ticket_info: Dict[str, Any],
+        support_roles: List[int],
     ) -> bool:
         """檢查是否可以關閉票券"""
         return TicketPermissionChecker.can_manage_ticket(user, ticket_info, support_roles)
@@ -95,7 +99,9 @@ class TicketPermissionChecker:
 
     @staticmethod
     def can_view_ticket(
-        user: discord.Member, ticket_info: Dict[str, Any], support_roles: List[int]
+        user: discord.Member,
+        ticket_info: Dict[str, Any],
+        support_roles: List[int],
     ) -> bool:
         """檢查是否可以查看票券"""
         if not user or not ticket_info:
@@ -134,7 +140,9 @@ def is_ticket_channel(channel: discord.TextChannel) -> bool:
     return channel.name.startswith("ticket-")
 
 
-def parse_ticket_id_from_channel(channel: discord.TextChannel) -> Optional[int]:
+def parse_ticket_id_from_channel(
+    channel: discord.TextChannel,
+) -> Optional[int]:
     """從頻道名稱解析票券ID"""
     if not is_ticket_channel(channel):
         return None
@@ -459,7 +467,9 @@ def build_staff_performance_embed(
 
     # 排序客服（按處理票券數）
     sorted_staff = sorted(
-        staff_stats.items(), key=lambda x: x[1].get("handled_tickets", 0), reverse=True
+        staff_stats.items(),
+        key=lambda x: x[1].get("handled_tickets", 0),
+        reverse=True,
     )
 
     # 顯示前10名客服
@@ -593,7 +603,9 @@ def process_auto_reply_message(
 
 
 async def get_best_auto_reply(
-    message_content: str, rules: List[Dict[str, Any]], user: discord.Member = None
+    message_content: str,
+    rules: List[Dict[str, Any]],
+    user: discord.Member = None,
 ) -> Optional[str]:
     """取得最佳自動回覆"""
     if not message_content or not rules:
@@ -672,7 +684,9 @@ def format_settings_value(field_name: str, value: Any, guild: discord.Guild = No
         return str(value)
 
 
-def format_ticket_status_summary(tickets: List[Dict[str, Any]]) -> Dict[str, Any]:
+def format_ticket_status_summary(
+    tickets: List[Dict[str, Any]],
+) -> Dict[str, Any]:
     """格式化票券狀態摘要"""
     summary = {
         "total": len(tickets),
@@ -843,7 +857,9 @@ async def send_ticket_notification(
 
 
 async def send_sla_alert(
-    channel: discord.TextChannel, ticket_info: Dict[str, Any], overdue_minutes: float
+    channel: discord.TextChannel,
+    ticket_info: Dict[str, Any],
+    overdue_minutes: float,
 ) -> bool:
     """發送SLA超時警告"""
     try:
@@ -882,7 +898,13 @@ async def send_sla_alert(
 
 def validate_ticket_data(ticket_data: Dict[str, Any]) -> Tuple[bool, str]:
     """驗證票券資料完整性"""
-    required_fields = ["discord_id", "username", "type", "channel_id", "guild_id"]
+    required_fields = [
+        "discord_id",
+        "username",
+        "type",
+        "channel_id",
+        "guild_id",
+    ]
 
     for field in required_fields:
         if field not in ticket_data or not ticket_data[field]:

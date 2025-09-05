@@ -55,7 +55,10 @@ class LotteryCore(commands.Cog):
             logger.error(f"打開抽獎管理面板失敗: {e}")
             await interaction.response.send_message("❌ 打開管理面板時發生錯誤", ephemeral=True)
 
-    @app_commands.command(name="create_lottery_quick", description="快速創建抽獎 (使用互動式表單)")
+    @app_commands.command(
+        name="create_lottery_quick",
+        description="快速創建抽獎 (使用互動式表單)",
+    )
     async def create_lottery_quick(self, interaction: discord.Interaction):
         """快速創建抽獎"""
         try:
@@ -158,7 +161,8 @@ class LotteryCore(commands.Cog):
                     await interaction.followup.send(f"✅ {message}\n抽獎已開始！", ephemeral=True)
                 else:
                     await interaction.followup.send(
-                        f"✅ 抽獎創建成功，但啟動失敗：{start_message}", ephemeral=True
+                        f"✅ 抽獎創建成功，但啟動失敗：{start_message}",
+                        ephemeral=True,
                     )
             else:
                 await interaction.followup.send(f"❌ {message}", ephemeral=True)
@@ -231,7 +235,11 @@ class LotteryCore(commands.Cog):
                 value=str(lottery.get("participant_count", 0)),
                 inline=True,
             )
-            embed.add_field(name="🏆 中獎人數", value=str(lottery["winner_count"]), inline=True)
+            embed.add_field(
+                name="🏆 中獎人數",
+                value=str(lottery["winner_count"]),
+                inline=True,
+            )
 
             # 時間資訊
             if lottery["start_time"]:
@@ -387,7 +395,11 @@ class LotteryCore(commands.Cog):
 
             # 平均中獎數
             avg_winners = basic_stats.get("avg_winners_per_lottery", 0)
-            embed.add_field(name="🏆 中獎情況", value=f"平均中獎數: {avg_winners:.1f}", inline=True)
+            embed.add_field(
+                name="🏆 中獎情況",
+                value=f"平均中獎數: {avg_winners:.1f}",
+                inline=True,
+            )
 
             embed.set_footer(text=f"統計期間: {stats.get('period', f'最近 {days} 天')}")
 
@@ -489,7 +501,9 @@ class LotteryCore(commands.Cog):
             await interaction.response.defer(ephemeral=True)
 
             # 導入歷史視圖
-            from bot.views.lottery_dashboard_views import UserLotteryHistoryView
+            from bot.views.lottery_dashboard_views import (
+                UserLotteryHistoryView,
+            )
 
             # 創建用戶歷史視圖
             history_view = UserLotteryHistoryView(interaction.guild.id, interaction.user.id)
@@ -510,7 +524,11 @@ class LotteryCore(commands.Cog):
             embed = EmbedBuilder.create_info_embed(f"📋 <@{interaction.user.id}> 的抽獎歷史")
 
             for record in history:
-                status_emoji = {"active": "🟢", "ended": "✅", "cancelled": "❌"}
+                status_emoji = {
+                    "active": "🟢",
+                    "ended": "✅",
+                    "cancelled": "❌",
+                }
 
                 win_text = "🏆 中獎" if record.get("is_winner") else "📝 參與"
                 position_text = (

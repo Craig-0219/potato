@@ -1,0 +1,51 @@
+name: 🏗️ Build Validation
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+env:
+  PYTHON_VERSION: '3.10'
+
+jobs:
+  python-build:
+    name: 🐍 Python 建構驗證
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+    - name: 📥 檢出程式碼
+      uses: actions/checkout@v4
+    
+    - name: 🐍 設置 Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: 📦 安裝依賴
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: 🔍 驗證安裝
+      run: |
+        echo "✅ Python 環境設置完成"
+        python --version
+
+  build-summary:
+    name: 🏁 建構總結
+    needs: [python-build]
+    runs-on: ubuntu-latest
+    if: always()
+    timeout-minutes: 5
+    
+    steps:
+    - name: 📋 建構結果總結
+      run: |
+        echo "🏗️ 建構驗證完成總結"
+        echo "✅ Python 建構 - ${{ needs.python-build.result }}"
+        echo "🎉 建構驗證階段完成!"

@@ -156,7 +156,10 @@ class AutomationCore(commands.Cog):
     @app_commands.command(name="automation_create", description="創建新的自動化規則")
     @app_commands.describe(name="規則名稱", description="規則描述")
     async def automation_create(
-        self, interaction: discord.Interaction, name: str, description: str = ""
+        self,
+        interaction: discord.Interaction,
+        name: str,
+        description: str = "",
     ):
         """創建新的自動化規則"""
         try:
@@ -342,7 +345,11 @@ class AutomationCore(commands.Cog):
                 if engine_rule:
                     await self.engine.update_rule(rule_id, {"status": status})
 
-                status_names = {"active": "啟用", "paused": "暫停", "disabled": "停用"}
+                status_names = {
+                    "active": "啟用",
+                    "paused": "暫停",
+                    "disabled": "停用",
+                }
                 status_name = status_names.get(status, status)
 
                 embed = EmbedBuilder.build(
@@ -364,7 +371,10 @@ class AutomationCore(commands.Cog):
     @app_commands.command(name="automation_history", description="查看自動化執行記錄")
     @app_commands.describe(rule_id="規則ID（可選）", days="查看天數")
     async def automation_history(
-        self, interaction: discord.Interaction, rule_id: str = None, days: int = 7
+        self,
+        interaction: discord.Interaction,
+        rule_id: str = None,
+        days: int = 7,
     ):
         """查看自動化執行記錄"""
         try:
@@ -398,7 +408,9 @@ class AutomationCore(commands.Cog):
                     title += f" - {rule['name']}"
 
             embed = EmbedBuilder.build(
-                title=title, description=f"最近 {days} 天的執行記錄", color=0x3498DB
+                title=title,
+                description=f"最近 {days} 天的執行記錄",
+                color=0x3498DB,
             )
 
             if not executions:
@@ -503,7 +515,11 @@ class AutomationCore(commands.Cog):
                     trigger_name = self._get_trigger_display_name(trigger["type"])
                     trigger_text.append(f"• {trigger_name}: {trigger['count']}")
 
-                embed.add_field(name="🎯 觸發類型分佈", value="\n".join(trigger_text), inline=True)
+                embed.add_field(
+                    name="🎯 觸發類型分佈",
+                    value="\n".join(trigger_text),
+                    inline=True,
+                )
 
             # 最活躍規則
             if stats.get("top_rules"):
@@ -517,7 +533,11 @@ class AutomationCore(commands.Cog):
                         f"• {rule['name']}: {rule['execution_count']}次 (最後: {last_exec})"
                     )
 
-                embed.add_field(name="🏆 最活躍規則", value="\n".join(top_rules_text), inline=False)
+                embed.add_field(
+                    name="🏆 最活躍規則",
+                    value="\n".join(top_rules_text),
+                    inline=False,
+                )
 
             embed.set_footer(text=f"統計期間: {days} 天 | 數據實時更新")
 
@@ -643,7 +663,9 @@ class AutomationCore(commands.Cog):
     # ========== 錯誤處理 ==========
 
     async def cog_app_command_error(
-        self, interaction: discord.Interaction, error: app_commands.AppCommandError
+        self,
+        interaction: discord.Interaction,
+        error: app_commands.AppCommandError,
     ):
         """處理應用指令錯誤"""
         logger.error(f"自動化指令錯誤: {error}")

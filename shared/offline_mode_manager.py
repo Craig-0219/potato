@@ -92,7 +92,10 @@ class OfflineModeManager:
 
     async def _check_external_apis(self) -> bool:
         """檢查外部 API 可用性"""
-        test_urls = ["https://httpbin.org/status/200", "https://api.github.com/status"]
+        test_urls = [
+            "https://httpbin.org/status/200",
+            "https://api.github.com/status",
+        ]
 
         for url in test_urls:
             try:

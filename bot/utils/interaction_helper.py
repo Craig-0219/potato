@@ -32,11 +32,17 @@ class SafeInteractionHandler:
             # 如果互動已經完成，使用 followup
             if interaction.response.is_done():
                 await interaction.followup.send(
-                    content=content, embed=embed, view=view, ephemeral=ephemeral
+                    content=content,
+                    embed=embed,
+                    view=view,
+                    ephemeral=ephemeral,
                 )
             else:
                 await interaction.response.send_message(
-                    content=content, embed=embed, view=view, ephemeral=ephemeral
+                    content=content,
+                    embed=embed,
+                    view=view,
+                    ephemeral=ephemeral,
                 )
 
             return True
@@ -45,7 +51,10 @@ class SafeInteractionHandler:
             logger.debug("互動已被回應，嘗試使用 followup")
             try:
                 await interaction.followup.send(
-                    content=content, embed=embed, view=view, ephemeral=ephemeral
+                    content=content,
+                    embed=embed,
+                    view=view,
+                    ephemeral=ephemeral,
                 )
                 return True
             except Exception as followup_error:
@@ -108,7 +117,9 @@ class SafeInteractionHandler:
 
     @staticmethod
     async def handle_interaction_error(
-        interaction: discord.Interaction, error: Exception, operation_name: str = "操作"
+        interaction: discord.Interaction,
+        error: Exception,
+        operation_name: str = "操作",
     ) -> None:
         """統一處理互動錯誤"""
         try:

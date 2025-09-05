@@ -620,7 +620,10 @@ class DatabaseOptimizer:
 
                     usage_stats = dict(await cursor.fetchall())
 
-                    return {"index_info": index_info, "usage_stats": usage_stats}
+                    return {
+                        "index_info": index_info,
+                        "usage_stats": usage_stats,
+                    }
 
         except Exception as e:
             logger.error(f"❌ 獲取索引統計失敗 {table_name}: {e}")
@@ -780,7 +783,10 @@ class DatabaseOptimizer:
                     if current_index:
                         indexes.append(current_index)
 
-                    current_index = {"name": index_name, "columns": [column_name]}
+                    current_index = {
+                        "name": index_name,
+                        "columns": [column_name],
+                    }
                 else:
                     current_index["columns"].append(column_name)
 
@@ -999,7 +1005,7 @@ class DatabaseOptimizer:
                     return {
                         "period_days": days,
                         "slow_queries": {
-                            "total": slow_query_stats[0] if slow_query_stats else 0,
+                            "total": (slow_query_stats[0] if slow_query_stats else 0),
                             "avg_time": (
                                 float(slow_query_stats[1])
                                 if slow_query_stats and slow_query_stats[1]

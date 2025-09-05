@@ -132,7 +132,11 @@ class DatabaseCleanupManager:
             self._cleanup_in_progress.pop(guild_id, None)
 
     async def archive_specific_period(
-        self, guild_id: int, data_type: str, start_date: datetime, end_date: datetime
+        self,
+        guild_id: int,
+        data_type: str,
+        start_date: datetime,
+        end_date: datetime,
     ) -> Dict[str, Any]:
         """歸檔特定時期的資料"""
         try:

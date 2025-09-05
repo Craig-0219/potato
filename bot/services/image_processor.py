@@ -368,7 +368,10 @@ class ImageProcessor:
             for i, result in enumerate(results):
                 if isinstance(result, Exception):
                     processed_results.append(
-                        ProcessedImage(success=False, error_message=f"批量處理錯誤: {str(result)}")
+                        ProcessedImage(
+                            success=False,
+                            error_message=f"批量處理錯誤: {str(result)}",
+                        )
                     )
                 else:
                     processed_results.append(result)

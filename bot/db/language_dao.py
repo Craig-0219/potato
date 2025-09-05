@@ -286,7 +286,13 @@ class LanguageDAO:
                             unique_users = GREATEST(unique_users, VALUES(unique_users)),
                             updated_at = CURRENT_TIMESTAMP
                     """,
-                        (guild_id, language_code, today, message_count, user_count),
+                        (
+                            guild_id,
+                            language_code,
+                            today,
+                            message_count,
+                            user_count,
+                        ),
                     )
 
                     await conn.commit()
@@ -332,7 +338,7 @@ class LanguageDAO:
                                 "language_code": row[0],
                                 "total_messages": row[1],
                                 "total_users": row[2],
-                                "avg_accuracy": float(row[3]) if row[3] else None,
+                                "avg_accuracy": (float(row[3]) if row[3] else None),
                                 "days_active": row[4],
                             }
                         )
@@ -464,7 +470,7 @@ class LanguageDAO:
                         accuracy_stats[lang] = {
                             "total_detections": total,
                             "correct_detections": correct,
-                            "accuracy_rate": correct / total if total > 0 else 0.0,
+                            "accuracy_rate": (correct / total if total > 0 else 0.0),
                             "avg_confidence": avg_conf,
                         }
 

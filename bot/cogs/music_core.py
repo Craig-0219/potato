@@ -445,7 +445,8 @@ class MusicCore(commands.Cog):
             # 檢查用戶是否在語音頻道
             if not interaction.user.voice or not interaction.user.voice.channel:
                 embed = EmbedBuilder.create_error_embed(
-                    "❌ 請先加入語音頻道", "您需要先加入一個語音頻道才能播放音樂"
+                    "❌ 請先加入語音頻道",
+                    "您需要先加入一個語音頻道才能播放音樂",
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
@@ -462,7 +463,8 @@ class MusicCore(commands.Cog):
 
             if not source:
                 embed = EmbedBuilder.create_error_embed(
-                    "❌ 無法播放", "無法找到或播放此音樂，請檢查網址或搜索關鍵字"
+                    "❌ 無法播放",
+                    "無法找到或播放此音樂，請檢查網址或搜索關鍵字",
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
@@ -477,7 +479,11 @@ class MusicCore(commands.Cog):
             )
 
             if player.queue or player.current != source:
-                embed.add_field(name="排隊位置", value=f"第 {len(player.queue)} 位", inline=True)
+                embed.add_field(
+                    name="排隊位置",
+                    value=f"第 {len(player.queue)} 位",
+                    inline=True,
+                )
 
             if source.thumbnail:
                 embed.set_thumbnail(url=source.thumbnail)
@@ -708,9 +714,17 @@ class MusicCore(commands.Cog):
                     inline=False,
                 )
             elif not player_connected and not guild_connected:
-                embed.add_field(name="ℹ️ 狀態正常", value="兩者都未連接，狀態一致。", inline=False)
+                embed.add_field(
+                    name="ℹ️ 狀態正常",
+                    value="兩者都未連接，狀態一致。",
+                    inline=False,
+                )
             else:
-                embed.add_field(name="✅ 狀態正常", value="兩者都已連接，狀態一致。", inline=False)
+                embed.add_field(
+                    name="✅ 狀態正常",
+                    value="兩者都已連接，狀態一致。",
+                    inline=False,
+                )
 
             await interaction.followup.send(embed=embed)
             logger.info("🔍 語音狀態調試完成")
@@ -801,7 +815,8 @@ class MusicCore(commands.Cog):
             user_count = sum(guild.member_count for guild in bot.guilds)
 
             embed = EmbedBuilder.create_info_embed(
-                "🤖 Bot 狀態報告", f"Bot: {bot.user.name}#{bot.user.discriminator}"
+                "🤖 Bot 狀態報告",
+                f"Bot: {bot.user.name}#{bot.user.discriminator}",
             )
 
             embed.add_field(
@@ -835,7 +850,11 @@ class MusicCore(commands.Cog):
                     inline=True,
                 )
             else:
-                embed.add_field(name="❌ 錯誤", value="無法獲取當前伺服器信息", inline=False)
+                embed.add_field(
+                    name="❌ 錯誤",
+                    value="無法獲取當前伺服器信息",
+                    inline=False,
+                )
 
             # 所有伺服器列表
             if guild_count > 0:
@@ -846,7 +865,11 @@ class MusicCore(commands.Cog):
                 if guild_count > 5:
                     guilds_info.append(f"... 還有 {guild_count - 5} 個伺服器")
 
-                embed.add_field(name="伺服器列表", value="\n".join(guilds_info), inline=False)
+                embed.add_field(
+                    name="伺服器列表",
+                    value="\n".join(guilds_info),
+                    inline=False,
+                )
             else:
                 embed.add_field(
                     name="⚠️ 警告",
@@ -879,7 +902,8 @@ class MusicCore(commands.Cog):
             from bot.views.music_views import MusicMenuView
 
             embed = EmbedBuilder.create_info_embed(
-                "🎵 音樂系統", "歡迎使用 Potato Bot 音樂系統！\n支援 YouTube 直接播放"
+                "🎵 音樂系統",
+                "歡迎使用 Potato Bot 音樂系統！\n支援 YouTube 直接播放",
             )
 
             embed.add_field(

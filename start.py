@@ -37,7 +37,9 @@ class PotatoBotStarter:
     def check_python_version(self):
         """檢查 Python 版本"""
         version = sys.version_info
-        print(f"🐍 Python 版本: {version.major}.{version.minor}.{version.micro}")
+        print(
+            f"🐍 Python 版本: {version.major}.{version.minor}.{version.micro}"
+        )
 
         if version < (3, 10):
             print("❌ 需要 Python 3.10 或更高版本")
@@ -54,7 +56,9 @@ class PotatoBotStarter:
         if not self.env_file.exists():
             if self.env_example.exists():
                 print("⚠️  未找到 .env 檔案")
-                response = input("是否要從 .env.example 複製設定？(y/n): ").lower()
+                response = input(
+                    "是否要從 .env.example 複製設定？(y/n): "
+                ).lower()
                 if response in ["y", "yes", "是"]:
                     try:
                         import shutil
@@ -80,7 +84,13 @@ class PotatoBotStarter:
         """檢查依賴套件"""
         print("\n📦 檢查依賴套件...")
 
-        required_packages = ["discord.py", "aiomysql", "python-dotenv", "fastapi", "uvicorn"]
+        required_packages = [
+            "discord.py",
+            "aiomysql",
+            "python-dotenv",
+            "fastapi",
+            "uvicorn",
+        ]
 
         missing_packages = []
 
@@ -130,7 +140,14 @@ class PotatoBotStarter:
             requirements_file = self.root_dir / "requirements.txt"
             if requirements_file.exists():
                 result = subprocess.run(
-                    [sys.executable, "-m", "pip", "install", "-r", str(requirements_file)],
+                    [
+                        sys.executable,
+                        "-m",
+                        "pip",
+                        "install",
+                        "-r",
+                        str(requirements_file),
+                    ],
                     capture_output=True,
                     text=True,
                 )
@@ -176,7 +193,9 @@ class PotatoBotStarter:
         try:
             # 使用相同的 Python 解釋器執行 bot/main.py
             os.chdir(self.root_dir)
-            result = subprocess.run([sys.executable, str(self.bot_file)], cwd=self.root_dir)
+            result = subprocess.run(
+                [sys.executable, str(self.bot_file)], cwd=self.root_dir
+            )
             return result.returncode == 0
         except KeyboardInterrupt:
             print("\n\n⏹️  收到停止信號")

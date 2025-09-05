@@ -10,7 +10,11 @@ from typing import Any, Dict, Optional, Tuple
 import discord
 
 from bot.services.chat_transcript_manager import ChatTranscriptManager
-from bot.services.realtime_sync_manager import SyncEvent, SyncEventType, realtime_sync
+from bot.services.realtime_sync_manager import (
+    SyncEvent,
+    SyncEventType,
+    realtime_sync,
+)
 from shared.logger import logger
 
 
@@ -74,7 +78,11 @@ class TicketManager:
 
             # 應用自動標籤
             await self._apply_auto_tags(
-                ticket_id, user.guild.id, ticket_type, f"{ticket_type} 票券", user
+                ticket_id,
+                user.guild.id,
+                ticket_type,
+                f"{ticket_type} 票券",
+                user,
             )
 
             # 自動分配（如果有客服在線）
@@ -88,7 +96,11 @@ class TicketManager:
             return False, "系統錯誤，請稍後再試", None
 
     async def _create_ticket_channel(
-        self, user: discord.Member, ticket_type: str, priority: str, settings: Dict
+        self,
+        user: discord.Member,
+        ticket_type: str,
+        priority: str,
+        settings: Dict,
     ) -> Tuple[bool, str, Optional[discord.TextChannel]]:
         """建立票券頻道"""
         try:
@@ -394,7 +406,11 @@ class TicketManager:
     # ===== 通知服務 =====
 
     async def send_user_notification(
-        self, user: discord.Member, title: str, message: str, color: int = 0x00FF00
+        self,
+        user: discord.Member,
+        title: str,
+        message: str,
+        color: int = 0x00FF00,
     ) -> bool:
         """發送用戶通知"""
         try:

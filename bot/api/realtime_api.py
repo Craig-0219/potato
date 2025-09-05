@@ -129,7 +129,12 @@ async def websocket_endpoint(websocket: WebSocket, guild_id: int, client_id: str
                 if message.get("type") == "ping":
                     # 回應心跳
                     await websocket.send_text(
-                        json.dumps({"type": "pong", "timestamp": datetime.now().isoformat()})
+                        json.dumps(
+                            {
+                                "type": "pong",
+                                "timestamp": datetime.now().isoformat(),
+                            }
+                        )
                     )
                 elif message.get("type") == "request_update":
                     # 發送最新數據
@@ -147,7 +152,12 @@ async def websocket_endpoint(websocket: WebSocket, guild_id: int, client_id: str
             except asyncio.TimeoutError:
                 # 心跳超時，發送ping
                 await websocket.send_text(
-                    json.dumps({"type": "ping", "timestamp": datetime.now().isoformat()})
+                    json.dumps(
+                        {
+                            "type": "ping",
+                            "timestamp": datetime.now().isoformat(),
+                        }
+                    )
                 )
 
     except WebSocketDisconnect:

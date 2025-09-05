@@ -41,7 +41,8 @@ class TemplateSelectionView(ui.View):
     def create_embed(self) -> discord.Embed:
         """創建主要嵌入"""
         embed = EmbedBuilder.create_info_embed(
-            "🗳️ 投票模板系統", "選擇一個模板來快速創建投票，或創建你自己的模板！"
+            "🗳️ 投票模板系統",
+            "選擇一個模板來快速創建投票，或創建你自己的模板！",
         )
 
         embed.add_field(
@@ -153,7 +154,11 @@ class FavoriteTemplatesButton(ui.Button):
     """收藏模板按鈕"""
 
     def __init__(self):
-        super().__init__(label="⭐ 我的收藏", style=discord.ButtonStyle.secondary, emoji="⭐")
+        super().__init__(
+            label="⭐ 我的收藏",
+            style=discord.ButtonStyle.secondary,
+            emoji="⭐",
+        )
 
     async def callback(self, interaction: discord.Interaction):
         """顯示收藏的模板"""
@@ -322,7 +327,9 @@ class PreviousPageButton(ui.Button):
 
     def __init__(self, enabled: bool = True):
         super().__init__(
-            label="⬅️ 上一頁", style=discord.ButtonStyle.secondary, disabled=not enabled
+            label="⬅️ 上一頁",
+            style=discord.ButtonStyle.secondary,
+            disabled=not enabled,
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -343,7 +350,9 @@ class NextPageButton(ui.Button):
 
     def __init__(self, enabled: bool = True):
         super().__init__(
-            label="下一頁 ➡️", style=discord.ButtonStyle.secondary, disabled=not enabled
+            label="下一頁 ➡️",
+            style=discord.ButtonStyle.secondary,
+            disabled=not enabled,
         )
 
     async def callback(self, interaction: discord.Interaction):

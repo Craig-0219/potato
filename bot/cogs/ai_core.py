@@ -69,7 +69,8 @@ class AICore(commands.Cog):
             ticket_info = await self._get_ticket_info_from_channel(interaction.channel)
             if not ticket_info:
                 await interaction.followup.send(
-                    "❌ 無法取得票券資訊，請確認這是有效的票券頻道", ephemeral=True
+                    "❌ 無法取得票券資訊，請確認這是有效的票券頻道",
+                    ephemeral=True,
                 )
                 return
 
@@ -99,7 +100,8 @@ class AICore(commands.Cog):
 
             if not suggestions:
                 await interaction.followup.send(
-                    "❌ 無法為此內容生成建議，內容可能過於簡短或模糊", ephemeral=True
+                    "❌ 無法為此內容生成建議，內容可能過於簡短或模糊",
+                    ephemeral=True,
                 )
                 return
 
@@ -136,7 +138,11 @@ class AICore(commands.Cog):
                 inline=True,
             )
 
-            embed.add_field(name="💡 建議數量", value=f"{len(suggestions)} 個回覆建議", inline=True)
+            embed.add_field(
+                name="💡 建議數量",
+                value=f"{len(suggestions)} 個回覆建議",
+                inline=True,
+            )
 
             embed.set_footer(text="點擊下方按鈕查看和使用建議")
 
@@ -204,7 +210,11 @@ class AICore(commands.Cog):
                     f"\n   └ {suggestion['reason']}"
                 )
 
-            embed.add_field(name="💡 建議標籤", value="\n\n".join(suggestion_text), inline=False)
+            embed.add_field(
+                name="💡 建議標籤",
+                value="\n\n".join(suggestion_text),
+                inline=False,
+            )
 
             embed.set_footer(text="點擊下方按鈕應用標籤")
 
@@ -288,7 +298,9 @@ class AICore(commands.Cog):
             )
 
             embed.add_field(
-                name="🔢 評分", value=f"{priority_result['score']:.1f}/4.0", inline=True
+                name="🔢 評分",
+                value=f"{priority_result['score']:.1f}/4.0",
+                inline=True,
             )
 
             if priority_result.get("adjustments"):
@@ -399,7 +411,11 @@ class AICore(commands.Cog):
                     rate = data["accepted"] / data["total"] if data["total"] > 0 else 0
                     category_text.append(f"• {category}: {data['total']} ({rate:.1%})")
 
-                embed.add_field(name="📋 分類統計", value="\n".join(category_text), inline=False)
+                embed.add_field(
+                    name="📋 分類統計",
+                    value="\n".join(category_text),
+                    inline=False,
+                )
 
             await ctx.send(embed=embed)
 
@@ -428,7 +444,8 @@ class AICore(commands.Cog):
                 return
 
             embed = discord.Embed(
-                title=f"📝 AI 建議歷史 ({suggestion_type or '全部'})", color=0xFF6B35
+                title=f"📝 AI 建議歷史 ({suggestion_type or '全部'})",
+                color=0xFF6B35,
             )
 
             for i, record in enumerate(history[:10], 1):

@@ -599,7 +599,11 @@ class AIManager:
                     "medium": 67,  # 0.5-0.8
                     "low": 16,  # < 0.5
                 },
-                "tag_suggestions": {"total": 156, "accepted": 112, "rate": 0.72},
+                "tag_suggestions": {
+                    "total": 156,
+                    "accepted": 112,
+                    "rate": 0.72,
+                },
             }
 
             return stats

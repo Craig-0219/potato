@@ -34,7 +34,9 @@ class SecurityView(discord.ui.View):
     async def detailed_stats(self, interaction: discord.Interaction, button: discord.ui.Button):
         """查看詳細統計"""
         embed = discord.Embed(
-            title="📊 安全統計詳情", description="系統安全狀態詳細分析", color=0x3498DB
+            title="📊 安全統計詳情",
+            description="系統安全狀態詳細分析",
+            color=0x3498DB,
         )
 
         # 事件分析
@@ -75,14 +77,16 @@ class SecurityView(discord.ui.View):
     async def active_alerts(self, interaction: discord.Interaction, button: discord.ui.Button):
         """查看活躍警報"""
         await interaction.response.send_message(
-            "請使用 `/security_alerts` 指令查看詳細的活躍警報資訊", ephemeral=True
+            "請使用 `/security_alerts` 指令查看詳細的活躍警報資訊",
+            ephemeral=True,
         )
 
     @discord.ui.button(label="📋 生成報告", style=discord.ButtonStyle.secondary, row=1)
     async def generate_report(self, interaction: discord.Interaction, button: discord.ui.Button):
         """生成安全報告"""
         await interaction.response.send_message(
-            "請使用 `/compliance_report` 指令生成詳細的合規報告", ephemeral=True
+            "請使用 `/compliance_report` 指令生成詳細的合規報告",
+            ephemeral=True,
         )
 
     @discord.ui.button(label="🔄 刷新數據", style=discord.ButtonStyle.secondary, row=1)
@@ -145,7 +149,12 @@ class AlertView(discord.ui.View):
 
         # 嚴重程度分佈
         severity_text = []
-        severity_emojis = {"critical": "🔴", "high": "🟠", "medium": "🟡", "low": "🟢"}
+        severity_emojis = {
+            "critical": "🔴",
+            "high": "🟠",
+            "medium": "🟡",
+            "low": "🟢",
+        }
         for sev, count in severity_counts.items():
             emoji = severity_emojis.get(sev, "⚪")
             percentage = (count / len(self.alerts)) * 100
@@ -194,9 +203,11 @@ class AlertSelectDropdown(discord.ui.Select):
                 "critical": "🔴",
             }.get(alert["severity"], "⚪")
 
-            status_emoji = {"open": "🔓", "investigating": "🔍", "resolved": "✅"}.get(
-                alert["status"], "❓"
-            )
+            status_emoji = {
+                "open": "🔓",
+                "investigating": "🔍",
+                "resolved": "✅",
+            }.get(alert["status"], "❓")
 
             options.append(
                 discord.SelectOption(
@@ -223,7 +234,9 @@ class AlertSelectDropdown(discord.ui.Select):
             view = AlertDetailView(interaction.user.id, alert_id)
 
             embed = discord.Embed(
-                title="🚨 警報操作", description=f"請選擇對警報的操作", color=0xE74C3C
+                title="🚨 警報操作",
+                description=f"請選擇對警報的操作",
+                color=0xE74C3C,
             )
 
             await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -314,7 +327,10 @@ class AlertFilterModal(discord.ui.Modal):
         )
 
         self.days_input = discord.ui.TextInput(
-            label="時間範圍（天）", placeholder="7", max_length=3, required=False
+            label="時間範圍（天）",
+            placeholder="7",
+            max_length=3,
+            required=False,
         )
 
         self.add_item(self.severity_input)
@@ -336,7 +352,9 @@ class AlertFilterModal(discord.ui.Modal):
                 filters.append(f"時間範圍: {self.days_input.value} 天")
 
             embed = discord.Embed(
-                title="🔍 警報篩選條件", description="篩選條件已設定", color=0x3498DB
+                title="🔍 警報篩選條件",
+                description="篩選條件已設定",
+                color=0x3498DB,
             )
 
             if filters:
@@ -510,7 +528,11 @@ class ComplianceReportView(discord.ui.View):
             for i, rec in enumerate(self.report.recommendations[:8], 1):  # 限制8個
                 recommendations_text.append(f"{i}. {rec}")
 
-            embed.add_field(name="💡 改善建議", value="\n".join(recommendations_text), inline=False)
+            embed.add_field(
+                name="💡 改善建議",
+                value="\n".join(recommendations_text),
+                inline=False,
+            )
 
         embed.set_footer(
             text=f"生成時間: {self.report.generated_at.strftime('%Y-%m-%d %H:%M:%S')} UTC"
@@ -541,7 +563,11 @@ class ComplianceReportView(discord.ui.View):
             activity_level = "🟢 低活動"
             activity_desc = "系統活動較少"
 
-        embed.add_field(name="📊 活動水平", value=f"{activity_level}\n{activity_desc}", inline=True)
+        embed.add_field(
+            name="📊 活動水平",
+            value=f"{activity_level}\n{activity_desc}",
+            inline=True,
+        )
 
         # 合規健康度
         violations_count = len(self.report.violations)
@@ -610,7 +636,11 @@ class ComplianceReportView(discord.ui.View):
         if len(json_preview) >= 1500:
             json_preview += "\n... (截斷)"
 
-        embed.add_field(name="🔍 JSON預覽", value=f"```json\n{json_preview}\n```", inline=False)
+        embed.add_field(
+            name="🔍 JSON預覽",
+            value=f"```json\n{json_preview}\n```",
+            inline=False,
+        )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 

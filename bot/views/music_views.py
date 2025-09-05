@@ -193,7 +193,11 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
             embed = EmbedBuilder.create_error_embed("❌ 操作失敗", "循環模式切換出現錯誤")
             await self.safe_respond(interaction, embed=embed)
 
-    @discord.ui.button(label="🔊", style=discord.ButtonStyle.secondary, custom_id="music_volume")
+    @discord.ui.button(
+        label="🔊",
+        style=discord.ButtonStyle.secondary,
+        custom_id="music_volume",
+    )
     async def volume_control(self, interaction: discord.Interaction, button: discord.ui.Button):
         """音量控制按鈕 - 重寫版"""
         try:
@@ -352,7 +356,9 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
             return False
 
     @discord.ui.button(
-        label="🎵 播放音樂", style=discord.ButtonStyle.primary, custom_id="menu_play"
+        label="🎵 播放音樂",
+        style=discord.ButtonStyle.primary,
+        custom_id="menu_play",
     )
     async def play_music_button(self, interaction: discord.Interaction, button: discord.ui.Button):
         """播放音樂按鈕 - 重寫版"""
@@ -362,7 +368,8 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
             # 檢查用戶是否在語音頻道
             if not interaction.user.voice or not interaction.user.voice.channel:
                 embed = EmbedBuilder.create_error_embed(
-                    "❌ 請先加入語音頻道", "您需要先加入一個語音頻道才能播放音樂"
+                    "❌ 請先加入語音頻道",
+                    "您需要先加入一個語音頻道才能播放音樂",
                 )
                 await self.safe_respond(interaction, embed=embed)
                 return
@@ -416,7 +423,8 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
                 embed = EmbedBuilder.create_info_embed("🎛️ 音樂控制面板", "使用下方按鈕控制音樂播放")
             else:
                 embed = EmbedBuilder.create_warning_embed(
-                    "🎛️ 音樂控制面板", "Bot 目前未連接語音頻道，請先使用播放功能"
+                    "🎛️ 音樂控制面板",
+                    "Bot 目前未連接語音頻道，請先使用播放功能",
                 )
 
             if player.current:
@@ -525,7 +533,8 @@ class MusicInputModal(discord.ui.Modal, title="🎵 播放音樂"):
             # 檢查用戶是否在語音頻道
             if not interaction.user.voice or not interaction.user.voice.channel:
                 embed = EmbedBuilder.create_error_embed(
-                    "❌ 請先加入語音頻道", "您需要先加入一個語音頻道才能播放音樂"
+                    "❌ 請先加入語音頻道",
+                    "您需要先加入一個語音頻道才能播放音樂",
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
@@ -542,7 +551,8 @@ class MusicInputModal(discord.ui.Modal, title="🎵 播放音樂"):
 
             if not source:
                 embed = EmbedBuilder.create_error_embed(
-                    "❌ 無法播放", "無法找到或播放此音樂，請檢查網址或搜索關鍵字"
+                    "❌ 無法播放",
+                    "無法找到或播放此音樂，請檢查網址或搜索關鍵字",
                 )
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
@@ -557,7 +567,11 @@ class MusicInputModal(discord.ui.Modal, title="🎵 播放音樂"):
             )
 
             if player.queue or player.current != source:
-                embed.add_field(name="排隊位置", value=f"第 {len(player.queue)} 位", inline=True)
+                embed.add_field(
+                    name="排隊位置",
+                    value=f"第 {len(player.queue)} 位",
+                    inline=True,
+                )
 
             if source.thumbnail:
                 embed.set_thumbnail(url=source.thumbnail)
@@ -609,7 +623,8 @@ class SearchInputModal(discord.ui.Modal, title="🔍 搜索音樂"):
 
             # 先顯示搜索中的狀態
             embed = EmbedBuilder.create_info_embed(
-                "🔍 正在搜索", f"正在搜索 '{self.search_input.value}'，請稍候..."
+                "🔍 正在搜索",
+                f"正在搜索 '{self.search_input.value}'，請稍候...",
             )
             search_msg = await interaction.followup.send(embed=embed, ephemeral=True)
 

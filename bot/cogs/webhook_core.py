@@ -70,7 +70,8 @@ class WebhookCore(commands.Cog):
             # 驗證URL格式
             if not url.startswith(("http://", "https://")):
                 await interaction.response.send_message(
-                    "❌ 請提供有效的URL (必須以http://或https://開頭)", ephemeral=True
+                    "❌ 請提供有效的URL (必須以http://或https://開頭)",
+                    ephemeral=True,
                 )
                 return
 
@@ -173,9 +174,11 @@ class WebhookCore(commands.Cog):
                     "error": "❌",
                 }.get(webhook["status"], "❓")
 
-                type_emoji = {"outgoing": "📤", "incoming": "📥", "both": "🔄"}.get(
-                    webhook["type"], "🔧"
-                )
+                type_emoji = {
+                    "outgoing": "📤",
+                    "incoming": "📥",
+                    "both": "🔄",
+                }.get(webhook["type"], "🔧")
 
                 embed.add_field(
                     name=f"{status_emoji} {webhook['name']}",
@@ -288,7 +291,11 @@ class WebhookCore(commands.Cog):
                 inline=False,
             )
 
-            embed.add_field(name="ℹ️ 說明", value="請檢查目標端點是否收到測試數據", inline=False)
+            embed.add_field(
+                name="ℹ️ 說明",
+                value="請檢查目標端點是否收到測試數據",
+                inline=False,
+            )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -386,7 +393,11 @@ class WebhookCore(commands.Cog):
                     for event, count in list(system_stats["event_distribution"].items())[:5]:
                         event_info.append(f"• {event}: {count}")
 
-                    embed.add_field(name="🎯 熱門事件", value="\n".join(event_info), inline=False)
+                    embed.add_field(
+                        name="🎯 熱門事件",
+                        value="\n".join(event_info),
+                        inline=False,
+                    )
 
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -443,7 +454,9 @@ class WebhookCore(commands.Cog):
 
                 @discord.ui.button(label="確認刪除", style=discord.ButtonStyle.danger)
                 async def confirm_delete(
-                    self, interaction: discord.Interaction, button: discord.ui.Button
+                    self,
+                    interaction: discord.Interaction,
+                    button: discord.ui.Button,
                 ):
                     success = await webhook_manager.delete_webhook(self.webhook_id)
 
@@ -464,7 +477,9 @@ class WebhookCore(commands.Cog):
 
                 @discord.ui.button(label="取消", style=discord.ButtonStyle.secondary)
                 async def cancel_delete(
-                    self, interaction: discord.Interaction, button: discord.ui.Button
+                    self,
+                    interaction: discord.Interaction,
+                    button: discord.ui.Button,
                 ):
                     embed = EmbedBuilder.build(
                         title="❌ 已取消",
@@ -490,7 +505,9 @@ class WebhookCore(commands.Cog):
     # ========== 錯誤處理 ==========
 
     async def cog_app_command_error(
-        self, interaction: discord.Interaction, error: app_commands.AppCommandError
+        self,
+        interaction: discord.Interaction,
+        error: app_commands.AppCommandError,
     ):
         """處理應用指令錯誤"""
         logger.error(f"Webhook指令錯誤: {error}")

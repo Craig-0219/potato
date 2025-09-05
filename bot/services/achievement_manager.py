@@ -293,7 +293,12 @@ class AchievementManager:
             return []
 
     async def check_game_achievements(
-        self, user_id: int, guild_id: int, game_type: str, won: bool, score: int
+        self,
+        user_id: int,
+        guild_id: int,
+        game_type: str,
+        won: bool,
+        score: int,
     ) -> List[Dict[str, Any]]:
         """檢查遊戲相關成就"""
         achievements_earned = []

@@ -110,11 +110,28 @@ class ContentAnalyzer:
     def __init__(self):
         # 毒性關鍵詞庫（可擴展）
         self.toxic_keywords = {
-            "harassment": ["騷擾", "霸凌", "威脅", "恐嚇", "侮辱", "羞辱", "歧視"],
+            "harassment": [
+                "騷擾",
+                "霸凌",
+                "威脅",
+                "恐嚇",
+                "侮辱",
+                "羞辱",
+                "歧視",
+            ],
             "hate_speech": ["仇恨", "種族", "歧視", "偏見", "排斥"],
             "violence": ["暴力", "傷害", "攻擊", "殺害", "毆打", "打架"],
             "inappropriate": ["色情", "淫穢", "猥褻", "不雅", "露骨"],
-            "spam": ["廣告", "推銷", "買賣", "代購", "刷單", "點擊", "免費", "賺錢"],
+            "spam": [
+                "廣告",
+                "推銷",
+                "買賣",
+                "代購",
+                "刷單",
+                "點擊",
+                "免費",
+                "賺錢",
+            ],
         }
 
         # 情感詞庫
@@ -188,7 +205,10 @@ class ContentAnalyzer:
     # ========== 主要分析方法 ==========
 
     async def analyze_content(
-        self, text: str, user_id: int = 0, analysis_types: List[AnalysisType] = None
+        self,
+        text: str,
+        user_id: int = 0,
+        analysis_types: List[AnalysisType] = None,
     ) -> ContentAnalysisResult:
         """綜合內容分析"""
         start_time = time.time()
@@ -594,7 +614,13 @@ class ContentAnalyzer:
                 domain_reputation *= 0.8
 
             # 檢查可疑子域名
-            suspicious_subdomains = ["secure", "login", "verify", "update", "confirm"]
+            suspicious_subdomains = [
+                "secure",
+                "login",
+                "verify",
+                "update",
+                "confirm",
+            ]
             for subdomain in suspicious_subdomains:
                 if subdomain in domain:
                     risk_factors.append("可疑子域名")
@@ -742,9 +768,17 @@ class ContentAnalyzer:
                 "toxicity_stats": {
                     "toxic_messages": 23,
                     "toxicity_rate": 1.84,
-                    "most_common_issues": ["spam", "harassment", "inappropriate"],
+                    "most_common_issues": [
+                        "spam",
+                        "harassment",
+                        "inappropriate",
+                    ],
                 },
-                "language_distribution": {"zh-TW": 67.3, "en": 28.7, "mixed": 4.0},
+                "language_distribution": {
+                    "zh-TW": 67.3,
+                    "en": 28.7,
+                    "mixed": 4.0,
+                },
                 "link_analysis": {
                     "total_links": 156,
                     "safe_links": 142,

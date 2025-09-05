@@ -56,8 +56,8 @@ class MinecraftServerAPI:
                 "online": True,
                 "players": status.players.online,
                 "max_players": status.players.max,
-                "version": status.version.name if status.version else "Unknown",
-                "motd": status.description if hasattr(status, "description") else "",
+                "version": (status.version.name if status.version else "Unknown"),
+                "motd": (status.description if hasattr(status, "description") else ""),
                 "ping": round(status.latency, 2) if status.latency else None,
                 "timestamp": datetime.now().isoformat(),
             }

@@ -63,7 +63,11 @@ class GlobalErrorHandler:
                     content = ctx.message.content.lower()
                     if any(
                         keyword in content
-                        for keyword in ["set_ticket_category", "ticket", "category"]
+                        for keyword in [
+                            "set_ticket_category",
+                            "ticket",
+                            "category",
+                        ]
                     ):
                         await self._handle_ticket_command_help(ctx, content)
                         return
@@ -161,7 +165,8 @@ class GlobalErrorHandler:
 
             elif isinstance(error, discord.app_commands.BotMissingPermissions):
                 embed = self._create_error_embed(
-                    "機器人權限不足", f"❌ 機器人缺少必要權限\n請聯繫伺服器管理員"
+                    "機器人權限不足",
+                    f"❌ 機器人缺少必要權限\n請聯繫伺服器管理員",
                 )
                 await send_func(embed=embed, ephemeral=True)
 
@@ -305,7 +310,13 @@ class GlobalErrorHandler:
                 sorted(self.error_counts.items(), key=lambda x: x[1], reverse=True)
             ),
             "top_errors": dict(
-                list(sorted(self.error_counts.items(), key=lambda x: x[1], reverse=True))[:5]
+                list(
+                    sorted(
+                        self.error_counts.items(),
+                        key=lambda x: x[1],
+                        reverse=True,
+                    )
+                )[:5]
             ),
         }
 
@@ -451,7 +462,11 @@ class ErrorRecovery:
             # 嘗試通知重要頻道
             for guild in bot.guilds:
                 for channel in guild.text_channels:
-                    if channel.name in ["general", "announcements", "bot-status"]:
+                    if channel.name in [
+                        "general",
+                        "announcements",
+                        "bot-status",
+                    ]:
                         try:
                             embed = discord.Embed(
                                 title="🚨 系統維護",

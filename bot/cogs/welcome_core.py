@@ -427,12 +427,20 @@ class WelcomeCore(commands.Cog):
                     role = ctx.guild.get_role(role_id)
                     role_list.append(role.mention if role else f"未知身分組 ({role_id})")
 
-                embed.add_field(name="🎭 分配身分組", value="\n".join(role_list), inline=False)
+                embed.add_field(
+                    name="🎭 分配身分組",
+                    value="\n".join(role_list),
+                    inline=False,
+                )
             else:
                 embed.add_field(name="🎭 分配身分組", value="❌ 無身分組分配", inline=False)
 
             if result["errors"]:
-                embed.add_field(name="❌ 錯誤訊息", value="\n".join(result["errors"]), inline=False)
+                embed.add_field(
+                    name="❌ 錯誤訊息",
+                    value="\n".join(result["errors"]),
+                    inline=False,
+                )
 
             embed.set_footer(text=f"測試對象: {test_member}")
             await ctx.send(embed=embed)
@@ -476,7 +484,7 @@ class WelcomeCore(commands.Cog):
 
             embed = discord.Embed(
                 title="🎉 歡迎系統狀態",
-                color=0x00FF00 if settings and settings.get("is_enabled") else 0xFF6B6B,
+                color=(0x00FF00 if settings and settings.get("is_enabled") else 0xFF6B6B),
             )
 
             if not settings:
@@ -520,7 +528,11 @@ class WelcomeCore(commands.Cog):
 
             # 自動身分組數量
             auto_roles_count = len(settings.get("auto_roles", []))
-            embed.add_field(name="👥 自動身分組", value=f"{auto_roles_count} 個身分組", inline=True)
+            embed.add_field(
+                name="👥 自動身分組",
+                value=f"{auto_roles_count} 個身分組",
+                inline=True,
+            )
 
             embed.set_footer(
                 text=f"最後更新: {settings['updated_at'].strftime('%Y-%m-%d %H:%M:%S')}"
@@ -616,7 +628,11 @@ class WelcomeCore(commands.Cog):
                     intents_status.append(f"❌ {intent_name}")
                     all_intents_ok = False
 
-            embed.add_field(name="🎭 Bot Intents", value="\n".join(intents_status), inline=True)
+            embed.add_field(
+                name="🎭 Bot Intents",
+                value="\n".join(intents_status),
+                inline=True,
+            )
 
             # 2. 檢查事件監聽器
             welcome_listener = ctx.bot.get_cog("WelcomeListener")
@@ -640,7 +656,11 @@ class WelcomeCore(commands.Cog):
             else:
                 listener_status.append("❌ WelcomeListener 未載入")
 
-            embed.add_field(name="🎧 事件監聽器", value="\n".join(listener_status), inline=True)
+            embed.add_field(
+                name="🎧 事件監聽器",
+                value="\n".join(listener_status),
+                inline=True,
+            )
 
             # 3. 檢查 Bot 權限
             bot_member = ctx.guild.get_member(ctx.bot.user.id)
@@ -691,7 +711,11 @@ class WelcomeCore(commands.Cog):
             else:
                 settings_status.append("❌ 未找到歡迎設定")
 
-            embed.add_field(name="⚙️ 歡迎設定", value="\n".join(settings_status), inline=False)
+            embed.add_field(
+                name="⚙️ 歡迎設定",
+                value="\n".join(settings_status),
+                inline=False,
+            )
 
             # 5. 給出建議
             suggestions = []
@@ -711,7 +735,11 @@ class WelcomeCore(commands.Cog):
                 suggestions.append("✅ 系統配置正常，使用 `!welcome simulate` 測試功能")
 
             if suggestions:
-                embed.add_field(name="💡 建議修復步驟", value="\n".join(suggestions), inline=False)
+                embed.add_field(
+                    name="💡 建議修復步驟",
+                    value="\n".join(suggestions),
+                    inline=False,
+                )
 
             # 設定顏色
             if not intents.members or not welcome_listener:

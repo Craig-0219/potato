@@ -376,7 +376,7 @@ class AutomationDAO(BaseDAO):
                                 "execution_count": result[10],
                                 "success_count": result[11],
                                 "failure_count": result[12],
-                                "tags": json.loads(result[13]) if result[13] else [],
+                                "tags": (json.loads(result[13]) if result[13] else []),
                                 "priority": result[14],
                             }
                         )
@@ -396,7 +396,10 @@ class AutomationDAO(BaseDAO):
                     await self._log_rule_history(rule_id, deleted_by, "deleted", {})
 
                     # 刪除規則（級聯刪除相關記錄）
-                    await cursor.execute("DELETE FROM automation_rules WHERE id = %s", (rule_id,))
+                    await cursor.execute(
+                        "DELETE FROM automation_rules WHERE id = %s",
+                        (rule_id,),
+                    )
                     await conn.commit()
 
                     return cursor.rowcount > 0
@@ -785,7 +788,11 @@ class AutomationDAO(BaseDAO):
     # ========== 歷史記錄 ==========
 
     async def _log_rule_history(
-        self, rule_id: str, changed_by: int, change_type: str, changes: Dict[str, Any]
+        self,
+        rule_id: str,
+        changed_by: int,
+        change_type: str,
+        changes: Dict[str, Any],
     ):
         """記錄規則變更歷史"""
         try:
@@ -797,7 +804,12 @@ class AutomationDAO(BaseDAO):
                             rule_id, changed_by, change_type, changes
                         ) VALUES (%s, %s, %s, %s)
                     """,
-                        (rule_id, changed_by, change_type, json.dumps(changes)),
+                        (
+                            rule_id,
+                            changed_by,
+                            change_type,
+                            json.dumps(changes),
+                        ),
                     )
 
                     await conn.commit()
@@ -841,7 +853,7 @@ class AutomationDAO(BaseDAO):
                                 "id": result[0],
                                 "changed_by": result[1],
                                 "change_type": result[2],
-                                "changes": json.loads(result[3]) if result[3] else {},
+                                "changes": (json.loads(result[3]) if result[3] else {}),
                                 "created_at": result[4],
                             }
                         )

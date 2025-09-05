@@ -77,7 +77,11 @@ class TicketConstants:
 
     STATUS_EMOJIS = {"open": "🟢", "closed": "🔒", "archived": "🗄️"}
 
-    STATUS_COLORS = {"open": 0x00FF00, "closed": 0xFF0000, "archived": 0x607D8B}
+    STATUS_COLORS = {
+        "open": 0x00FF00,
+        "closed": 0xFF0000,
+        "archived": 0x607D8B,
+    }
 
     COLORS = {
         "primary": 0x3498DB,  # 藍
@@ -87,9 +91,21 @@ class TicketConstants:
         "info": 0x9B59B6,  # 紫
     }
 
-    RATING_EMOJIS = {1: "⭐", 2: "⭐⭐", 3: "⭐⭐⭐", 4: "⭐⭐⭐⭐", 5: "⭐⭐⭐⭐⭐"}
+    RATING_EMOJIS = {
+        1: "⭐",
+        2: "⭐⭐",
+        3: "⭐⭐⭐",
+        4: "⭐⭐⭐⭐",
+        5: "⭐⭐⭐⭐⭐",
+    }
 
-    RATING_COLORS = {1: 0xE74C3C, 2: 0xF39C12, 3: 0xF1C40F, 4: 0x2ECC71, 5: 0x27AE60}
+    RATING_COLORS = {
+        1: 0xE74C3C,
+        2: 0xF39C12,
+        3: 0xF1C40F,
+        4: 0x2ECC71,
+        5: 0x27AE60,
+    }
 
     DEFAULT_TICKET_TYPES = [
         {

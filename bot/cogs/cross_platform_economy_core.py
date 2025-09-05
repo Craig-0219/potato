@@ -102,7 +102,8 @@ class CrossPlatformEconomyCore(commands.Cog):
                     guild_id=interaction.guild.id, sync_enabled=False
                 )
                 embed = EmbedBuilder.create_info_embed(
-                    "🔌 跨平台同步已停用", "Discord 和 Minecraft 的經濟系統將獨立運作。"
+                    "🔌 跨平台同步已停用",
+                    "Discord 和 Minecraft 的經濟系統將獨立運作。",
                 )
 
             await interaction.followup.send(embed=embed)
@@ -452,7 +453,8 @@ class CrossPlatformEconomyCore(commands.Cog):
             )
 
             embed = EmbedBuilder.create_info_embed(
-                "💰 我的經濟狀況", f"{interaction.user.display_name} 的跨平台資產"
+                "💰 我的經濟狀況",
+                f"{interaction.user.display_name} 的跨平台資產",
             )
 
             # 餘額資訊
@@ -520,7 +522,10 @@ class CrossPlatformEconomyCore(commands.Cog):
         server_key="伺服器密鑰",
     )
     async def setup_zientis(
-        self, interaction: discord.Interaction, api_endpoint: str, server_key: str
+        self,
+        interaction: discord.Interaction,
+        api_endpoint: str,
+        server_key: str,
     ):
         """設定 Zientis Minecraft 伺服器整合"""
         if not interaction.user.guild_permissions.administrator:
@@ -565,7 +570,8 @@ class CrossPlatformEconomyCore(commands.Cog):
 
             else:
                 embed = EmbedBuilder.create_error_embed(
-                    "❌ Zientis 整合設置失敗", "無法連接到指定的 Zientis API 端點"
+                    "❌ Zientis 整合設置失敗",
+                    "無法連接到指定的 Zientis API 端點",
                 )
 
                 embed.add_field(
@@ -638,7 +644,8 @@ class CrossPlatformEconomyCore(commands.Cog):
 
                     else:
                         embed = EmbedBuilder.create_error_embed(
-                            "❌ Zientis 連接測試失敗", f"HTTP 狀態碼: {response.status}"
+                            "❌ Zientis 連接測試失敗",
+                            f"HTTP 狀態碼: {response.status}",
                         )
 
                         error_text = await response.text()
@@ -686,10 +693,15 @@ class CrossPlatformEconomyCore(commands.Cog):
             verification_code = f"{random.randint(100000, 999999)}"
 
             embed = EmbedBuilder.create_info_embed(
-                "🔗 Minecraft 帳戶綁定", "請在 Minecraft 中使用以下驗證碼綁定您的帳戶"
+                "🔗 Minecraft 帳戶綁定",
+                "請在 Minecraft 中使用以下驗證碼綁定您的帳戶",
             )
 
-            embed.add_field(name="🔢 驗證碼", value=f"```{verification_code}```", inline=False)
+            embed.add_field(
+                name="🔢 驗證碼",
+                value=f"```{verification_code}```",
+                inline=False,
+            )
 
             embed.add_field(
                 name="📋 綁定步驟",

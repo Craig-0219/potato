@@ -70,7 +70,10 @@ except ImportError:
 
 # 離線模式支援
 try:
-    from shared.offline_mode_manager import auto_configure_environment, is_offline_mode
+    from shared.offline_mode_manager import (
+        auto_configure_environment,
+        is_offline_mode,
+    )
 
     # 本地 API 服務器功能（如果需要）
     def start_local_api_if_needed():
@@ -271,7 +274,9 @@ class PotatoBot(commands.Bot):
                 logger.info("✅ 資料庫表格初始化完成")
 
                 # 3. 初始化投票模板系統
-                from bot.services.vote_template_manager import vote_template_manager
+                from bot.services.vote_template_manager import (
+                    vote_template_manager,
+                )
 
                 await vote_template_manager.initialize_predefined_templates()
                 logger.info("✅ 投票模板系統初始化完成")
@@ -509,7 +514,8 @@ class PotatoBot(commands.Bot):
 
         # 設置狀態 - v2.2.0 創意內容生成版本
         activity = discord.Activity(
-            type=discord.ActivityType.watching, name="v2.2.0 AI助手+音樂+圖片 | /help"
+            type=discord.ActivityType.watching,
+            name="v2.2.0 AI助手+音樂+圖片 | /help",
         )
         await self.change_presence(activity=activity)
 

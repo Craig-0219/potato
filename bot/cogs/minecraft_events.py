@@ -90,7 +90,9 @@ class MinecraftEvents(commands.Cog):
 
             # 建立活動
             event_id = await self.event_manager.create_event(
-                organizer_id=ctx.author.id, guild_id=ctx.guild.id, event_data=event_data
+                organizer_id=ctx.author.id,
+                guild_id=ctx.guild.id,
+                event_data=event_data,
             )
 
             if event_id:
@@ -157,7 +159,11 @@ class MinecraftEvents(commands.Cog):
 
         except Exception as e:
             logger.error(f"create_event 指令錯誤: {e}")
-            embed = discord.Embed(title="❌ 錯誤", description="建立活動時發生錯誤", color=0xFF0000)
+            embed = discord.Embed(
+                title="❌ 錯誤",
+                description="建立活動時發生錯誤",
+                color=0xFF0000,
+            )
             await ctx.followup.send(embed=embed)
 
     @commands.hybrid_command(name="event-list", description="查看伺服器的所有活動")

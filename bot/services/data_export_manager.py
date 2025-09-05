@@ -120,7 +120,8 @@ class DataExportManager:
             # 檢查格式是否支援
             if request.format not in ["csv", "json", "excel"]:
                 return ExportResult(
-                    success=False, error_message=f"不支援的匯出格式: {request.format}"
+                    success=False,
+                    error_message=f"不支援的匯出格式: {request.format}",
                 )
 
             # 執行資料查詢
@@ -714,7 +715,13 @@ class DataExportManager:
             export_data = {"metadata": metadata, "data": data}
 
             with open(file_path, "w", encoding="utf-8") as jsonfile:
-                json.dump(export_data, jsonfile, ensure_ascii=False, indent=2, default=str)
+                json.dump(
+                    export_data,
+                    jsonfile,
+                    ensure_ascii=False,
+                    indent=2,
+                    default=str,
+                )
 
         await asyncio.get_event_loop().run_in_executor(None, write_json_sync)
 
@@ -759,7 +766,8 @@ class DataExportManager:
                             "匯出時間": metadata.get("export_timestamp", ""),
                             "日期範圍": str(metadata.get("date_range", "全部")),
                             "篩選條件": json.dumps(
-                                metadata.get("filters_applied", {}), ensure_ascii=False
+                                metadata.get("filters_applied", {}),
+                                ensure_ascii=False,
                             ),
                         }
                     ]

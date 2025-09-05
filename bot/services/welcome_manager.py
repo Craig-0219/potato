@@ -102,7 +102,7 @@ class WelcomeManager:
                 welcome_sent=result["welcome_sent"],
                 dm_sent=result["dm_sent"],
                 roles_assigned=len(result["roles_assigned"]),
-                error_message="; ".join(result["errors"]) if result["errors"] else None,
+                error_message=("; ".join(result["errors"]) if result["errors"] else None),
             )
 
             logger.info(f"處理成員加入完成: {username} -> {guild_id}")
@@ -153,7 +153,7 @@ class WelcomeManager:
                 username=username,
                 action_type="leave",
                 welcome_sent=result["leave_sent"],
-                error_message="; ".join(result["errors"]) if result["errors"] else None,
+                error_message=("; ".join(result["errors"]) if result["errors"] else None),
             )
 
             logger.info(f"處理成員離開完成: {username} <- {guild_id}")
@@ -296,7 +296,10 @@ class WelcomeManager:
             timestamp=datetime.now(timezone.utc),
         )
 
-        embed.set_author(name=f"歡迎 {member.display_name}！", icon_url=member.display_avatar.url)
+        embed.set_author(
+            name=f"歡迎 {member.display_name}！",
+            icon_url=member.display_avatar.url,
+        )
 
         # 設定圖片
         if settings.get("welcome_image_url"):
@@ -414,7 +417,10 @@ class WelcomeManager:
             if success:
                 if role_ids:
                     role_mentions = [f"<@&{role_id}>" for role_id in role_ids]
-                    return True, f"已設定自動身分組：{', '.join(role_mentions)}"
+                    return (
+                        True,
+                        f"已設定自動身分組：{', '.join(role_mentions)}",
+                    )
                 else:
                     return True, "已清除自動身分組設定"
             else:

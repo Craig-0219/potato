@@ -46,7 +46,9 @@ class TicketTypeSelect(Select):
             if ticket_types
             else [
                 discord.SelectOption(
-                    label="一般問題", value="general", description="一般疑難與協助"
+                    label="一般問題",
+                    value="general",
+                    description="一般疑難與協助",
                 )
             ]
         )
@@ -93,7 +95,8 @@ class TicketTypeSelect(Select):
         except Exception as e:
             logger.error(f"票券建立流程錯誤: {e}")
             await interaction.response.send_message(
-                "❌ 建立票券時發生錯誤，請稍後再試或聯繫管理員。", ephemeral=True
+                "❌ 建立票券時發生錯誤，請稍後再試或聯繫管理員。",
+                ephemeral=True,
             )
 
 
@@ -229,7 +232,9 @@ class PrioritySelect(Select):
                 if priority == "high" and ticket_id:
                     try:
                         from bot.db.assignment_dao import AssignmentDAO
-                        from bot.services.assignment_manager import AssignmentManager
+                        from bot.services.assignment_manager import (
+                            AssignmentManager,
+                        )
 
                         assignment_dao = AssignmentDAO()
                         assignment_manager = AssignmentManager(assignment_dao, ticket_dao)
@@ -252,7 +257,8 @@ class PrioritySelect(Select):
             logger.error(f"優先級選擇處理錯誤: {e}")
             try:
                 await interaction.followup.send(
-                    "❌ 建立票券時發生錯誤，請稍後再試或聯繫管理員。", ephemeral=True
+                    "❌ 建立票券時發生錯誤，請稍後再試或聯繫管理員。",
+                    ephemeral=True,
                 )
             except:
                 pass
@@ -381,7 +387,9 @@ class TicketCloseButton(Button):
 
             # 在關閉票券前先匯入聊天歷史記錄
             try:
-                from bot.services.chat_transcript_manager import ChatTranscriptManager
+                from bot.services.chat_transcript_manager import (
+                    ChatTranscriptManager,
+                )
                 from shared.logger import logger
 
                 transcript_manager = ChatTranscriptManager()
@@ -397,7 +405,9 @@ class TicketCloseButton(Button):
 
             # 關閉票券
             success = await ticket_core.manager.close_ticket(
-                ticket_id=ticket["id"], closed_by=interaction.user.id, reason="按鈕關閉"
+                ticket_id=ticket["id"],
+                closed_by=interaction.user.id,
+                reason="按鈕關閉",
             )
 
             if success:
@@ -508,11 +518,21 @@ class RatingView(View):
     async def rate_3(self, interaction: discord.Interaction, button: Button):
         await self.send_rating(interaction, 3)
 
-    @button(label="4 星", style=discord.ButtonStyle.success, emoji="4️⃣", custom_id="rating_4")
+    @button(
+        label="4 星",
+        style=discord.ButtonStyle.success,
+        emoji="4️⃣",
+        custom_id="rating_4",
+    )
     async def rate_4(self, interaction: discord.Interaction, button: Button):
         await self.send_rating(interaction, 4)
 
-    @button(label="5 星", style=discord.ButtonStyle.success, emoji="5️⃣", custom_id="rating_5")
+    @button(
+        label="5 星",
+        style=discord.ButtonStyle.success,
+        emoji="5️⃣",
+        custom_id="rating_5",
+    )
     async def rate_5(self, interaction: discord.Interaction, button: Button):
         await self.send_rating(interaction, 5)
 
@@ -567,7 +587,11 @@ class TicketListView(View):
 
 class PrevPageButton(Button):
     def __init__(self, parent: TicketListView):
-        super().__init__(label="上一頁", style=discord.ButtonStyle.secondary, custom_id="list_prev")
+        super().__init__(
+            label="上一頁",
+            style=discord.ButtonStyle.secondary,
+            custom_id="list_prev",
+        )
         self.parent = parent
 
     async def callback(self, interaction: discord.Interaction):
@@ -577,7 +601,11 @@ class PrevPageButton(Button):
 
 class NextPageButton(Button):
     def __init__(self, parent: TicketListView):
-        super().__init__(label="下一頁", style=discord.ButtonStyle.secondary, custom_id="list_next")
+        super().__init__(
+            label="下一頁",
+            style=discord.ButtonStyle.secondary,
+            custom_id="list_next",
+        )
         self.parent = parent
 
     async def callback(self, interaction: discord.Interaction):

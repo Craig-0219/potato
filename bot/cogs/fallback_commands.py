@@ -66,7 +66,9 @@ class FallbackCommands(commands.Cog):
             ticket_cog = self.bot.get_cog("TicketCore")
             if ticket_cog:
                 embed = discord.Embed(
-                    title="🎫 票券系統", description="票券系統功能", color=0x3498DB
+                    title="🎫 票券系統",
+                    description="票券系統功能",
+                    color=0x3498DB,
                 )
                 embed.add_field(
                     name="可用指令",
@@ -91,7 +93,9 @@ class FallbackCommands(commands.Cog):
             vote_cog = self.bot.get_cog("VoteCore")
             if vote_cog:
                 embed = discord.Embed(
-                    title="🗳️ 投票系統", description="投票系統功能", color=0xE74C3C
+                    title="🗳️ 投票系統",
+                    description="投票系統功能",
+                    color=0xE74C3C,
                 )
                 embed.add_field(
                     name="可用指令",
@@ -116,7 +120,9 @@ class FallbackCommands(commands.Cog):
             welcome_cog = self.bot.get_cog("WelcomeCore")
             if welcome_cog:
                 embed = discord.Embed(
-                    title="👋 歡迎系統", description="歡迎系統設定", color=0xF39C12
+                    title="👋 歡迎系統",
+                    description="歡迎系統設定",
+                    color=0xF39C12,
                 )
                 embed.add_field(
                     name="可用指令",
@@ -143,7 +149,11 @@ class FallbackCommands(commands.Cog):
                 description="使用方式：`!ai_chat <你的問題>`",
                 color=0x9B59B6,
             )
-            embed.add_field(name="範例", value="`!ai_chat 你好` 或 `!ask 天氣如何`", inline=False)
+            embed.add_field(
+                name="範例",
+                value="`!ai_chat 你好` 或 `!ask 天氣如何`",
+                inline=False,
+            )
             await ctx.send(embed=embed)
             return
 
@@ -164,13 +174,17 @@ class FallbackCommands(commands.Cog):
         """系統狀態 (備用命令)"""
         try:
             embed = discord.Embed(
-                title="📊 系統狀態", description="Potato Bot 運行狀態", color=0x2ECC71
+                title="📊 系統狀態",
+                description="Potato Bot 運行狀態",
+                color=0x2ECC71,
             )
 
             embed.add_field(name="🤖 Bot 狀態", value="✅ 運行正常", inline=True)
 
             embed.add_field(
-                name="📡 延遲", value=f"{round(self.bot.latency * 1000)}ms", inline=True
+                name="📡 延遲",
+                value=f"{round(self.bot.latency * 1000)}ms",
+                inline=True,
             )
 
             embed.add_field(name="🏛️ 伺服器數", value=f"{len(self.bot.guilds)}", inline=True)

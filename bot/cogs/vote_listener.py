@@ -92,7 +92,9 @@ class VoteListener(commands.Cog):
         ):
             session["allowed_roles"] = [int(v) for v in values]
             await interaction.response.send_message(
-                "請選擇是否匿名投票：", view=AnonSelectView(user_id), ephemeral=True
+                "請選擇是否匿名投票：",
+                view=AnonSelectView(user_id),
+                ephemeral=True,
             )
             return
 
@@ -118,7 +120,9 @@ class VoteListener(commands.Cog):
         ):
             session["is_multi"] = values[0] == "true"
             await interaction.response.send_message(
-                "請選擇投票時效：", view=DurationSelectView(user_id), ephemeral=True
+                "請選擇投票時效：",
+                view=DurationSelectView(user_id),
+                ephemeral=True,
             )
             return
 

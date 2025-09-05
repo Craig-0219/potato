@@ -164,7 +164,10 @@ class CrossPlatformEconomyManager:
         """解除帳號綁定"""
         try:
             if not discord_id and not minecraft_uuid:
-                return {"success": False, "error": "需要提供Discord ID或Minecraft UUID"}
+                return {
+                    "success": False,
+                    "error": "需要提供Discord ID或Minecraft UUID",
+                }
 
             where_clause = ""
             params = []
@@ -290,7 +293,10 @@ class CrossPlatformEconomyManager:
                         "discord_data": discord_data,
                     }
                 else:
-                    return {"success": False, "error": "無法從Minecraft獲取數據"}
+                    return {
+                        "success": False,
+                        "error": "無法從Minecraft獲取數據",
+                    }
 
         except Exception as e:
             logger.error(f"❌ 經濟數據同步失敗: {e}")
@@ -404,7 +410,10 @@ class CrossPlatformEconomyManager:
                         return {"success": True, "response": result}
                     else:
                         logger.error(f"❌ Minecraft服務器回應錯誤: {response.status}")
-                        return {"success": False, "error": f"HTTP {response.status}"}
+                        return {
+                            "success": False,
+                            "error": f"HTTP {response.status}",
+                        }
 
         except Exception as e:
             logger.error(f"❌ 發送到Minecraft失敗: {e}")
@@ -567,7 +576,7 @@ class CrossPlatformEconomyManager:
                                 "currency_type": row[5],
                                 "amount": row[6],
                                 "reason": row[7],
-                                "metadata": json.loads(row[8]) if row[8] else {},
+                                "metadata": (json.loads(row[8]) if row[8] else {}),
                                 "timestamp": row[9],
                                 "status": row[10],
                             }

@@ -748,7 +748,10 @@ async def get_total_vote_count(guild_id: int = None):
         async with db_pool.connection() as conn:
             async with conn.cursor() as cur:
                 if guild_id:
-                    await cur.execute("SELECT COUNT(*) FROM votes WHERE guild_id = %s", (guild_id,))
+                    await cur.execute(
+                        "SELECT COUNT(*) FROM votes WHERE guild_id = %s",
+                        (guild_id,),
+                    )
                 else:
                     await cur.execute("SELECT COUNT(*) FROM votes")
 
@@ -843,7 +846,11 @@ async def get_vote_participation_stats(vote_id: int):
                 options_stats = []
                 async for row in cur:
                     options_stats.append(
-                        {"option": row[0], "votes": row[1], "unique_voters": row[2]}
+                        {
+                            "option": row[0],
+                            "votes": row[1],
+                            "unique_voters": row[2],
+                        }
                     )
 
                 return {

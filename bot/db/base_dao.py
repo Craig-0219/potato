@@ -268,7 +268,10 @@ class BaseDAO(ABC):
 
     def _set_cache(self, key: str, data: Any):
         """設定快取"""
-        self._cache[key] = {"data": data, "timestamp": datetime.now(timezone.utc)}
+        self._cache[key] = {
+            "data": data,
+            "timestamp": datetime.now(timezone.utc),
+        }
 
     def _clear_cache(self, pattern: str = None):
         """清除快取"""

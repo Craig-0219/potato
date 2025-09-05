@@ -21,7 +21,13 @@ else:
         load_dotenv(".env.test")
 
 # 檢查必填變數
-required_vars = ["DISCORD_TOKEN", "DB_HOST", "DB_USER", "DB_PASSWORD", "DB_NAME"]
+required_vars = [
+    "DISCORD_TOKEN",
+    "DB_HOST",
+    "DB_USER",
+    "DB_PASSWORD",
+    "DB_NAME",
+]
 missing = [v for v in required_vars if os.getenv(v) is None]
 
 # 只有在非測試環境且有缺少變數時才退出

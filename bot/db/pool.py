@@ -32,7 +32,13 @@ class MariaDBPool:
         self._tasks = set()  # 追蹤活躍的任務
 
     async def initialize(
-        self, host: str, port: int, user: str, password: str, database: str, **kwargs
+        self,
+        host: str,
+        port: int,
+        user: str,
+        password: str,
+        database: str,
+        **kwargs,
     ):
         """初始化連線池（修復版）"""
         async with self._lock:
@@ -294,7 +300,10 @@ def with_db_connection(func):
 
 
 async def execute_query(
-    query: str, params: tuple = None, fetch_one: bool = False, fetch_all: bool = False
+    query: str,
+    params: tuple = None,
+    fetch_one: bool = False,
+    fetch_all: bool = False,
 ):
     """執行查詢的便捷函數"""
     async with db_pool.connection() as conn:

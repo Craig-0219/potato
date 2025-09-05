@@ -287,7 +287,10 @@ class WebhookManager:
     # ========== 接收Webhook ==========
 
     async def process_incoming_webhook(
-        self, webhook_id: str, payload: Dict[str, Any], signature: Optional[str] = None
+        self,
+        webhook_id: str,
+        payload: Dict[str, Any],
+        signature: Optional[str] = None,
     ) -> Dict[str, Any]:
         """處理接收的Webhook"""
         try:
@@ -297,7 +300,10 @@ class WebhookManager:
             config = self.webhooks[webhook_id]
 
             # 檢查Webhook類型
-            if config.type not in [WebhookType.INCOMING, WebhookType.BIDIRECTIONAL]:
+            if config.type not in [
+                WebhookType.INCOMING,
+                WebhookType.BIDIRECTIONAL,
+            ]:
                 raise ValueError("此Webhook不接受入站請求")
 
             # 檢查狀態
@@ -325,7 +331,10 @@ class WebhookManager:
             self.execution_stats["total_received"] += 1
             self.execution_stats["success_count"] += 1
 
-            return {"status": "success", "message": "Webhook processed successfully"}
+            return {
+                "status": "success",
+                "message": "Webhook processed successfully",
+            }
 
         except Exception as e:
             logger.error(f"❌ 處理接收Webhook失敗: {e}")
@@ -335,7 +344,10 @@ class WebhookManager:
             return {"status": "error", "message": str(e)}
 
     async def _process_webhook_event(
-        self, config: WebhookConfig, event: WebhookEvent, payload: Dict[str, Any]
+        self,
+        config: WebhookConfig,
+        event: WebhookEvent,
+        payload: Dict[str, Any],
     ):
         """處理Webhook事件"""
         try:

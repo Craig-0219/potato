@@ -271,7 +271,9 @@ class ContextAwarenessEngine:
             return []
 
     def _adjust_recommendation_for_user(
-        self, recommendation: SmartRecommendation, user_behavior: Dict[str, Any]
+        self,
+        recommendation: SmartRecommendation,
+        user_behavior: Dict[str, Any],
     ) -> SmartRecommendation:
         """根據用戶行為調整推薦"""
         try:

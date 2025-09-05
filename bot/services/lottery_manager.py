@@ -129,7 +129,10 @@ class LotteryManager:
             return False, f"退出抽獎時發生錯誤: {str(e)}"
 
     async def end_lottery(
-        self, lottery_id: int, channel: discord.TextChannel, forced: bool = False
+        self,
+        lottery_id: int,
+        channel: discord.TextChannel,
+        forced: bool = False,
     ) -> Tuple[bool, str, List[Dict]]:
         """結束抽獎並選出中獎者"""
         try:
@@ -284,7 +287,11 @@ class LotteryManager:
             else:
                 embed.add_field(name="🎁 獎品", value=str(prize_info), inline=False)
 
-        embed.add_field(name="👥 中獎人數", value=f"{lottery['winner_count']} 人", inline=True)
+        embed.add_field(
+            name="👥 中獎人數",
+            value=f"{lottery['winner_count']} 人",
+            inline=True,
+        )
         embed.add_field(
             name="⏰ 結束時間",
             value=f"<t:{int(lottery['end_time'].timestamp())}:R>",

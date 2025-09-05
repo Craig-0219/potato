@@ -252,7 +252,9 @@ class IntentRecognizer:
         except Exception as e:
             logger.error(f"意圖識別失敗: {e}")
             return IntentResult(
-                intent=IntentType.UNKNOWN, confidence=0.0, metadata={"error": str(e)}
+                intent=IntentType.UNKNOWN,
+                confidence=0.0,
+                metadata={"error": str(e)},
             )
 
     def _preprocess_text(self, text: str) -> str:
@@ -298,7 +300,10 @@ class IntentRecognizer:
 
         # 如果在票券頻道，提高票券相關意圖分數
         if context.get("channel_type") == "ticket":
-            ticket_intents = [IntentType.TICKET_CLOSE, IntentType.TICKET_STATUS]
+            ticket_intents = [
+                IntentType.TICKET_CLOSE,
+                IntentType.TICKET_STATUS,
+            ]
             for intent in ticket_intents:
                 if intent in adjusted_scores:
                     adjusted_scores[intent] *= 1.5
@@ -316,7 +321,10 @@ class IntentRecognizer:
 
         # 如果最近有投票活動，提高投票相關意圖分數
         if context.get("recent_vote_activity", False):
-            vote_intents = [IntentType.VOTE_PARTICIPATE, IntentType.VOTE_RESULTS]
+            vote_intents = [
+                IntentType.VOTE_PARTICIPATE,
+                IntentType.VOTE_RESULTS,
+            ]
             for intent in vote_intents:
                 if intent in adjusted_scores:
                     adjusted_scores[intent] *= 1.2
@@ -369,7 +377,7 @@ class IntentRecognizer:
                 for match in matches:
                     entity = Entity(
                         type=entity_type,
-                        value=match.group(1) if match.groups() else match.group(0),
+                        value=(match.group(1) if match.groups() else match.group(0)),
                         confidence=0.9,  # 規則匹配的信心度固定為 0.9
                         start_pos=match.start(),
                         end_pos=match.end(),
@@ -477,7 +485,10 @@ class IntentRecognizer:
         for user_id, history in self.intent_history.items():
             anonymized_id = f"user_{hash(user_id) % 10000}"
             training_data["user_interactions"][anonymized_id] = [
-                {"intent": record["intent"].value, "confidence": record["confidence"]}
+                {
+                    "intent": record["intent"].value,
+                    "confidence": record["confidence"],
+                }
                 for record in history
             ]
 

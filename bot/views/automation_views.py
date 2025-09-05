@@ -117,7 +117,9 @@ class RuleSelectDropdown(discord.ui.Select):
             view = RuleOperationsView(interaction.user.id, rule_id)
 
             embed = discord.Embed(
-                title="🤖 規則操作", description=f"請選擇對規則的操作", color=0x9B59B6
+                title="🤖 規則操作",
+                description=f"請選擇對規則的操作",
+                color=0x9B59B6,
             )
 
             await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -146,7 +148,8 @@ class RuleOperationsView(discord.ui.View):
     async def view_details(self, interaction: discord.Interaction, button: discord.ui.Button):
         """查看規則詳情"""
         await interaction.response.send_message(
-            f"請使用 `/automation_detail {self.rule_id}` 查看詳細資訊", ephemeral=True
+            f"請使用 `/automation_detail {self.rule_id}` 查看詳細資訊",
+            ephemeral=True,
         )
 
     @discord.ui.button(label="🟢 啟用", style=discord.ButtonStyle.success)
@@ -344,7 +347,7 @@ class RuleExecutionView(discord.ui.View):
             embed = discord.Embed(
                 title="📋 執行結果",
                 description=f"執行ID: {execution_id}",
-                color=0x2ECC71 if self.execution_data.get("success") else 0xE74C3C,
+                color=(0x2ECC71 if self.execution_data.get("success") else 0xE74C3C),
             )
 
             # 基本資訊
@@ -527,7 +530,11 @@ class ActionBuilderModal(discord.ui.Modal):
             if len(actions_data) > 5:
                 action_summary.append(f"...還有 {len(actions_data) - 5} 個動作")
 
-            embed.add_field(name="📋 動作列表", value="\n".join(action_summary), inline=False)
+            embed.add_field(
+                name="📋 動作列表",
+                value="\n".join(action_summary),
+                inline=False,
+            )
 
             embed.add_field(
                 name="📝 JSON配置",

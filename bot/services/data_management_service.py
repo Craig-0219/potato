@@ -197,7 +197,10 @@ class DataManagementService:
                 start_date, end_date = export_request.date_range
                 if self._has_date_column(table):
                     additional_where.update(
-                        {"created_at >=": start_date, "created_at <=": end_date}
+                        {
+                            "created_at >=": start_date,
+                            "created_at <=": end_date,
+                        }
                     )
 
             # 個人數據過濾
@@ -210,7 +213,9 @@ class DataManagementService:
 
             # 建構安全查詢
             query, params = self.query_builder.build_select(
-                table=table, guild_id=guild_id, additional_where=additional_where
+                table=table,
+                guild_id=guild_id,
+                additional_where=additional_where,
             )
             query += " ORDER BY created_at DESC LIMIT 10000"  # 限制導出數量
 
@@ -503,7 +508,12 @@ class DataManagementService:
 
     async def _get_date_column(self, table: str) -> Optional[str]:
         """獲取表格的時間欄位"""
-        date_columns = ["created_at", "timestamp", "updated_at", "last_activity"]
+        date_columns = [
+            "created_at",
+            "timestamp",
+            "updated_at",
+            "last_activity",
+        ]
         columns = await self._get_table_columns(table)
 
         for date_col in date_columns:

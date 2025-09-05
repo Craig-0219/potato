@@ -33,7 +33,10 @@ class DashboardCore(commands.Cog):
     @app_commands.command(name="dashboard_overview", description="查看系統概覽儀表板")
     @app_commands.describe(days="分析天數 (默認30天)", refresh="是否刷新快取")
     async def dashboard_overview(
-        self, interaction: discord.Interaction, days: int = 30, refresh: bool = False
+        self,
+        interaction: discord.Interaction,
+        days: int = 30,
+        refresh: bool = False,
     ):
         """查看系統概覽儀表板"""
         try:
@@ -163,7 +166,11 @@ class DashboardCore(commands.Cog):
             # 添加性能摘要
             performance_summary = []
             for metric_name, metric_data in dashboard_data.metrics.items():
-                if metric_name in ["response_time", "system_uptime", "sla_compliance"]:
+                if metric_name in [
+                    "response_time",
+                    "system_uptime",
+                    "sla_compliance",
+                ]:
                     status_icon = "🟢" if metric_data.status == "good" else "🟡"
                     performance_summary.append(
                         f"{status_icon} {metric_name.replace('_', ' ').title()}: {metric_data.current_value}"
@@ -287,7 +294,10 @@ class DashboardCore(commands.Cog):
         ]
     )
     async def dashboard_cache(
-        self, interaction: discord.Interaction, action: str, cache_key: str = None
+        self,
+        interaction: discord.Interaction,
+        action: str,
+        cache_key: str = None,
     ):
         """管理儀表板快取"""
         try:
@@ -364,7 +374,9 @@ class DashboardCore(commands.Cog):
             # 檢查權限
             if not interaction.user.guild_permissions.manage_guild:
                 await SafeInteractionHandler.safe_respond(
-                    interaction, content="❌ 需要管理伺服器權限", ephemeral=True
+                    interaction,
+                    content="❌ 需要管理伺服器權限",
+                    ephemeral=True,
                 )
                 return
 
@@ -471,9 +483,9 @@ class DashboardCore(commands.Cog):
             running_executions = await workflow_dao.get_running_executions_count(guild_id)
 
             return {
-                "active_workflows": len(active_workflows) if active_workflows else 0,
-                "running_executions": running_executions if running_executions else 0,
-                "today_executions": today_executions if today_executions else 0,
+                "active_workflows": (len(active_workflows) if active_workflows else 0),
+                "running_executions": (running_executions if running_executions else 0),
+                "today_executions": (today_executions if today_executions else 0),
             }
 
         except Exception as e:
@@ -488,7 +500,9 @@ class DashboardCore(commands.Cog):
     # ========== 錯誤處理 ==========
 
     async def cog_app_command_error(
-        self, interaction: discord.Interaction, error: app_commands.AppCommandError
+        self,
+        interaction: discord.Interaction,
+        error: app_commands.AppCommandError,
     ):
         """處理應用指令錯誤"""
         logger.error(f"儀表板指令錯誤: {error}")

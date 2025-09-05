@@ -273,7 +273,11 @@ class RealtimeSyncManager:
                 )
                 if ticket_info:
                     embed.add_field(name="票券類型", value=ticket_info["type"], inline=True)
-                    embed.add_field(name="優先級", value=ticket_info["priority"], inline=True)
+                    embed.add_field(
+                        name="優先級",
+                        value=ticket_info["priority"],
+                        inline=True,
+                    )
 
                 try:
                     await user.send(embed=embed)
@@ -302,7 +306,11 @@ class RealtimeSyncManager:
                 )
 
                 if event.data.get("reason"):
-                    embed.add_field(name="關閉原因", value=event.data["reason"], inline=False)
+                    embed.add_field(
+                        name="關閉原因",
+                        value=event.data["reason"],
+                        inline=False,
+                    )
 
                 try:
                     await user.send(embed=embed)

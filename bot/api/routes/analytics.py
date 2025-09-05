@@ -149,14 +149,20 @@ async def _get_dashboard_data_internal(guild_id: Optional[int], period: str):
                         "resolution_rate": round(
                             (
                                 convert_decimal(ticket_stats["resolved_tickets"])
-                                / max(convert_decimal(ticket_stats["total_tickets"]), 1)
+                                / max(
+                                    convert_decimal(ticket_stats["total_tickets"]),
+                                    1,
+                                )
                             )
                             * 100,
                             1,
                         ),
                         "satisfaction_score": 4.2,  # 暫時使用固定值
                         "response_time": (
-                            round(convert_decimal(ticket_stats["avg_resolution_hours"]), 1)
+                            round(
+                                convert_decimal(ticket_stats["avg_resolution_hours"]),
+                                1,
+                            )
                             if ticket_stats["avg_resolution_hours"]
                             else 0
                         ),

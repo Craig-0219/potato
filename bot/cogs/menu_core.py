@@ -31,7 +31,11 @@ class MenuCore(commands.Cog):
         self.menu_manager = MenuSystemManager(bot)
 
         # 選單使用統計
-        self.usage_stats = {"menu_opens": 0, "admin_menu_opens": 0, "interactions": 0}
+        self.usage_stats = {
+            "menu_opens": 0,
+            "admin_menu_opens": 0,
+            "interactions": 0,
+        }
 
         logger.info("🎮 Menu Core Cog 初始化完成")
 
@@ -141,7 +145,10 @@ class MenuCore(commands.Cog):
                 "❌ 快速操作面板載入失敗，請稍後再試。", ephemeral=True
             )
 
-    @app_commands.command(name="help_gui", description="❓ GUI 系統說明 - 學習如何使用新的選單介面")
+    @app_commands.command(
+        name="help_gui",
+        description="❓ GUI 系統說明 - 學習如何使用新的選單介面",
+    )
     async def help_gui(self, interaction: discord.Interaction):
         """
         GUI 系統使用說明
@@ -191,7 +198,10 @@ class MenuCore(commands.Cog):
             logger.error(f"❌ GUI 說明顯示失敗: {e}")
             await interaction.response.send_message("❌ 說明載入失敗。", ephemeral=True)
 
-    @app_commands.command(name="menu_stats", description="📊 選單使用統計 - 查看 GUI 系統使用情況")
+    @app_commands.command(
+        name="menu_stats",
+        description="📊 選單使用統計 - 查看 GUI 系統使用情況",
+    )
     async def menu_stats(self, interaction: discord.Interaction):
         """
         選單使用統計

@@ -346,7 +346,10 @@ class WorkflowEngine:
     async def _action_notify_user(self, action: WorkflowAction, execution: WorkflowExecution):
         """通知用戶動作"""
         logger.info(f"🔔 通知用戶: {action.parameters}")
-        return {"status": "notified", "user_id": action.parameters.get("user_id")}
+        return {
+            "status": "notified",
+            "user_id": action.parameters.get("user_id"),
+        }
 
     async def _action_delay(self, action: WorkflowAction, execution: WorkflowExecution):
         """延遲動作"""
@@ -499,7 +502,7 @@ class WorkflowEngine:
             "status": execution.status,
             "current_action": execution.current_action,
             "start_time": execution.start_time.isoformat(),
-            "end_time": execution.end_time.isoformat() if execution.end_time else None,
+            "end_time": (execution.end_time.isoformat() if execution.end_time else None),
             "errors": execution.errors,
             "progress": self._calculate_execution_progress(execution),
         }

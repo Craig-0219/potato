@@ -219,7 +219,11 @@ class PrometheusMetricsManager:
                 buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5],
             )
 
-            self.register_gauge("potato_bot_cache_hit_rate", "Cache hit rate percentage", ["level"])
+            self.register_gauge(
+                "potato_bot_cache_hit_rate",
+                "Cache hit rate percentage",
+                ["level"],
+            )
 
             self.register_gauge("potato_bot_cache_size", "Cache size in items", ["level"])
 
@@ -237,7 +241,10 @@ class PrometheusMetricsManager:
                 buckets=[0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0],
             )
 
-            self.register_gauge("potato_bot_db_connections_active", "Active database connections")
+            self.register_gauge(
+                "potato_bot_db_connections_active",
+                "Active database connections",
+            )
 
             self.register_gauge(
                 "potato_bot_db_slow_queries",
@@ -258,7 +265,11 @@ class PrometheusMetricsManager:
             )
 
             # 系統資源指標
-            self.register_gauge("potato_bot_memory_usage_bytes", "Memory usage in bytes", ["type"])
+            self.register_gauge(
+                "potato_bot_memory_usage_bytes",
+                "Memory usage in bytes",
+                ["type"],
+            )
 
             self.register_gauge("potato_bot_cpu_usage_percent", "CPU usage percentage")
 
@@ -454,7 +465,11 @@ class PrometheusMetricsManager:
             # 記憶體使用
             memory = psutil.virtual_memory()
             self.set_gauge("potato_bot_memory_usage_bytes", memory.used, {"type": "used"})
-            self.set_gauge("potato_bot_memory_usage_bytes", memory.available, {"type": "available"})
+            self.set_gauge(
+                "potato_bot_memory_usage_bytes",
+                memory.available,
+                {"type": "available"},
+            )
 
             # 進程資訊
             process = psutil.Process()
@@ -517,7 +532,11 @@ class PrometheusMetricsManager:
             self.set_gauge("potato_bot_cache_hit_rate", l2_hit_rate, {"level": "l2"})
 
             # 快取大小
-            self.set_gauge("potato_bot_cache_size", stats["l1_memory"]["size"], {"level": "l1"})
+            self.set_gauge(
+                "potato_bot_cache_size",
+                stats["l1_memory"]["size"],
+                {"level": "l1"},
+            )
 
             # 操作統計
             self.set_gauge(
@@ -538,7 +557,10 @@ class PrometheusMetricsManager:
             metrics = await db_optimizer.collect_database_metrics()
 
             # 資料庫性能指標
-            self.set_gauge("potato_bot_db_query_cache_hit_rate", metrics.query_cache_hit_rate)
+            self.set_gauge(
+                "potato_bot_db_query_cache_hit_rate",
+                metrics.query_cache_hit_rate,
+            )
             self.set_gauge("potato_bot_db_slow_queries", metrics.slow_query_count)
             self.set_gauge("potato_bot_db_connections_active", metrics.connections_used)
 
@@ -591,7 +613,11 @@ class PrometheusMetricsManager:
             return
 
         try:
-            push_to_gateway(self.push_gateway_url, job=self.job_name, registry=self.registry)
+            push_to_gateway(
+                self.push_gateway_url,
+                job=self.job_name,
+                registry=self.registry,
+            )
             logger.debug("📤 指標已推送到 Push Gateway")
 
         except Exception as e:
@@ -649,7 +675,11 @@ def get_prometheus_metrics() -> PrometheusMetricsManager:
 
 
 # 裝飾器：自動監控函數執行
-def monitored(metric_name: str, labels: Dict[str, str] = None, metric_type: str = "histogram"):
+def monitored(
+    metric_name: str,
+    labels: Dict[str, str] = None,
+    metric_type: str = "histogram",
+):
     """監控裝飾器"""
 
     def decorator(func: Callable):

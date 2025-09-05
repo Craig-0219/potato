@@ -90,7 +90,13 @@ class MusicSession:
 class MusicQuizQuestion:
     """音樂問答題目"""
 
-    def __init__(self, track: Track, question_type: str, options: List[str], correct_answer: str):
+    def __init__(
+        self,
+        track: Track,
+        question_type: str,
+        options: List[str],
+        correct_answer: str,
+    ):
         self.track = track
         self.question_type = question_type  # "artist", "title", "year", "genre"
         self.options = options
@@ -144,7 +150,9 @@ class MusicPlayer:
     ) -> MusicSession:
         """創建音樂會話"""
         session = MusicSession(
-            guild_id=guild_id, channel_id=channel_id, voice_channel_id=voice_channel_id
+            guild_id=guild_id,
+            channel_id=channel_id,
+            voice_channel_id=voice_channel_id,
         )
         self.sessions[guild_id] = session
         logger.info(f"🎵 創建音樂會話: {guild_id}")

@@ -152,7 +152,7 @@ class StatisticsManager:
 
                     return {
                         "summary": {
-                            "database_name": result["db_name"] if result else "unknown",
+                            "database_name": (result["db_name"] if result else "unknown"),
                             "system_time": (
                                 str(result["current_time"]) if result else str(datetime.now())
                             ),

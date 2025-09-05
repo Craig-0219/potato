@@ -10,7 +10,11 @@ from discord.ext import commands, tasks
 
 from bot.db.ticket_dao import TicketDAO
 from bot.services.chat_transcript_manager import ChatTranscriptManager
-from bot.services.realtime_sync_manager import SyncEvent, SyncEventType, realtime_sync
+from bot.services.realtime_sync_manager import (
+    SyncEvent,
+    SyncEventType,
+    realtime_sync,
+)
 from bot.services.ticket_manager import TicketManager
 from bot.utils.ticket_constants import get_priority_emoji
 from bot.utils.ticket_utils import TicketPermissionChecker, is_ticket_channel
@@ -282,7 +286,11 @@ class TicketListener(commands.Cog):
                         f"**頻道：** {message.channel.mention}",
                         inline=False,
                     )
-                    embed.add_field(name="建議", value="建議主管或資深客服介入處理", inline=False)
+                    embed.add_field(
+                        name="建議",
+                        value="建議主管或資深客服介入處理",
+                        inline=False,
+                    )
 
                     await log_channel.send(embed=embed)
 
@@ -382,9 +390,17 @@ class TicketListener(commands.Cog):
                 return
 
             embed = discord.Embed(title="🗑️ 票券頻道被刪除", color=discord.Color.orange())
-            embed.add_field(name="票券編號", value=f"#{ticket_info['ticket_id']:04d}", inline=True)
+            embed.add_field(
+                name="票券編號",
+                value=f"#{ticket_info['ticket_id']:04d}",
+                inline=True,
+            )
             embed.add_field(name="類型", value=ticket_info["type"], inline=True)
-            embed.add_field(name="開票者", value=f"<@{ticket_info['discord_id']}>", inline=True)
+            embed.add_field(
+                name="開票者",
+                value=f"<@{ticket_info['discord_id']}>",
+                inline=True,
+            )
             embed.add_field(name="頻道名稱", value=channel.name, inline=True)
             embed.add_field(
                 name="刪除時間",
@@ -891,7 +907,8 @@ class TicketMaintenanceListener(commands.Cog):
             async with self.dao.db_pool.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
-                        "DELETE FROM ticket_views WHERE viewed_at < %s", (cutoff_date,)
+                        "DELETE FROM ticket_views WHERE viewed_at < %s",
+                        (cutoff_date,),
                     )
                     await conn.commit()
 
@@ -1049,14 +1066,22 @@ class TicketAnalyticsListener(commands.Cog):
                         FROM tickets
                         WHERE guild_id = %s AND created_at >= %s AND created_at < %s
                         """,
-                        (guild_id, hour_start, hour_start + timedelta(hours=1)),
+                        (
+                            guild_id,
+                            hour_start,
+                            hour_start + timedelta(hours=1),
+                        ),
                     )
                     creation_data = await cursor.fetchone()
 
                     # 本小時關閉的票券
                     await cursor.execute(
                         "SELECT COUNT(*) as closed_count FROM tickets WHERE guild_id = %s AND closed_at >= %s AND closed_at < %s",
-                        (guild_id, hour_start, hour_start + timedelta(hours=1)),
+                        (
+                            guild_id,
+                            hour_start,
+                            hour_start + timedelta(hours=1),
+                        ),
                     )
                     close_data = await cursor.fetchone()
 
@@ -1119,4 +1144,8 @@ async def setup(bot):
 
 # ===== 匯出 =====
 
-__all__ = ["TicketListener", "TicketMaintenanceListener", "TicketAnalyticsListener"]
+__all__ = [
+    "TicketListener",
+    "TicketMaintenanceListener",
+    "TicketAnalyticsListener",
+]

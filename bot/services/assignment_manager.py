@@ -14,7 +14,11 @@ from shared.logger import logger
 class AssignmentManager:
     """票券指派管理器"""
 
-    def __init__(self, assignment_dao: AssignmentDAO = None, ticket_dao: TicketDAO = None):
+    def __init__(
+        self,
+        assignment_dao: AssignmentDAO = None,
+        ticket_dao: TicketDAO = None,
+    ):
         self.assignment_dao = assignment_dao or AssignmentDAO()
         self.ticket_dao = ticket_dao or TicketDAO()
 
@@ -49,7 +53,10 @@ class AssignmentManager:
             max_concurrent = assignment_rule["max_concurrent_tickets"] if assignment_rule else 5
 
             if workload and workload["current_tickets"] >= max_concurrent:
-                return False, f"客服人員當前工作量已達上限（{max_concurrent}張票券）"
+                return (
+                    False,
+                    f"客服人員當前工作量已達上限（{max_concurrent}張票券）",
+                )
 
             # 執行指派
             original_assigned = ticket.get("assigned_to")
@@ -69,7 +76,9 @@ class AssignmentManager:
                     if original_workload:
                         new_current = max(0, original_workload["current_tickets"] - 1)
                         await self.assignment_dao.update_staff_workload(
-                            guild_id, original_assigned, current_tickets=new_current
+                            guild_id,
+                            original_assigned,
+                            current_tickets=new_current,
                         )
 
                 # 記錄指派歷史
@@ -134,7 +143,11 @@ class AssignmentManager:
 
             if assigned_to:
                 success, message = await self.assign_ticket(
-                    ticket_id, assigned_to, assigned_by, method, f"自動指派（{method}）"
+                    ticket_id,
+                    assigned_to,
+                    assigned_by,
+                    method,
+                    f"自動指派（{method}）",
                 )
                 return success, message, assigned_to
             else:
@@ -285,14 +298,20 @@ class AssignmentManager:
             # 驗證技能等級
             valid_levels = ["beginner", "intermediate", "advanced", "expert"]
             if skill_level not in valid_levels:
-                return False, f"無效的技能等級，請使用：{', '.join(valid_levels)}"
+                return (
+                    False,
+                    f"無效的技能等級，請使用：{', '.join(valid_levels)}",
+                )
 
             success = await self.assignment_dao.add_staff_specialty(
                 guild_id, staff_id, specialty_type, skill_level
             )
 
             if success:
-                return True, f"成功設定客服專精：{specialty_type} ({skill_level})"
+                return (
+                    True,
+                    f"成功設定客服專精：{specialty_type} ({skill_level})",
+                )
             else:
                 return False, "設定專精失敗，請稍後再試"
 

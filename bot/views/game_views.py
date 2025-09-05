@@ -30,7 +30,9 @@ class GameMenuView(ui.View):
             view = DifficultySelectView(self.game_cog, "guess_number")
 
             embed = EmbedBuilder.build(
-                title="🔢 猜數字遊戲", description="選擇遊戲難度：", color=0x00AAFF
+                title="🔢 猜數字遊戲",
+                description="選擇遊戲難度：",
+                color=0x00AAFF,
             )
 
             embed.add_field(
@@ -88,7 +90,9 @@ class GameMenuView(ui.View):
             view = CoinFlipView(self.game_cog, self.user_economy)
 
             embed = EmbedBuilder.build(
-                title="🪙 拋硬幣遊戲", description="猜測硬幣的正反面！", color=0xFFD700
+                title="🪙 拋硬幣遊戲",
+                description="猜測硬幣的正反面！",
+                color=0xFFD700,
             )
 
             embed.add_field(
@@ -152,7 +156,9 @@ class GameMenuView(ui.View):
             view = TriviaView(self.game_cog)
 
             embed = EmbedBuilder.build(
-                title="🧠 問答競賽", description="測試您的知識水平！", color=0x4169E1
+                title="🧠 問答競賽",
+                description="測試您的知識水平！",
+                color=0x4169E1,
             )
 
             embed.add_field(
@@ -474,7 +480,10 @@ class RockPaperScissorsView(ui.View):
         await self._play_game(interaction, "paper", "📄")
 
     async def _play_game(
-        self, interaction: discord.Interaction, player_choice: str, player_emoji: str
+        self,
+        interaction: discord.Interaction,
+        player_choice: str,
+        player_emoji: str,
     ):
         """進行遊戲"""
         try:
@@ -509,7 +518,9 @@ class RockPaperScissorsView(ui.View):
 
             # 創建結果嵌入
             embed = EmbedBuilder.build(
-                title="✂️ 剪刀石頭布結果", description=result_text, color=result_color
+                title="✂️ 剪刀石頭布結果",
+                description=result_text,
+                color=result_color,
             )
 
             embed.add_field(
@@ -609,7 +620,11 @@ class CoinFlipView(ui.View):
                         )
                         break
                 else:
-                    embed.add_field(name="💰 目前下注", value=f"{self.bet_amount}🪙", inline=True)
+                    embed.add_field(
+                        name="💰 目前下注",
+                        value=f"{self.bet_amount}🪙",
+                        inline=True,
+                    )
 
             await interaction.response.edit_message(embed=embed, view=self)
 
@@ -656,7 +671,9 @@ class CoinFlipView(ui.View):
 
             # 創建結果嵌入
             embed = EmbedBuilder.build(
-                title="🪙 拋硬幣結果", description=result_text, color=result_color
+                title="🪙 拋硬幣結果",
+                description=result_text,
+                color=result_color,
             )
 
             embed.add_field(
@@ -1054,7 +1071,9 @@ class TriviaAnswerView(ui.View):
                 )
             else:
                 embed = EmbedBuilder.build(
-                    title="💔 答錯了！", description=f"很遺憾答錯了。", color=0xFF0000
+                    title="💔 答錯了！",
+                    description=f"很遺憾答錯了。",
+                    color=0xFF0000,
                 )
 
                 embed.add_field(

@@ -174,7 +174,8 @@ class LotteryCreationConfirmView(ui.View):
                     await interaction.edit_original_response(view=self)
                 else:
                     await interaction.followup.send(
-                        f"✅ 抽獎創建成功，但啟動失敗：{start_message}", ephemeral=True
+                        f"✅ 抽獎創建成功，但啟動失敗：{start_message}",
+                        ephemeral=True,
                     )
             else:
                 await interaction.followup.send(f"❌ {message}", ephemeral=True)
@@ -421,7 +422,9 @@ class LotteryManagementView(ui.View):
             await interaction.response.defer(ephemeral=True)
 
             # 導入儀表板視圖
-            from bot.views.lottery_dashboard_views import LotteryStatsDashboardView
+            from bot.views.lottery_dashboard_views import (
+                LotteryStatsDashboardView,
+            )
 
             # 獲取統計資料
             stats = await self.lottery_manager.dao.get_lottery_statistics(interaction.guild.id)
@@ -448,7 +451,10 @@ class LotteryManagementView(ui.View):
                 value="end_lottery",
             ),
             discord.SelectOption(
-                label="重新開獎", description="重新進行開獎", emoji="🔄", value="redraw"
+                label="重新開獎",
+                description="重新進行開獎",
+                emoji="🔄",
+                value="redraw",
             ),
             discord.SelectOption(
                 label="查看中獎者",

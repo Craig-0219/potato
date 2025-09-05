@@ -134,7 +134,8 @@ class EntertainmentCore(commands.Cog):
     # ========== 主要娛樂指令 ==========
 
     @app_commands.command(
-        name="entertainment", description="🎮 開啟娛樂中心 - 各種小遊戲等你來玩！"
+        name="entertainment",
+        description="🎮 開啟娛樂中心 - 各種小遊戲等你來玩！",
     )
     async def entertainment_center(self, interaction: discord.Interaction):
         """娛樂中心主菜單"""
@@ -153,7 +154,8 @@ class EntertainmentCore(commands.Cog):
 
             # 創建主菜單嵌入
             embed = EmbedBuilder.create_info_embed(
-                "🎮 娛樂中心", "歡迎來到 Potato Bot 娛樂中心！選擇您想要的遊戲："
+                "🎮 娛樂中心",
+                "歡迎來到 Potato Bot 娛樂中心！選擇您想要的遊戲：",
             )
 
             # 添加用戶統計信息
@@ -183,7 +185,11 @@ class EntertainmentCore(commands.Cog):
             remaining = self.game_config["daily_limit"] - self.daily_limits.get(
                 interaction.user.id, 0
             )
-            embed.add_field(name="⏰ 今日剩餘", value=f"{remaining} 次遊戲機會", inline=True)
+            embed.add_field(
+                name="⏰ 今日剩餘",
+                value=f"{remaining} 次遊戲機會",
+                inline=True,
+            )
 
             # 創建互動視圖
             view = EntertainmentMenuView(self, interaction.user.id)
@@ -198,7 +204,9 @@ class EntertainmentCore(commands.Cog):
 
     @app_commands.command(name="game_stats", description="📊 查看您的遊戲統計")
     async def game_stats(
-        self, interaction: discord.Interaction, user: Optional[discord.Member] = None
+        self,
+        interaction: discord.Interaction,
+        user: Optional[discord.Member] = None,
     ):
         """查看遊戲統計"""
         target_user = user or interaction.user
@@ -326,7 +334,11 @@ class EntertainmentCore(commands.Cog):
             inline=True,
         )
 
-        embed.add_field(name="連續天數", value=f"🔥 {stats['daily_streak']} 天", inline=True)
+        embed.add_field(
+            name="連續天數",
+            value=f"🔥 {stats['daily_streak']} 天",
+            inline=True,
+        )
 
         await interaction.response.send_message(embed=embed)
 

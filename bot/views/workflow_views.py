@@ -122,7 +122,9 @@ class WorkflowEditView(View):
         view = TriggerEditView(self.user_id, self.workflow_id)
 
         embed = EmbedBuilder.build(
-            title="🎯 編輯觸發器", description="設定工作流程的觸發條件", color=0xE74C3C
+            title="🎯 編輯觸發器",
+            description="設定工作流程的觸發條件",
+            color=0xE74C3C,
         )
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -133,7 +135,9 @@ class WorkflowEditView(View):
         view = ActionsEditView(self.user_id, self.workflow_id)
 
         embed = EmbedBuilder.build(
-            title="⚙️ 編輯動作", description="設定工作流程執行的動作", color=0x3498DB
+            title="⚙️ 編輯動作",
+            description="設定工作流程執行的動作",
+            color=0x3498DB,
         )
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -208,7 +212,9 @@ class TriggerEditView(View):
     async def clear_conditions_button(self, interaction: discord.Interaction, button: Button):
         """清除所有條件"""
         embed = EmbedBuilder.build(
-            title="✅ 條件已清除", description="所有觸發條件已清除", color=0x2ECC71
+            title="✅ 條件已清除",
+            description="所有觸發條件已清除",
+            color=0x2ECC71,
         )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -279,7 +285,9 @@ class ActionsEditView(View):
         view = ActionTypeView(self.user_id, self.workflow_id)
 
         embed = EmbedBuilder.build(
-            title="⚙️ 選擇動作類型", description="選擇要添加的動作類型", color=0x3498DB
+            title="⚙️ 選擇動作類型",
+            description="選擇要添加的動作類型",
+            color=0x3498DB,
         )
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -289,7 +297,9 @@ class ActionsEditView(View):
         """查看現有動作"""
         # 獲取工作流程的動作列表
         embed = EmbedBuilder.build(
-            title="📋 當前動作列表", description="工作流程中的所有動作", color=0x95A5A6
+            title="📋 當前動作列表",
+            description="工作流程中的所有動作",
+            color=0x95A5A6,
         )
 
         # 這裡應該顯示實際的動作列表
@@ -355,7 +365,10 @@ class ActionTypeSelect(Select):
                 emoji="🔔",
             ),
             discord.SelectOption(
-                label="延遲執行", value="delay", description="暫停一段時間", emoji="⏱️"
+                label="延遲執行",
+                value="delay",
+                description="暫停一段時間",
+                emoji="⏱️",
             ),
         ]
 
@@ -479,7 +492,10 @@ class AddConditionModal(Modal):
         )
 
         self.value = TextInput(
-            label="比較值", placeholder="輸入比較值", max_length=100, required=True
+            label="比較值",
+            placeholder="輸入比較值",
+            max_length=100,
+            required=True,
         )
 
         self.add_item(self.field)

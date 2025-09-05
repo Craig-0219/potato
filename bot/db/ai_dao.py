@@ -156,7 +156,7 @@ class AIDAO:
                             original_content,
                             suggested_content,
                             confidence_score,
-                            json.dumps(analysis_data) if analysis_data else None,
+                            (json.dumps(analysis_data) if analysis_data else None),
                         ),
                     )
 
@@ -192,7 +192,7 @@ class AIDAO:
                             is_accepted,
                             feedback_rating,
                             feedback_comment,
-                            datetime.now(timezone.utc) if is_accepted else None,
+                            (datetime.now(timezone.utc) if is_accepted else None),
                             suggestion_id,
                         ),
                     )
@@ -250,7 +250,7 @@ class AIDAO:
                             "original_content": row[4],
                             "suggested_content": row[5],
                             "confidence_score": float(row[6]),
-                            "analysis_data": json.loads(row[7]) if row[7] else {},
+                            "analysis_data": (json.loads(row[7]) if row[7] else {}),
                             "is_accepted": bool(row[8]),
                             "feedback_rating": row[9],
                             "feedback_comment": row[10],
@@ -296,7 +296,7 @@ class AIDAO:
                             expected_output,
                             actual_output,
                             success_rate,
-                            json.dumps(learning_context) if learning_context else None,
+                            (json.dumps(learning_context) if learning_context else None),
                         ),
                     )
 
@@ -351,7 +351,7 @@ class AIDAO:
                             "expected_output": row[3],
                             "actual_output": row[4],
                             "success_rate": float(row[5]) if row[5] else None,
-                            "learning_context": json.loads(row[6]) if row[6] else {},
+                            "learning_context": (json.loads(row[6]) if row[6] else {}),
                             "created_at": row[7],
                             "updated_at": row[8],
                         }

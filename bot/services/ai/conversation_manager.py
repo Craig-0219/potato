@@ -417,7 +417,10 @@ class ConversationManager:
         return ai_response.content
 
     async def _validate_input(
-        self, session: ConversationSession, step: ConversationStep, message: str
+        self,
+        session: ConversationSession,
+        step: ConversationStep,
+        message: str,
     ) -> bool:
         """驗證用戶輸入"""
         if not step.expected_input:
@@ -436,7 +439,16 @@ class ConversationManager:
             return message_lower in ["1", "2", "3", "4", "5"]
 
         elif step.expected_input == "confirmation":
-            return message_lower in ["是", "否", "yes", "no", "y", "n", "確認", "取消"]
+            return message_lower in [
+                "是",
+                "否",
+                "yes",
+                "no",
+                "y",
+                "n",
+                "確認",
+                "取消",
+            ]
 
         elif step.expected_input in [
             "detailed_description",

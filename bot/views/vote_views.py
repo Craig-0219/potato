@@ -20,7 +20,16 @@ from shared.logger import logger
 class VoteButtonView(discord.ui.View):
     """基礎投票按鈕視圖 - 用於用戶投票互動"""
 
-    def __init__(self, vote_id, options, allowed_roles, is_multi, anonymous, stats=None, total=0):
+    def __init__(
+        self,
+        vote_id,
+        options,
+        allowed_roles,
+        is_multi,
+        anonymous,
+        stats=None,
+        total=0,
+    ):
         super().__init__(timeout=None)
         self.vote_id = vote_id
         self.options = options
@@ -382,7 +391,11 @@ class ComprehensiveVoteModal(ui.Modal):
         options_text = "\n".join(f"{i+1}. {opt}" for i, opt in enumerate(config["options"]))
         embed.add_field(name="📋 選項列表", value=options_text, inline=False)
 
-        embed.add_field(name="⚙️ 接下來", value="請使用下方的選項來配置投票設定", inline=False)
+        embed.add_field(
+            name="⚙️ 接下來",
+            value="請使用下方的選項來配置投票設定",
+            inline=False,
+        )
 
         embed.set_footer(text="配置完成後點擊「創建投票」")
         return embed
@@ -810,7 +823,12 @@ class VoteManagementView(ui.View):
             logger.error(f"創建投票按鈕錯誤: {e}")
             await interaction.response.send_message("❌ 創建投票時發生錯誤", ephemeral=True)
 
-    @ui.button(label="📊 查看統計", style=discord.ButtonStyle.secondary, emoji="📊", row=0)
+    @ui.button(
+        label="📊 查看統計",
+        style=discord.ButtonStyle.secondary,
+        emoji="📊",
+        row=0,
+    )
     async def view_stats(self, interaction: discord.Interaction, button: ui.Button):
         """查看投票統計"""
         try:
@@ -867,7 +885,12 @@ class ActiveVotesButton(ui.Button):
     """查看活動投票按鈕"""
 
     def __init__(self, guild_id: int):
-        super().__init__(label="🗳️ 活動投票", style=discord.ButtonStyle.primary, emoji="🗳️", row=0)
+        super().__init__(
+            label="🗳️ 活動投票",
+            style=discord.ButtonStyle.primary,
+            emoji="🗳️",
+            row=0,
+        )
         self.guild_id = guild_id
 
     async def callback(self, interaction: discord.Interaction):
@@ -909,7 +932,10 @@ class VoteHistoryButton(ui.Button):
 
     def __init__(self, guild_id: int):
         super().__init__(
-            label="📋 投票歷史", style=discord.ButtonStyle.secondary, emoji="📋", row=0
+            label="📋 投票歷史",
+            style=discord.ButtonStyle.secondary,
+            emoji="📋",
+            row=0,
         )
         self.guild_id = guild_id
 
@@ -952,7 +978,10 @@ class VoteAnalyticsButton(ui.Button):
 
     def __init__(self, guild_id: int):
         super().__init__(
-            label="📈 數據分析", style=discord.ButtonStyle.secondary, emoji="📈", row=1
+            label="📈 數據分析",
+            style=discord.ButtonStyle.secondary,
+            emoji="📈",
+            row=1,
         )
         self.guild_id = guild_id
 
@@ -966,7 +995,10 @@ class ExportDataButton(ui.Button):
 
     def __init__(self, guild_id: int):
         super().__init__(
-            label="📥 匯出資料", style=discord.ButtonStyle.secondary, emoji="📥", row=1
+            label="📥 匯出資料",
+            style=discord.ButtonStyle.secondary,
+            emoji="📥",
+            row=1,
         )
         self.guild_id = guild_id
 
@@ -1079,7 +1111,10 @@ class DurationSelectView(discord.ui.View):
         await self._set_duration(interaction, 30)
 
     @discord.ui.button(
-        label="1 小時", style=discord.ButtonStyle.primary, emoji="🕐", custom_id="1hour"
+        label="1 小時",
+        style=discord.ButtonStyle.primary,
+        emoji="🕐",
+        custom_id="1hour",
     )
     async def duration_1hour(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._set_duration(interaction, 60)
@@ -1103,7 +1138,10 @@ class DurationSelectView(discord.ui.View):
         await self._set_duration(interaction, 1440)
 
     @discord.ui.button(
-        label="3 天", style=discord.ButtonStyle.secondary, emoji="📆", custom_id="3days"
+        label="3 天",
+        style=discord.ButtonStyle.secondary,
+        emoji="📆",
+        custom_id="3days",
     )
     async def duration_3days(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self._set_duration(interaction, 4320)
@@ -1173,8 +1211,16 @@ class RoleSelectView(discord.ui.View):
             value="多選" if session.get("is_multi") else "單選",
             inline=True,
         )
-        embed.add_field(name="匿名", value="是" if session.get("anonymous") else "否", inline=True)
-        embed.add_field(name="持續時間", value=f"{session.get('duration', 0)} 分鐘", inline=True)
+        embed.add_field(
+            name="匿名",
+            value="是" if session.get("anonymous") else "否",
+            inline=True,
+        )
+        embed.add_field(
+            name="持續時間",
+            value=f"{session.get('duration', 0)} 分鐘",
+            inline=True,
+        )
 
         return embed
 

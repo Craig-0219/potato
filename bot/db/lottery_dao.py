@@ -246,7 +246,13 @@ class LotteryDAO(BaseDAO):
                     for user_id, username, position in winners:
                         await cursor.execute(
                             winners_query,
-                            (lottery_id, user_id, username, prize_data, position),
+                            (
+                                lottery_id,
+                                user_id,
+                                username,
+                                prize_data,
+                                position,
+                            ),
                         )
 
                     # 更新抽獎狀態

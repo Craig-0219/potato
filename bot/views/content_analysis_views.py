@@ -73,7 +73,8 @@ class ContentAnalysisMainView(discord.ui.View):
             stats = await content_analyzer.get_content_statistics(interaction.guild.id)
 
             embed = EmbedBuilder.create_info_embed(
-                "📈 內容分析統計", f"{interaction.guild.name} 的內容分析統計報告"
+                "📈 內容分析統計",
+                f"{interaction.guild.name} 的內容分析統計報告",
             )
 
             # 基本統計
@@ -134,7 +135,11 @@ class ContentAnalysisMainView(discord.ui.View):
                     inline=False,
                 )
 
-            embed.add_field(name="📊 統計期間", value="最近 7 天的數據分析結果", inline=False)
+            embed.add_field(
+                name="📊 統計期間",
+                value="最近 7 天的數據分析結果",
+                inline=False,
+            )
 
             embed.set_footer(
                 text=f"更新時間: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')} UTC"
@@ -297,7 +302,9 @@ class SentimentAnalysisModal(discord.ui.Modal):
                 )
 
             embed.add_field(
-                name="⏱️ 處理時間", value=f"{result.processing_time:.3f} 秒", inline=True
+                name="⏱️ 處理時間",
+                value=f"{result.processing_time:.3f} 秒",
+                inline=True,
             )
 
             embed.set_footer(text=f"分析者: {interaction.user.display_name}")
@@ -433,7 +440,9 @@ class SafetyCheckModal(discord.ui.Modal):
                         )
 
             embed.add_field(
-                name="⏱️ 處理時間", value=f"{result.processing_time:.3f} 秒", inline=True
+                name="⏱️ 處理時間",
+                value=f"{result.processing_time:.3f} 秒",
+                inline=True,
             )
 
             embed.set_footer(text=f"檢測者: {interaction.user.display_name}")
@@ -533,7 +542,9 @@ class LinkCheckModal(discord.ui.Modal):
                 )
 
             embed.add_field(
-                name="⏱️ 處理時間", value=f"{result.processing_time:.3f} 秒", inline=True
+                name="⏱️ 處理時間",
+                value=f"{result.processing_time:.3f} 秒",
+                inline=True,
             )
 
             embed.set_footer(text=f"檢測者: {interaction.user.display_name}")

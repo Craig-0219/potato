@@ -166,7 +166,9 @@ class AIReplyEditModal(discord.ui.Modal):
 
             if rating:
                 success_embed.add_field(
-                    name="📊 評分記錄", value=f"您的評分：{rating}/5 ⭐", inline=False
+                    name="📊 評分記錄",
+                    value=f"您的評分：{rating}/5 ⭐",
+                    inline=False,
                 )
 
             await interaction.response.send_message(embed=success_embed, ephemeral=True)

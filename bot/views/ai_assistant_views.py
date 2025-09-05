@@ -8,7 +8,12 @@ import traceback
 
 import discord
 
-from bot.services.ai_assistant import AIProvider, AIRequest, AITaskType, ai_assistant
+from bot.services.ai_assistant import (
+    AIProvider,
+    AIRequest,
+    AITaskType,
+    ai_assistant,
+)
 from bot.utils.embed_builder import EmbedBuilder
 from shared.logger import logger
 
@@ -61,7 +66,12 @@ class AIModelSelector(discord.ui.Select):
                 )
             )
 
-        super().__init__(placeholder="選擇 AI 模型...", min_values=1, max_values=1, options=options)
+        super().__init__(
+            placeholder="選擇 AI 模型...",
+            min_values=1,
+            max_values=1,
+            options=options,
+        )
 
     async def callback(self, interaction: discord.Interaction):
         """模型選擇回調"""
@@ -141,7 +151,12 @@ class AITaskSelector(discord.ui.Select):
             ),
         ]
 
-        super().__init__(placeholder="選擇任務類型...", min_values=1, max_values=1, options=options)
+        super().__init__(
+            placeholder="選擇任務類型...",
+            min_values=1,
+            max_values=1,
+            options=options,
+        )
 
     async def callback(self, interaction: discord.Interaction):
         """任務類型選擇回調"""
@@ -430,7 +445,8 @@ class AIMainMenuView(discord.ui.View):
             control_view = AIAssistantControlView()
 
             embed = EmbedBuilder.create_info_embed(
-                "🤖 AI 智能助手", "歡迎使用 AI 智能助手！請選擇模型和任務類型開始使用。"
+                "🤖 AI 智能助手",
+                "歡迎使用 AI 智能助手！請選擇模型和任務類型開始使用。",
             )
 
             # 顯示可用的 AI 提供商
@@ -443,7 +459,11 @@ class AIMainMenuView(discord.ui.View):
                 available_models.append("✅ Google Gemini")
 
             if available_models:
-                embed.add_field(name="🔧 可用模型", value="\\n".join(available_models), inline=True)
+                embed.add_field(
+                    name="🔧 可用模型",
+                    value="\\n".join(available_models),
+                    inline=True,
+                )
             else:
                 embed.add_field(
                     name="⚠️ 模型狀態",
@@ -476,7 +496,11 @@ class AIMainMenuView(discord.ui.View):
 
             # 檢查各個 AI 服務的狀態
             status_info = []
-            for provider in [AIProvider.OPENAI, AIProvider.CLAUDE, AIProvider.GEMINI]:
+            for provider in [
+                AIProvider.OPENAI,
+                AIProvider.CLAUDE,
+                AIProvider.GEMINI,
+            ]:
                 if provider in ai_assistant.available_providers:
                     status_info.append(f"✅ {provider.value}: 可用")
                 else:

@@ -131,7 +131,9 @@ class PlayerManager:
 
             # 記錄活動
             await self._record_activity(
-                minecraft_uuid, "join", {"action": "bind", "discord_id": discord_id}
+                minecraft_uuid,
+                "join",
+                {"action": "bind", "discord_id": discord_id},
             )
 
             logger.info(
@@ -226,7 +228,10 @@ class PlayerManager:
                     await self._record_activity(
                         player_data["minecraft_uuid"],
                         "join",
-                        {"status": "online", "timestamp": current_time.isoformat()},
+                        {
+                            "status": "online",
+                            "timestamp": current_time.isoformat(),
+                        },
                     )
 
         except Exception as e:
@@ -337,7 +342,10 @@ class PlayerManager:
             return []
 
     async def _record_activity(
-        self, minecraft_uuid: str, activity_type: str, activity_data: Dict[str, Any]
+        self,
+        minecraft_uuid: str,
+        activity_type: str,
+        activity_data: Dict[str, Any],
     ):
         """記錄玩家活動"""
         try:

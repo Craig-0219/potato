@@ -269,7 +269,10 @@ class AuthenticationManager:
         try:
             salt, stored_hash = password_hash.split(":")
             pwd_hash = hashlib.pbkdf2_hmac(
-                "sha256", password.encode("utf-8"), salt.encode("utf-8"), 100000
+                "sha256",
+                password.encode("utf-8"),
+                salt.encode("utf-8"),
+                100000,
             )
             return pwd_hash.hex() == stored_hash
         except:
@@ -473,7 +476,7 @@ class AuthenticationManager:
                         discord_id=result["discord_id"],
                         username=result["username"],
                         guild_id=result["guild_id"],
-                        roles=json.loads(result["roles"]) if result["roles"] else [],
+                        roles=(json.loads(result["roles"]) if result["roles"] else []),
                         permissions=final_permissions,
                         is_admin=result["is_admin"],
                         is_staff=result["is_staff"],
@@ -507,7 +510,13 @@ class AuthenticationManager:
                         (session_token, user_id, ip_address, user_agent, expires_at)
                         VALUES (%s, %s, %s, %s, %s)
                     """,
-                        (session_token, user_id, ip_address, user_agent, expires_at),
+                        (
+                            session_token,
+                            user_id,
+                            ip_address,
+                            user_agent,
+                            expires_at,
+                        ),
                     )
                     await conn.commit()
 
@@ -552,7 +561,7 @@ class AuthenticationManager:
                         discord_id=result["discord_id"],
                         username=result["username"],
                         guild_id=result["guild_id"],
-                        roles=json.loads(result["roles"]) if result["roles"] else [],
+                        roles=(json.loads(result["roles"]) if result["roles"] else []),
                         permissions=(
                             json.loads(result["permissions"]) if result["permissions"] else []
                         ),

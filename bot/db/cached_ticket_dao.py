@@ -144,7 +144,11 @@ class CachedTicketDAO:
 
     @cached("guild_tickets", ttl=180)
     async def get_guild_tickets(
-        self, guild_id: int, status: str = None, limit: int = 100, offset: int = 0
+        self,
+        guild_id: int,
+        status: str = None,
+        limit: int = 100,
+        offset: int = 0,
     ) -> Tuple[List[Dict], int]:
         """獲取伺服器票券列表（帶快取和分頁）"""
         try:

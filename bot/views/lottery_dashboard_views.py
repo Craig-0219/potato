@@ -175,7 +175,11 @@ class LotteryStatsDashboardView(ui.View):
                 for day, count in list(report["daily_trend"].items())[-7:]:
                     trend_text += f"{day}: {count} 個抽獎\n"
 
-                embed.add_field(name="📈 每日趨勢 (最近 7 天)", value=trend_text, inline=False)
+                embed.add_field(
+                    name="📈 每日趨勢 (最近 7 天)",
+                    value=trend_text,
+                    inline=False,
+                )
 
             embed.set_footer(text=f"報告生成時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
@@ -324,7 +328,11 @@ class LotteryStatsDashboardView(ui.View):
                 date = (datetime.now() - timedelta(days=i)).strftime("%m-%d")
                 daily_trend[date] = 0  # 簡化，實際應該查詢資料庫
 
-            report = {**stats, "win_rate": win_rate, "daily_trend": daily_trend}
+            report = {
+                **stats,
+                "win_rate": win_rate,
+                "daily_trend": daily_trend,
+            }
 
             return report
 
@@ -393,7 +401,11 @@ class UserLotteryHistoryView(ui.View):
             embed = EmbedBuilder.create_info_embed(f"📋 <@{self.user_id}> 的抽獎歷史")
 
             for record in current_page_history:
-                status_emoji = {"active": "🟢", "ended": "✅", "cancelled": "❌"}
+                status_emoji = {
+                    "active": "🟢",
+                    "ended": "✅",
+                    "cancelled": "❌",
+                }
 
                 win_text = "🏆 中獎" if record.get("is_winner") else "📝 參與"
                 position_text = (

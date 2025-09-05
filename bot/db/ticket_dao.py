@@ -70,7 +70,8 @@ class TicketDAO:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
-                        "DELETE FROM ticket_logs WHERE created_at < %s", (cutoff_date,)
+                        "DELETE FROM ticket_logs WHERE created_at < %s",
+                        (cutoff_date,),
                     )
                     await conn.commit()
 
@@ -350,7 +351,8 @@ class TicketDAO:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
-                        "SELECT * FROM tickets WHERE channel_id = %s", (channel_id,)
+                        "SELECT * FROM tickets WHERE channel_id = %s",
+                        (channel_id,),
                     )
                     result = await cursor.fetchone()
                     if result:
@@ -389,7 +391,8 @@ class TicketDAO:
                 async with conn.cursor() as cursor:
                     # 總數查詢
                     await cursor.execute(
-                        f"SELECT COUNT(*) FROM tickets WHERE {where_clause}", params
+                        f"SELECT COUNT(*) FROM tickets WHERE {where_clause}",
+                        params,
                     )
                     total_result = await cursor.fetchone()
                     total = total_result[0] if total_result else 0
@@ -854,7 +857,8 @@ class TicketDAO:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
-                        "SELECT * FROM ticket_settings WHERE guild_id = %s", (guild_id,)
+                        "SELECT * FROM ticket_settings WHERE guild_id = %s",
+                        (guild_id,),
                     )
 
                     result = await cursor.fetchone()
@@ -1242,7 +1246,7 @@ class TicketDAO:
                                 "created_count": row[1],
                                 "closed_count": row[2],
                                 "open_count": row[3],
-                                "avg_resolution_time": float(row[4]) if row[4] else 0.0,
+                                "avg_resolution_time": (float(row[4]) if row[4] else 0.0),
                             }
                         )
 
@@ -1286,7 +1290,7 @@ class TicketDAO:
                     if row:
                         metrics = {
                             "total_tickets": row[0],
-                            "avg_resolution_time": float(row[1]) if row[1] else 0.0,
+                            "avg_resolution_time": (float(row[1]) if row[1] else 0.0),
                             "closed_tickets": row[2],
                             "open_tickets": row[3],
                             "resolution_rate": ((row[2] / row[0] * 100) if row[0] > 0 else 0),
@@ -1305,7 +1309,11 @@ class TicketDAO:
                             "closed_tickets": 0,
                             "open_tickets": 0,
                             "resolution_rate": 0,
-                            "priority_distribution": {"high": 0, "medium": 0, "low": 0},
+                            "priority_distribution": {
+                                "high": 0,
+                                "medium": 0,
+                                "low": 0,
+                            },
                         }
 
         except Exception as e:

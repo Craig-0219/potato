@@ -11,7 +11,10 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.services.security.audit_manager import ComplianceStandard, audit_manager
+from bot.services.security.audit_manager import (
+    ComplianceStandard,
+    audit_manager,
+)
 from bot.services.security.mfa_manager import mfa_manager
 from bot.services.security.rbac_manager import Permission, rbac_manager
 from bot.utils.interaction_helper import SafeInteractionHandler
@@ -60,7 +63,9 @@ class SecurityAdminCore(commands.Cog):
 
             if not await rbac_manager.check_permission(user_id, guild_id, Permission.SYSTEM_ADMIN):
                 await SafeInteractionHandler.safe_followup(
-                    interaction, "❌ 您沒有存取安全儀表板的權限", ephemeral=True
+                    interaction,
+                    "❌ 您沒有存取安全儀表板的權限",
+                    ephemeral=True,
                 )
                 return
 
@@ -221,7 +226,11 @@ class SecurityAdminCore(commands.Cog):
                 methods_status.append(f"{icon} {method.upper()}: {setup_date}")
 
             if methods_status:
-                embed.add_field(name="🔧 認證方法", value="\n".join(methods_status), inline=True)
+                embed.add_field(
+                    name="🔧 認證方法",
+                    value="\n".join(methods_status),
+                    inline=True,
+                )
 
             # 備用代碼
             embed.add_field(
@@ -295,7 +304,11 @@ class SecurityAdminCore(commands.Cog):
             )
 
             # 最近角色變更
-            embed.add_field(name="📋 最近變更", value="點擊下方按鈕查看詳細資訊", inline=True)
+            embed.add_field(
+                name="📋 最近變更",
+                value="點擊下方按鈕查看詳細資訊",
+                inline=True,
+            )
 
             await SafeInteractionHandler.safe_followup(
                 interaction, embed=embed, view=view, ephemeral=True
@@ -531,7 +544,9 @@ class SecurityAdminCore(commands.Cog):
 
                     file = discord.File(filename, filename=filename)
                     embed.add_field(
-                        name="📎 完整報告", value="請查看附件中的詳細報告", inline=False
+                        name="📎 完整報告",
+                        value="請查看附件中的詳細報告",
+                        inline=False,
                     )
 
                     await SafeInteractionHandler.safe_followup(
@@ -606,7 +621,9 @@ class SecurityAdminCore(commands.Cog):
         except Exception as e:
             logger.error(f"❌ API 密鑰管理錯誤: {e}")
             await SafeInteractionHandler.safe_followup(
-                interaction, f"❌ API 密鑰管理載入失敗: {str(e)}", ephemeral=True
+                interaction,
+                f"❌ API 密鑰管理載入失敗: {str(e)}",
+                ephemeral=True,
             )
 
     # =========================

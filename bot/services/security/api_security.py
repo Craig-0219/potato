@@ -236,7 +236,10 @@ class APISecurityManager:
                     category=EventCategory.SYSTEM_CONFIG,
                     severity=EventSeverity.INFO,
                     message=f"API 密鑰已創建: {name}",
-                    details={"api_key_id": api_key_id, "key_type": key_type.value},
+                    details={
+                        "api_key_id": api_key_id,
+                        "key_type": key_type.value,
+                    },
                 )
             )
 
@@ -448,7 +451,10 @@ class APISecurityManager:
             return False, {"error": "internal_error"}
 
     async def generate_jwt_token(
-        self, user_id: int, permissions: List[str] = None, expires_in: int = None
+        self,
+        user_id: int,
+        permissions: List[str] = None,
+        expires_in: int = None,
     ) -> str:
         """
         生成 JWT 令牌
@@ -620,7 +626,10 @@ class APISecurityManager:
                     category=EventCategory.SYSTEM_CONFIG,
                     severity=EventSeverity.INFO,
                     message=f"API 密鑰已撤銷: {name}",
-                    details={"api_key_id": api_key_id, "revoked_by": revoked_by},
+                    details={
+                        "api_key_id": api_key_id,
+                        "revoked_by": revoked_by,
+                    },
                 )
             )
 

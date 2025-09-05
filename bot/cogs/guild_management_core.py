@@ -127,7 +127,9 @@ class GuildManagementCore(commands.Cog):
             )
 
     async def _process_data_export(
-        self, interaction: discord.Interaction, export_request: DataExportRequest
+        self,
+        interaction: discord.Interaction,
+        export_request: DataExportRequest,
     ):
         """處理數據導出"""
         try:
@@ -204,7 +206,9 @@ class GuildManagementCore(commands.Cog):
 
             if confirm.upper() != "CONFIRM":
                 await SafeInteractionHandler.safe_followup(
-                    interaction, "❌ 請輸入 'CONFIRM' 來確認刪除操作", ephemeral=True
+                    interaction,
+                    "❌ 請輸入 'CONFIRM' 來確認刪除操作",
+                    ephemeral=True,
                 )
                 return
 
@@ -376,7 +380,11 @@ class GuildManagementCore(commands.Cog):
                     alerts_text += f"⚠️ {alert.get('event_name', 'Unknown')} "
                     alerts_text += f"(<t:{int(timestamp.timestamp())}:R>)\n"
 
-                embed.add_field(name="🚨 最近警告", value=alerts_text or "無警告", inline=False)
+                embed.add_field(
+                    name="🚨 最近警告",
+                    value=alerts_text or "無警告",
+                    inline=False,
+                )
 
             embed.set_footer(text=f"數據更新時間")
 

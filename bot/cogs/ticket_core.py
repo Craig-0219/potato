@@ -24,7 +24,11 @@ from bot.services.ticket_manager import TicketManager
 from bot.utils.embed_builder import EmbedBuilder
 from bot.utils.helper import format_duration, get_time_ago
 from bot.utils.ticket_constants import TicketConstants
-from bot.views.ticket_views import RatingView, TicketControlView, TicketPanelView
+from bot.views.ticket_views import (
+    RatingView,
+    TicketControlView,
+    TicketPanelView,
+)
 from shared.logger import logger
 
 
@@ -111,7 +115,10 @@ class TicketCore(commands.Cog):
     @commands.command(name="set_ticket_category", aliases=["set_category", "ticket_category"])
     @commands.has_permissions(manage_guild=True)
     async def set_ticket_category(
-        self, ctx: commands.Context, *, category: discord.CategoryChannel = None
+        self,
+        ctx: commands.Context,
+        *,
+        category: discord.CategoryChannel = None,
     ):
         """
         設定票券分類頻道
@@ -523,7 +530,11 @@ class TicketCore(commands.Cog):
                         f"• {method_name}: {method['count']}次 ({method['percentage']:.1f}%)"
                     )
 
-                embed.add_field(name="🎯 指派方法分析", value="\n".join(method_stats), inline=True)
+                embed.add_field(
+                    name="🎯 指派方法分析",
+                    value="\n".join(method_stats),
+                    inline=True,
+                )
 
             # 績效排行
             if analytics["staff_summary"]:
@@ -557,7 +568,10 @@ class TicketCore(commands.Cog):
         ]
     )
     async def set_priority(
-        self, interaction: discord.Interaction, priority: str, ticket_id: int = None
+        self,
+        interaction: discord.Interaction,
+        priority: str,
+        ticket_id: int = None,
     ):
         """設定票券優先級"""
         try:
@@ -598,7 +612,11 @@ class TicketCore(commands.Cog):
 
             if success:
                 priority_emoji = TicketConstants.PRIORITY_EMOJIS.get(priority, "🟡")
-                priority_name = {"high": "高", "medium": "中", "low": "低"}.get(priority, priority)
+                priority_name = {
+                    "high": "高",
+                    "medium": "中",
+                    "low": "低",
+                }.get(priority, priority)
 
                 embed = EmbedBuilder.success(
                     "優先級已更新",
@@ -854,7 +872,9 @@ class TicketCore(commands.Cog):
                 return
             # 在關閉票券前先匯入聊天歷史記錄
             try:
-                from bot.services.chat_transcript_manager import ChatTranscriptManager
+                from bot.services.chat_transcript_manager import (
+                    ChatTranscriptManager,
+                )
 
                 transcript_manager = ChatTranscriptManager()
 
@@ -902,7 +922,10 @@ class TicketCore(commands.Cog):
             if not interaction.response.is_done():
                 await interaction.response.send_message("❌ 發生錯誤，請稍後再試。", ephemeral=True)
 
-    @app_commands.command(name="ticket_info", description="查看票券資訊 | View ticket information")
+    @app_commands.command(
+        name="ticket_info",
+        description="查看票券資訊 | View ticket information",
+    )
     @app_commands.describe(ticket_id="票券編號（可選）")
     async def ticket_info(self, interaction: discord.Interaction, ticket_id: int = None):
         """
@@ -1117,7 +1140,10 @@ class TicketCore(commands.Cog):
         try:
             # 根據名稱查找標籤
             tags = await self.tag_dao.get_tags_by_guild(ctx.guild.id)
-            tag = next((t for t in tags if t["name"].lower() == tag_name.lower()), None)
+            tag = next(
+                (t for t in tags if t["name"].lower() == tag_name.lower()),
+                None,
+            )
 
             if not tag:
                 await ctx.send(f"❌ 找不到標籤 '{tag_name}'")
@@ -1161,7 +1187,10 @@ class TicketCore(commands.Cog):
     @app_commands.command(name="add_tag", description="為票券添加標籤 | Add tag to ticket")
     @app_commands.describe(tag_name="標籤名稱", ticket_id="票券ID（可選，預設為當前頻道票券）")
     async def add_tag_to_ticket_slash(
-        self, interaction: discord.Interaction, tag_name: str, ticket_id: int = None
+        self,
+        interaction: discord.Interaction,
+        tag_name: str,
+        ticket_id: int = None,
     ):
         """為票券添加標籤（slash指令）"""
         try:
@@ -1192,7 +1221,10 @@ class TicketCore(commands.Cog):
 
             # 查找標籤
             tags = await self.tag_dao.get_tags_by_guild(interaction.guild.id)
-            tag = next((t for t in tags if t["name"].lower() == tag_name.lower()), None)
+            tag = next(
+                (t for t in tags if t["name"].lower() == tag_name.lower()),
+                None,
+            )
 
             if not tag:
                 await interaction.response.send_message(
@@ -1403,7 +1435,7 @@ class TicketCore(commands.Cog):
 
                 embed.add_field(
                     name="🎯 優先級分析",
-                    value="\n".join(priority_text) if priority_text else "無數據",
+                    value=("\n".join(priority_text) if priority_text else "無數據"),
                     inline=True,
                 )
 

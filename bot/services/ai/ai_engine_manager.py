@@ -232,7 +232,10 @@ class AIEngineManager:
         # 對於複雜問題，優先使用高級模型
         if complexity_score > 0.7:
             for provider, _ in available_providers:
-                if provider in [AIProvider.OPENAI_GPT4, AIProvider.CLAUDE_3_OPUS]:
+                if provider in [
+                    AIProvider.OPENAI_GPT4,
+                    AIProvider.CLAUDE_3_OPUS,
+                ]:
                     return provider
 
         return available_providers[0][0]
@@ -301,7 +304,10 @@ class AIEngineManager:
         try:
             if provider in [AIProvider.OPENAI_GPT4, AIProvider.OPENAI_GPT35]:
                 return await self._call_openai(provider_config, prompt, max_tokens, temperature)
-            elif provider in [AIProvider.CLAUDE_3_OPUS, AIProvider.CLAUDE_3_SONNET]:
+            elif provider in [
+                AIProvider.CLAUDE_3_OPUS,
+                AIProvider.CLAUDE_3_SONNET,
+            ]:
                 return await self._call_claude(provider_config, prompt, max_tokens, temperature)
             else:
                 raise ValueError(f"不支援的 AI 提供商: {provider}")
@@ -311,7 +317,11 @@ class AIEngineManager:
             raise
 
     async def _call_openai(
-        self, config: Dict[str, Any], prompt: str, max_tokens: int, temperature: float
+        self,
+        config: Dict[str, Any],
+        prompt: str,
+        max_tokens: int,
+        temperature: float,
     ) -> Dict[str, Any]:
         """呼叫 OpenAI API"""
 
@@ -339,7 +349,11 @@ class AIEngineManager:
             raise
 
     async def _call_claude(
-        self, config: Dict[str, Any], prompt: str, max_tokens: int, temperature: float
+        self,
+        config: Dict[str, Any],
+        prompt: str,
+        max_tokens: int,
+        temperature: float,
     ) -> Dict[str, Any]:
         """呼叫 Claude API"""
 
@@ -538,6 +552,9 @@ class AIEngineManager:
                     "response_time": test_response.response_time,
                 }
             except Exception as e:
-                health_status[provider.value] = {"status": "unhealthy", "error": str(e)}
+                health_status[provider.value] = {
+                    "status": "unhealthy",
+                    "error": str(e),
+                }
 
         return health_status

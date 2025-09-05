@@ -538,7 +538,13 @@ class TagDAO:
                         ORDER BY s.usage_count DESC, t.display_name ASC
                         LIMIT %s
                     """,
-                        (guild_id, f"%{query}%", f"%{query}%", f"%{query}%", limit),
+                        (
+                            guild_id,
+                            f"%{query}%",
+                            f"%{query}%",
+                            f"%{query}%",
+                            limit,
+                        ),
                     )
 
                     results = await cursor.fetchall()

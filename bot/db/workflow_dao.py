@@ -190,7 +190,8 @@ class WorkflowDAO(BaseDAO):
                 async with conn.cursor() as cursor:
                     # 獲取當前版本
                     await cursor.execute(
-                        "SELECT version FROM workflows WHERE id = %s", (workflow_id,)
+                        "SELECT version FROM workflows WHERE id = %s",
+                        (workflow_id,),
                     )
                     result = await cursor.fetchone()
                     if not result:
@@ -253,7 +254,11 @@ class WorkflowDAO(BaseDAO):
 
                     # 記錄變更歷史
                     await self._log_workflow_history(
-                        workflow_id, new_version, updated_by, "updated", updates
+                        workflow_id,
+                        new_version,
+                        updated_by,
+                        "updated",
+                        updates,
                     )
 
                     return cursor.rowcount > 0
@@ -370,7 +375,7 @@ class WorkflowDAO(BaseDAO):
                                 "updated_at": result[8],
                                 "execution_count": result[9],
                                 "last_executed": result[10],
-                                "tags": json.loads(result[11]) if result[11] else [],
+                                "tags": (json.loads(result[11]) if result[11] else []),
                                 "version": result[12],
                             }
                         )
@@ -494,7 +499,7 @@ class WorkflowDAO(BaseDAO):
                     return {
                         "id": result[0],
                         "workflow_id": result[1],
-                        "trigger_data": json.loads(result[2]) if result[2] else {},
+                        "trigger_data": (json.loads(result[2]) if result[2] else {}),
                         "start_time": result[3],
                         "end_time": result[4],
                         "status": result[5],
@@ -863,7 +868,7 @@ class WorkflowDAO(BaseDAO):
                                 "version": result[1],
                                 "changed_by": result[2],
                                 "change_type": result[3],
-                                "changes": json.loads(result[4]) if result[4] else {},
+                                "changes": (json.loads(result[4]) if result[4] else {}),
                                 "created_at": result[5],
                             }
                         )

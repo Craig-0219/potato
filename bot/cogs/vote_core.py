@@ -139,7 +139,8 @@ class VoteCore(commands.Cog):
                 )
 
     @app_commands.command(
-        name="votes", description="查看目前進行中的投票 | View current active votes"
+        name="votes",
+        description="查看目前進行中的投票 | View current active votes",
     )
     async def votes(self, interaction: discord.Interaction):
         try:
@@ -175,7 +176,10 @@ class VoteCore(commands.Cog):
                 return
 
             embed = build_result_embed(
-                data["vote"]["title"], data["stats"], data["total"], vote_id=vote_id
+                data["vote"]["title"],
+                data["stats"],
+                data["total"],
+                vote_id=vote_id,
             )
             await interaction.response.send_message(embed=embed)
         except Exception:
@@ -228,7 +232,10 @@ class VoteCore(commands.Cog):
         status="篩選狀態：all(全部) / active(進行中) / finished(已結束)",
     )
     async def vote_history(
-        self, interaction: discord.Interaction, page: int = 1, status: str = "all"
+        self,
+        interaction: discord.Interaction,
+        page: int = 1,
+        status: str = "all",
     ):
         try:
             await interaction.response.defer()
@@ -389,7 +396,8 @@ class VoteCore(commands.Cog):
             await interaction.followup.send("❌ 查詢投票詳情時發生錯誤。")
 
     @app_commands.command(
-        name="my_votes", description="查看我參與過的投票 | View my participated votes"
+        name="my_votes",
+        description="查看我參與過的投票 | View my participated votes",
     )
     async def my_votes(self, interaction: discord.Interaction):
         try:
@@ -401,7 +409,8 @@ class VoteCore(commands.Cog):
                 return
 
             embed = discord.Embed(
-                title=f"🙋‍♂️ {interaction.user.display_name} 的投票記錄", color=0x2ECC71
+                title=f"🙋‍♂️ {interaction.user.display_name} 的投票記錄",
+                color=0x2ECC71,
             )
 
             for vote_info in user_votes[:10]:  # 限制顯示最近10筆
@@ -616,7 +625,8 @@ class VoteCore(commands.Cog):
             )
 
             await interaction.response.send_message(
-                f"🎉 投票成功！你選擇了：{', '.join(selected_options)}", ephemeral=True
+                f"🎉 投票成功！你選擇了：{', '.join(selected_options)}",
+                ephemeral=True,
             )
 
             # ✅ 清除快取，強制重新載入
@@ -884,7 +894,11 @@ class NextPageButton(discord.ui.Button):
                         inline=True,
                     )
                 else:
-                    embed.add_field(name="👥 創建權限", value="所有用戶皆可建立", inline=True)
+                    embed.add_field(
+                        name="👥 創建權限",
+                        value="所有用戶皆可建立",
+                        inline=True,
+                    )
             else:
                 embed.add_field(
                     name="⚠️ 系統狀態",
@@ -918,7 +932,11 @@ class NextPageButton(discord.ui.Button):
                 description=f"預設投票頻道已設定為 {channel.mention}",
                 color=0x2ECC71,
             )
-            embed.add_field(name="📋 說明", value="新建立的投票將自動發布到此頻道", inline=False)
+            embed.add_field(
+                name="📋 說明",
+                value="新建立的投票將自動發布到此頻道",
+                inline=False,
+            )
         else:
             embed = discord.Embed(
                 title="❌ 設定失敗",
@@ -944,7 +962,9 @@ class NextPageButton(discord.ui.Button):
                 color=0x2ECC71,
             )
             embed.add_field(
-                name="📋 說明", value="投票結束後的結果將自動公告到此頻道", inline=False
+                name="📋 說明",
+                value="投票結束後的結果將自動公告到此頻道",
+                inline=False,
             )
         else:
             embed = discord.Embed(
@@ -962,7 +982,9 @@ class NextPageButton(discord.ui.Button):
         success = await vote_dao.update_vote_settings(ctx.guild.id, {"is_enabled": True})
         if success:
             embed = discord.Embed(
-                title="✅ 系統已啟用", description="投票系統現在已啟用", color=0x2ECC71
+                title="✅ 系統已啟用",
+                description="投票系統現在已啟用",
+                color=0x2ECC71,
             )
         else:
             embed = discord.Embed(
@@ -1084,7 +1106,11 @@ class NextPageButton(discord.ui.Button):
                 inline=False,
             )
 
-            embed.add_field(name="💡 使用說明", value="點擊下方按鈕開始使用投票系統", inline=False)
+            embed.add_field(
+                name="💡 使用說明",
+                value="點擊下方按鈕開始使用投票系統",
+                inline=False,
+            )
 
             view = VoteManagementView()
             await interaction.response.send_message(embed=embed, view=view, ephemeral=True)

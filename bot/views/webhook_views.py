@@ -56,9 +56,11 @@ class WebhookManagerView(ui.View):
                         "error": "❌",
                     }.get(webhook["status"], "❓")
 
-                    type_emoji = {"outgoing": "📤", "incoming": "📥", "both": "🔄"}.get(
-                        webhook["type"], "🔧"
-                    )
+                    type_emoji = {
+                        "outgoing": "📤",
+                        "incoming": "📥",
+                        "both": "🔄",
+                    }.get(webhook["type"], "🔧")
 
                     embed.add_field(
                         name=f"{status_emoji} {webhook['name']}",
@@ -117,7 +119,11 @@ class WebhookManagerView(ui.View):
                 for event, count in list(stats["event_distribution"].items())[:5]:
                     event_info.append(f"• {event}: {count}")
 
-                embed.add_field(name="🎯 熱門事件", value="\n".join(event_info), inline=False)
+                embed.add_field(
+                    name="🎯 熱門事件",
+                    value="\n".join(event_info),
+                    inline=False,
+                )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 
@@ -171,7 +177,8 @@ class WebhookCreateModal(ui.Modal):
             # 驗證URL格式
             if not self.url.value.startswith(("http://", "https://")):
                 await interaction.followup.send(
-                    "❌ 請提供有效的URL (必須以http://或https://開頭)", ephemeral=True
+                    "❌ 請提供有效的URL (必須以http://或https://開頭)",
+                    ephemeral=True,
                 )
                 return
 
@@ -295,7 +302,8 @@ class WebhookConfigModal(ui.Modal):
                     updates["headers"] = headers_dict
                 except json.JSONDecodeError:
                     await interaction.followup.send(
-                        "❌ 自定義請求頭格式錯誤，請使用有效的JSON格式", ephemeral=True
+                        "❌ 自定義請求頭格式錯誤，請使用有效的JSON格式",
+                        ephemeral=True,
                     )
                     return
 
@@ -352,7 +360,11 @@ class WebhookConfigModal(ui.Modal):
                         update_info.append(f"• 狀態: {value}")
 
                 if update_info:
-                    embed.add_field(name="🔄 更新項目", value="\n".join(update_info), inline=False)
+                    embed.add_field(
+                        name="🔄 更新項目",
+                        value="\n".join(update_info),
+                        inline=False,
+                    )
 
                 await interaction.followup.send(embed=embed, ephemeral=True)
             else:
@@ -366,7 +378,13 @@ class WebhookConfigModal(ui.Modal):
 class WebhookDetailView(ui.View):
     """Webhook詳情查看界面"""
 
-    def __init__(self, webhook_id: str, webhook_data: Dict[str, Any], user_id: int, timeout=300):
+    def __init__(
+        self,
+        webhook_id: str,
+        webhook_data: Dict[str, Any],
+        user_id: int,
+        timeout=300,
+    ):
         super().__init__(timeout=timeout)
         self.webhook_id = webhook_id
         self.webhook_data = webhook_data
@@ -409,7 +427,9 @@ class WebhookDetailView(ui.View):
             }
 
             await webhook_manager.trigger_webhook_event(
-                WebhookEvent.CUSTOM_EVENT, self.webhook_data["guild_id"], test_data
+                WebhookEvent.CUSTOM_EVENT,
+                self.webhook_data["guild_id"],
+                test_data,
             )
 
             embed = EmbedBuilder.build(
@@ -426,7 +446,11 @@ class WebhookDetailView(ui.View):
                 inline=False,
             )
 
-            embed.add_field(name="ℹ️ 說明", value="請檢查目標端點是否收到測試數據", inline=False)
+            embed.add_field(
+                name="ℹ️ 說明",
+                value="請檢查目標端點是否收到測試數據",
+                inline=False,
+            )
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 

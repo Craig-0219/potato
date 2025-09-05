@@ -176,7 +176,10 @@ class APIManager:
             window_start = now.replace(minute=0, second=0, microsecond=0)
 
             if key_id not in self.rate_limits:
-                self.rate_limits[key_id] = {"count": 0, "window_start": window_start}
+                self.rate_limits[key_id] = {
+                    "count": 0,
+                    "window_start": window_start,
+                }
 
             rate_data = self.rate_limits[key_id]
 
@@ -396,7 +399,10 @@ class APIManager:
         status = request.parameters.get("status")
 
         tickets, total_count = await self.ticket_manager.dao.paginate_tickets(
-            guild_id=request.guild_id, page=page, page_size=page_size, status=status
+            guild_id=request.guild_id,
+            page=page,
+            page_size=page_size,
+            status=status,
         )
 
         return {
@@ -496,7 +502,10 @@ class APIManager:
                 "type": "API Key + Signature",
                 "description": "使用 API Key 和 HMAC 簽名進行認證",
             },
-            "rate_limits": {"description": "每小時限制請求次數", "default_limit": 100},
+            "rate_limits": {
+                "description": "每小時限制請求次數",
+                "default_limit": 100,
+            },
             "endpoints": {},
         }
 
@@ -518,10 +527,18 @@ class APIManager:
         # 這裡可以根據不同端點返回參數描述
         parameter_docs = {
             "GET /api/v1/statistics/overview": {
-                "days": {"type": "integer", "default": 30, "description": "統計天數"}
+                "days": {
+                    "type": "integer",
+                    "default": 30,
+                    "description": "統計天數",
+                }
             },
             "GET /api/v1/tickets": {
-                "page": {"type": "integer", "default": 1, "description": "頁碼"},
+                "page": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "頁碼",
+                },
                 "page_size": {
                     "type": "integer",
                     "default": 50,

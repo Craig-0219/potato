@@ -377,7 +377,10 @@ class DashboardManager:
             title="📈 票券趨勢分析",
             labels=dates,
             datasets=datasets,
-            options={"responsive": True, "scales": {"y": {"beginAtZero": True}}},
+            options={
+                "responsive": True,
+                "scales": {"y": {"beginAtZero": True}},
+            },
         )
 
     async def _create_response_time_chart(self, performance_data: Dict[str, Any]) -> ChartData:
@@ -530,7 +533,13 @@ class DashboardManager:
         workflow_data.get("overall_stats", {})
 
         # 模擬工作流程效率數據
-        workflow_names = ["自動歡迎", "票券指派", "SLA監控", "報告生成", "用戶通知"]
+        workflow_names = [
+            "自動歡迎",
+            "票券指派",
+            "SLA監控",
+            "報告生成",
+            "用戶通知",
+        ]
         efficiency_scores = [95.2, 87.8, 92.5, 89.3, 94.1]
 
         return ChartData(
@@ -1042,7 +1051,10 @@ class DashboardManager:
             "system_uptime": {"critical": 95.0, "warning": 98.0},  # %
             "automation_coverage": {"critical": 50.0, "warning": 70.0},  # %
             # 滿意度類指標
-            "customer_satisfaction": {"critical": 3.0, "warning": 4.0},  # 1-5分
+            "customer_satisfaction": {
+                "critical": 3.0,
+                "warning": 4.0,
+            },  # 1-5分
             # 系統性能指標
             "response_latency": {"good": 100.0, "warning": 300.0},  # ms
             "error_rate": {"good": 0.5, "warning": 2.0},  # %
@@ -1175,7 +1187,11 @@ class DashboardManager:
 
         except Exception as e:
             logger.error(f"計算工作流程效率失敗: {e}")
-            return {"efficiency_score": 0, "success_rate": 0, "avg_execution_time": 0}
+            return {
+                "efficiency_score": 0,
+                "success_rate": 0,
+                "avg_execution_time": 0,
+            }
 
     async def _get_detailed_performance_data(self, guild_id: int, days: int) -> Dict[str, Any]:
         """獲取詳細性能數據"""
@@ -1216,7 +1232,7 @@ class DashboardManager:
             return {
                 "daily_volumes": daily_volumes,
                 "date_range": {"start": start_date, "end": end_date},
-                "data_quality": "good" if len(daily_volumes) >= 30 else "limited",
+                "data_quality": ("good" if len(daily_volumes) >= 30 else "limited"),
             }
 
         except Exception as e:
@@ -1488,7 +1504,10 @@ class DashboardManager:
 
             # 計算綜合性能評分
             score_components = [
-                min(100, max(0, 100 - (raw_metrics["avg_resolution_time"] - 2) * 10)),
+                min(
+                    100,
+                    max(0, 100 - (raw_metrics["avg_resolution_time"] - 2) * 10),
+                ),
                 raw_metrics["resolution_rate"],
                 raw_metrics["customer_satisfaction"] * 20,  # 轉換為百分比
                 raw_metrics["system_uptime"],

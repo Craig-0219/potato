@@ -36,7 +36,10 @@ from bot.views.game_views import (
 )
 from shared.cache_manager import cache_manager
 from shared.logger import logger
-from shared.prometheus_metrics import prometheus_metrics, track_command_execution
+from shared.prometheus_metrics import (
+    prometheus_metrics,
+    track_command_execution,
+)
 
 
 class GameType(Enum):
@@ -105,11 +108,20 @@ class GameEntertainment(commands.Cog):
                 "choices": ["rock", "paper", "scissors"],
                 "rewards": {"win": 30, "draw": 10},
             },
-            GameType.COIN_FLIP: {"min_bet": 10, "max_bet": 1000, "win_multiplier": 2.0},
+            GameType.COIN_FLIP: {
+                "min_bet": 10,
+                "max_bet": 1000,
+                "win_multiplier": 2.0,
+            },
             GameType.ROULETTE: {
                 "min_bet": 20,
                 "max_bet": 500,
-                "payouts": {"number": 35, "color": 2, "even_odd": 2, "dozen": 3},
+                "payouts": {
+                    "number": 35,
+                    "color": 2,
+                    "even_odd": 2,
+                    "dozen": 3,
+                },
             },
         }
 
@@ -501,7 +513,13 @@ class GameEntertainment(commands.Cog):
                     "legendary": "👑",
                 }
 
-                rarity_order = ["legendary", "epic", "rare", "uncommon", "common"]
+                rarity_order = [
+                    "legendary",
+                    "epic",
+                    "rare",
+                    "uncommon",
+                    "common",
+                ]
 
                 for rarity in rarity_order:
                     if rarity in rarity_groups:
@@ -596,7 +614,10 @@ class GameEntertainment(commands.Cog):
                 )
 
                 incomplete_count = 0
-                for ach_id, ach_def in self.achievement_manager.achievements.items():
+                for (
+                    ach_id,
+                    ach_def,
+                ) in self.achievement_manager.achievements.items():
                     progress = await self.achievement_manager.get_achievement_progress(
                         user_id, guild_id, ach_id
                     )
@@ -612,7 +633,11 @@ class GameEntertainment(commands.Cog):
                             )
 
                 if incomplete_count == 0:
-                    embed.add_field(name="🎉 恭喜！", value="您已經完成所有成就！", inline=False)
+                    embed.add_field(
+                        name="🎉 恭喜！",
+                        value="您已經完成所有成就！",
+                        inline=False,
+                    )
                 elif incomplete_count > 8:
                     embed.set_footer(text=f"還有 {incomplete_count - 8} 個成就未顯示")
 
@@ -772,7 +797,11 @@ class GameEntertainment(commands.Cog):
                         inline=True,
                     )
 
-                embed.add_field(name="⏰ 同步時間", value=f"<t:{int(time.time())}:R>", inline=True)
+                embed.add_field(
+                    name="⏰ 同步時間",
+                    value=f"<t:{int(time.time())}:R>",
+                    inline=True,
+                )
 
                 if result.get("cached"):
                     embed.add_field(
@@ -810,7 +839,9 @@ class GameEntertainment(commands.Cog):
             )
 
             embed = EmbedBuilder.build(
-                title="🌐 跨平台狀態", description="您的跨平台整合狀態", color=0x4169E1
+                title="🌐 跨平台狀態",
+                description="您的跨平台整合狀態",
+                color=0x4169E1,
             )
 
             if link_info:
@@ -904,7 +935,8 @@ class GameEntertainment(commands.Cog):
             )
             if user_session:
                 await interaction.response.send_message(
-                    "❌ 您已經有一個進行中的遊戲！請先完成當前遊戲。", ephemeral=True
+                    "❌ 您已經有一個進行中的遊戲！請先完成當前遊戲。",
+                    ephemeral=True,
                 )
                 return
 
@@ -1010,7 +1042,11 @@ class GameEntertainment(commands.Cog):
 
             # 檢查成就
             await self.achievement_manager.check_game_achievements(
-                session.player_id, session.guild_id, session.game_type, won, score
+                session.player_id,
+                session.guild_id,
+                session.game_type,
+                won,
+                score,
             )
 
             # 移除活躍會話

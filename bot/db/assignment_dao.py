@@ -321,12 +321,20 @@ class AssignmentDAO:
             return []
 
     async def find_specialty_staff(
-        self, guild_id: int, specialty_type: str, min_skill_level: str = "intermediate"
+        self,
+        guild_id: int,
+        specialty_type: str,
+        min_skill_level: str = "intermediate",
     ) -> List[Dict[str, Any]]:
         """根據專精查找客服人員"""
         await self._ensure_initialized()
         try:
-            skill_order = {"beginner": 1, "intermediate": 2, "advanced": 3, "expert": 4}
+            skill_order = {
+                "beginner": 1,
+                "intermediate": 2,
+                "advanced": 3,
+                "expert": 4,
+            }
             min_level_value = skill_order.get(min_skill_level, 2)
 
             async with self.db.connection() as conn:

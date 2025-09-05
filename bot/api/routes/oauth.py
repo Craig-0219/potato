@@ -27,7 +27,14 @@ DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI")
 DISCORD_GUILD_ID = os.getenv("DISCORD_GUILD_ID")
 
 # 驗證必要的環境變數
-if not all([DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI, DISCORD_GUILD_ID]):
+if not all(
+    [
+        DISCORD_CLIENT_ID,
+        DISCORD_CLIENT_SECRET,
+        DISCORD_REDIRECT_URI,
+        DISCORD_GUILD_ID,
+    ]
+):
     missing = [
         name
         for name, value in [

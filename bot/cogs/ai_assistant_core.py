@@ -100,7 +100,11 @@ class AIAssistantCog(commands.Cog):
                 available_models.append("✅ **Google Gemini**: 多模態任務")
 
             if available_models:
-                embed.add_field(name="🔧 可用模型", value="\n".join(available_models), inline=False)
+                embed.add_field(
+                    name="🔧 可用模型",
+                    value="\n".join(available_models),
+                    inline=False,
+                )
             else:
                 embed.add_field(
                     name="⚠️ 模型狀態",
@@ -157,14 +161,18 @@ class AIAssistantCog(commands.Cog):
                 # 扣除費用
                 if cost_info["cost"] > 0:
                     await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, -cost_info["cost"]
+                        interaction.user.id,
+                        interaction.guild.id,
+                        -cost_info["cost"],
                     )
 
                 # 記錄使用量
                 await self._record_daily_usage(interaction.user.id)
 
                 embed = EmbedBuilder.build(
-                    title="🤖 AI助手回應", description=response.content, color=0x00AAFF
+                    title="🤖 AI助手回應",
+                    description=response.content,
+                    color=0x00AAFF,
                 )
 
                 embed.add_field(
@@ -209,7 +217,10 @@ class AIAssistantCog(commands.Cog):
         ]
     )
     async def code_help(
-        self, interaction: discord.Interaction, question: str, language: str = "python"
+        self,
+        interaction: discord.Interaction,
+        question: str,
+        language: str = "python",
     ):
         """代碼助手"""
         try:
@@ -241,7 +252,9 @@ class AIAssistantCog(commands.Cog):
                 # 扣除費用
                 if cost_info["cost"] > 0:
                     await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, -cost_info["cost"]
+                        interaction.user.id,
+                        interaction.guild.id,
+                        -cost_info["cost"],
                     )
 
                 # 記錄使用量
@@ -301,7 +314,10 @@ class AIAssistantCog(commands.Cog):
         ]
     )
     async def translate(
-        self, interaction: discord.Interaction, text: str, target_language: str = "英文"
+        self,
+        interaction: discord.Interaction,
+        text: str,
+        target_language: str = "英文",
     ):
         """AI翻譯"""
         try:
@@ -340,7 +356,9 @@ class AIAssistantCog(commands.Cog):
                 # 扣除費用
                 if cost_info["cost"] > 0:
                     await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, -cost_info["cost"]
+                        interaction.user.id,
+                        interaction.guild.id,
+                        -cost_info["cost"],
                     )
 
                 # 記錄使用量
@@ -395,7 +413,10 @@ class AIAssistantCog(commands.Cog):
         ]
     )
     async def generate_story(
-        self, interaction: discord.Interaction, theme: str, style: str = "輕鬆幽默"
+        self,
+        interaction: discord.Interaction,
+        theme: str,
+        style: str = "輕鬆幽默",
     ):
         """AI故事生成"""
         try:
@@ -403,7 +424,9 @@ class AIAssistantCog(commands.Cog):
 
             # 檢查使用權限
             can_use, cost_info = await self._check_usage_permission(
-                interaction.user.id, interaction.guild.id, AITaskType.STORY_GENERATION
+                interaction.user.id,
+                interaction.guild.id,
+                AITaskType.STORY_GENERATION,
             )
 
             if not can_use:
@@ -427,7 +450,9 @@ class AIAssistantCog(commands.Cog):
                 # 扣除費用
                 if cost_info["cost"] > 0:
                     await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, -cost_info["cost"]
+                        interaction.user.id,
+                        interaction.guild.id,
+                        -cost_info["cost"],
                     )
 
                 # 記錄使用量
@@ -518,7 +543,10 @@ class AIAssistantCog(commands.Cog):
         ]
     )
     async def generate_poem(
-        self, interaction: discord.Interaction, theme: str, style: str = "現代詩"
+        self,
+        interaction: discord.Interaction,
+        theme: str,
+        style: str = "現代詩",
     ):
         """AI詩歌創作"""
         try:
@@ -526,7 +554,9 @@ class AIAssistantCog(commands.Cog):
 
             # 檢查使用權限
             can_use, cost_info = await self._check_usage_permission(
-                interaction.user.id, interaction.guild.id, AITaskType.POEM_GENERATION
+                interaction.user.id,
+                interaction.guild.id,
+                AITaskType.POEM_GENERATION,
             )
 
             if not can_use:
@@ -550,7 +580,9 @@ class AIAssistantCog(commands.Cog):
                 # 扣除費用
                 if cost_info["cost"] > 0:
                     await self.economy_manager.add_coins(
-                        interaction.user.id, interaction.guild.id, -cost_info["cost"]
+                        interaction.user.id,
+                        interaction.guild.id,
+                        -cost_info["cost"],
                     )
 
                 # 記錄使用量
@@ -741,7 +773,8 @@ class AIAssistantCog(commands.Cog):
     # ========== Phase 7 智能對話系統 ==========
 
     @app_commands.command(
-        name="smart_chat", description="🧠 Phase 7 智能對話 - 支援意圖識別和多輪對話"
+        name="smart_chat",
+        description="🧠 Phase 7 智能對話 - 支援意圖識別和多輪對話",
     )
     @app_commands.describe(message="要與 AI 說的話")
     async def smart_chat(self, interaction: discord.Interaction, message: str):
@@ -831,7 +864,10 @@ class AIAssistantCog(commands.Cog):
                 "❌ 啟動引導對話失敗，請使用傳統的投票指令。", ephemeral=True
             )
 
-    @app_commands.command(name="start_welcome_flow", description="👋 開始設定歡迎系統的引導式對話")
+    @app_commands.command(
+        name="start_welcome_flow",
+        description="👋 開始設定歡迎系統的引導式對話",
+    )
     async def start_welcome_flow(self, interaction: discord.Interaction):
         """開始歡迎系統設定引導式對話"""
         if not interaction.user.guild_permissions.manage_guild:
@@ -876,7 +912,7 @@ class AIAssistantCog(commands.Cog):
 
             embed = discord.Embed(
                 title="📊 AI 系統狀態報告",
-                color=0x00FF88 if health.get("enhanced_features", False) else 0xFFAA00,
+                color=(0x00FF88 if health.get("enhanced_features", False) else 0xFFAA00),
             )
 
             # 系統狀態
@@ -889,7 +925,11 @@ class AIAssistantCog(commands.Cog):
 
             # 活躍會話
             active_sessions = stats.get("active_sessions", 0)
-            embed.add_field(name="💬 活躍對話", value=f"{active_sessions} 個會話", inline=True)
+            embed.add_field(
+                name="💬 活躍對話",
+                value=f"{active_sessions} 個會話",
+                inline=True,
+            )
 
             # AI 引擎狀態
             if "ai_engine_stats" in stats:
@@ -917,7 +957,9 @@ class AIAssistantCog(commands.Cog):
 
                 if health_status:
                     embed.add_field(
-                        name="🔧 組件狀態", value="\n".join(health_status), inline=False
+                        name="🔧 組件狀態",
+                        value="\n".join(health_status),
+                        inline=False,
                     )
 
             embed.set_footer(

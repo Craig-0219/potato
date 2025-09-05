@@ -302,7 +302,7 @@ class WebhookDAO(BaseDAO):
                                 "name": result[1],
                                 "url": result[2],
                                 "type": result[3],
-                                "events": json.loads(result[4]) if result[4] else [],
+                                "events": (json.loads(result[4]) if result[4] else []),
                                 "status": result[5],
                                 "guild_id": result[6],
                                 "created_by": result[7],
@@ -534,7 +534,7 @@ class WebhookDAO(BaseDAO):
                         "successful_requests": result[1] or 0,
                         "failed_requests": result[2] or 0,
                         "success_rate": ((result[1] / result[0] * 100) if result[0] else 0),
-                        "avg_response_time": float(result[3]) if result[3] else 0.0,
+                        "avg_response_time": (float(result[3]) if result[3] else 0.0),
                     }
 
         except Exception as e:

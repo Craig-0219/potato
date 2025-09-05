@@ -110,7 +110,8 @@ class LanguageCore(commands.Cog):
             await interaction.followup.send(f"❌ 設定語言時發生錯誤：{str(e)}", ephemeral=True)
 
     @app_commands.command(
-        name="my_language", description="查看您的語言設定 | View your language settings"
+        name="my_language",
+        description="查看您的語言設定 | View your language settings",
     )
     async def get_user_language(self, interaction: discord.Interaction):
         """查看用戶語言設定"""

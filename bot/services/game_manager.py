@@ -160,7 +160,7 @@ class GameManager:
                         stats[game_type] = {
                             "total_games": total,
                             "wins": wins,
-                            "win_rate": (wins / total * 100) if total > 0 else 0,
+                            "win_rate": ((wins / total * 100) if total > 0 else 0),
                             "avg_score": float(avg_score) if avg_score else 0,
                             "best_score": best_score or 0,
                         }
@@ -172,7 +172,11 @@ class GameManager:
             return {}
 
     async def get_leaderboard(
-        self, guild_id: int, game_type: str, metric: str = "wins", limit: int = 10
+        self,
+        guild_id: int,
+        game_type: str,
+        metric: str = "wins",
+        limit: int = 10,
     ) -> List[Dict[str, Any]]:
         """獲取排行榜"""
         try:
@@ -234,9 +238,9 @@ class GameManager:
                                 "player_id": player_id,
                                 "total_games": total_games,
                                 "total_wins": total_wins,
-                                "avg_score": float(avg_score) if avg_score else 0,
+                                "avg_score": (float(avg_score) if avg_score else 0),
                                 "best_score": best_score or 0,
-                                "win_rate": float(win_rate) * 100 if win_rate else 0,
+                                "win_rate": (float(win_rate) * 100 if win_rate else 0),
                             }
                         )
 

@@ -184,7 +184,9 @@ class MinecraftCore(commands.Cog):
             players = await self.server_api.get_online_players_detailed()
             if not players:
                 embed = discord.Embed(
-                    title="👥 在線玩家", description="目前沒有玩家在線", color=0xFFFF00
+                    title="👥 在線玩家",
+                    description="目前沒有玩家在線",
+                    color=0xFFFF00,
                 )
                 await ctx.followup.send(embed=embed)
                 return
@@ -328,7 +330,9 @@ class MinecraftCore(commands.Cog):
                     )
                 else:
                     embed = discord.Embed(
-                        title="📋 白名單玩家", description="白名單為空", color=0xFFFF00
+                        title="📋 白名單玩家",
+                        description="白名單為空",
+                        color=0xFFFF00,
                     )
 
                 await ctx.followup.send(embed=embed)
@@ -356,7 +360,11 @@ class MinecraftCore(commands.Cog):
             embed = discord.Embed(title=title, color=0x00FF00 if result["success"] else 0xFF0000)
 
             if result["response"]:
-                embed.add_field(name="回應", value=f"```{result['response']}```", inline=False)
+                embed.add_field(
+                    name="回應",
+                    value=f"```{result['response']}```",
+                    inline=False,
+                )
 
             await ctx.followup.send(embed=embed)
 
@@ -370,7 +378,9 @@ class MinecraftCore(commands.Cog):
     )
     @commands.has_permissions(administrator=True)
     async def chat_bridge_control(
-        self, ctx, action: discord.Option(str, choices=["enable", "disable", "status"])
+        self,
+        ctx,
+        action: discord.Option(str, choices=["enable", "disable", "status"]),
     ):
         """控制聊天橋接功能"""
         try:
@@ -436,7 +446,7 @@ class MinecraftCore(commands.Cog):
 
                 embed.add_field(
                     name="聊天過濾",
-                    value="🟢 已啟用" if status["chat_filter_enabled"] else "🔴 已停用",
+                    value=("🟢 已啟用" if status["chat_filter_enabled"] else "🔴 已停用"),
                     inline=True,
                 )
 

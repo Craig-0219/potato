@@ -102,7 +102,10 @@ class AIAssistantManager:
                 logger.warning(f"⚠️ {provider.value} API 密鑰未配置")
 
         self.rate_limits = {
-            AIProvider.OPENAI: {"rpm": 60, "tpm": 50000},  # 每分鐘請求數和token數
+            AIProvider.OPENAI: {
+                "rpm": 60,
+                "tpm": 50000,
+            },  # 每分鐘請求數和token數
             AIProvider.CLAUDE: {"rpm": 30, "tpm": 30000},
             AIProvider.GEMINI: {"rpm": 100, "tpm": 100000},
         }
@@ -519,7 +522,11 @@ class AIAssistantManager:
         return await self.process_request(request)
 
     async def help_with_code(
-        self, user_id: int, guild_id: int, code_question: str, language: str = "python"
+        self,
+        user_id: int,
+        guild_id: int,
+        code_question: str,
+        language: str = "python",
     ) -> AIResponse:
         """代碼助手"""
         request = AIRequest(
@@ -533,7 +540,11 @@ class AIAssistantManager:
         return await self.process_request(request)
 
     async def translate_text(
-        self, user_id: int, guild_id: int, text: str, target_language: str = "英文"
+        self,
+        user_id: int,
+        guild_id: int,
+        text: str,
+        target_language: str = "英文",
     ) -> AIResponse:
         """翻譯文本"""
         request = AIRequest(
@@ -735,7 +746,11 @@ class EnhancedAIAssistant:
             return None
 
     async def start_guided_conversation(
-        self, user_id: str, guild_id: str, channel_id: str, flow: ConversationFlow
+        self,
+        user_id: str,
+        guild_id: str,
+        channel_id: str,
+        flow: ConversationFlow,
     ) -> Optional[str]:
         """開始引導式對話"""
         if not self.conversation_manager:
@@ -766,7 +781,10 @@ class EnhancedAIAssistant:
 
     async def get_conversation_stats(self, user_id: Optional[str] = None) -> Dict[str, Any]:
         """獲取對話統計"""
-        stats = {"legacy_available": True, "enhanced_available": self.is_initialized}
+        stats = {
+            "legacy_available": True,
+            "enhanced_available": self.is_initialized,
+        }
 
         if self.conversation_manager:
             sessions = await self.conversation_manager.list_active_sessions(user_id)

@@ -229,7 +229,11 @@ class RockPaperScissorsView(discord.ui.View):
             inline=True,
         )
 
-        embed.add_field(name="🎯 局數", value=f"{self.games_played}/{self.max_games}", inline=True)
+        embed.add_field(
+            name="🎯 局數",
+            value=f"{self.games_played}/{self.max_games}",
+            inline=True,
+        )
 
         return embed
 
@@ -257,7 +261,12 @@ class RockPaperScissorsView(discord.ui.View):
         embed = EmbedBuilder.create_info_embed("🎮 娛樂中心", "選擇您想要的遊戲：")
         await interaction.response.edit_message(embed=embed, view=view)
 
-    async def play_round(self, interaction: discord.Interaction, user_choice: str, user_emoji: str):
+    async def play_round(
+        self,
+        interaction: discord.Interaction,
+        user_choice: str,
+        user_emoji: str,
+    ):
         """進行一輪遊戲"""
         choices = {"scissors": "✂️", "rock": "🗿", "paper": "📄"}
         bot_choice = random.choice(list(choices.keys()))
@@ -292,7 +301,11 @@ class RockPaperScissorsView(discord.ui.View):
             value=f"你：{self.user_score} | Bot：{self.bot_score}",
             inline=True,
         )
-        embed.add_field(name="🎯 局數", value=f"{self.games_played}/{self.max_games}", inline=True)
+        embed.add_field(
+            name="🎯 局數",
+            value=f"{self.games_played}/{self.max_games}",
+            inline=True,
+        )
 
         # 檢查遊戲是否結束
         if (
@@ -311,7 +324,11 @@ class RockPaperScissorsView(discord.ui.View):
                 points = 30
                 await self.cog.update_user_stats(self.user_id, "rock_paper_scissors", True, points)
             elif winner == "bot":
-                embed.add_field(name="💔 最終結果", value="很遺憾，Bot 獲勝了！", inline=False)
+                embed.add_field(
+                    name="💔 最終結果",
+                    value="很遺憾，Bot 獲勝了！",
+                    inline=False,
+                )
                 await self.cog.update_user_stats(self.user_id, "rock_paper_scissors", False, 0)
             else:
                 embed.add_field(name="🤝 最終結果", value="平局！", inline=False)
@@ -635,7 +652,8 @@ class QuizView(discord.ui.View):
     def create_game_embed(self) -> discord.Embed:
         if self.current_question is None:
             embed = EmbedBuilder.create_info_embed(
-                "🧠 知識問答", f"準備好測試你的知識了嗎？共 {self.max_questions} 題"
+                "🧠 知識問答",
+                f"準備好測試你的知識了嗎？共 {self.max_questions} 題",
             )
             embed.add_field(name="積分規則", value="每答對一題得 20 分", inline=False)
         else:
@@ -720,7 +738,11 @@ class QuizView(discord.ui.View):
 
         embed = discord.Embed(title=title, color=color)
         embed.add_field(name="正確答案", value=f"{correct_answer}", inline=False)
-        embed.add_field(name="解釋", value=self.current_question["explanation"], inline=False)
+        embed.add_field(
+            name="解釋",
+            value=self.current_question["explanation"],
+            inline=False,
+        )
         embed.add_field(name="目前積分", value=f"{self.score} 分", inline=True)
         embed.add_field(
             name="進度",
