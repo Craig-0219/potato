@@ -1,0 +1,77 @@
+name: 🔍 生產檔案合規檢查
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  statuses: write
+  checks: write
+
+jobs:
+  production-compliance:
+    name: 🔍 生產檔案合規檢查
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    
+    steps:
+    - name: 📥 檢出程式碼
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: 🛡️ 執行生產檔案合規檢查
+      run: |
+        echo "🔍 執行生產檔案合規檢查 (PR 模式)..."
+        
+        # For PR to main branch, we run a modified compliance check
+        # that allows the merge to contain the full develop branch structure
+        # since it will be cleaned during the actual deployment to ptero
+        
+        echo "📋 檢查核心檔案結構..."
+        
+        # Check required files exist
+        required_files=(
+          "bot/main.py"
+          "pyproject.toml"
+          ".env.example"
+          "README.md"
+          "start.py"
+        )
+        
+        missing_files=""
+        for file in "${required_files[@]}"; do
+          if [ ! -f "$file" ]; then
+            echo "❌ 缺少必需檔案: $file"
+            missing_files="$missing_files $file"
+          else
+            echo "✅ 檔案存在: $file"
+          fi
+        done
+        
+        if [ -n "$missing_files" ]; then
+          echo "🚨 缺少必需的核心檔案: $missing_files"
+          exit 1
+        fi
+        
+        # Check pyproject.toml syntax
+        echo "🔍 檢查 pyproject.toml 語法..."
+        python -c "import tomllib; tomllib.load(open('pyproject.toml', 'rb'))" || {
+          echo "❌ pyproject.toml 語法錯誤"
+          exit 1
+        }
+        echo "✅ pyproject.toml 語法正確"
+        
+        # Check for critical security issues
+        echo "🔍 檢查關鍵安全問題..."
+        
+        # Check for exposed secrets or keys
+        if grep -r -i -E "(password|secret|key|token)\s*=\s*['\"][^'\"]{8,}" . --exclude-dir=.git --exclude="*.md" 2>/dev/null; then
+          echo "⚠️ 發現可能的硬編碼密碼或密鑰"
+          echo "請確保這些不是真實的生產密鑰"
+        fi
+        
+        echo "✅ 生產合規檢查通過 (PR 模式)"
+        echo "📝 注意: 完整的生產檔案過濾將在部署到 ptero 分支時執行"

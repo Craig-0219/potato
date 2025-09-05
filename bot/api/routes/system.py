@@ -439,27 +439,39 @@ async def update_bot_settings(
                 detail=f"無效的模組名稱，支援: {', '.join(valid_sections)}",
             )
 
-        # 對應的資料表
-        table_mapping = {
-            "tickets": "ticket_settings",
-            "welcome": "welcome_settings",
-            "votes": "vote_settings",
+        # 對應的資料表與預定義 SQL 查詢
+        table_queries = {
+            "tickets": """
+                INSERT INTO ticket_settings (guild_id, setting_key, setting_value, updated_at)
+                VALUES (%s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                setting_value = VALUES(setting_value),
+                updated_at = VALUES(updated_at)
+            """,
+            "welcome": """
+                INSERT INTO welcome_settings (guild_id, setting_key, setting_value, updated_at)
+                VALUES (%s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                setting_value = VALUES(setting_value),
+                updated_at = VALUES(updated_at)
+            """,
+            "votes": """
+                INSERT INTO vote_settings (guild_id, setting_key, setting_value, updated_at)
+                VALUES (%s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE
+                setting_value = VALUES(setting_value),
+                updated_at = VALUES(updated_at)
+            """,
         }
 
-        table_name = table_mapping[section]
+        query = table_queries[section]
 
         async with db_pool.acquire() as conn:
             async with conn.cursor() as cursor:
                 # 更新設定
                 for key, value in settings.items():
                     await cursor.execute(
-                        f"""
-                        INSERT INTO {table_name} (guild_id, setting_key, setting_value, updated_at)
-                        VALUES (%s, %s, %s, %s)
-                        ON DUPLICATE KEY UPDATE
-                        setting_value = VALUES(setting_value),
-                        updated_at = VALUES(updated_at)
-                    """,
+                        query,
                         (0, key, str(value), datetime.now()),
                     )
 
