@@ -192,7 +192,7 @@ jobs:
         fi
     
     - name: 📊 上傳至 Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       if: always()
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
@@ -201,6 +201,7 @@ jobs:
         name: codecov-umbrella
         fail_ci_if_error: false
         verbose: true
+        slug: Craig-0219/potato
     
     - name: 📁 上傳測試報告
       uses: actions/upload-artifact@v4

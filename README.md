@@ -5,7 +5,11 @@
 [![Version](https://img.shields.io/badge/version-3.1.0-blue.svg)](VERSION)
 [![Discord Bot](https://img.shields.io/badge/Discord-Bot-7289DA.svg)](https://discord.com)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![CI/CD](https://img.shields.io/badge/CI/CD-Active-success.svg)](https://github.com/actions)
+[![Tests](https://img.shields.io/badge/Tests-Passing-success.svg)](#testing)
 [![Codecov](https://codecov.io/gh/Craig-0219/potato/branch/main/graph/badge.svg)](https://codecov.io/gh/Craig-0219/potato)
+[![Security](https://img.shields.io/badge/Security-Scanned-green.svg)](#security)
+[![Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](docs/index.md)
 
 **全功能 Discord 社群管理機器人**
 
