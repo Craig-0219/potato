@@ -1,4 +1,4 @@
-# 🥔 Potato Discord Bot
+# 🥔 Potato Bot - 託管部署版
 
 <div align="center">
 
