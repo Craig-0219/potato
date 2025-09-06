@@ -9,9 +9,9 @@ from typing import Any, Dict, List, Optional
 
 import discord
 
-from bot.db.vote_dao import VoteDAO
-from bot.services.vote_template_manager import VoteTemplateManager
-from shared.logger import logger
+from potato_bot.db.vote_dao import VoteDAO
+from potato_bot.services.vote_template_manager import VoteTemplateManager
+from potato_shared.logger import logger
 
 
 class VoteManager:
