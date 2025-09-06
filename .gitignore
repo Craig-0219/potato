@@ -11,6 +11,8 @@
 # 環境變數和配置
 .env
 .env.*
+.env.dev
+.env.development
 !.env.example
 !.env.template
 
