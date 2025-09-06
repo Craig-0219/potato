@@ -1,0 +1,108 @@
+# ptero 分支自動同步配置
+
+# 同步策略配置
+sync_strategy:
+  # 自動同步觸發條件
+  triggers:
+    - push_to_main         # main 分支有新推送時
+    - daily_scheduled      # 每日定時同步
+    - manual_dispatch      # 手動觸發
+
+  # 衝突解決策略
+  conflict_resolution:
+    # ptero 分支專用文件 - 優先保留 ptero 版本
+    prefer_ptero:
+      - README.md          # ptero 分支的精簡說明
+      - start.py           # 可能有託管版本的特殊配置
+      - bot/**/*           # bot 目錄是 ptero 特有的
+
+    # 開發文件 - 優先使用 main 版本  
+    prefer_main:
+      - src/**/*           # 主要源碼
+      - .env.example       # 環境配置模板
+      - requirements.txt   # 依賴配置
+      - pyproject.toml     # 專案配置
+      - .github/**/*       # CI/CD 配置 (除了同步相關)
+
+    # 需要特殊處理的文件
+    special_handling:
+      - .gitignore         # 合併兩邊的內容
+
+# 同步範圍配置
+sync_scope:
+  # 包含的文件類型
+  include:
+    - "**/*.py"          # Python 源碼
+    - "**/*.yml"         # 配置文件
+    - "**/*.yaml"        # 配置文件  
+    - "**/*.toml"        # 配置文件
+    - "**/*.txt"         # 文本文件
+    - "**/*.md"          # 文檔文件
+
+  # 排除的文件/目錄
+  exclude:
+    - ".git/**"          # Git 內部文件
+    - "**/__pycache__/**" # Python 緩存
+    - "**/*.pyc"         # 編譯的 Python 文件
+    - "logs/**"          # 日誌文件
+    - "backups/**"       # 備份文件
+    - "transcripts/**"   # 會話記錄
+
+# 健康檢查配置
+health_checks:
+  # 必須存在的文件
+  required_files:
+    - README.md
+    - start.py
+    - .env.example
+    - requirements.txt
+    - src/potato_bot/main.py
+
+  # 必須存在的目錄
+  required_directories:
+    - src
+    - src/potato_bot
+    - src/potato_shared
+
+  # ptero 分支特有的檢查
+  ptero_specific:
+    - bot                # ptero 應該保留 bot 目錄
+    - bot/services       # bot 服務目錄
+    - bot/utils          # bot 工具目錄
+
+# 通知配置
+notifications:
+  # 成功同步時
+  on_success:
+    create_discussion: false  # 不為成功同步創建討論
+    log_only: true           # 僅記錄到 Actions 日誌
+
+  # 失敗時
+  on_failure:
+    create_issue: true       # 創建 issue 追蹤問題
+    labels:
+      - sync-failure
+      - maintenance
+      - ptero
+
+  # 衝突解決時  
+  on_conflict_resolved:
+    create_discussion: true  # 創建討論記錄衝突解決過程
+    log_details: true       # 詳細記錄解決過程
+
+# 高級配置
+advanced:
+  # 合併策略
+  merge_strategy: "recursive"
+  
+  # 衝突標記風格
+  conflict_style: "merge"
+  
+  # 最大重試次數
+  max_retries: 3
+  
+  # 同步超時時間 (分鐘)
+  timeout_minutes: 10
+  
+  # 是否在同步後運行健康檢查
+  post_sync_health_check: true
