@@ -371,6 +371,35 @@ health_check.json
 config.local.json
 settings.local.json
 
+# 開發版本文檔
+README.dev.md
+README.development.md
+README.local.md
+README.test.md
+README.draft.md
+*-dev.md
+*-development.md
+*-local.md
+*-test.md
+*-draft.md
+*.dev.md
+*.development.md
+*.local.md
+*.test.md
+*.draft.md
+
+# 其他開發相關配置文件
+docker-compose.dev.yml
+docker-compose.development.yml
+docker-compose.local.yml
+Dockerfile.dev
+Dockerfile.development
+Dockerfile.local
+package.dev.json
+package.local.json
+tsconfig.dev.json
+tsconfig.local.json
+
 # ====================================
 # 臨時開發文件
 # ====================================
