@@ -200,16 +200,21 @@ jobs:
           if [ -d "src/" ]; then
             pytest tests/ \
               --cov=src \
+              --cov-report=xml:coverage.xml \
+              --cov-report=html:htmlcov \
+              --cov-report=term-missing \
+              --junit-xml=pytest-report.xml \
+              -v
           else
             pytest tests/ \
               --cov=bot \
               --cov=shared \
-          fi \
-            --cov-report=xml:coverage.xml \
-            --cov-report=html:htmlcov \
-            --cov-report=term-missing \
-            --junit-xml=pytest-report.xml \
-            -v
+              --cov-report=xml:coverage.xml \
+              --cov-report=html:htmlcov \
+              --cov-report=term-missing \
+              --junit-xml=pytest-report.xml \
+              -v
+          fi
         else
           echo "⚠️ 未找到測試目錄，跳過測試"
           # 創建空的覆蓋率報告
