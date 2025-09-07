@@ -19,7 +19,7 @@ on:
 
 permissions:
   contents: write
-  actions: read
+  actions: write
   checks: read
   pull-requests: read
 
