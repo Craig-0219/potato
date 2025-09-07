@@ -10,7 +10,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import discord
 
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 def validate_ticket_data(data: Dict[str, Any]) -> Tuple[bool, str]:

@@ -35,6 +35,8 @@ class MenuCore(commands.Cog):
             "menu_opens": 0,
             "admin_menu_opens": 0,
             "interactions": 0,
+            "error_count": 0,
+            "last_error": None
         }
 
         logger.info("🎮 Menu Core Cog 初始化完成")

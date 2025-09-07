@@ -14,10 +14,9 @@ from pathlib import Path
 class PotatoBotStarter:
     def __init__(self):
         self.root_dir = Path(__file__).parent
-        # 智能尋找主程式位置
+        # 主程式位置
         potential_bot_files = [
-            self.root_dir / "src" / "potato_bot" / "main.py",  # 新架構
-            self.root_dir / "bot" / "main.py",  # 舊架構
+            self.root_dir / "src" / "potato_bot" / "main.py",  # 現代架構
         ]
         self.bot_file = None
         for bot_file in potential_bot_files:
@@ -180,7 +179,7 @@ class PotatoBotStarter:
         if self.bot_file is None:
             print("\n🤖 檢查 Bot 主程式: 尋找中...")
             print("❌ 未找到 Bot 主程式")
-            print("   預期位置: src/potato_bot/main.py 或 bot/main.py")
+            print("   預期位置: src/potato_bot/main.py")
             return False
         
         print(f"\n🤖 檢查 Bot 主程式: {self.bot_file}")
@@ -252,7 +251,7 @@ class PotatoBotStarter:
                 return self.start_bot()
             else:
                 print("👋 您可以稍後手動執行:")
-                print("   python bot/main.py")
+                print("   python src/potato_bot/main.py")
                 print("   或")
                 print("   python start.py")
                 return True
