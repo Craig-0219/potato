@@ -32,7 +32,7 @@ class TestConfig(unittest.TestCase):
     def test_config_import(self):
         """測試配置模組可以正常導入"""
         try:
-            from shared.config import DB_HOST, DISCORD_TOKEN
+            from src.potato_shared.config import DB_HOST, DISCORD_TOKEN
 
             self.assertIsNotNone(DISCORD_TOKEN)
             self.assertIsNotNone(DB_HOST)
@@ -41,7 +41,7 @@ class TestConfig(unittest.TestCase):
 
     def test_environment_variables(self):
         """測試環境變數是否正確載入"""
-        from shared.config import DB_HOST, DB_USER, DISCORD_TOKEN
+        from src.potato_shared.config import DB_HOST, DB_USER, DISCORD_TOKEN
 
         self.assertEqual(DB_HOST, "localhost")
         self.assertEqual(DB_USER, "test_user")
@@ -49,7 +49,7 @@ class TestConfig(unittest.TestCase):
 
     def test_database_config(self):
         """測試資料庫配置"""
-        from shared.config import DB_HOST, DB_NAME, DB_PORT
+        from src.potato_shared.config import DB_HOST, DB_NAME, DB_PORT
 
         self.assertEqual(DB_HOST, "localhost")
         self.assertEqual(DB_NAME, "test_database")
@@ -62,7 +62,7 @@ class TestLogger(unittest.TestCase):
     def test_logger_import(self):
         """測試日誌模組可以正常導入"""
         try:
-            from shared.logger import logger
+            from src.potato_shared.logger import logger
 
             self.assertIsNotNone(logger)
         except ImportError as e:
@@ -70,7 +70,7 @@ class TestLogger(unittest.TestCase):
 
     def test_logger_functionality(self):
         """測試日誌功能"""
-        from shared.logger import logger
+        from src.potato_shared.logger import logger
 
         # 測試基本日誌方法
         try:

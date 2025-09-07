@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch, MagicMock
 import hashlib
 from datetime import datetime, timezone
 
-from shared.db_optimizer import (
+from src.potato_shared.db_optimizer import (
     QueryType, OptimizationLevel, 
     QueryAnalysis, IndexRecommendation, DatabaseOptimizer
 )
@@ -110,7 +110,7 @@ class TestDatabaseOptimizer(unittest.TestCase):
     
     def setUp(self):
         """設置測試環境"""
-        with patch('shared.db_optimizer.db_pool'):
+        with patch('src.potato_shared.db_optimizer.db_pool'):
             self.optimizer = DatabaseOptimizer()
     
     def test_init(self):
@@ -130,7 +130,7 @@ class TestDatabaseOptimizer(unittest.TestCase):
         self.optimizer.slow_query_threshold = 2.0
         self.assertEqual(self.optimizer.slow_query_threshold, 2.0)
 
-    @patch('shared.db_optimizer.logger')
+    @patch('src.potato_shared.db_optimizer.logger')
     def test_basic_functionality(self, mock_logger):
         """測試基本功能存在"""
         # 測試優化器初始化成功
