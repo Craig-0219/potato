@@ -17,6 +17,12 @@ on:
         type: string
         default: ''
 
+permissions:
+  contents: write
+  actions: read
+  checks: read
+  pull-requests: read
+
 env:
   PTERO_BRANCH: ptero
   MAIN_BRANCH: main
