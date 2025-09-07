@@ -37,7 +37,7 @@ class TestDatabaseIntegration(unittest.TestCase):
         mock_connect.return_value = mock_connection
 
         try:
-            from bot.db.database_manager import DatabaseManager
+            from src.potato_bot.db.database_manager import DatabaseManager
 
             # 只測試類別結構，不執行實際連接邏輯
             self.assertTrue(hasattr(DatabaseManager, "__init__"))
@@ -52,9 +52,9 @@ class TestDatabaseIntegration(unittest.TestCase):
 
         try:
             # 測試多個 DAO 類別可以載入
-            from bot.db.base_dao import BaseDAO
-            from bot.db.ticket_dao import TicketDAO
-            from bot.db.vote_dao import VoteDAO
+            from src.potato_bot.db.base_dao import BaseDAO
+            from src.potato_bot.db.ticket_dao import TicketDAO
+            from src.potato_bot.db.vote_dao import VoteDAO
 
             dao_classes = [TicketDAO, VoteDAO, BaseDAO]
             for dao_class in dao_classes:
@@ -69,7 +69,7 @@ class TestDatabaseIntegration(unittest.TestCase):
         mock_connect.return_value = AsyncMock()
 
         try:
-            from bot.db.cached_ticket_dao import CachedTicketDAO
+            from src.potato_bot.db.cached_ticket_dao import CachedTicketDAO
 
             # 只測試類別結構
             self.assertTrue(hasattr(CachedTicketDAO, "__init__"))
@@ -80,7 +80,7 @@ class TestDatabaseIntegration(unittest.TestCase):
     def test_database_configuration(self):
         """測試資料庫配置"""
         try:
-            from shared.config import DB_HOST, DB_NAME, DB_PORT, DB_USER
+            from src.potato_shared.config import DB_HOST, DB_NAME, DB_PORT, DB_USER
 
             # 驗證測試環境配置 - 使用環境變數的實際值
             expected_host = os.environ.get("DB_HOST", "localhost")
@@ -108,7 +108,7 @@ class TestCacheIntegration(unittest.TestCase):
         """測試多層級快取整合"""
 
         try:
-            from shared.cache_manager import MultiLevelCacheManager
+            from src.potato_shared.cache_manager import MultiLevelCacheManager
 
             cache = MultiLevelCacheManager()
             self.assertIsInstance(cache, MultiLevelCacheManager)
@@ -121,7 +121,7 @@ class TestCacheIntegration(unittest.TestCase):
     def test_offline_mode_cache_integration(self):
         """測試離線模式快取整合"""
         try:
-            from shared.offline_mode_manager import OfflineModeManager
+            from src.potato_shared.offline_mode_manager import OfflineModeManager
 
             offline_mgr = OfflineModeManager()
             self.assertIsInstance(offline_mgr, OfflineModeManager)
@@ -139,15 +139,15 @@ class TestServiceDataIntegration(unittest.TestCase):
         """測試設置"""
         os.environ["TESTING"] = "true"
 
-    @patch("bot.db.database_manager.DatabaseManager")
+    @patch("src.potato_bot.db.database_manager.DatabaseManager")
     def test_service_dao_integration(self, mock_db_manager):
         """測試服務與 DAO 整合"""
         mock_db_manager.return_value = MagicMock()
 
         try:
             # 測試服務層可以與資料層整合
-            from bot.db.ticket_dao import TicketDAO
-            from bot.services.ticket_manager import TicketManager
+            from src.potato_bot.db.ticket_dao import TicketDAO
+            from src.potato_bot.services.ticket_manager import TicketManager
 
             # 只測試類別結構存在
             self.assertTrue(hasattr(TicketManager, "__init__"))
@@ -156,8 +156,8 @@ class TestServiceDataIntegration(unittest.TestCase):
         except ImportError as e:
             self.skipTest(f"服務-DAO 整合測試導入失敗: {e}")
 
-    @patch("shared.cache_manager.MultiLevelCacheManager")
-    @patch("bot.db.database_manager.DatabaseManager")
+    @patch("src.potato_shared.cache_manager.MultiLevelCacheManager")
+    @patch("src.potato_bot.db.database_manager.DatabaseManager")
     def test_cache_service_integration(self, mock_db, mock_cache):
         """測試快取與服務整合"""
         mock_db.return_value = MagicMock()
@@ -165,8 +165,8 @@ class TestServiceDataIntegration(unittest.TestCase):
 
         try:
             # 測試需要快取的服務
-            from bot.services.ticket_manager import TicketManager
-            from shared.cache_manager import MultiLevelCacheManager
+            from src.potato_bot.services.ticket_manager import TicketManager
+            from src.potato_shared.cache_manager import MultiLevelCacheManager
 
             self.assertTrue(hasattr(TicketManager, "__init__"))
             self.assertTrue(hasattr(MultiLevelCacheManager, "__init__"))

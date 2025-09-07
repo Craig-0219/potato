@@ -37,7 +37,7 @@ class TestSystemHealth(unittest.IsolatedAsyncioTestCase):
     async def test_configuration_health(self):
         """測試配置健康檢查"""
         try:
-            from shared.config import DB_HOST, DB_NAME, DISCORD_TOKEN
+            from src.potato_shared.config import DB_HOST, DB_NAME, DISCORD_TOKEN
 
             # 驗證關鍵配置存在
             self.assertIsNotNone(DISCORD_TOKEN)
@@ -55,7 +55,7 @@ class TestSystemHealth(unittest.IsolatedAsyncioTestCase):
     async def test_logging_system_health(self):
         """測試日誌系統健康檢查"""
         try:
-            from shared.logger import logger
+            from src.potato_shared.logger import logger
 
             # 測試日誌系統基本功能
             logger.info("E2E 測試日誌記錄")
@@ -73,7 +73,7 @@ class TestSystemHealth(unittest.IsolatedAsyncioTestCase):
         mock_connect.return_value = AsyncMock()
 
         try:
-            from bot.db.database_manager import DatabaseManager
+            from src.potato_bot.db.database_manager import DatabaseManager
 
             # 只測試類別結構健康
             self.assertTrue(hasattr(DatabaseManager, "__init__"))
@@ -88,7 +88,7 @@ class TestSystemHealth(unittest.IsolatedAsyncioTestCase):
         """測試快取系統健康檢查"""
 
         try:
-            from shared.cache_manager import MultiLevelCacheManager
+            from src.potato_shared.cache_manager import MultiLevelCacheManager
 
             # 測試快取管理器初始化
             cache = MultiLevelCacheManager()
@@ -119,9 +119,9 @@ class TestComponentConnectivity(unittest.IsolatedAsyncioTestCase):
 
         try:
             # 測試 Bot 與核心 Cogs 的連接性
-            from bot.cogs.ticket_core import TicketCore
-            from bot.cogs.vote_core import VoteCore
-            from bot.main import PotatoBot
+            from src.potato_bot.cogs.ticket_core import TicketCore
+            from src.potato_bot.cogs.vote_core import VoteCore
+            from src.potato_bot.main import PotatoBot
 
             # 驗證組件都可以載入
             components = [PotatoBot, TicketCore, VoteCore]
@@ -136,7 +136,7 @@ class TestComponentConnectivity(unittest.IsolatedAsyncioTestCase):
             self.fail(f"Bot 組件連接性測試失敗: {e}")
 
     @patch("aiomysql.connect")
-    @patch("bot.db.database_manager.DatabaseManager")
+    @patch("src.potato_bot.db.database_manager.DatabaseManager")
     async def test_service_dao_connectivity(self, mock_db_manager, mock_connect):
         """測試服務-DAO 連接性"""
         mock_connect.return_value = AsyncMock()
@@ -144,8 +144,8 @@ class TestComponentConnectivity(unittest.IsolatedAsyncioTestCase):
 
         try:
             # 測試服務層與 DAO 層連接性
-            from bot.db.ticket_dao import TicketDAO
-            from bot.services.ticket_manager import TicketManager
+            from src.potato_bot.db.ticket_dao import TicketDAO
+            from src.potato_bot.services.ticket_manager import TicketManager
 
             # 驗證兩層都存在
             self.assertTrue(hasattr(TicketManager, "__init__"))
@@ -162,9 +162,9 @@ class TestComponentConnectivity(unittest.IsolatedAsyncioTestCase):
         """測試 API 整合連接性"""
         try:
             # 測試 API 路由與應用程式連接性
-            from bot.api.app import create_app
-            from bot.api.routes.system import router as system_router
-            from bot.api.routes.tickets import router as tickets_router
+            from src.potato_bot.api.app import create_app
+            from src.potato_bot.api.routes.system import router as system_router
+            from src.potato_bot.api.routes.tickets import router as tickets_router
 
             # 測試應用程式可以創建
             app = create_app()
@@ -196,8 +196,8 @@ class TestErrorHandling(unittest.IsolatedAsyncioTestCase):
         """測試優雅的模組導入失敗處理"""
         try:
             # 測試即使某些可選組件失敗，核心系統仍可運作
-            from shared.config import DISCORD_TOKEN
-            from shared.logger import logger
+            from src.potato_shared.config import DISCORD_TOKEN
+            from src.potato_shared.logger import logger
 
             # 核心組件應該始終可用
             self.assertIsNotNone(DISCORD_TOKEN)
@@ -211,7 +211,7 @@ class TestErrorHandling(unittest.IsolatedAsyncioTestCase):
     async def test_offline_mode_fallback(self):
         """測試離線模式後備機制"""
         try:
-            from shared.offline_mode_manager import OfflineModeManager
+            from src.potato_shared.offline_mode_manager import OfflineModeManager
 
             # 測試離線模式管理器可以初始化
             offline_mgr = OfflineModeManager()
@@ -265,8 +265,8 @@ class TestPerformanceBaseline(unittest.IsolatedAsyncioTestCase):
 
         try:
             # 測試系統初始化時間
-            from shared.cache_manager import MultiLevelCacheManager
-            from shared.offline_mode_manager import OfflineModeManager
+            from src.potato_shared.cache_manager import MultiLevelCacheManager
+            from src.potato_shared.offline_mode_manager import OfflineModeManager
 
             # 創建管理器實例
             MultiLevelCacheManager()

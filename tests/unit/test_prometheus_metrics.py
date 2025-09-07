@@ -18,7 +18,7 @@ with patch.dict('sys.modules', {
     'prometheus_client.CollectorRegistry': MagicMock(),
 }):
     try:
-        from shared.prometheus_metrics import MetricsCollector, MetricType
+        from src.potato_shared.prometheus_metrics import MetricsCollector, MetricType
     except ImportError:
         # 如果還是無法導入，創建一個最小的測試
         pytest.skip("prometheus_metrics module not available", allow_module_level=True)
@@ -44,9 +44,9 @@ class TestMetricsCollector(unittest.TestCase):
         self.mock_histogram = MagicMock()
         self.mock_gauge = MagicMock()
         
-    @patch('shared.prometheus_metrics.Counter')
-    @patch('shared.prometheus_metrics.Histogram') 
-    @patch('shared.prometheus_metrics.Gauge')
+    @patch('src.potato_shared.prometheus_metrics.Counter')
+    @patch('src.potato_shared.prometheus_metrics.Histogram') 
+    @patch('src.potato_shared.prometheus_metrics.Gauge')
     def test_init(self, mock_gauge, mock_histogram, mock_counter):
         """測試初始化"""
         mock_counter.return_value = self.mock_counter

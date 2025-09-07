@@ -1,1 +1,0 @@
-{"security": {"ignore-vulnerabilities": [], "ignore-unpinned-requirements": false, "continue-on-vulnerability-error": false}, "report": {"output": "json", "include-ignored": true}, "alert": {"ignore-severity-below": "medium"}}
