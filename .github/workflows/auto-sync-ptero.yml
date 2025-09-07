@@ -40,12 +40,12 @@ jobs:
         id: check
         run: |
           # 獲取兩個分支的最新提交
-          git fetch origin ${{ env.MAIN_BRANCH }}:${{ env.MAIN_BRANCH }}
+          git fetch origin ${{ env.MAIN_BRANCH }}
           git fetch origin ${{ env.PTERO_BRANCH }}:${{ env.PTERO_BRANCH }}
           
           # 檢查是否有新的提交需要同步
-          COMMITS_BEHIND=$(git rev-list --count ${{ env.PTERO_BRANCH }}..${{ env.MAIN_BRANCH }})
-          LATEST_COMMIT=$(git rev-parse --short ${{ env.MAIN_BRANCH }})
+          COMMITS_BEHIND=$(git rev-list --count ${{ env.PTERO_BRANCH }}..origin/${{ env.MAIN_BRANCH }})
+          LATEST_COMMIT=$(git rev-parse --short origin/${{ env.MAIN_BRANCH }})
           
           echo "commits_count=$COMMITS_BEHIND" >> $GITHUB_OUTPUT
           echo "latest_commit=$LATEST_COMMIT" >> $GITHUB_OUTPUT
