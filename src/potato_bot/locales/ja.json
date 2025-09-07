@@ -1,0 +1,71 @@
+{
+  "common": {
+    "yes": "はい",
+    "no": "いいえ",
+    "cancel": "キャンセル",
+    "confirm": "確認",
+    "success": "成功",
+    "error": "エラー",
+    "warning": "警告",
+    "info": "情報",
+    "loading": "読み込み中...",
+    "processing": "処理中...",
+    "completed": "完了",
+    "failed": "失敗"
+  },
+  "commands": {
+    "permission_denied": "❌ このコマンドを使用する権限がありません",
+    "guild_only": "❌ このコマンドはサーバー内でのみ使用できます",
+    "invalid_arguments": "❌ コマンドの引数が無効です",
+    "command_failed": "❌ コマンド実行に失敗しました：{error}",
+    "command_success": "✅ コマンドが正常に実行されました"
+  },
+  "ticket": {
+    "created": "✅ チケットが作成されました",
+    "closed": "✅ チケットが閉じられました",
+    "not_found": "❌ チケットが見つかりません",
+    "permission_denied": "❌ このチケットを操作する権限がありません",
+    "already_exists": "❌ 既に開いているチケットがあります",
+    "priority_updated": "✅ 優先度が{priority}に更新されました",
+    "assigned": "✅ チケットが{staff}に割り当てられました",
+    "tag_added": "✅ タグを追加しました：{tag}",
+    "tag_removed": "✅ タグを削除しました：{tag}"
+  },
+  "welcome": {
+    "title": "🎉 ようこそ！",
+    "message": "{user}さん、**{server}**へようこそ！\\n\\nあなたは**{count}**番目のメンバーです！",
+    "dm_title": "👋 ようこそ！",
+    "dm_message": "**{server}**へようこそ！\\n\\nご質問がございましたら、お気軽にチケットを作成してください。",
+    "leave_message": "👋 **{user}**さんが**{server}**を退出しました",
+    "setup_complete": "✅ ウェルカムシステムの設定が完了しました",
+    "system_enabled": "✅ ウェルカムシステムが有効になりました",
+    "system_disabled": "❌ ウェルカムシステムが無効になりました"
+  },
+  "vote": {
+    "created": "✅ 投票が作成されました",
+    "ended": "✅ 投票が終了しました",
+    "not_found": "❌ 投票が見つかりません",
+    "already_voted": "❌ 既に投票済みです",
+    "vote_recorded": "✅ あなたの投票が記録されました",
+    "permission_denied": "❌ この投票に参加する権限がありません",
+    "invalid_option": "❌ 無効な投票選択肢です"
+  },
+  "ai": {
+    "suggestion_generated": "✅ AI提案が生成されました",
+    "no_suggestions": "❌ このコンテンツの提案を生成できません",
+    "analysis_complete": "📊 コンテンツ分析完了",
+    "confidence": "信頼度：{confidence}",
+    "suggestion_applied": "✅ AI提案が適用されました",
+    "feedback_recorded": "✅ フィードバックが記録されました",
+    "priority_assessed": "🎯 優先度評価：{priority}",
+    "tags_suggested": "🏷️ 提案タグ：{tags}"
+  },
+  "system": {
+    "maintenance": "🔧 システムメンテナンス中です。後でもう一度お試しください",
+    "database_error": "❌ データベースエラーが発生しました。管理者にお問い合わせください",
+    "unexpected_error": "❌ 予期しないエラーが発生しました",
+    "feature_disabled": "❌ この機能は現在無効になっています",
+    "rate_limited": "❌ 操作が頻繁すぎます。後でもう一度お試しください",
+    "timeout": "⏰ 操作がタイムアウトしました。再試行してください"
+  }
+}
