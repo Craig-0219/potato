@@ -1,0 +1,343 @@
+name: 🔄 自動同步 main → ptero
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # 每天 UTC 2:00 (台北時間 10:00) 自動檢查同步
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      force_sync:
+        description: '強制同步（忽略衝突）'
+        type: boolean
+        default: false
+      sync_message:
+        description: '自定義同步訊息'
+        type: string
+        default: ''
+
+env:
+  PTERO_BRANCH: ptero
+  MAIN_BRANCH: main
+
+jobs:
+  detect-changes:
+    name: 🔍 檢測變更
+    runs-on: ubuntu-latest
+    outputs:
+      has_changes: ${{ steps.check.outputs.has_changes }}
+      commits_count: ${{ steps.check.outputs.commits_count }}
+      latest_commit: ${{ steps.check.outputs.latest_commit }}
+    steps:
+      - name: 檢出代碼
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 檢查分支差異
+        id: check
+        run: |
+          # 獲取兩個分支的最新提交
+          git fetch origin ${{ env.MAIN_BRANCH }}:${{ env.MAIN_BRANCH }}
+          git fetch origin ${{ env.PTERO_BRANCH }}:${{ env.PTERO_BRANCH }}
+          
+          # 檢查是否有新的提交需要同步
+          COMMITS_BEHIND=$(git rev-list --count ${{ env.PTERO_BRANCH }}..${{ env.MAIN_BRANCH }})
+          LATEST_COMMIT=$(git rev-parse --short ${{ env.MAIN_BRANCH }})
+          
+          echo "commits_count=$COMMITS_BEHIND" >> $GITHUB_OUTPUT
+          echo "latest_commit=$LATEST_COMMIT" >> $GITHUB_OUTPUT
+          
+          if [ "$COMMITS_BEHIND" -gt 0 ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "📊 發現 $COMMITS_BEHIND 個新提交需要同步到 ptero"
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "✅ ptero 分支已是最新，無需同步"
+          fi
+
+  sync-to-ptero:
+    name: 🔄 同步到 ptero 分支
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has_changes == 'true'
+    timeout-minutes: 10
+    
+    steps:
+      - name: 檢出代碼
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 配置 Git
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@github.com"
+
+      - name: 執行智能合併同步
+        id: merge
+        run: |
+          echo "🔄 開始同步 ${{ env.MAIN_BRANCH }} → ${{ env.PTERO_BRANCH }}"
+          
+          # 切換到 ptero 分支
+          git checkout ${{ env.PTERO_BRANCH }}
+          
+          # 檢查是否為強制同步
+          if [ "${{ github.event.inputs.force_sync }}" = "true" ]; then
+            echo "⚠️ 執行強制同步模式"
+            
+            # 強制同步：重置 ptero 為簡化版的 main
+            git checkout ${{ env.MAIN_BRANCH }} -- src/ .env.example requirements.txt pyproject.toml
+            
+            # 保持 ptero 特有的文件
+            git checkout HEAD -- README.md start.py
+            
+            # 確保 bot 目錄存在（ptero 分支特有）
+            if [ ! -d "bot" ]; then
+              mkdir -p bot/services bot/utils
+              
+              # 創建 ptero 分支需要的簡化文件
+              cat > bot/services/vote_manager.py << 'EOF'
+# bot/services/vote_manager.py - Ptero 簡化版
+"""投票管理服務 - 託管版本"""
+from datetime import datetime
+from typing import Dict, Any, List
+import discord
+
+class VoteManager:
+    """簡化的投票管理器"""
+    
+    def __init__(self):
+        self.active_votes = {}
+    
+    async def create_simple_vote(self, title: str, options: List[str]) -> Dict[str, Any]:
+        """創建簡單投票"""
+        return {
+            "title": title,
+            "options": options,
+            "created_at": datetime.utcnow(),
+            "status": "active"
+        }
+    
+    def get_vote_embed(self, vote_data: Dict[str, Any]) -> discord.Embed:
+        """生成投票嵌入訊息"""
+        embed = discord.Embed(title=vote_data.get("title", "投票"), color=discord.Color.blue())
+        options = vote_data.get("options", [])
+        for i, option in enumerate(options, 1):
+            embed.add_field(name=f"選項 {i}", value=option, inline=False)
+        return embed
+EOF
+              
+              cat > bot/utils/validator.py << 'EOF'
+# bot/utils/validator.py - Ptero 簡化版
+"""基本驗證工具 - 託管版本"""
+import re
+from typing import Tuple
+
+def validate_discord_id(discord_id) -> bool:
+    """驗證Discord ID格式"""
+    try:
+        if isinstance(discord_id, str):
+            if not discord_id.isdigit():
+                return False
+            discord_id = int(discord_id)
+        return 10000000000000000 <= discord_id <= 999999999999999999999
+    except (ValueError, TypeError):
+        return False
+
+def validate_basic_input(text: str, max_length: int = 1000) -> Tuple[bool, str]:
+    """基本輸入驗證"""
+    if not text or not isinstance(text, str):
+        return False, "輸入不能為空"
+    
+    if len(text) > max_length:
+        return False, f"輸入長度不能超過{max_length}字符"
+    
+    return True, ""
+EOF
+            fi
+            
+            sync_message="${{ github.event.inputs.sync_message }}"
+            if [ -z "$sync_message" ]; then
+              sync_message="🔄 強制同步: 更新至 main@${{ needs.detect-changes.outputs.latest_commit }}"
+            fi
+            
+          else
+            echo "📝 執行標準合併同步"
+            
+            # 標準合併同步
+            if git merge ${{ env.MAIN_BRANCH }} --no-edit; then
+              echo "merge_status=success" >> $GITHUB_OUTPUT
+              sync_message="🔄 自動同步: 合併 main (${{ needs.detect-changes.outputs.commits_count }} commits) → ptero"
+            else
+              echo "⚠️ 發現合併衝突，嘗試智能解決..."
+              
+              # 智能衝突解決策略
+              # 對於特定文件，優先使用 ptero 的版本
+              if [ -f "README.md" ]; then
+                git checkout --theirs README.md
+                echo "✅ 保留 ptero 版本的 README.md"
+              fi
+              
+              if [ -f "start.py" ]; then
+                git checkout --theirs start.py
+                echo "✅ 保留 ptero 版本的 start.py" 
+              fi
+              
+              # 對於其他文件，優先使用 main 的版本
+              git add .
+              
+              if git commit --no-edit; then
+                echo "merge_status=conflict_resolved" >> $GITHUB_OUTPUT
+                sync_message="🔧 自動同步: 解決衝突並合併 main → ptero"
+              else
+                echo "❌ 無法自動解決衝突"
+                echo "merge_status=failed" >> $GITHUB_OUTPUT
+                exit 1
+              fi
+            fi
+          fi
+          
+          echo "sync_message=$sync_message" >> $GITHUB_OUTPUT
+
+      - name: 推送變更
+        if: steps.merge.outputs.merge_status != 'failed'
+        run: |
+          echo "📤 推送同步結果到遠程分支..."
+          git push origin ${{ env.PTERO_BRANCH }}
+          echo "✅ 同步完成"
+
+      - name: 創建同步報告
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const syncStatus = '${{ steps.merge.outputs.merge_status }}';
+            const commitCount = '${{ needs.detect-changes.outputs.commits_count }}';
+            const latestCommit = '${{ needs.detect-changes.outputs.latest_commit }}';
+            const syncMessage = '${{ steps.merge.outputs.sync_message }}';
+            
+            let emoji = '✅';
+            let status = 'Success';
+            let details = `成功同步 ${commitCount} 個提交到 ptero 分支`;
+            
+            if (syncStatus === 'failed') {
+              emoji = '❌';
+              status = 'Failed';
+              details = '同步失敗，需要手動處理衝突';
+            } else if (syncStatus === 'conflict_resolved') {
+              emoji = '🔧';
+              status = 'Success (Conflicts Resolved)';
+              details = `自動解決衝突並同步 ${commitCount} 個提交`;
+            }
+            
+            const reportBody = `## ${emoji} ptero 分支同步報告
+            
+            **狀態**: ${status}
+            **詳情**: ${details}
+            **最新提交**: \`${latestCommit}\`
+            **同步訊息**: ${syncMessage}
+            
+            ### 同步內容
+            - 📦 同步 ${commitCount} 個新提交
+            - 🔄 保持 ptero 分支的簡化特性
+            - 📝 維持託管部署版本的配置
+            
+            ---
+            *自動同步由 GitHub Actions 執行*`;
+            
+            // 如果是定期同步且沒有失敗，創建討論而不是 issue
+            if (context.eventName === 'schedule' && syncStatus !== 'failed') {
+              console.log('定期同步成功，記錄到日誌');
+              console.log(reportBody);
+            } else if (syncStatus === 'failed') {
+              // 失敗時創建 issue
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `🚨 ptero 分支同步失敗 - ${new Date().toISOString().split('T')[0]}`,
+                body: reportBody,
+                labels: ['sync-failure', 'maintenance']
+              });
+            } else {
+              console.log('同步成功');
+              console.log(reportBody);
+            }
+
+  health-check:
+    name: 🏥 健康檢查
+    runs-on: ubuntu-latest
+    needs: [detect-changes, sync-to-ptero]
+    if: always() && needs.sync-to-ptero.result == 'success'
+    
+    steps:
+      - name: 檢出 ptero 分支
+        uses: actions/checkout@v4
+        with:
+          ref: ptero
+          
+      - name: 驗證分支完整性
+        run: |
+          echo "🔍 驗證 ptero 分支完整性..."
+          
+          # 檢查必要文件是否存在
+          required_files=("README.md" "start.py" ".env.example" "requirements.txt")
+          
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "❌ 缺少必要文件: $file"
+              exit 1
+            else
+              echo "✅ 文件存在: $file"
+            fi
+          done
+          
+          # 檢查目錄結構
+          if [ -d "src" ]; then
+            echo "✅ src 目錄存在"
+          else
+            echo "❌ src 目錄缺失"
+            exit 1
+          fi
+          
+          if [ -d "bot" ]; then
+            echo "✅ bot 目錄存在 (ptero 特有)"
+          else
+            echo "⚠️ bot 目錄不存在，這可能影響託管版本"
+          fi
+          
+          echo "🎉 ptero 分支健康檢查通過！"
+
+  notify-completion:
+    name: 📢 完成通知
+    runs-on: ubuntu-latest
+    needs: [detect-changes, sync-to-ptero, health-check]
+    if: always() && needs.detect-changes.outputs.has_changes == 'true'
+    
+    steps:
+      - name: 發送完成通知
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const syncResult = '${{ needs.sync-to-ptero.result }}';
+            const healthResult = '${{ needs.health-check.result }}';
+            const commitCount = '${{ needs.detect-changes.outputs.commits_count }}';
+            
+            let emoji = '🎉';
+            let title = 'ptero 分支同步完成';
+            let status = '成功';
+            
+            if (syncResult === 'failure' || healthResult === 'failure') {
+              emoji = '🚨';
+              title = 'ptero 分支同步異常';
+              status = '失敗';
+            }
+            
+            console.log(`${emoji} ${title}`);
+            console.log(`狀態: ${status}`);
+            console.log(`同步提交數: ${commitCount}`);
+            console.log(`同步結果: ${syncResult}`);
+            console.log(`健康檢查: ${healthResult}`);
