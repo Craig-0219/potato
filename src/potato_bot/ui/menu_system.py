@@ -246,7 +246,7 @@ class AdminMenuView(discord.ui.View):
 
             # 獲取票券狀態
             try:
-                from bot.db.ticket_dao import TicketDAO
+                from potato_bot.db.ticket_dao import TicketDAO
 
                 ticket_dao = TicketDAO()
                 open_tickets = 0
@@ -261,7 +261,7 @@ class AdminMenuView(discord.ui.View):
 
             # 獲取投票狀態
             try:
-                from bot.db.vote_dao import VoteDAO
+                from potato_bot.db.vote_dao import VoteDAO
 
                 vote_dao = VoteDAO()
                 active_votes = 0
@@ -410,7 +410,7 @@ class TicketMenuView(discord.ui.View):
 
         try:
             # 查詢實際的票券統計
-            from bot.db.ticket_dao import TicketDAO
+            from potato_bot.db.ticket_dao import TicketDAO
 
             ticket_dao = TicketDAO()
 
@@ -447,8 +447,8 @@ class TicketMenuView(discord.ui.View):
         """建立新票券"""
         try:
             # 使用票券面板的真實創建流程
-            from bot.db.ticket_dao import TicketDAO
-            from bot.views.ticket_views import TicketPanelView
+            from potato_bot.db.ticket_dao import TicketDAO
+            from potato_bot.views.ticket_views import TicketPanelView
 
             # 獲取票券設定
             ticket_dao = TicketDAO()
@@ -486,7 +486,7 @@ class TicketMenuView(discord.ui.View):
         """查看我的票券"""
         try:
             # 直接使用資料庫查詢，避免 interaction 衝突
-            from bot.db.ticket_dao import TicketDAO
+            from potato_bot.db.ticket_dao import TicketDAO
 
             ticket_dao = TicketDAO()
 
@@ -540,8 +540,8 @@ class TicketMenuView(discord.ui.View):
             # 原本的備用邏輯（已移除）
             if False:
                 # 如果沒有 TicketCore，使用真實的資料庫查詢
-                from bot.db.ticket_dao import TicketDAO
-                from bot.services.ticket_manager import TicketManager
+                from potato_bot.db.ticket_dao import TicketDAO
+                from potato_bot.services.ticket_manager import TicketManager
 
                 ticket_dao = TicketDAO()
                 TicketManager(ticket_dao)
@@ -767,13 +767,13 @@ class VoteMenuView(discord.ui.View):
                 return
 
             # 如果上述方法都不可用，顯示基本統計信息
-            from bot.db.vote_dao import VoteDAO
+            from potato_bot.db.vote_dao import VoteDAO
 
             vote_dao = VoteDAO()
 
             # 獲取基本統計
-            active_votes = await vote_dao.get_guild_active_votes(interaction.guild.id)
-            total_votes = await vote_dao.get_guild_vote_count(interaction.guild.id)
+            active_votes = await vote_dao.get_active_votes(interaction.guild.id)
+            total_votes = await vote_dao.get_total_vote_count(interaction.guild.id)
 
             embed = discord.Embed(
                 title="🏆 投票統計",
@@ -781,29 +781,44 @@ class VoteMenuView(discord.ui.View):
                 color=0x3498DB,
             )
 
+            # 確保 active_votes 是列表類型
+            if not isinstance(active_votes, list):
+                active_votes = active_votes if active_votes else []
+            
             embed.add_field(
                 name="📊 基本統計",
                 value=f"• 進行中投票：{len(active_votes)} 個\n"
-                f"• 總投票數：{total_votes} 個\n"
-                f"• 今日活躍投票：{len([v for v in active_votes if (discord.utils.utcnow() - v['created_at']).days == 0])} 個",
+                f"• 總投票數：{total_votes if total_votes else 0} 個\n"
+                f"• 今日活躍投票：{len([v for v in active_votes if hasattr(v, 'get') and v.get('created_at') and (discord.utils.utcnow() - v['created_at']).days == 0])} 個",
                 inline=False,
             )
 
-            if active_votes:
+            if active_votes and isinstance(active_votes, list):
                 # 顯示最近的3個活躍投票
-                recent_votes = sorted(active_votes, key=lambda x: x["created_at"], reverse=True)[:3]
-                vote_list = []
-                for vote in recent_votes:
-                    status = "🟢 進行中" if vote["status"] == "active" else "🟡 即將結束"
-                    vote_list.append(
-                        f"• **{vote['title'][:30]}...**\n  {status} | {vote['total_votes']} 票"
-                    )
+                try:
+                    recent_votes = sorted(
+                        [v for v in active_votes if hasattr(v, 'get') and v.get('created_at')], 
+                        key=lambda x: x.get("created_at", discord.utils.utcnow()), 
+                        reverse=True
+                    )[:3]
+                    vote_list = []
+                    for vote in recent_votes:
+                        status = "🟢 進行中" if vote.get("status") == "active" else "🟡 即將結束"
+                        title = vote.get('title', '未命名投票')
+                        total_votes = vote.get('total_votes', 0)
+                        vote_list.append(
+                            f"• **{title[:30]}{'...' if len(title) > 30 else ''}**\n  {status} | {total_votes} 票"
+                        )
+                except (KeyError, TypeError, AttributeError) as e:
+                    logger.error(f"處理投票列表時發生錯誤: {e}")
+                    vote_list = ["• 無法載入投票資訊"]
 
-                embed.add_field(
-                    name="📋 最近投票",
-                    value="\n".join(vote_list),
-                    inline=False,
-                )
+                if vote_list:
+                    embed.add_field(
+                        name="📋 最近投票",
+                        value="\n".join(vote_list),
+                        inline=False,
+                    )
 
             embed.add_field(
                 name="⚙️ 更多功能",
@@ -946,7 +961,7 @@ class WelcomeMenuView(discord.ui.View):
         if cog and hasattr(cog, "test_welcome_message"):
             # 直接調用歡迎管理器的測試功能
             try:
-                from bot.services.welcome_manager import WelcomeManager
+                from potato_bot.services.welcome_manager import WelcomeManager
 
                 welcome_manager = WelcomeManager()
                 result = await welcome_manager.test_welcome_message(
@@ -1022,7 +1037,7 @@ class WelcomeMenuView(discord.ui.View):
 
             if welcome_cog:
                 try:
-                    from bot.db.welcome_dao import WelcomeDAO
+                    from potato_bot.db.welcome_dao import WelcomeDAO
 
                     welcome_dao = WelcomeDAO()
                     settings = await welcome_dao.get_welcome_settings(interaction.guild.id)
