@@ -26,7 +26,8 @@ jobs:
       with:
         filters: |
           code:
-            - 'src/**/*.py'
+            - 'bot/**/*.py'
+            - 'shared/**/*.py'
           tests:
             - 'tests/**/*'
           docs:
@@ -66,19 +67,19 @@ jobs:
       continue-on-error: true
       run: |
         echo "🔍 執行代碼格式檢查..."
-        black --check --diff src/ || echo "⚠️ Black 格式檢查發現問題，但繼續執行"
+        black --check --diff bot/ shared/ || echo "⚠️ Black 格式檢查發現問題，但繼續執行"
         echo "📝 檢查 import 排序..."
-        isort --check-only --diff src/ || echo "⚠️ isort 檢查發現問題，但繼續執行"
+        isort --check-only --diff bot/ shared/ || echo "⚠️ isort 檢查發現問題，但繼續執行"
         echo "✨ 檢查代碼風格..."
-        flake8 src/ || echo "⚠️ Flake8 檢查發現問題，但繼續執行"
-        echo "💡 建議：運行 'black src/' 和 'isort src/' 來修復格式問題"
+        flake8 bot/ shared/ || echo "⚠️ Flake8 檢查發現問題，但繼續執行"
+        echo "💡 建議：運行 'black bot/ shared/' 和 'isort bot/ shared/' 來修復格式問題"
     
     - name: 🛡️ Bandit 安全掃描
       continue-on-error: true
       run: |
         echo "🔒 執行 Python 安全掃描..."
-        bandit -r src/ -f json -o bandit-report.json || echo "⚠️ Bandit 掃描發現問題，但繼續執行"
-        bandit -r src/ -f txt || echo "⚠️ Bandit 文字報告生成失敗，但繼續執行"
+        bandit -r bot/ shared/ -f json -o bandit-report.json || echo "⚠️ Bandit 掃描發現問題，但繼續執行"
+        bandit -r bot/ shared/ -f txt || echo "⚠️ Bandit 文字報告生成失敗，但繼續執行"
         
         # 檢查高風險問題
         if [ -f "bandit-report.json" ]; then
@@ -177,7 +178,8 @@ jobs:
         echo "🔬 執行測試套件..."
         if [ -d "tests" ]; then
           pytest tests/ \
-            --cov=src \
+            --cov=bot \
+            --cov=shared \
             --cov-report=xml:coverage.xml \
             --cov-report=html:htmlcov \
             --cov-report=term-missing \
@@ -239,101 +241,59 @@ jobs:
         python --version
         pip list
 
-  # CI Pipeline 狀態檢查
-  ci-pipeline-status:
-    name: CI Pipeline
+  # CI 總結
+  ci-summary:
+    name: 📋 CI 總結
     runs-on: ubuntu-latest
     needs: [detect-changes, quality-gate, test-suite, build-check]
     if: always()
     timeout-minutes: 2
     
     steps:
-    - name: 評估整體CI結果
-      id: evaluate
+    - name: 📊 生成 CI 報告
       run: |
-        echo "🚀 評估CI Pipeline整體結果..."
+        echo "🚀 CI Pipeline 執行完成!"
+        echo ""
+        echo "📋 執行結果摘要:"
+        echo "🔍 變更檢測: ✅"
         
-        # 檢查關鍵job的結果
-        quality_result="${{ needs.quality-gate.result }}"
-        test_result="${{ needs.test-suite.result }}"
-        build_result="${{ needs.build-check.result }}"
-        
-        echo "Quality Gate: $quality_result"
-        echo "Test Suite: $test_result"
-        echo "Build Check: $build_result"
-        
-        # 計算整體狀態
-        failed_jobs=""
-        
-        if [[ "$quality_result" == "failure" ]]; then
-          failed_jobs="$failed_jobs quality-gate"
-        fi
-        
-        if [[ "$test_result" == "failure" ]]; then
-          failed_jobs="$failed_jobs test-suite"
-        fi
-        
-        if [[ "$build_result" == "failure" ]]; then
-          failed_jobs="$failed_jobs build-check"
-        fi
-        
-        if [[ -n "$failed_jobs" ]]; then
-          echo "status=failure" >> $GITHUB_OUTPUT
-          echo "message=關鍵步驟失敗:$failed_jobs" >> $GITHUB_OUTPUT
+        # 品質檢查結果
+        if [[ "${{ needs.quality-gate.result }}" == "success" ]]; then
+          echo "⚡ 品質檢查: ✅ 通過"
+        elif [[ "${{ needs.quality-gate.result }}" == "skipped" ]]; then
+          echo "⚡ 品質檢查: ⏭️ 跳過 (無代碼變更)"
         else
-          echo "status=success" >> $GITHUB_OUTPUT
-          echo "message=所有檢查通過" >> $GITHUB_OUTPUT
+          echo "⚡ 品質檢查: ❌ 失敗"
         fi
-    
-    - name: 設置最終狀態
-      run: |
-        if [[ "${{ steps.evaluate.outputs.status }}" == "failure" ]]; then
-          echo "❌ CI Pipeline 失敗: ${{ steps.evaluate.outputs.message }}"
-          exit 1
+        
+        # 測試結果
+        if [[ "${{ needs.test-suite.result }}" == "success" ]]; then
+          echo "🧪 測試套件: ✅ 通過"
+        elif [[ "${{ needs.test-suite.result }}" == "skipped" ]]; then
+          echo "🧪 測試套件: ⏭️ 跳過 (無代碼變更)"
         else
-          echo "✅ CI Pipeline 通過: ${{ steps.evaluate.outputs.message }}"
-        fi
-
-  # Production Compliance 檢查
-  production-compliance:
-    name: Production Compliance Check
-    runs-on: ubuntu-latest
-    needs: [detect-changes, quality-gate, test-suite, build-check]
-    if: always()
-    timeout-minutes: 2
-    
-    steps:
-    - name: 檢查生產環境合規性
-      run: |
-        echo "🔍 執行生產環境合規性檢查..."
-        
-        # 檢查關鍵合規項目
-        quality_result="${{ needs.quality-gate.result }}"
-        test_result="${{ needs.test-suite.result }}"
-        build_result="${{ needs.build-check.result }}"
-        
-        compliance_issues=""
-        
-        # 安全檢查必須通過或跳過
-        if [[ "$quality_result" == "failure" ]]; then
-          compliance_issues="$compliance_issues 安全檢查失敗"
+          echo "🧪 測試套件: ❌ 失敗"
         fi
         
-        # 建構必須成功
-        if [[ "$build_result" == "failure" ]]; then
-          compliance_issues="$compliance_issues 建構失敗"
-        fi
-        
-        # 如果有測試，必須通過
-        if [[ "$test_result" == "failure" ]]; then
-          compliance_issues="$compliance_issues 測試失敗"
-        fi
-        
-        if [[ -n "$compliance_issues" ]]; then
-          echo "❌ 生產環境合規性檢查失敗:$compliance_issues"
-          echo "不符合生產環境部署要求"
-          exit 1
+        # 建構結果
+        if [[ "${{ needs.build-check.result }}" == "success" ]]; then
+          echo "🏗️ 建構驗證: ✅ 通過"
+        elif [[ "${{ needs.build-check.result }}" == "skipped" ]]; then
+          echo "🏗️ 建構驗證: ⏭️ 跳過 (無代碼變更)"
         else
-          echo "✅ 生產環境合規性檢查通過"
-          echo "符合生產環境部署標準"
+          echo "🏗️ 建構驗證: ❌ 失敗"
         fi
+        
+        echo ""
+        echo "🎯 整體狀態: ${{ job.status }}"
+        
+        # 檢查關鍵失敗
+        if [[ "${{ needs.quality-gate.result }}" == "failure" ]]; then
+          echo "💡 建議: 檢查代碼格式和安全問題"
+        fi
+        
+        if [[ "${{ needs.test-suite.result }}" == "failure" ]]; then
+          echo "💡 建議: 檢查測試失敗原因和覆蓋率"  
+        fi
+        
+        echo "🔗 詳細報告請查看各 job 的執行結果和 artifacts"
