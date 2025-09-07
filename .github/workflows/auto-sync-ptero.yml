@@ -99,65 +99,33 @@ jobs:
             if [ ! -d "bot" ]; then
               mkdir -p bot/services bot/utils
               
-              # 創建 ptero 分支需要的簡化文件
-              cat > bot/services/vote_manager.py << 'EOF'
-# bot/services/vote_manager.py - Ptero 簡化版
-"""投票管理服務 - 託管版本"""
-from datetime import datetime
-from typing import Dict, Any, List
-import discord
-
-class VoteManager:
-    """簡化的投票管理器"""
-    
-    def __init__(self):
-        self.active_votes = {}
-    
-    async def create_simple_vote(self, title: str, options: List[str]) -> Dict[str, Any]:
-        """創建簡單投票"""
-        return {
-            "title": title,
-            "options": options,
-            "created_at": datetime.utcnow(),
-            "status": "active"
-        }
-    
-    def get_vote_embed(self, vote_data: Dict[str, Any]) -> discord.Embed:
-        """生成投票嵌入訊息"""
-        embed = discord.Embed(title=vote_data.get("title", "投票"), color=discord.Color.blue())
-        options = vote_data.get("options", [])
-        for i, option in enumerate(options, 1):
-            embed.add_field(name=f"選項 {i}", value=option, inline=False)
-        return embed
-EOF
+              # 創建 ptero 分支需要的簡化文件  
+              echo "# bot/services/vote_manager.py - Ptero 簡化版" > bot/services/vote_manager.py
+              echo "# 投票管理服務 - 託管版本" >> bot/services/vote_manager.py
+              echo "from datetime import datetime" >> bot/services/vote_manager.py
+              echo "from typing import Dict, Any, List" >> bot/services/vote_manager.py
+              echo "import discord" >> bot/services/vote_manager.py
+              echo "" >> bot/services/vote_manager.py
+              echo "class VoteManager:" >> bot/services/vote_manager.py
+              echo "    # 簡化的投票管理器" >> bot/services/vote_manager.py
+              echo "    def __init__(self):" >> bot/services/vote_manager.py
+              echo "        self.active_votes = {}" >> bot/services/vote_manager.py
               
-              cat > bot/utils/validator.py << 'EOF'
-# bot/utils/validator.py - Ptero 簡化版
-"""基本驗證工具 - 託管版本"""
-import re
-from typing import Tuple
-
-def validate_discord_id(discord_id) -> bool:
-    """驗證Discord ID格式"""
-    try:
-        if isinstance(discord_id, str):
-            if not discord_id.isdigit():
-                return False
-            discord_id = int(discord_id)
-        return 10000000000000000 <= discord_id <= 999999999999999999999
-    except (ValueError, TypeError):
-        return False
-
-def validate_basic_input(text: str, max_length: int = 1000) -> Tuple[bool, str]:
-    """基本輸入驗證"""
-    if not text or not isinstance(text, str):
-        return False, "輸入不能為空"
-    
-    if len(text) > max_length:
-        return False, f"輸入長度不能超過{max_length}字符"
-    
-    return True, ""
-EOF
+              echo "# bot/utils/validator.py - Ptero 簡化版" > bot/utils/validator.py
+              echo "# 基本驗證工具 - 託管版本" >> bot/utils/validator.py
+              echo "import re" >> bot/utils/validator.py
+              echo "from typing import Tuple" >> bot/utils/validator.py
+              echo "" >> bot/utils/validator.py
+              echo "def validate_discord_id(discord_id) -> bool:" >> bot/utils/validator.py
+              echo "    # 驗證Discord ID格式" >> bot/utils/validator.py
+              echo "    try:" >> bot/utils/validator.py
+              echo "        if isinstance(discord_id, str):" >> bot/utils/validator.py
+              echo "            if not discord_id.isdigit():" >> bot/utils/validator.py
+              echo "                return False" >> bot/utils/validator.py
+              echo "            discord_id = int(discord_id)" >> bot/utils/validator.py
+              echo "        return 10000000000000000 <= discord_id <= 999999999999999999999" >> bot/utils/validator.py
+              echo "    except (ValueError, TypeError):" >> bot/utils/validator.py
+              echo "        return False" >> bot/utils/validator.py
             fi
             
             sync_message="${{ github.event.inputs.sync_message }}"
