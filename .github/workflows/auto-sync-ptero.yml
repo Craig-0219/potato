@@ -95,8 +95,10 @@ jobs:
           if [ "${{ github.event.inputs.force_sync }}" = "true" ]; then
             echo "⚠️ 執行強制同步模式"
             
-            # 強制同步：重置 ptero 為簡化版的 main
+            # 強制同步：重置 ptero 為簡化版的 main (排除工作流程文件)
             git checkout ${{ env.MAIN_BRANCH }} -- src/ .env.example requirements.txt pyproject.toml
+            # 排除工作流程文件避免權限問題
+            git reset HEAD -- .github/workflows/ 2>/dev/null || true
             
             # 保持 ptero 特有的文件
             git checkout HEAD -- README.md start.py
@@ -142,8 +144,19 @@ jobs:
           else
             echo "📝 執行標準合併同步"
             
+            # 創建臨時分支排除工作流程文件
+            git checkout -b temp-sync-branch ${{ env.MAIN_BRANCH }}
+            # 移除工作流程文件的變更，避免權限問題
+            if [ -d ".github/workflows" ]; then
+              git checkout ${{ env.PTERO_BRANCH }} -- .github/workflows/ 2>/dev/null || true
+              git commit -m "臨時排除工作流程文件以避免權限問題" --allow-empty
+            fi
+            
+            # 切回 ptero 分支進行合併
+            git checkout ${{ env.PTERO_BRANCH }}
+            
             # 標準合併同步
-            if git merge ${{ env.MAIN_BRANCH }} --no-edit; then
+            if git merge temp-sync-branch --no-edit; then
               echo "merge_status=success" >> $GITHUB_OUTPUT
               sync_message="🔄 自動同步: 合併 main (${{ needs.detect-changes.outputs.commits_count }} commits) → ptero"
             else
@@ -173,6 +186,9 @@ jobs:
                 exit 1
               fi
             fi
+            
+            # 清理臨時分支
+            git branch -D temp-sync-branch 2>/dev/null || true
           fi
           
           echo "sync_message=$sync_message" >> $GITHUB_OUTPUT
