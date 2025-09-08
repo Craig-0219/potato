@@ -37,7 +37,7 @@ except ImportError:
         redis = None
         aioredis = None
 
-from shared.logger import logger
+from .logger import logger
 
 
 class CacheLevel(Enum):

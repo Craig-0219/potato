@@ -8,10 +8,10 @@ from typing import Any, Dict, List
 
 import discord
 
-from bot.services.security.api_security import api_security
-from bot.services.security.mfa_manager import mfa_manager
-from bot.services.security.rbac_manager import Permission, rbac_manager
-from bot.utils.interaction_helper import SafeInteractionHandler
+from potato_bot.services.security.api_security import api_security
+from potato_bot.services.security.mfa_manager import mfa_manager
+from potato_bot.services.security.rbac_manager import Permission, rbac_manager
+from potato_bot.utils.interaction_helper import SafeInteractionHandler
 
 logger = logging.getLogger(__name__)
 

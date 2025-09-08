@@ -11,21 +11,21 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.db.security_dao import SecurityDAO
-from bot.services.security_audit_manager import (
+from potato_bot.db.security_dao import SecurityDAO
+from potato_bot.services.security_audit_manager import (
     AuditAction,
     ComplianceStandard,
     RiskLevel,
     SecurityEventType,
     security_audit_manager,
 )
-from bot.utils.embed_builder import EmbedBuilder
-from bot.views.security_views import (
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_bot.views.security_views import (
     AlertView,
     ComplianceReportView,
     SecurityView,
 )
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 class SecurityCore(commands.Cog):

@@ -10,9 +10,9 @@ from typing import Any, Dict, List
 import discord
 from discord import ui
 
-from bot.db import vote_dao
-from bot.utils.embed_builder import EmbedBuilder
-from shared.logger import logger
+from potato_bot.db import vote_dao
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_shared.logger import logger
 
 # ============ 基礎投票 UI 組件 ============
 
@@ -661,7 +661,7 @@ class CreateVoteButton(ui.Button):
                     await vote_dao.add_vote_option(vote_id, option)
 
                 # 創建投票視圖
-                from bot.utils.vote_utils import build_vote_embed
+                from potato_bot.utils.vote_utils import build_vote_embed
 
                 vote_embed = build_vote_embed(
                     session_data["title"],
@@ -757,7 +757,7 @@ class VoteCreationConfirmView(ui.View):
                     await vote_dao.add_vote_option(vote_id, option)
 
                 # 創建投票視圖
-                from bot.utils.vote_utils import build_vote_embed
+                from potato_bot.utils.vote_utils import build_vote_embed
 
                 vote_embed = build_vote_embed(
                     session_data["title"],

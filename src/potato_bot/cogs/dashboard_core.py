@@ -11,12 +11,12 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.services.dashboard_manager import dashboard_manager
-from bot.services.statistics_manager import StatisticsManager
-from bot.utils.embed_builder import EmbedBuilder
-from bot.utils.interaction_helper import SafeInteractionHandler
-from bot.views.dashboard_views import DashboardView
-from shared.logger import logger
+from potato_bot.services.dashboard_manager import dashboard_manager
+from potato_bot.services.statistics_manager import StatisticsManager
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_bot.utils.interaction_helper import SafeInteractionHandler
+from potato_bot.views.dashboard_views import DashboardView
+from potato_shared.logger import logger
 
 
 class DashboardCore(commands.Cog):
@@ -464,7 +464,7 @@ class DashboardCore(commands.Cog):
         """獲取工作流程實時數據"""
         try:
             # 嘗試獲取工作流程數據
-            from bot.db.workflow_dao import WorkflowDAO
+            from potato_bot.db.workflow_dao import WorkflowDAO
 
             workflow_dao = WorkflowDAO()
 

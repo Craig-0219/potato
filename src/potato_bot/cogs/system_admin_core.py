@@ -10,7 +10,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 class SystemAdmin(commands.Cog):
@@ -24,7 +24,7 @@ class SystemAdmin(commands.Cog):
     async def admin_panel(self, interaction: discord.Interaction):
         """系統管理面板"""
         try:
-            from bot.views.system_admin_views import SystemAdminPanel
+            from potato_bot.views.system_admin_views import SystemAdminPanel
 
             embed = discord.Embed(
                 title="🔧 系統管理面板",
@@ -61,7 +61,7 @@ class SystemAdmin(commands.Cog):
     @app_commands.default_permissions(manage_messages=True)
     async def basic_dashboard(self, interaction: discord.Interaction):
         """基礎系統儀表板（避免與高級儀表板衝突）"""
-        from bot.utils.interaction_helper import SafeInteractionHandler
+        from potato_bot.utils.interaction_helper import SafeInteractionHandler
 
         try:
             if not await SafeInteractionHandler.safe_defer(interaction, ephemeral=True):
@@ -75,7 +75,7 @@ class SystemAdmin(commands.Cog):
     async def system_status(self, interaction: discord.Interaction):
         """系統整體狀態 (斜線指令版本)"""
         try:
-            from bot.utils.interaction_helper import SafeInteractionHandler
+            from potato_bot.utils.interaction_helper import SafeInteractionHandler
 
             if not await SafeInteractionHandler.safe_defer(interaction, ephemeral=True):
                 return
@@ -124,7 +124,7 @@ class SystemAdmin(commands.Cog):
             # 導入必要的模組
             from datetime import datetime
 
-            from bot.services.data_export_manager import (
+            from potato_bot.services.data_export_manager import (
                 DataExportManager,
                 ExportRequest,
             )
@@ -265,8 +265,8 @@ class SystemAdmin(commands.Cog):
         try:
             await interaction.response.defer(ephemeral=True)
 
-            from bot.db.pool import get_db_health
-            from bot.services.data_cleanup_manager import DataCleanupManager
+            from potato_bot.db.pool import get_db_health
+            from potato_bot.services.data_cleanup_manager import DataCleanupManager
 
             embed = discord.Embed(
                 title="🗄️ 資料庫管理",
@@ -297,7 +297,7 @@ class SystemAdmin(commands.Cog):
                 try:
                     import aiomysql
 
-                    from bot.db.database_manager import get_database_manager
+                    from potato_bot.db.database_manager import get_database_manager
 
                     db = get_database_manager()
 
@@ -375,7 +375,7 @@ class SystemAdmin(commands.Cog):
                 try:
                     import aiomysql
 
-                    from bot.db.database_manager import get_database_manager
+                    from potato_bot.db.database_manager import get_database_manager
 
                     db = get_database_manager()
 
@@ -431,7 +431,7 @@ class SystemAdmin(commands.Cog):
             elif action == "stats":
                 # 查看資料庫統計
                 try:
-                    from bot.services.statistics_manager import (
+                    from potato_bot.services.statistics_manager import (
                         StatisticsManager,
                     )
 

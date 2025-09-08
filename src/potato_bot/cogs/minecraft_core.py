@@ -3,12 +3,12 @@ from datetime import datetime
 import discord
 from discord.ext import commands, tasks
 
-from bot.services.minecraft.chat_bridge import ChatBridge
-from bot.services.minecraft.mc_server_api import MinecraftServerAPI
-from bot.services.minecraft.player_manager import PlayerManager
-from bot.services.minecraft.rcon_manager import RCONManager
-from shared.config import MINECRAFT_NOTIFICATION_CHANNEL
-from shared.logger import logger
+from potato_bot.services.minecraft.chat_bridge import ChatBridge
+from potato_bot.services.minecraft.mc_server_api import MinecraftServerAPI
+from potato_bot.services.minecraft.player_manager import PlayerManager
+from potato_bot.services.minecraft.rcon_manager import RCONManager
+from potato_shared.config import MINECRAFT_NOTIFICATION_CHANNEL
+from potato_shared.logger import logger
 
 
 class MinecraftCore(commands.Cog):

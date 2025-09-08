@@ -12,8 +12,8 @@ from typing import Any, Dict, List, Optional
 
 import aiomysql
 
-from bot.db.pool import db_pool
-from bot.services.guild_permission_manager import (
+from potato_bot.db.pool import db_pool
+from potato_bot.services.guild_permission_manager import (
     GuildPermission,
     guild_permission_manager,
 )

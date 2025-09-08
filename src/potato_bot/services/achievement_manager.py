@@ -10,9 +10,9 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from bot.db.pool import db_pool
-from shared.cache_manager import cache_manager
-from shared.logger import logger
+from potato_bot.db.pool import db_pool
+from potato_shared.cache_manager import cache_manager
+from potato_shared.logger import logger
 
 
 class AchievementType(Enum):
@@ -305,7 +305,7 @@ class AchievementManager:
 
         try:
             # 獲取用戶遊戲統計
-            from bot.services.economy_manager import EconomyManager
+            from potato_bot.services.economy_manager import EconomyManager
 
             economy_manager = EconomyManager()
             user_economy = await economy_manager.get_user_economy(user_id, guild_id)
@@ -366,7 +366,7 @@ class AchievementManager:
         achievements_earned = []
 
         try:
-            from bot.services.economy_manager import EconomyManager
+            from potato_bot.services.economy_manager import EconomyManager
 
             economy_manager = EconomyManager()
             user_economy = await economy_manager.get_user_economy(user_id, guild_id)
@@ -507,7 +507,7 @@ class AchievementManager:
     ):
         """發放成就獎勵"""
         try:
-            from bot.services.economy_manager import EconomyManager
+            from potato_bot.services.economy_manager import EconomyManager
 
             economy_manager = EconomyManager()
 
@@ -614,7 +614,7 @@ class AchievementManager:
     ) -> Dict[str, Any]:
         """計算成就進度"""
         try:
-            from bot.services.economy_manager import EconomyManager
+            from potato_bot.services.economy_manager import EconomyManager
 
             economy_manager = EconomyManager()
             user_economy = await economy_manager.get_user_economy(user_id, guild_id)

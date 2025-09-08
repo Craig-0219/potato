@@ -10,11 +10,11 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.db.ai_dao import AIDAO
-from bot.db.ticket_dao import TicketDAO
-from bot.services.ai_manager import AIManager
-from bot.views.ai_views import AIReplyView, AITagSuggestionView
-from shared.logger import logger
+from potato_bot.db.ai_dao import AIDAO
+from potato_bot.db.ticket_dao import TicketDAO
+from potato_bot.services.ai_manager import AIManager
+from potato_bot.views.ai_views import AIReplyView, AITagSuggestionView
+from potato_shared.logger import logger
 
 
 class AICore(commands.Cog):

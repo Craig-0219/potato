@@ -46,7 +46,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # logger fallback
 try:
-    from shared.logger import logger
+    from potato_shared.logger import logger
 except ImportError:
     import logging
 
@@ -55,7 +55,7 @@ except ImportError:
 
 # config fallback
 try:
-    from shared.config import (
+    from potato_shared.config import (
         DB_HOST,
         DB_NAME,
         DB_PASSWORD,
@@ -65,12 +65,12 @@ try:
         SYNC_COMMANDS,
     )
 except ImportError:
-    logger.error("❌ shared/config.py 不存在或設定不齊全")
+    logger.error("❌ potato_shared/config.py 不存在或設定不齊全")
     sys.exit(1)
 
 # 離線模式支援
 try:
-    from shared.offline_mode_manager import (
+    from potato_shared.offline_mode_manager import (
         auto_configure_environment,
         is_offline_mode,
     )
@@ -78,7 +78,7 @@ try:
     # 本地 API 服務器功能（如果需要）
     def start_local_api_if_needed():
         """啟動本地 API 服務器（如果配置啟用）"""
-        from shared.config import API_EXTERNAL_ACCESS, ENABLE_API_SERVER
+        from potato_shared.config import API_EXTERNAL_ACCESS, ENABLE_API_SERVER
 
         if ENABLE_API_SERVER and API_EXTERNAL_ACCESS:
             logger.info("🌐 本地 API 服務器已配置為外網訪問模式")
@@ -96,7 +96,7 @@ import threading
 try:
     import uvicorn
 
-    from bot.api.app import app as api_app
+    from potato_bot.api.app import app as api_app
 
     API_AVAILABLE = True
 except ImportError as e:
@@ -104,13 +104,13 @@ except ImportError as e:
     API_AVAILABLE = False
     uvicorn = None
     api_app = None
-from bot.db.pool import close_database, db_pool, get_db_health, init_database
-from bot.services.guild_manager import GuildManager
+from potato_bot.db.pool import close_database, db_pool, get_db_health, init_database
+from potato_bot.services.guild_manager import GuildManager
 
 # Views現在由各個Cog自行註冊，不需要集中註冊
 
 
-COGS_PREFIX = "bot.cogs."
+COGS_PREFIX = "potato_bot.cogs."
 ALL_EXTENSIONS = [
     # 核心企業功能模組
     "ticket_core",
@@ -185,7 +185,7 @@ class PotatoBot(commands.Bot):
                 await self._configure_offline_mode()
 
             # 1. 設置全局錯誤處理
-            from bot.utils.error_handler import setup_error_handling
+            from potato_bot.utils.error_handler import setup_error_handling
 
             self.error_handler = setup_error_handling(self)
             logger.info("✅ 錯誤處理器已設置")
@@ -267,14 +267,14 @@ class PotatoBot(commands.Bot):
                 logger.info("✅ 資料庫連接池建立成功")
 
                 # 2. 統一初始化所有表格
-                from bot.db.database_manager import get_database_manager
+                from potato_bot.db.database_manager import get_database_manager
 
                 db_manager = get_database_manager()
                 await db_manager.initialize_all_tables(force_recreate=False)
                 logger.info("✅ 資料庫表格初始化完成")
 
                 # 3. 初始化投票模板系統
-                from bot.services.vote_template_manager import (
+                from potato_bot.services.vote_template_manager import (
                     vote_template_manager,
                 )
 
@@ -306,7 +306,7 @@ class PotatoBot(commands.Bot):
 
         try:
             # 初始化伺服器管理表格
-            from bot.db.migrations.guild_management_tables import (
+            from potato_bot.db.migrations.guild_management_tables import (
                 initialize_guild_management_system,
             )
 
@@ -316,7 +316,7 @@ class PotatoBot(commands.Bot):
             self.guild_manager = GuildManager(self)
 
             # 啟動備份服務
-            from bot.services.backup_service import backup_service
+            from potato_bot.services.backup_service import backup_service
 
             await backup_service.start_backup_scheduler()
             logger.info("✅ 自動備份服務已啟動")
@@ -669,7 +669,7 @@ async def sync_commands(ctx):
 async def database_status(ctx):
     """資料庫狀態"""
     try:
-        from bot.db.database_manager import get_database_manager
+        from potato_bot.db.database_manager import get_database_manager
 
         db_manager = get_database_manager()
         status = await db_manager.get_database_status()
@@ -712,7 +712,7 @@ async def bot_status(ctx):
         # 收集狀態資訊
         db_health = await get_db_health()
 
-        from bot.utils.embed_builder import EmbedBuilder
+        from potato_bot.utils.embed_builder import EmbedBuilder
 
         embed = EmbedBuilder.status_embed(
             {
@@ -801,7 +801,7 @@ async def health_check(ctx):
 
         overall_emoji = "✅" if all_healthy else "⚠️"
 
-        from bot.utils.embed_builder import EmbedBuilder
+        from potato_bot.utils.embed_builder import EmbedBuilder
 
         embed = EmbedBuilder.build(
             title=f"{overall_emoji} 健康檢查結果",

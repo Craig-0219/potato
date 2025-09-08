@@ -7,9 +7,9 @@ AI 智能回覆管理服務
 from datetime import datetime
 from typing import Any, Dict, List
 
-from bot.db.tag_dao import TagDAO
-from bot.db.ticket_dao import TicketDAO
-from shared.logger import logger
+from potato_bot.db.tag_dao import TagDAO
+from potato_bot.db.ticket_dao import TicketDAO
+from potato_shared.logger import logger
 
 
 class AIManager:

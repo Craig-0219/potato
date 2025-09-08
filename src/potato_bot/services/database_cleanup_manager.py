@@ -9,8 +9,8 @@ from typing import Any, Dict, List
 
 from discord.ext import tasks
 
-from bot.db.archive_dao import ArchiveDAO
-from shared.logger import logger
+from potato_bot.db.archive_dao import ArchiveDAO
+from potato_shared.logger import logger
 
 
 class DatabaseCleanupManager:

@@ -24,19 +24,19 @@ from discord import app_commands
 from discord.ext import commands, tasks
 
 # 遊戲相關導入
-from bot.db.pool import db_pool
-from bot.services.achievement_manager import AchievementManager
-from bot.services.cross_platform_economy import cross_platform_economy
-from bot.services.economy_manager import EconomyManager
-from bot.services.game_manager import GameManager
-from bot.utils.embed_builder import EmbedBuilder
-from bot.views.game_views import (
+from potato_bot.db.pool import db_pool
+from potato_bot.services.achievement_manager import AchievementManager
+from potato_bot.services.cross_platform_economy import cross_platform_economy
+from potato_bot.services.economy_manager import EconomyManager
+from potato_bot.services.game_manager import GameManager
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_bot.views.game_views import (
     GameMenuView,
     GuessNumberView,
 )
-from shared.cache_manager import cache_manager
-from shared.logger import logger
-from shared.prometheus_metrics import (
+from potato_shared.cache_manager import cache_manager
+from potato_shared.logger import logger
+from potato_shared.prometheus_metrics import (
     prometheus_metrics,
     track_command_execution,
 )
@@ -1160,7 +1160,7 @@ async def setup(bot):
     # 確保資料庫表格存在
     await _ensure_game_tables()
     # 確保成就表格存在
-    from bot.services.achievement_manager import ensure_achievement_tables
+    from potato_bot.services.achievement_manager import ensure_achievement_tables
 
     await ensure_achievement_tables()
     await bot.add_cog(GameEntertainment(bot))

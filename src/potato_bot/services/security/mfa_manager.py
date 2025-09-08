@@ -52,7 +52,7 @@ except (ImportError, AttributeError):
             )
 
 
-from bot.db.pool import db_pool
+from potato_bot.db.pool import db_pool
 
 # 設置日誌
 logger = logging.getLogger(__name__)

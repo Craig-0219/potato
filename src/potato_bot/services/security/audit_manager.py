@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from bot.db.pool import db_pool
+from potato_bot.db.pool import db_pool
 
 logger = logging.getLogger(__name__)
 

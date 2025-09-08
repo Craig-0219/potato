@@ -9,7 +9,7 @@ import socket
 from dataclasses import dataclass
 from typing import Any, Dict
 
-from shared.logger import logger
+from .logger import logger
 
 
 @dataclass
@@ -131,7 +131,7 @@ class OfflineModeManager:
 
     def _setup_fallback_services(self):
         """設置後備服務"""
-        from shared.local_cache_manager import get_local_cache_manager
+        from .local_cache_manager import get_local_cache_manager
 
         # 本地快取管理器
         self._fallback_services["cache"] = get_local_cache_manager()

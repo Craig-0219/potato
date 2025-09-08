@@ -12,11 +12,11 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
-from bot.services.economy_manager import (
+from potato_bot.services.economy_manager import (
     economy_manager,
 )
-from bot.utils.embed_builder import EmbedBuilder
-from shared.logger import logger
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_shared.logger import logger
 
 
 class CrossPlatformEconomyCore(commands.Cog):

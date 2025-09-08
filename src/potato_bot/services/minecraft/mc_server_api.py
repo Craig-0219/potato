@@ -10,8 +10,8 @@ from typing import Any, Dict, List, Optional
 import aiohttp
 from mcstatus import JavaServer
 
-from shared.config import MINECRAFT_SERVER_HOST, MINECRAFT_SERVER_PORT
-from shared.logger import logger
+from potato_shared.config import MINECRAFT_SERVER_HOST, MINECRAFT_SERVER_PORT
+from potato_shared.logger import logger
 
 
 class MinecraftServerAPI:

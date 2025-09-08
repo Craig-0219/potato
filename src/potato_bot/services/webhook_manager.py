@@ -16,8 +16,8 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
-from bot.db.webhook_dao import WebhookDAO
-from shared.logger import logger
+from potato_bot.db.webhook_dao import WebhookDAO
+from potato_shared.logger import logger
 
 
 class WebhookType(Enum):

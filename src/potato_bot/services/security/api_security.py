@@ -14,8 +14,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from jose import jwt
 
-from bot.db.pool import db_pool
-from bot.services.security.audit_manager import (
+from potato_bot.db.pool import db_pool
+from potato_bot.services.security.audit_manager import (
     EventCategory,
     EventSeverity,
     SecurityEvent,

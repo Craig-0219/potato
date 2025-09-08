@@ -6,14 +6,14 @@ from datetime import timedelta, timezone
 import discord
 from discord.ext import commands
 
-from bot.views.vote_views import (
+from potato_bot.views.vote_views import (
     AnonSelectView,
     DurationSelectView,
     FinalStepView,
     MultiSelectView,
     RoleSelectView,
 )
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 class VoteListener(commands.Cog):

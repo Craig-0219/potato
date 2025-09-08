@@ -8,12 +8,12 @@ from datetime import datetime, timedelta
 import discord
 from discord.ext import commands
 
-from bot.services.minecraft.event_manager import (
+from potato_bot.services.minecraft.event_manager import (
     EventStatus,
     EventType,
     MinecraftEventManager,
 )
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 class MinecraftEvents(commands.Cog):

@@ -16,7 +16,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import jwt
 from pydantic import BaseModel
 
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 # 權限等級枚舉

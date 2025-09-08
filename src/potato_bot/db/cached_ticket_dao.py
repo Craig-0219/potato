@@ -13,9 +13,9 @@ import asyncio
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from bot.db.ticket_dao import TicketDAO
-from shared.cache_manager import CacheStrategy, cache_manager, cached
-from shared.logger import logger
+from potato_bot.db.ticket_dao import TicketDAO
+from potato_shared.cache_manager import CacheStrategy, cache_manager, cached
+from potato_shared.logger import logger
 
 
 class CachedTicketDAO:

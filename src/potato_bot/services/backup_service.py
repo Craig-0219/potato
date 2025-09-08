@@ -10,8 +10,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from bot.db.pool import db_pool
-from bot.services.data_management_service import data_management_service
+from potato_bot.db.pool import db_pool
+from potato_bot.services.data_management_service import data_management_service
 
 logger = logging.getLogger(__name__)
 

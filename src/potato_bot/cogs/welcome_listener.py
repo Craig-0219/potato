@@ -10,9 +10,9 @@ from typing import Set
 import discord
 from discord.ext import commands
 
-from bot.db.welcome_dao import WelcomeDAO
-from bot.services.welcome_manager import WelcomeManager
-from shared.logger import logger
+from potato_bot.db.welcome_dao import WelcomeDAO
+from potato_bot.services.welcome_manager import WelcomeManager
+from potato_shared.logger import logger
 
 
 class WelcomeListener(commands.Cog):

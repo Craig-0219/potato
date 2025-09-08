@@ -31,7 +31,7 @@ try:
 except ImportError:
     HAS_SLOWAPI = False
 
-from shared.logger import logger
+from potato_shared.logger import logger
 
 from . import API_BASE_PATH, API_VERSION
 from .auth import APIKeyManager, get_current_user
@@ -58,7 +58,7 @@ async def lifespan(app: FastAPI):
     # 啟動時初始化
     try:
         # 初始化資料庫連接
-        from bot.db.database_manager import get_database_manager
+        from potato_bot.db.database_manager import get_database_manager
 
         get_database_manager()
 
@@ -204,7 +204,7 @@ async def health_check(request: Request):
     """API 健康檢查"""
     try:
         # 檢查資料庫連接
-        from bot.db.database_manager import get_database_manager
+        from potato_bot.db.database_manager import get_database_manager
 
         get_database_manager()
 
@@ -285,7 +285,7 @@ async def verify_api_key(request: Request):
 
         # 嘗試驗證 API 金鑰（使用 auth_manager）
         try:
-            from bot.services.auth_manager import auth_manager
+            from potato_bot.services.auth_manager import auth_manager
 
             success, auth_user, message = await auth_manager.verify_api_key(api_key)
 
@@ -666,7 +666,7 @@ async def get_bot_info():
         # 方法2: 嘗試直接導入
         if not bot_instance:
             try:
-                from bot.main import bot as main_bot
+                from potato_bot.main import bot as main_bot
 
                 if main_bot:
                     bot_instance = main_bot

@@ -13,11 +13,11 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
-from bot.db.pool import db_pool
-from bot.services.achievement_manager import AchievementManager
-from bot.services.economy_manager import EconomyManager
-from shared.cache_manager import cache_manager
-from shared.logger import logger
+from potato_bot.db.pool import db_pool
+from potato_bot.services.achievement_manager import AchievementManager
+from potato_bot.services.economy_manager import EconomyManager
+from potato_shared.cache_manager import cache_manager
+from potato_shared.logger import logger
 
 
 class PlatformType(Enum):

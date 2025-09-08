@@ -13,25 +13,25 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
-from bot.db.assignment_dao import AssignmentDAO
+from potato_bot.db.assignment_dao import AssignmentDAO
 
 # 導入快取優化的組件
-from bot.db.cached_ticket_dao import cached_ticket_dao
-from bot.db.language_dao import LanguageDAO
-from bot.db.tag_dao import TagDAO
-from bot.services.assignment_manager import AssignmentManager
-from bot.services.language_manager import LanguageManager
-from bot.services.statistics_manager import StatisticsManager
-from bot.services.tag_manager import TagManager
-from bot.services.ticket_manager import TicketManager
-from bot.utils.embed_builder import EmbedBuilder
-from bot.utils.helper import get_time_ago
-from bot.utils.ticket_constants import TicketConstants
-from bot.views.ticket_views import TicketControlView, TicketPanelView
+from potato_bot.db.cached_ticket_dao import cached_ticket_dao
+from potato_bot.db.language_dao import LanguageDAO
+from potato_bot.db.tag_dao import TagDAO
+from potato_bot.services.assignment_manager import AssignmentManager
+from potato_bot.services.language_manager import LanguageManager
+from potato_bot.services.statistics_manager import StatisticsManager
+from potato_bot.services.tag_manager import TagManager
+from potato_bot.services.ticket_manager import TicketManager
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_bot.utils.helper import get_time_ago
+from potato_bot.utils.ticket_constants import TicketConstants
+from potato_bot.views.ticket_views import TicketControlView, TicketPanelView
 
 # 快取和監控
-from shared.cache_manager import cache_manager, cached
-from shared.logger import logger
+from potato_shared.cache_manager import cache_manager, cached
+from potato_shared.logger import logger
 
 
 class CachedTicketCore(commands.Cog):

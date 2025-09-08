@@ -9,7 +9,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set
 
-from bot.db.pool import db_pool
+from potato_bot.db.pool import db_pool
 
 logger = logging.getLogger(__name__)
 

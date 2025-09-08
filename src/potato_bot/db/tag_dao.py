@@ -6,8 +6,8 @@
 
 from typing import Any, Dict, List, Optional
 
-from bot.db.pool import db_pool
-from shared.logger import logger
+from potato_bot.db.pool import db_pool
+from potato_shared.logger import logger
 
 
 class TagDAO:
@@ -34,7 +34,7 @@ class TagDAO:
 
                 if not exists:
                     logger.warning("📋 檢測到標籤系統表格不存在，開始自動初始化...")
-                    from bot.db.database_manager import get_database_manager
+                    from potato_bot.db.database_manager import get_database_manager
 
                     db_manager = get_database_manager()
                     await db_manager._create_tag_tables()

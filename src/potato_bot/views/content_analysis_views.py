@@ -8,14 +8,14 @@ from datetime import datetime, timezone
 
 import discord
 
-from bot.services.content_analyzer import (
+from potato_bot.services.content_analyzer import (
     AnalysisType,
     ContentRiskLevel,
     SentimentType,
     content_analyzer,
 )
-from bot.utils.embed_builder import EmbedBuilder
-from shared.logger import logger
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_shared.logger import logger
 
 
 class ContentAnalysisMainView(discord.ui.View):

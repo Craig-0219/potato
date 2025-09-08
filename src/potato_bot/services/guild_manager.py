@@ -12,8 +12,8 @@ import aiomysql
 import discord
 from discord.ext import commands
 
-from bot.db.pool import db_pool
-from bot.services.guild_permission_manager import (
+from potato_bot.db.pool import db_pool
+from potato_bot.services.guild_permission_manager import (
     GuildRole,
     guild_permission_manager,
 )
@@ -337,7 +337,7 @@ class GuildManager:
         """初始化各系統的預設設定"""
         try:
             # 1. 票券系統預設設定
-            from bot.db.ticket_dao import TicketDAO
+            from potato_bot.db.ticket_dao import TicketDAO
 
             ticket_dao = TicketDAO()
             await ticket_dao.create_default_settings(guild.id)

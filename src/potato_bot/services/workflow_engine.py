@@ -11,7 +11,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 class WorkflowStatus(Enum):

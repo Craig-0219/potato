@@ -10,7 +10,7 @@ from typing import Any, Dict, List
 
 import discord
 
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 class SecurityView(discord.ui.View):

@@ -9,8 +9,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import discord
 
-from bot.db.welcome_dao import WelcomeDAO
-from shared.logger import logger
+from potato_bot.db.welcome_dao import WelcomeDAO
+from potato_shared.logger import logger
 
 
 class WelcomeManager:

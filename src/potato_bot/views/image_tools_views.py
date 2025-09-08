@@ -8,8 +8,8 @@ from enum import Enum
 
 import discord
 
-from bot.utils.embed_builder import EmbedBuilder
-from shared.logger import logger
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_shared.logger import logger
 
 
 class ImageOperation(Enum):

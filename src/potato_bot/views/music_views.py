@@ -8,8 +8,8 @@ import traceback
 
 import discord
 
-from bot.utils.embed_builder import EmbedBuilder
-from shared.logger import logger
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_shared.logger import logger
 
 
 class SafeInteractionMixin:
@@ -171,7 +171,7 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
             logger.info(f"循環按鈕被點擊 - 用戶: {interaction.user.name}")
 
             # 切換循環模式
-            from bot.cogs.music_core import LoopMode
+            from potato_bot.cogs.music_core import LoopMode
 
             if self.player.loop_mode == LoopMode.NONE:
                 self.player.loop_mode = LoopMode.SINGLE
@@ -734,7 +734,7 @@ class SearchInputModal(discord.ui.Modal, title="🔍 搜索音樂"):
                 return []
 
             # 轉換為 MusicSource 物件
-            from bot.cogs.music_core import MusicSource
+            from potato_bot.cogs.music_core import MusicSource
 
             # 創建假用戶作為請求者
             class FakeUser:

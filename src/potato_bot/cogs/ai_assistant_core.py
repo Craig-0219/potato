@@ -12,19 +12,19 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.services.ai.conversation_manager import ConversationFlow
-from bot.services.ai_assistant import (
+from potato_bot.services.ai.conversation_manager import ConversationFlow
+from potato_bot.services.ai_assistant import (
     AIProvider,
     AITaskType,
     ai_assistant,
     enhanced_ai_assistant,
 )
-from bot.services.economy_manager import EconomyManager
-from bot.utils.embed_builder import EmbedBuilder
-from bot.views.ai_assistant_views import AIMainMenuView
-from shared.cache_manager import cache_manager
-from shared.logger import logger
-from shared.prometheus_metrics import track_command_execution
+from potato_bot.services.economy_manager import EconomyManager
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_bot.views.ai_assistant_views import AIMainMenuView
+from potato_shared.cache_manager import cache_manager
+from potato_shared.logger import logger
+from potato_shared.prometheus_metrics import track_command_execution
 
 
 class AIAssistantCog(commands.Cog):

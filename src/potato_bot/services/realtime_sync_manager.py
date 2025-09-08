@@ -41,8 +41,8 @@ except ImportError:
 
 import aiomysql
 
-from bot.db.pool import db_pool
-from shared.logger import logger
+from potato_bot.db.pool import db_pool
+from potato_shared.logger import logger
 
 
 class SyncEventType(Enum):
@@ -238,7 +238,7 @@ class RealtimeSyncManager:
                 return
 
             # 更新頻道中的票券狀態訊息
-            from bot.utils.ticket_utils import create_ticket_status_embed
+            from potato_bot.utils.ticket_utils import create_ticket_status_embed
 
             embed = await create_ticket_status_embed(ticket_info)
 
@@ -264,7 +264,7 @@ class RealtimeSyncManager:
             # 發送 DM 通知被指派者
             user = self.bot.get_user(assigned_to)
             if user:
-                from bot.utils.embed_builder import EmbedBuilder
+                from potato_bot.utils.embed_builder import EmbedBuilder
 
                 embed = EmbedBuilder.build(
                     title="🎫 新票券指派",
@@ -297,7 +297,7 @@ class RealtimeSyncManager:
             # 通知票券創建者
             user = self.bot.get_user(int(ticket_info["discord_id"]))
             if user and event.data and "closed_by" in event.data:
-                from bot.utils.embed_builder import EmbedBuilder
+                from potato_bot.utils.embed_builder import EmbedBuilder
 
                 embed = EmbedBuilder.build(
                     title="✅ 票券已關閉",

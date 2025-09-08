@@ -11,14 +11,14 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.db.workflow_dao import WorkflowDAO
-from bot.services.workflow_engine import (
+from potato_bot.db.workflow_dao import WorkflowDAO
+from potato_bot.services.workflow_engine import (
     TriggerType,
     WorkflowStatus,
     workflow_engine,
 )
-from bot.utils.embed_builder import EmbedBuilder
-from shared.logger import logger
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_shared.logger import logger
 
 
 class WorkflowCore(commands.Cog):

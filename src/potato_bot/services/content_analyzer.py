@@ -14,8 +14,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from shared.cache_manager import cache_manager
-from shared.logger import logger
+from potato_shared.cache_manager import cache_manager
+from potato_shared.logger import logger
 
 
 class SentimentType(Enum):

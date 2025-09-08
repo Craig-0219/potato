@@ -10,7 +10,7 @@ from typing import Any, Dict, List
 
 import discord
 
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 class AutomationView(discord.ui.View):
@@ -271,14 +271,14 @@ class RuleBuilderModal(discord.ui.Modal):
             }
 
             # 儲存規則到資料庫
-            from bot.db.automation_dao import AutomationDAO
+            from potato_bot.db.automation_dao import AutomationDAO
 
             dao = AutomationDAO()
 
             rule_id = await dao.create_rule(rule_data)
 
             # 同步到引擎
-            from bot.services.automation_engine import automation_engine
+            from potato_bot.services.automation_engine import automation_engine
 
             await automation_engine.create_rule(rule_data)
 

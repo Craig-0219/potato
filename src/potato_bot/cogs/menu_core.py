@@ -14,7 +14,7 @@ from discord import app_commands
 from discord.ext import commands
 
 # 匯入選單系統
-from bot.ui.menu_system import MenuSystemManager
+from potato_bot.ui.menu_system import MenuSystemManager
 
 logger = logging.getLogger(__name__)
 
@@ -257,7 +257,7 @@ class QuickMenuView(discord.ui.View):
             await interaction.response.send_message("❌ 只有選單發起者可以使用", ephemeral=True)
             return
 
-        from bot.ui.menu_system import SmartChatModal
+        from potato_bot.ui.menu_system import SmartChatModal
 
         modal = SmartChatModal(self.bot)
         await interaction.response.send_modal(modal)
@@ -271,7 +271,7 @@ class QuickMenuView(discord.ui.View):
             await interaction.response.send_message("❌ 只有選單發起者可以使用", ephemeral=True)
             return
 
-        from bot.ui.menu_system import CreateTicketModal
+        from potato_bot.ui.menu_system import CreateTicketModal
 
         modal = CreateTicketModal()
         await interaction.response.send_modal(modal)
@@ -301,7 +301,7 @@ class QuickMenuView(discord.ui.View):
             await interaction.response.send_message("❌ 只有選單發起者可以使用", ephemeral=True)
             return
 
-        from bot.ui.menu_system import MainMenuView
+        from potato_bot.ui.menu_system import MainMenuView
 
         view = MainMenuView(self.bot, self.user_id)
         embed = discord.Embed(

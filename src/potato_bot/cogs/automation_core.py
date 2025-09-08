@@ -9,14 +9,14 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.db.automation_dao import AutomationDAO
-from bot.services.automation_engine import (
+from potato_bot.db.automation_dao import AutomationDAO
+from potato_bot.services.automation_engine import (
     TriggerType,
     automation_engine,
 )
-from bot.utils.embed_builder import EmbedBuilder
-from bot.views.automation_views import AutomationView, RuleBuilderModal
-from shared.logger import logger
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_bot.views.automation_views import AutomationView, RuleBuilderModal
+from potato_shared.logger import logger
 
 
 class AutomationCore(commands.Cog):

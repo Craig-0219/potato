@@ -19,7 +19,7 @@ try:
 except ImportError:
     HAS_SLOWAPI = False
 
-from shared.logger import logger
+from potato_shared.logger import logger
 
 from ..auth import (
     APIUser,
@@ -341,7 +341,7 @@ async def enter_maintenance_mode(
 async def get_bot_settings(user: APIUser = Depends(require_admin_permission)):
     """獲取 Discord Bot 的各項設定"""
     try:
-        from bot.db.pool import db_pool
+        from potato_bot.db.pool import db_pool
 
         async with db_pool.acquire() as conn:
             async with conn.cursor() as cursor:
@@ -429,7 +429,7 @@ async def update_bot_settings(
 ):
     """更新 Discord Bot 的特定模組設定"""
     try:
-        from bot.db.pool import db_pool
+        from potato_bot.db.pool import db_pool
 
         # 驗證模組名稱
         valid_sections = ["tickets", "welcome", "votes"]
@@ -498,7 +498,7 @@ async def update_bot_settings(
 async def get_bot_commands(user: APIUser = Depends(require_read_permission)):
     """獲取當前 Discord Bot 載入的指令列表"""
     try:
-        from bot.main import bot
+        from potato_bot.main import bot
 
         if not bot:
             raise HTTPException(status_code=503, detail="Bot 未啟動")
@@ -555,7 +555,7 @@ async def reload_bot_extension(
 ):
     """重新載入指定的 Bot 擴展模組"""
     try:
-        from bot.main import bot
+        from potato_bot.main import bot
 
         if not bot:
             raise HTTPException(status_code=503, detail="Bot 未啟動")

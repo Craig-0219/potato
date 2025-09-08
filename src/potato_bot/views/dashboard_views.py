@@ -12,9 +12,9 @@ from typing import Dict, List
 import discord
 from discord.ui import Button, Modal, Select, TextInput, View, button
 
-from bot.services.dashboard_manager import ChartData, ChartType, DashboardData
-from bot.utils.embed_builder import EmbedBuilder
-from shared.logger import logger
+from potato_bot.services.dashboard_manager import ChartData, ChartType, DashboardData
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_shared.logger import logger
 
 
 class DashboardView(View):

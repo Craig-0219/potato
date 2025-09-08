@@ -8,8 +8,8 @@ import json
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from bot.db.base_dao import BaseDAO
-from shared.logger import logger
+from potato_bot.db.base_dao import BaseDAO
+from potato_shared.logger import logger
 
 
 class WelcomeDAO(BaseDAO):

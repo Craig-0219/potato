@@ -9,7 +9,7 @@ import os
 import re
 from typing import Any, Dict, Optional
 
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 class LanguageManager:

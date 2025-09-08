@@ -12,8 +12,8 @@ from typing import Any, Dict, Set
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.responses import JSONResponse
 
-from bot.services.statistics_manager import StatisticsManager
-from shared.logger import logger
+from potato_bot.services.statistics_manager import StatisticsManager
+from potato_shared.logger import logger
 
 
 # WebSocket 連接管理器

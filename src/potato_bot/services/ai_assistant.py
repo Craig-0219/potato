@@ -12,13 +12,13 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
-from shared.cache_manager import cache_manager
-from shared.config import (
+from potato_shared.cache_manager import cache_manager
+from potato_shared.config import (
     ANTHROPIC_API_KEY,
     GEMINI_API_KEY,
     OPENAI_API_KEY,
 )
-from shared.logger import logger
+from potato_shared.logger import logger
 
 # 引入 Phase 7 新的 AI 服務
 from .ai.ai_engine_manager import AIEngineManager

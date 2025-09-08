@@ -9,12 +9,12 @@ from typing import Any, Dict, List, Optional
 
 from mcrcon import MCRcon
 
-from shared.config import (
+from potato_shared.config import (
     MINECRAFT_RCON_HOST,
     MINECRAFT_RCON_PASSWORD,
     MINECRAFT_RCON_PORT,
 )
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 class RCONManager:

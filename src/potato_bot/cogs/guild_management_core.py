@@ -11,17 +11,17 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.services.data_management_service import (
+from potato_bot.services.data_management_service import (
     DataExportRequest,
     ExportFormat,
     data_management_service,
 )
-from bot.services.guild_analytics_service import guild_analytics_service
-from bot.services.guild_permission_manager import (
+from potato_bot.services.guild_analytics_service import guild_analytics_service
+from potato_bot.services.guild_permission_manager import (
     GuildPermission,
     guild_permission_manager,
 )
-from bot.utils.interaction_helper import SafeInteractionHandler
+from potato_bot.utils.interaction_helper import SafeInteractionHandler
 
 logger = logging.getLogger(__name__)
 

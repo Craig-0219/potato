@@ -22,7 +22,7 @@ except ImportError as e:
     PIL_AVAILABLE = False
     PIL_ERROR = str(e)
 
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 class ImageFormat(Enum):

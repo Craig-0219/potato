@@ -8,9 +8,9 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Tuple
 
-from bot.db.database_manager import DatabaseManager
-from bot.services.economy_manager import EconomyManager
-from shared.logger import logger
+from potato_bot.db.database_manager import DatabaseManager
+from potato_bot.services.economy_manager import EconomyManager
+from potato_shared.logger import logger
 
 from .rcon_manager import RCONManager
 

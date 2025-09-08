@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import discord
 
-from bot.utils.ticket_constants import (
+from potato_bot.utils.ticket_constants import (
     TicketConstants,
     create_progress_indicator,
     format_duration_chinese,

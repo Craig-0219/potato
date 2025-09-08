@@ -10,9 +10,9 @@ from typing import Any, Dict, List
 import discord
 from discord import ui
 
-from bot.services.lottery_manager import LotteryManager
-from bot.utils.embed_builder import EmbedBuilder
-from shared.logger import logger
+from potato_bot.services.lottery_manager import LotteryManager
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_shared.logger import logger
 
 
 class LotteryStatsDashboardView(ui.View):

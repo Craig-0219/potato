@@ -8,14 +8,14 @@ import traceback
 
 import discord
 
-from bot.services.ai_assistant import (
+from potato_bot.services.ai_assistant import (
     AIProvider,
     AIRequest,
     AITaskType,
     ai_assistant,
 )
-from bot.utils.embed_builder import EmbedBuilder
-from shared.logger import logger
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_shared.logger import logger
 
 
 class AIModelSelector(discord.ui.Select):

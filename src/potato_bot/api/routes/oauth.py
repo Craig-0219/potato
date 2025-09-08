@@ -14,8 +14,8 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from jose import jwt
 
-from shared.config import DISCORD_TOKEN
-from shared.logger import logger
+from potato_shared.config import DISCORD_TOKEN
+from potato_shared.logger import logger
 
 router = APIRouter()
 

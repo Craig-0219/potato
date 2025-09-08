@@ -9,13 +9,13 @@ from typing import Any, Dict, Optional, Tuple
 
 import discord
 
-from bot.services.chat_transcript_manager import ChatTranscriptManager
-from bot.services.realtime_sync_manager import (
+from potato_bot.services.chat_transcript_manager import ChatTranscriptManager
+from potato_bot.services.realtime_sync_manager import (
     SyncEvent,
     SyncEventType,
     realtime_sync,
 )
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 class TicketManager:
@@ -191,8 +191,8 @@ class TicketManager:
     ):
         """發送歡迎訊息"""
         try:
-            from bot.utils.ticket_constants import TicketConstants
-            from bot.views.ticket_views import TicketControlView
+            from potato_bot.utils.ticket_constants import TicketConstants
+            from potato_bot.views.ticket_views import TicketControlView
 
             priority_emoji = TicketConstants.PRIORITY_EMOJIS.get(priority, "🟡")
             priority_color = TicketConstants.PRIORITY_COLORS.get(priority, 0x00FF00)
@@ -283,8 +283,8 @@ class TicketManager:
     ):
         """應用自動標籤"""
         try:
-            from bot.db.tag_dao import TagDAO
-            from bot.services.tag_manager import TagManager
+            from potato_bot.db.tag_dao import TagDAO
+            from potato_bot.services.tag_manager import TagManager
 
             tag_dao = TagDAO()
             tag_manager = TagManager(tag_dao)
@@ -453,7 +453,7 @@ class TicketManager:
     async def handle_overdue_ticket(self, ticket: Dict, guild: discord.Guild) -> bool:
         """處理超時票券"""
         try:
-            from bot.utils.ticket_constants import TicketConstants
+            from potato_bot.utils.ticket_constants import TicketConstants
 
             # 計算超時時間
             now = datetime.now(timezone.utc)

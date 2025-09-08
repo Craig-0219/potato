@@ -11,13 +11,13 @@ from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from bot.db.ticket_dao import TicketDAO
-from bot.db.vote_dao import VoteDAO
-from bot.db.workflow_dao import WorkflowDAO
+from potato_bot.db.ticket_dao import TicketDAO
+from potato_bot.db.vote_dao import VoteDAO
+from potato_bot.db.workflow_dao import WorkflowDAO
 
-# from bot.db.welcome_dao import WelcomeDAO  # 暫時註解，如果不存在的話
-from bot.services.statistics_manager import StatisticsManager
-from shared.logger import logger
+# from potato_bot.db.welcome_dao import WelcomeDAO  # 暫時註解，如果不存在的話
+from potato_bot.services.statistics_manager import StatisticsManager
+from potato_shared.logger import logger
 
 
 class ChartType(Enum):

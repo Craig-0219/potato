@@ -8,7 +8,7 @@ from typing import Any, Dict, Optional
 
 import aiomysql
 
-from bot.db.pool import db_pool
+from potato_bot.db.pool import db_pool
 
 logger = logging.getLogger(__name__)
 

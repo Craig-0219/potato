@@ -14,10 +14,10 @@ from typing import Any, Callable, Dict, List, Optional
 
 import schedule
 
-from bot.db.database_manager import get_database_manager
-from bot.services.data_cleanup_manager import DataCleanupManager
-from bot.services.data_export_manager import DataExportManager, ExportRequest
-from shared.logger import logger
+from potato_bot.db.database_manager import get_database_manager
+from potato_bot.services.data_cleanup_manager import DataCleanupManager
+from potato_bot.services.data_export_manager import DataExportManager, ExportRequest
+from potato_shared.logger import logger
 
 
 class TaskFrequency(Enum):

@@ -10,12 +10,12 @@ from typing import Dict, List, Optional
 import discord
 from discord import ui
 
-from bot.db import vote_dao
-from bot.services.vote_template_manager import vote_template_manager
-from bot.utils.embed_builder import EmbedBuilder
-from bot.utils.vote_utils import build_vote_embed
-from bot.views.vote_views import VoteButtonView
-from shared.logger import logger
+from potato_bot.db import vote_dao
+from potato_bot.services.vote_template_manager import vote_template_manager
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_bot.utils.vote_utils import build_vote_embed
+from potato_bot.views.vote_views import VoteButtonView
+from potato_shared.logger import logger
 
 
 class TemplateSelectionView(ui.View):
@@ -166,7 +166,7 @@ class FavoriteTemplatesButton(ui.Button):
             view: TemplateSelectionView = self.view
 
             # 取得收藏模板
-            from bot.db.vote_template_dao import vote_template_dao
+            from potato_bot.db.vote_template_dao import vote_template_dao
 
             favorites = await vote_template_dao.get_user_favorite_templates(
                 view.user_id, view.guild_id
@@ -384,7 +384,7 @@ class TemplateDetailView(ui.View):
     async def create_embed(self) -> Optional[discord.Embed]:
         """創建模板詳情嵌入"""
         try:
-            from bot.db.vote_template_dao import vote_template_dao
+            from potato_bot.db.vote_template_dao import vote_template_dao
 
             template = await vote_template_dao.get_template_by_id(self.template_id)
 
@@ -477,7 +477,7 @@ class FavoriteToggleButton(ui.Button):
     async def callback(self, interaction: discord.Interaction):
         """切換收藏狀態"""
         try:
-            from bot.db.vote_template_dao import vote_template_dao
+            from potato_bot.db.vote_template_dao import vote_template_dao
 
             # 嘗試加入收藏
             success = await vote_template_dao.add_template_favorite(

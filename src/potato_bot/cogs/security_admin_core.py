@@ -11,14 +11,14 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.services.security.audit_manager import (
+from potato_bot.services.security.audit_manager import (
     ComplianceStandard,
     audit_manager,
 )
-from bot.services.security.mfa_manager import mfa_manager
-from bot.services.security.rbac_manager import Permission, rbac_manager
-from bot.utils.interaction_helper import SafeInteractionHandler
-from bot.views.security_management_views import (
+from potato_bot.services.security.mfa_manager import mfa_manager
+from potato_bot.services.security.rbac_manager import Permission, rbac_manager
+from potato_bot.utils.interaction_helper import SafeInteractionHandler
+from potato_bot.views.security_management_views import (
     APIKeyManagementView,
     MFASetupView,
     RoleManagementView,

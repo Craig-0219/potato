@@ -9,8 +9,8 @@ from typing import Any, Dict, List, Optional
 import discord
 from discord.ui import Button, Select, View, button
 
-from bot.utils.ticket_constants import TicketConstants
-from shared.logger import logger
+from potato_bot.utils.ticket_constants import TicketConstants
+from potato_shared.logger import logger
 
 # ============ 票券主面板 View ============
 
@@ -168,8 +168,8 @@ class PrioritySelect(Select):
             )
 
             # 調用票券創建邏輯
-            from bot.db.ticket_dao import TicketDAO
-            from bot.services.ticket_manager import TicketManager
+            from potato_bot.db.ticket_dao import TicketDAO
+            from potato_bot.services.ticket_manager import TicketManager
 
             ticket_dao = TicketDAO()
             ticket_manager = TicketManager(ticket_dao)
@@ -231,8 +231,8 @@ class PrioritySelect(Select):
                 # 如果是高優先級，自動嘗試指派
                 if priority == "high" and ticket_id:
                     try:
-                        from bot.db.assignment_dao import AssignmentDAO
-                        from bot.services.assignment_manager import (
+                        from potato_bot.db.assignment_dao import AssignmentDAO
+                        from potato_bot.services.assignment_manager import (
                             AssignmentManager,
                         )
 
@@ -387,10 +387,10 @@ class TicketCloseButton(Button):
 
             # 在關閉票券前先匯入聊天歷史記錄
             try:
-                from bot.services.chat_transcript_manager import (
+                from potato_bot.services.chat_transcript_manager import (
                     ChatTranscriptManager,
                 )
-                from shared.logger import logger
+                from potato_shared.logger import logger
 
                 transcript_manager = ChatTranscriptManager()
 
@@ -416,8 +416,8 @@ class TicketCloseButton(Button):
                     await ticket_core.assignment_manager.update_ticket_completion(ticket["id"])
 
                 # 發送成功消息
-                from bot.utils.embed_builder import EmbedBuilder
-                from bot.utils.ticket_constants import TicketConstants
+                from potato_bot.utils.embed_builder import EmbedBuilder
+                from potato_bot.utils.ticket_constants import TicketConstants
 
                 embed = EmbedBuilder.build(
                     title="✅ 票券已關閉",
@@ -439,7 +439,7 @@ class TicketCloseButton(Button):
                 await interaction.followup.send("❌ 關閉票券時發生錯誤", ephemeral=True)
 
         except Exception as e:
-            from shared.logger import logger
+            from potato_shared.logger import logger
 
             logger.error(f"關閉票券按鈕錯誤: {e}")
             try:
@@ -539,8 +539,8 @@ class RatingView(View):
     async def send_rating(self, interaction: discord.Interaction, rating: int):
         try:
             # 導入必要的模組
-            from bot.db.ticket_dao import TicketDAO
-            from bot.services.ticket_manager import TicketManager
+            from potato_bot.db.ticket_dao import TicketDAO
+            from potato_bot.services.ticket_manager import TicketManager
 
             # 獲取票券管理器並保存評分
             ticket_dao = TicketDAO()
@@ -557,7 +557,7 @@ class RatingView(View):
                     "❌ 評分保存失敗，請稍後再試", ephemeral=True
                 )
         except Exception as e:
-            from shared.logger import logger
+            from potato_shared.logger import logger
 
             logger.error(f"保存評分時發生錯誤: {e}")
             await interaction.response.send_message(f"❌ 評分保存失敗: {str(e)}", ephemeral=True)

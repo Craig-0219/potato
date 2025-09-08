@@ -16,13 +16,13 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
-from bot.db import vote_dao
-from bot.utils.vote_utils import build_result_embed, build_vote_embed
-from bot.views.vote_views import (
+from potato_bot.db import vote_dao
+from potato_bot.utils.vote_utils import build_result_embed, build_vote_embed
+from potato_bot.views.vote_views import (
     VoteButtonView,
     VoteManagementView,
 )
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 class VoteCore(commands.Cog):
@@ -127,7 +127,7 @@ class VoteCore(commands.Cog):
                     return
 
             # ✅ 直接顯示 GUI 模態框
-            from bot.views.vote_views import ComprehensiveVoteModal
+            from potato_bot.views.vote_views import ComprehensiveVoteModal
 
             modal = ComprehensiveVoteModal()
             await interaction.response.send_modal(modal)
@@ -496,7 +496,7 @@ class VoteCore(commands.Cog):
             # 1. 測試資料庫連線
             debug_info.append("🔍 **資料庫連線測試**")
             try:
-                from bot.db.pool import db_pool
+                from potato_bot.db.pool import db_pool
 
                 async with db_pool.connection() as conn:
                     async with conn.cursor() as cur:
@@ -1042,7 +1042,7 @@ class NextPageButton(discord.ui.Button):
                 return
 
             # 顯示快速投票模態
-            from bot.views.vote_views import QuickVoteModal
+            from potato_bot.views.vote_views import QuickVoteModal
 
             modal = QuickVoteModal()
             await interaction.response.send_modal(modal)
@@ -1076,7 +1076,7 @@ class NextPageButton(discord.ui.Button):
                     return
 
             # 顯示模板選擇界面
-            from bot.views.vote_template_views import TemplateSelectionView
+            from potato_bot.views.vote_template_views import TemplateSelectionView
 
             template_view = TemplateSelectionView(interaction.user.id, interaction.guild.id)
             embed = template_view.create_embed()

@@ -6,8 +6,8 @@ Minecraft 玩家管理器
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from bot.db.database_manager import DatabaseManager
-from shared.logger import logger
+from potato_bot.db.database_manager import DatabaseManager
+from potato_shared.logger import logger
 
 
 class PlayerManager:

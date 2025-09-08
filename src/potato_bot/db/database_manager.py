@@ -6,8 +6,8 @@
 
 from typing import Any, Dict, Optional
 
-from bot.db.pool import db_pool
-from shared.logger import logger
+from potato_bot.db.pool import db_pool
+from potato_shared.logger import logger
 
 
 class DatabaseManager:
@@ -687,7 +687,7 @@ class DatabaseManager:
         """創建工作流程系統相關表格"""
         logger.info("⚙️ 創建工作流程系統表格...")
 
-        from bot.db.workflow_dao import WorkflowDAO
+        from potato_bot.db.workflow_dao import WorkflowDAO
 
         try:
             workflow_dao = WorkflowDAO()
@@ -701,7 +701,7 @@ class DatabaseManager:
         """創建Webhook整合系統相關表格"""
         logger.info("🔗 創建Webhook整合系統表格...")
 
-        from bot.db.webhook_dao import WebhookDAO
+        from potato_bot.db.webhook_dao import WebhookDAO
 
         try:
             webhook_dao = WebhookDAO()
@@ -837,7 +837,7 @@ class DatabaseManager:
         """創建企業級安全系統表格 - Phase 6"""
         try:
             # 使用專門的安全表格初始化模組
-            from bot.db.migrations.security_tables import (
+            from potato_bot.db.migrations.security_tables import (
                 initialize_security_system,
             )
 

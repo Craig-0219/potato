@@ -8,7 +8,7 @@ from typing import Optional
 
 import discord
 
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 class SafeInteractionHandler:

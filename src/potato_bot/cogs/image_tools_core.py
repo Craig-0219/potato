@@ -12,15 +12,15 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.services.image_processor import (
+from potato_bot.services.image_processor import (
     ImageFormat,
     ImageOperation,
     ImageProcessRequest,
     image_processor,
 )
-from bot.utils.embed_builder import EmbedBuilder
-from bot.views.image_tools_views import ImageToolsMainView
-from shared.logger import logger
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_bot.views.image_tools_views import ImageToolsMainView
+from potato_shared.logger import logger
 
 
 class ImageToolsCog(commands.Cog):

@@ -9,14 +9,14 @@ from datetime import datetime, timezone
 import discord
 from discord.ui import Button, Modal, Select, TextInput, View, button
 
-from bot.db import vote_dao
-from bot.db.ticket_dao import TicketDAO
-from bot.db.welcome_dao import WelcomeDAO
-from bot.services.data_cleanup_manager import DataCleanupManager
-from bot.services.data_export_manager import DataExportManager
-from bot.services.welcome_manager import WelcomeManager
-from bot.utils.interaction_helper import BaseView, SafeInteractionHandler
-from shared.logger import logger
+from potato_bot.db import vote_dao
+from potato_bot.db.ticket_dao import TicketDAO
+from potato_bot.db.welcome_dao import WelcomeDAO
+from potato_bot.services.data_cleanup_manager import DataCleanupManager
+from potato_bot.services.data_export_manager import DataExportManager
+from potato_bot.services.welcome_manager import WelcomeManager
+from potato_bot.utils.interaction_helper import BaseView, SafeInteractionHandler
+from potato_shared.logger import logger
 
 
 class SystemAdminPanel(BaseView):
@@ -772,7 +772,7 @@ class StatsView(View):
     @button(label="🎫 票券統計", style=discord.ButtonStyle.primary)
     async def ticket_stats_button(self, interaction: discord.Interaction, button: Button):
         """顯示票券統計"""
-        from bot.services.statistics_manager import StatisticsManager
+        from potato_bot.services.statistics_manager import StatisticsManager
 
         await interaction.response.defer(ephemeral=True)
 
@@ -1235,7 +1235,7 @@ class VoteSettingsView(View):
     async def modern_vote_gui_button(self, interaction: discord.Interaction, button: Button):
         """現代化GUI投票系統按鈕"""
         try:
-            from bot.views.vote_views import VoteManagementView
+            from potato_bot.views.vote_views import VoteManagementView
 
             embed = discord.Embed(
                 title="🚀 現代化GUI投票系統",
@@ -1339,7 +1339,7 @@ class VoteSettingsView(View):
     @button(label="🔄 重新整理", style=discord.ButtonStyle.secondary, row=2)
     async def refresh_button(self, interaction: discord.Interaction, button: Button):
         """重新整理設定按鈕"""
-        from bot.views.system_admin_views import SystemAdminPanel
+        from potato_bot.views.system_admin_views import SystemAdminPanel
 
         admin_panel = SystemAdminPanel(self.user_id)
         embed = await admin_panel._create_vote_settings_embed(interaction.guild)
@@ -1467,7 +1467,7 @@ class BackToVoteSettingsButton(Button):
         super().__init__(label="← 返回", style=discord.ButtonStyle.secondary)
 
     async def callback(self, interaction: discord.Interaction):
-        from bot.views.system_admin_views import SystemAdminPanel
+        from potato_bot.views.system_admin_views import SystemAdminPanel
 
         admin_panel = SystemAdminPanel(self.user_id)
         embed = await admin_panel._create_vote_settings_embed(interaction.guild)
@@ -2266,7 +2266,7 @@ class ExportFormatView(View):
 
         try:
             # 準備匯出參數
-            from bot.services.data_export_manager import ExportRequest
+            from potato_bot.services.data_export_manager import ExportRequest
 
             request = ExportRequest(
                 data_type=self.data_type,
@@ -2777,7 +2777,7 @@ class SingleVoteManageView(View):
 
             # 投票結果進度條
             if stats:
-                from bot.utils.vote_utils import calculate_progress_bar
+                from potato_bot.utils.vote_utils import calculate_progress_bar
 
                 results = []
                 for option, count in sorted(stats.items(), key=lambda x: x[1], reverse=True):

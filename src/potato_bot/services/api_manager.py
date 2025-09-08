@@ -11,13 +11,13 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from bot.db.ticket_dao import TicketDAO
-from bot.db.vote_dao import VoteDAO
-from bot.services.ai_manager import AIManager
-from bot.services.language_manager import LanguageManager
-from bot.services.statistics_manager import StatisticsManager
-from bot.services.ticket_manager import TicketManager
-from shared.logger import logger
+from potato_bot.db.ticket_dao import TicketDAO
+from potato_bot.db.vote_dao import VoteDAO
+from potato_bot.services.ai_manager import AIManager
+from potato_bot.services.language_manager import LanguageManager
+from potato_bot.services.statistics_manager import StatisticsManager
+from potato_bot.services.ticket_manager import TicketManager
+from potato_shared.logger import logger
 
 
 @dataclass

@@ -7,8 +7,8 @@ import json
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
-from bot.db.database_manager import DatabaseManager
-from shared.logger import logger
+from potato_bot.db.database_manager import DatabaseManager
+from potato_shared.logger import logger
 
 
 class EventType(Enum):

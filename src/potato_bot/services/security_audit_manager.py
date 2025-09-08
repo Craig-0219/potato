@@ -15,7 +15,7 @@ from typing import Any, Dict, List, Optional
 
 from cryptography.fernet import Fernet
 
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 class SecurityEventType(Enum):

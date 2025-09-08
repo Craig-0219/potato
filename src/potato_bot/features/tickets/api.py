@@ -16,10 +16,10 @@ except ImportError:
 from datetime import datetime, timedelta
 from typing import Optional
 
-from bot.db.tag_dao import TagDAO
-from bot.db.ticket_dao import TicketDAO
-from bot.services.ticket_manager import TicketManager
-from shared.logger import logger
+from potato_bot.db.tag_dao import TagDAO
+from potato_bot.db.ticket_dao import TicketDAO
+from potato_bot.services.ticket_manager import TicketManager
+from potato_shared.logger import logger
 
 from ..auth import APIUser, require_read_permission, require_write_permission
 from ..models import (

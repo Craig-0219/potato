@@ -6,9 +6,9 @@
 
 from typing import Any, Dict, List, Optional, Tuple
 
-from bot.db.assignment_dao import AssignmentDAO
-from bot.db.ticket_dao import TicketDAO
-from shared.logger import logger
+from potato_bot.db.assignment_dao import AssignmentDAO
+from potato_bot.db.ticket_dao import TicketDAO
+from potato_shared.logger import logger
 
 
 class AssignmentManager:

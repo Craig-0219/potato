@@ -11,17 +11,17 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.services.content_analyzer import (
+from potato_bot.services.content_analyzer import (
     AnalysisType,
     ContentRiskLevel,
     SentimentType,
     content_analyzer,
 )
-from bot.services.economy_manager import EconomyManager
-from bot.utils.embed_builder import EmbedBuilder
-from shared.cache_manager import cache_manager
-from shared.logger import logger
-from shared.prometheus_metrics import track_command_execution
+from potato_bot.services.economy_manager import EconomyManager
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_shared.cache_manager import cache_manager
+from potato_shared.logger import logger
+from potato_shared.prometheus_metrics import track_command_execution
 
 
 class ContentAnalysisCog(commands.Cog):
@@ -51,7 +51,7 @@ class ContentAnalysisCog(commands.Cog):
     async def content_analysis_interface(self, interaction: discord.Interaction):
         """統一內容分析管理界面"""
         try:
-            from bot.views.content_analysis_views import (
+            from potato_bot.views.content_analysis_views import (
                 ContentAnalysisMainView,
             )
 

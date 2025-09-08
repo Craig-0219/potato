@@ -10,9 +10,9 @@ from typing import Any, Dict
 import discord
 from discord import ui
 
-from bot.services.lottery_manager import LotteryManager
-from bot.utils.embed_builder import EmbedBuilder
-from shared.logger import logger
+from potato_bot.services.lottery_manager import LotteryManager
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_shared.logger import logger
 
 
 class LotteryCreationModal(ui.Modal):
@@ -422,7 +422,7 @@ class LotteryManagementView(ui.View):
             await interaction.response.defer(ephemeral=True)
 
             # 導入儀表板視圖
-            from bot.views.lottery_dashboard_views import (
+            from potato_bot.views.lottery_dashboard_views import (
                 LotteryStatsDashboardView,
             )
 

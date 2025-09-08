@@ -6,8 +6,8 @@
 
 from typing import Any, Dict, List, Optional
 
-from bot.db.vote_template_dao import vote_template_dao
-from shared.logger import logger
+from potato_bot.db.vote_template_dao import vote_template_dao
+from potato_shared.logger import logger
 
 
 class VoteTemplateManager:

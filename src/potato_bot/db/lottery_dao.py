@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import aiomysql
 
-from shared.logger import logger
+from potato_shared.logger import logger
 
 from .base_dao import BaseDAO
 

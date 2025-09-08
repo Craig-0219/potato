@@ -9,7 +9,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 
-from shared.logger import logger
+from potato_shared.logger import logger
 
 from ..auth import APIUser, require_admin_permission
 from ..models import PaginatedResponse

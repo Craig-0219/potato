@@ -8,10 +8,10 @@
 import discord
 from discord.ui import Button, Modal, Select, TextInput, View, button
 
-from bot.db.workflow_dao import WorkflowDAO
-from bot.services.workflow_engine import workflow_engine
-from bot.utils.embed_builder import EmbedBuilder
-from shared.logger import logger
+from potato_bot.db.workflow_dao import WorkflowDAO
+from potato_bot.services.workflow_engine import workflow_engine
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_shared.logger import logger
 
 
 class WorkflowDesignerView(View):

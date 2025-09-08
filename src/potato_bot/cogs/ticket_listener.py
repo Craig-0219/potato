@@ -8,17 +8,17 @@ import aiomysql
 import discord
 from discord.ext import commands, tasks
 
-from bot.db.ticket_dao import TicketDAO
-from bot.services.chat_transcript_manager import ChatTranscriptManager
-from bot.services.realtime_sync_manager import (
+from potato_bot.db.ticket_dao import TicketDAO
+from potato_bot.services.chat_transcript_manager import ChatTranscriptManager
+from potato_bot.services.realtime_sync_manager import (
     SyncEvent,
     SyncEventType,
     realtime_sync,
 )
-from bot.services.ticket_manager import TicketManager
-from bot.utils.ticket_constants import get_priority_emoji
-from bot.utils.ticket_utils import TicketPermissionChecker, is_ticket_channel
-from shared.logger import logger
+from potato_bot.services.ticket_manager import TicketManager
+from potato_bot.utils.ticket_constants import get_priority_emoji
+from potato_bot.utils.ticket_utils import TicketPermissionChecker, is_ticket_channel
+from potato_shared.logger import logger
 
 
 class TicketListener(commands.Cog):
@@ -414,7 +414,7 @@ class TicketListener(commands.Cog):
             if created_at.tzinfo is None:
                 created_at = created_at.replace(tzinfo=timezone.utc)
             duration = datetime.now(timezone.utc) - created_at
-            from bot.utils.ticket_constants import format_duration
+            from potato_bot.utils.ticket_constants import format_duration
 
             embed.add_field(
                 name="持續時間",
@@ -977,7 +977,7 @@ class TicketMaintenanceListener(commands.Cog):
         """檢查服務健康狀態"""
         try:
             # 檢查資料庫健康狀態
-            from bot.db.database_manager import get_database_health
+            from potato_bot.db.database_manager import get_database_health
 
             health_status = await get_database_health()
 

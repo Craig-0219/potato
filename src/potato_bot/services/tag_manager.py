@@ -9,8 +9,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import discord
 
-from bot.db.tag_dao import TagDAO
-from shared.logger import logger
+from potato_bot.db.tag_dao import TagDAO
+from potato_shared.logger import logger
 
 
 class TagManager:

@@ -11,9 +11,9 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.db.language_dao import LanguageDAO
-from bot.services.language_manager import LanguageManager
-from shared.logger import logger
+from potato_bot.db.language_dao import LanguageDAO
+from potato_bot.services.language_manager import LanguageManager
+from potato_shared.logger import logger
 
 
 class LocalizedCommand:

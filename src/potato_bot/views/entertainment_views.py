@@ -9,7 +9,7 @@ import random
 
 import discord
 
-from bot.utils.embed_builder import EmbedBuilder
+from potato_bot.utils.embed_builder import EmbedBuilder
 
 
 class EntertainmentMenuView(discord.ui.View):

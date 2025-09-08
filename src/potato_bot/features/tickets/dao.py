@@ -10,8 +10,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import aiomysql
 
-from bot.db.pool import db_pool
-from shared.logger import logger
+from potato_bot.db.pool import db_pool
+from potato_shared.logger import logger
 
 
 class TicketDAO:
@@ -38,7 +38,7 @@ class TicketDAO:
 
                 if not exists:
                     logger.warning("📋 檢測到票券表格不存在，開始自動初始化...")
-                    from bot.db.database_manager import DatabaseManager
+                    from potato_bot.db.database_manager import DatabaseManager
 
                     db_manager = DatabaseManager()
                     await db_manager._create_ticket_tables()

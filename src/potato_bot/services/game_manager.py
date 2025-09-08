@@ -10,9 +10,9 @@ import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from bot.db.pool import db_pool
-from shared.cache_manager import cache_manager
-from shared.logger import logger
+from potato_bot.db.pool import db_pool
+from potato_shared.cache_manager import cache_manager
+from potato_shared.logger import logger
 
 
 class GameManager:

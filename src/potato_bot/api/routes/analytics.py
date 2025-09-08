@@ -12,7 +12,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from shared.logger import logger
+from potato_shared.logger import logger
 
 from ..auth import APIUser, require_read_permission
 from ..models import StaffPerformance

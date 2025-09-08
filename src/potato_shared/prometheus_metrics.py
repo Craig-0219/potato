@@ -95,7 +95,7 @@ except ImportError:
 
     CONTENT_TYPE_LATEST = "text/plain"
 
-from shared.logger import logger
+from .logger import logger
 
 
 class MetricType(Enum):

@@ -11,8 +11,8 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
-from bot.services.economy_manager import economy_manager
-from shared.logger import logger
+from potato_bot.services.economy_manager import economy_manager
+from potato_shared.logger import logger
 
 router = APIRouter(prefix="/api/economy", tags=["economy"])
 security = HTTPBearer()
