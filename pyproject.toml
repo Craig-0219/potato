@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "potato-bot"
 version = "3.1.0"
-description = "Discord 多功能管理機器人 - 託管部署版"
+description = "Discord 多功能管理機器人"
 requires-python = ">=3.10"
 license = "MIT"
 authors = [
@@ -15,47 +15,31 @@ authors = [
 dependencies = [
     # Core Discord Bot
     "discord.py>=2.3.2",
-    
-    # Web Framework & API
-    "fastapi>=0.104.1",
-    "uvicorn[standard]>=0.24.0",
-    
+
     # Database & Caching
     "aiomysql>=0.2.0",
     "redis>=5.0.1",
-    
-    # Data Validation & Serialization
-    "pydantic>=2.5.0",
+
+    # Data Serialization
     "orjson>=3.9.9",
     "msgpack>=1.0.7",
-    
+
     # Environment & Configuration
     "python-dotenv>=1.0.0",
     "PyYAML>=6.0.1",
-    
-    # Authentication & Security
-    "python-jose[cryptography]>=3.3.0",
+
+    # Security & Encryption
     "cryptography>=41.0.7",
     "PyNaCl>=1.5.0",
-    "PyJWT>=2.8.0",
-    
-    # HTTP & WebSocket
+
+    # HTTP Client
     "aiohttp>=3.9.0",
-    "websockets>=12.0",
-    "httpx>=0.25.0",
-    
+
     # File & Media Processing
     "aiofiles>=24.1.0",
     "Pillow>=10.0.0",
     "yt-dlp>=2024.3.10",
-    
-    # AI & ML
-    "openai>=1.12.0",
-    "textblob>=0.17.1",
-    
-    # Minecraft RCON
-    "mcrcon>=2.3.0",
-    
+
     # Utilities
     "python-dateutil>=2.8.2",
     "pytz>=2023.3",

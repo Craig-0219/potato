@@ -75,15 +75,7 @@ try:
         is_offline_mode,
     )
 
-    # 本地 API 服務器功能（如果需要）
-    def start_local_api_if_needed():
-        """啟動本地 API 服務器（如果配置啟用）"""
-        from shared.config import API_EXTERNAL_ACCESS, ENABLE_API_SERVER
-
-        if ENABLE_API_SERVER and API_EXTERNAL_ACCESS:
-            logger.info("🌐 本地 API 服務器已配置為外網訪問模式")
-            return True
-        return False
+    # API 功能已移除
 
     OFFLINE_MODE_AVAILABLE = True
 except ImportError as e:
@@ -92,18 +84,8 @@ except ImportError as e:
 
 import threading
 
-# API Server 整合 - 可選依賴
-try:
-    import uvicorn
-
-    from bot.api.app import app as api_app
-
-    API_AVAILABLE = True
-except ImportError as e:
-    logger.warning(f"API 服務器依賴不可用: {e}")
-    API_AVAILABLE = False
-    uvicorn = None
-    api_app = None
+# API Server 已移除
+API_AVAILABLE = False
 from bot.db.pool import close_database, db_pool, get_db_health, init_database
 from bot.services.guild_manager import GuildManager
 
@@ -112,7 +94,7 @@ from bot.services.guild_manager import GuildManager
 
 COGS_PREFIX = "bot.cogs."
 ALL_EXTENSIONS = [
-    # 核心企業功能模組
+    # 核心功能模組
     "ticket_core",
     "ticket_listener",
     "vote_core",
@@ -120,27 +102,27 @@ ALL_EXTENSIONS = [
     "welcome_core",
     "welcome_listener",
     "system_admin_core",
-    "web_auth_core",
-    "ai_core",
     "language_core",
     "workflow_core",
-    "dashboard_core",
     "webhook_core",
     # 娛樂功能模組
     "entertainment_core",
     "music_core",
+    "image_tools_core",  # 圖片處理工具
+    "security_admin_core",  # 企業級安全管理
+    "guild_management_core",  # 伺服器管理與GDPR合規
+    "menu_core",  # GUI 選單系統
+    "fallback_commands",  # 備用前綴命令系統
+    "auto_updater",  # 內部自動更新器
     # 之前移除的模組:
     # "lottery_core" - 抽獎系統
-    "ai_assistant_core",  # AI對話助手 - Phase 5
-    "image_tools_core",  # 圖片處理工具 - Phase 5
-    "content_analysis_core",  # 內容分析 - Phase 5
-    "cross_platform_economy_core",  # 跨平台經濟系統 - Phase 5 Stage 4
-    "security_admin_core",  # 企業級安全管理 - Phase 6 Stage 1
-    "guild_management_core",  # 伺服器管理與GDPR合規 - Phase 6 Stage 3
-    "menu_core",  # GUI 選單系統 - Phase 7 Stage 2
-    "fallback_commands",  # 備用前綴命令系統
-    "auto_updater",  # 內部自動更新器 - 繞過託管商限制
     # "game_core" - 遊戲娛樂功能
+    # "web_auth_core" - Web 認證 (已移除)
+    # "ai_core" - AI 核心 (已移除)
+    # "ai_assistant_core" - AI 助手 (已移除)
+    # "content_analysis_core" - 內容分析 (已移除)
+    # "cross_platform_economy_core" - 跨平台經濟 (已移除)
+    # "dashboard_core" - 儀表板 (已移除)
 ]
 
 # 全域 Bot 實例
@@ -167,9 +149,7 @@ class PotatoBot(commands.Bot):
         self._shutdown_event = asyncio.Event()
         self._background_tasks = set()
 
-        # API Server 相關
-        self.api_server = None
-        self.api_thread = None
+        # API Server 已移除
 
         # 多租戶管理
         self.guild_manager = None
@@ -232,29 +212,8 @@ class PotatoBot(commands.Bot):
             logger.info("⚠️ 繼續使用預設配置...")
 
     async def _start_api_server(self):
-        """智能啟動 API Server"""
-        enable_api = os.getenv("ENABLE_API_SERVER", "true").lower() == "true"
-
-        if not enable_api:
-            logger.info("⚠️ API 伺服器已停用（ENABLE_API_SERVER=false）")
-            return
-
-        try:
-            if OFFLINE_MODE_AVAILABLE and is_offline_mode():
-                # 內網環境：啟動本地 API Server
-                local_server = start_local_api_if_needed(self)
-                if local_server:
-                    logger.info("✅ 本地 API 伺服器啟動成功")
-                    self.local_api_server = local_server
-                else:
-                    logger.warning("⚠️ 本地 API 伺服器啟動失敗")
-            else:
-                # 外網環境：使用標準 API Server
-                await self._start_integrated_api_server()
-
-        except Exception as e:
-            logger.error(f"❌ API 伺服器啟動失敗: {e}")
-            logger.info("⚠️ Bot 將在沒有 API 服務的情況下繼續運行")
+        """API Server 已移除 - 保留方法以避免兼容性問題"""
+        logger.info("ℹ️  Web API 功能已從此版本移除")
 
     async def _init_database_unified(self, max_retries=3):
         """統一資料庫初始化（修正版）"""
@@ -437,43 +396,8 @@ class PotatoBot(commands.Bot):
             logger.error(f"❌ 同步命令失敗：{e}")
 
     async def _start_integrated_api_server(self):
-        """啟動整合的 API 伺服器"""
-        if not API_AVAILABLE:
-            logger.warning("⚠️ API 服務器依賴不可用，跳過 API 服務器啟動")
-            return
-
-        try:
-            # 取得 API 設定
-            api_host = os.getenv("API_HOST", "0.0.0.0")
-            api_port = int(os.getenv("API_PORT", "8000"))
-
-            logger.info(f"🌐 啟動整合 API 伺服器於 {api_host}:{api_port}")
-
-            def run_api_server():
-                """在單獨執行緒中執行 API 伺服器"""
-                asyncio.set_event_loop(asyncio.new_event_loop())
-                config = uvicorn.Config(
-                    app=api_app,
-                    host=api_host,
-                    port=api_port,
-                    log_level="info",
-                    access_log=True,
-                )
-                server = uvicorn.Server(config)
-                self.api_server = server
-                asyncio.run(server.serve())
-
-            # 在背景執行緒中啟動 API 伺服器
-            self.api_thread = threading.Thread(target=run_api_server, daemon=True)
-            self.api_thread.start()
-
-            # 等待伺服器啟動
-            await asyncio.sleep(2)
-            logger.info(f"✅ API 伺服器已整合啟動 - http://{api_host}:{api_port}")
-            logger.info(f"📚 API 文檔位址: http://{api_host}:{api_port}/api/v1/docs")
-
-        except Exception as e:
-            logger.error(f"❌ API 伺服器啟動失敗：{e}")
+        """API Server 已移除"""
+        pass
 
     async def close(self):
         """關閉 Bot 和整合服務"""
@@ -484,13 +408,7 @@ class PotatoBot(commands.Bot):
             if hasattr(self, "backup_service") and self.backup_service:
                 await self.backup_service.stop()
 
-            # 關閉 API 伺服器
-            if hasattr(self, "api_server") and self.api_server:
-                try:
-                    self.api_server.should_exit = True
-                    logger.info("✅ API 伺服器已關閉")
-                except Exception as e:
-                    logger.error(f"❌ 關閉 API 伺服器時發生錯誤：{e}")
+            # API 伺服器已移除
 
             # 關閉資料庫連接
             try:
