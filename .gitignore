@@ -11,6 +11,8 @@
 # 環境變數和配置
 .env
 .env.*
+.env.dev
+.env.development
 !.env.example
 !.env.template
 
@@ -371,6 +373,50 @@ health_check.json
 # 本地配置覆蓋
 config.local.json
 settings.local.json
+
+# 開發版本文檔
+README.dev.md
+README.development.md
+README.local.md
+README.test.md
+README.draft.md
+*-dev.md
+*-development.md
+*-local.md
+*-test.md
+*-draft.md
+*.dev.md
+*.development.md
+*.local.md
+*.test.md
+*.draft.md
+
+# 其他開發相關配置文件
+docker-compose.dev.yml
+docker-compose.development.yml
+docker-compose.local.yml
+Dockerfile.dev
+Dockerfile.development
+Dockerfile.local
+package.dev.json
+package.local.json
+tsconfig.dev.json
+tsconfig.local.json
+
+# 開發文檔目錄和文件 (保留生產用文檔)
+docs/development/
+docs/archive/legacy-root-docs/BRANCH_STRATEGY.md
+docs/archive/legacy-root-docs/DEVELOPMENT_ROADMAP.md
+BRANCH_STRATEGY.md
+DEVELOPMENT_ROADMAP.md
+
+# 其他開發相關檔案
+*.development.*
+*.dev.*
+*-development.*
+*-dev.*
+dev-*
+development-*
 
 # ====================================
 # 臨時開發文件
