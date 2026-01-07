@@ -1,479 +1,93 @@
-# ====================================
-# Potato Bot - Git Ignore 配置
-# 版本: v3.0.0
-# 更新日期: 2025-08-15
-# ====================================
+﻿# Potato Bot - .gitignore
 
-# ====================================
-# Python 相關文件
-# ====================================
-
-# 環境變數和配置
+# Environment files
 .env
 .env.*
-.env.dev
-.env.development
 !.env.example
 !.env.template
 
-# Python 編譯和快取文件
+# Python bytecode/cache
 __pycache__/
 *.py[cod]
 *$py.class
+*.pyd
 *.so
 .Python
 
-# 打包和分發
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# ====================================
-# 虛擬環境
-# ====================================
-
+# Virtual environments
 venv/
+.venv/
 env/
 ENV/
-.venv/
-.env/
 virtualenv/
 
-# ====================================
-# 日誌和監控
-# ====================================
+# Build/distribution
+build/
+dist/
+wheels/
+*.egg-info/
+*.egg
+*.whl
+pip-wheel-metadata/
 
-# 日誌文件
+# Logs
 *.log
 logs/
 *.log.*
 
-# 監控和性能分析
-.prof
-*.pyc
+# Caches and test artifacts
+.pytest_cache/
 .mypy_cache/
+.ruff_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.hypothesis/
+.cache/
 
-# ====================================
-# 資料庫相關
-# ====================================
-
-# SQLite 資料庫
-*.db
-*.sqlite
-*.sqlite3
-database.db
-
-# SQL 腳本備份
-*.sql
-*.dump
-
-# MySQL/MariaDB
-*.ibd
-*.frm
-*.MYD
-*.MYI
-
-# ====================================
-# 開發工具和 IDE
-# ====================================
-
-# Visual Studio Code
-.vscode/
-*.code-workspace
-
-# PyCharm
-.idea/
-*.iml
-*.ipr
-*.iws
-
-# Vim
-*.swp
-*.swo
-*~
-.netrwhist
-
-# Emacs
-*~
-\#*\#
-/.emacs.desktop
-/.emacs.desktop.lock
-*.elc
-auto-save-list
-tramp
-.\#*
-
-# ====================================
-# 作業系統相關
-# ====================================
-
-# macOS
+# OS files
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-.AppleDouble
-.LSOverride
-
-# Windows
-ehthumbs.db
 Thumbs.db
 desktop.ini
 $RECYCLE.BIN/
 
-# Linux
-.directory
-.trash-*
+# IDE/editor files
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+*.code-workspace
+*.swp
+*.swo
+*~
 
-# ====================================
-# Node.js / Next.js (Web UI)
-# ====================================
-
-# Dependencies
-node_modules/
-.npm/
-.yarn/
-yarn-error.log
-package-lock.json.bak
-
-# Build outputs
-.next/
-.nuxt/
-dist/
-build/
-out/
-.output/
-
-# Cache and temporary files
-.cache/
-.parcel-cache/
-.nyc_output/
-.webpack/
-.rollup.cache/
-
-# Environment variables
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Next.js
-*.tsbuildinfo
-next-env.d.ts
-
-# Coverage and testing
-coverage/
-.coverage
-.nyc_output
-
-# ====================================
-# 測試相關
-# ====================================
-
-# pytest
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-.nox/
-.coverage.*
-coverage.xml
-*.cover
-.hypothesis/
-
-# Test databases
-test.db
-test_*.db
-testing.sqlite
-
-# ====================================
-# AI/ML 和 Jupyter
-# ====================================
-
-# Jupyter Notebooks
-.ipynb_checkpoints/
-*.ipynb
-
-# AI/ML 模型
-*.pkl
-*.model
-*.h5
-*.pt
-*.pth
-
-# ====================================
-# 容器化和部署
-# ====================================
-
-# Docker
-.dockerignore
-docker-compose.override.yml
-.docker/
-Dockerfile.local
-
-# Kubernetes
-*.k8s.yml
-k8s-local/
-
-# ====================================
-# 資料庫和緩存
-# ====================================
-
-# Redis
-dump.rdb
-appendonly.aof
-
-# 資料庫備份
+# Local databases and dumps
+*.sqlite
+*.sqlite3
+*.db
+*.sql
+*.dump
 *.backup
-backups/
-dumps/
 
-# ====================================
-# 敏感資料和金鑰
-# ====================================
-
-# API 金鑰和憑證
-*.key
+# Secrets and certificates
 *.pem
+*.key
 *.p12
 *.crt
 *.cer
 secrets/
 private/
-.secrets/
 
-# Discord Bot Token
-bot_token.txt
-discord_token.txt
-
-# 配置文件備份
-config.backup.json
-*.secret.json
-
-# ====================================
-# 匯出和備份文件
-# ====================================
-
-# 系統匯出
-exports/
-dumps/
-
-# 保留項目備份目錄結構但忽略內容
-backups/*.json.gz
-backups/*.sql
-backups/*.dump
-
-# 允許保留清理後的 archive 目錄結構
-!archive/
-archive/*/
-!archive/*/.gitkeep
-
-# 暫存文件
+# Temporary files
 *.bak
-*.backup
 *.tmp
 *.temp
 temp/
 tmp/
 
-# ====================================
-# 開發和除錯
-# ====================================
-
-# 開發暫存
-.dev/
-debug/
-debug.log
-.debug/
-
-# 效能分析
-.prof
-profiling/
-*.profile
-
-# 記憶體傾印
-*.hprof
-*.dump
-
-# ====================================
-# 文檔生成
-# ====================================
-
-# Sphinx documentation
-docs/_build/
-docs/.doctrees/
-.sphinx-build/
-
-# MkDocs
-site/
-
-# ====================================
-# AI 工具相關
-# ====================================
-
-# Claude AI 工作目錄
-.claude/
-.anthropic/
-CLAUDE.md
-
-# GPT/OpenAI 快取
-.openai_cache/
-
-# ====================================
-# 項目特定忽略
-# ====================================
-
-# 開發備份文件
-*-Craig.*
-*-backup.*
-*-old.*
-*-temp.*
-
-# 票券記錄 (保留結構但忽略內容)
-transcripts/*.html
-transcripts/*.json
-transcripts/*.txt
-
-# 但保留 archive 子目錄中的示例文件
-!transcripts/archive/
-
-# 測試報告
-*test_report*.json
-*test_report*.html
-
-# 安全掃描和工具生成文件
-.secrets.baseline
-bandit-report.json
-*bandit-report*
-*security-report*
-*.sarif
-
-# API 和系統生成的臨時文件
-bot_commands.json
-health_check.json
-*_commands.json
-
-# 本地配置覆蓋
-config.local.json
-settings.local.json
-
-# 開發版本文檔
-README.dev.md
-README.development.md
-README.local.md
-README.test.md
-README.draft.md
-*-dev.md
-*-development.md
-*-local.md
-*-test.md
-*-draft.md
-*.dev.md
-*.development.md
-*.local.md
-*.test.md
-*.draft.md
-
-# 其他開發相關配置文件
-docker-compose.dev.yml
-docker-compose.development.yml
-docker-compose.local.yml
-Dockerfile.dev
-Dockerfile.development
-Dockerfile.local
-package.dev.json
-package.local.json
-tsconfig.dev.json
-tsconfig.local.json
-
-# 開發文檔目錄和文件 (保留生產用文檔)
-docs/development/
-docs/archive/legacy-root-docs/BRANCH_STRATEGY.md
-docs/archive/legacy-root-docs/DEVELOPMENT_ROADMAP.md
-BRANCH_STRATEGY.md
-DEVELOPMENT_ROADMAP.md
-
-# 其他開發相關檔案
-*.development.*
-*.dev.*
-*-development.*
-*-dev.*
-dev-*
-development-*
-
-# ====================================
-# 臨時開發文件
-# ====================================
-
-# 臨時測試文件（但不包括 tests/ 目錄）
-test_*.py
-!tests/**/test_*.py
-temp_*.py
-scratch_*.py
-check_*.py
-monitor_*.py
-
-# 實驗性功能
-experimental/
-prototype/
-
-# 本地腳本
-local_*.py
-my_*.py
-git-fix-*.sh
-install-*.sh
-quick-*.sh
-
-# ====================================
-# 版本控制忽略
-# ====================================
-
-# Git 相關
-.git/
-.gitmodules
-.gitattributes.local
-
-# Mercurial
-.hg/
-.hgignore
-
-# SVN
-.svn/
-
-# ====================================
-# 特殊情況
-# ====================================
-
-# 大型文件和媒體
-*.mp4
-*.avi
-*.mkv
-*.mp3
-*.wav
-*.flac
-*.zip
-*.tar.gz
-*.7z
-
-# 但允許小型示例文件
-!assets/samples/
-!docs/images/
-
-# 系統生成的文件
-.Trash-*
-$RECYCLE.BIN/
-.fuse_hidden*
+# Project-specific
+transcripts/
