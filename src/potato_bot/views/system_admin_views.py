@@ -8,13 +8,16 @@ import discord
 from discord.ui import Button, ChannelSelect, Modal, RoleSelect, Select, TextInput, View, button
 
 from potato_bot.db import vote_dao
+from potato_bot.db.resume_dao import ResumeDAO
 from potato_bot.db.ticket_dao import TicketDAO
 from potato_bot.db.welcome_dao import WelcomeDAO
 from potato_bot.services.data_cleanup_manager import DataCleanupManager
+from potato_bot.services.resume_service import ResumePanelService, ResumeService
 from potato_bot.services.welcome_manager import WelcomeManager
 from potato_bot.services.whitelist_service import WhitelistService
 from potato_bot.db.whitelist_dao import WhitelistDAO
 from potato_bot.utils.interaction_helper import BaseView, SafeInteractionHandler
+from potato_bot.views.resume_views import ResumePanelView
 from potato_shared.logger import logger
 
 
@@ -90,6 +93,36 @@ class SystemAdminPanel(BaseView):
             logger.error(f"入境審核設定開啟失敗: {e}")
             await SafeInteractionHandler.handle_interaction_error(
                 interaction, e, operation_name="入境審核設定"
+            )
+
+    @button(label="🧾 履歷系統設定", style=discord.ButtonStyle.primary, row=1)
+    async def resume_settings_button(self, interaction: discord.Interaction, button: Button):
+        """履歷系統設定"""
+        await SafeInteractionHandler.safe_defer(interaction, ephemeral=True)
+        try:
+            service = ResumeService(ResumeDAO())
+            companies = await service.list_companies(interaction.guild.id)
+            selected_id = companies[0].company_id if companies else None
+            embed = await self._create_resume_settings_embed(
+                interaction.guild, companies, selected_company_id=selected_id
+            )
+            view = ResumeSettingsView(
+                self.user_id,
+                interaction.guild,
+                interaction.client,
+                companies=companies,
+                selected_company_id=selected_id,
+            )
+            await SafeInteractionHandler.safe_respond(
+                interaction,
+                embed=embed,
+                view=view,
+                ephemeral=True,
+            )
+        except Exception as e:
+            logger.error(f"履歷系統設定開啟失敗: {e}")
+            await SafeInteractionHandler.handle_interaction_error(
+                interaction, e, operation_name="履歷系統設定"
             )
 
     @button(label="🔧 系統工具", style=discord.ButtonStyle.secondary, row=2)
@@ -313,6 +346,66 @@ class SystemAdminPanel(BaseView):
             value="✅ 已設定完整" if settings.is_complete else "⚠️ 尚未填完所有必要設定",
             inline=False,
         )
+
+        return embed
+
+    async def _create_resume_settings_embed(
+        self,
+        guild: discord.Guild,
+        companies: list,
+        selected_company_id: int | None = None,
+    ) -> discord.Embed:
+        """創建履歷系統設定摘要"""
+        embed = discord.Embed(
+            title="🧾 履歷系統設定",
+            description="管理各公司的履歷填單與審核設定",
+            color=0x3498DB,
+        )
+
+        if not companies:
+            embed.add_field(
+                name="⚠️ 尚未建立公司",
+                value="請使用下方「新增公司」按鈕建立公司設定",
+                inline=False,
+            )
+            return embed
+
+        selected = None
+        for company in companies:
+            if company.company_id == selected_company_id:
+                selected = company
+                break
+        if selected is None:
+            selected = companies[0]
+
+        lines = []
+        for company in companies[:25]:
+            marker = "➡️ " if company.company_id == selected.company_id else "• "
+            status = "✅" if company.is_enabled else "❌"
+            lines.append(f"{marker}{company.company_name} {status}")
+        companies_text = "\n".join(lines) if lines else "未建立公司"
+
+        embed.add_field(name="🏢 公司清單", value=companies_text, inline=False)
+        embed.add_field(name="📌 目前公司", value=selected.company_name, inline=False)
+
+        panel_ch = f"<#{selected.panel_channel_id}>" if selected.panel_channel_id else "未設定"
+        review_ch = (
+            f"<#{selected.review_channel_id}>" if selected.review_channel_id else "未設定"
+        )
+        embed.add_field(
+            name="📺 頻道設定",
+            value=f"填單頻道: {panel_ch}\n審核頻道: {review_ch}",
+            inline=True,
+        )
+
+        if selected.review_role_ids:
+            role_text = ", ".join(f"<@&{role_id}>" for role_id in selected.review_role_ids)
+        else:
+            role_text = "未設定"
+        embed.add_field(name="🛡️ 審核身分組", value=role_text, inline=True)
+
+        status_text = "✅ 啟用" if selected.is_enabled else "❌ 停用"
+        embed.add_field(name="⚙️ 狀態", value=status_text, inline=True)
 
         return embed
 
@@ -614,6 +707,324 @@ class BackToWhitelistButton(Button):
         panel = SystemAdminPanel(self.user_id)
         embed = await panel._create_whitelist_settings_embed(self.guild, settings=settings)
         view = WhitelistSettingsView(self.user_id, self.guild)
+        await interaction.response.edit_message(embed=embed, view=view)
+
+
+class ResumeSettingsView(View):
+    """履歷系統設定面板"""
+
+    def __init__(
+        self,
+        user_id: int,
+        guild: discord.Guild,
+        bot: discord.Client,
+        *,
+        companies: list,
+        selected_company_id: int | None = None,
+        timeout=300,
+    ):
+        super().__init__(timeout=timeout)
+        self.user_id = user_id
+        self.guild = guild
+        self.bot = bot
+        self.dao = ResumeDAO()
+        self.service = ResumeService(self.dao)
+        self.panel_service = ResumePanelService(bot, self.dao)
+        self.companies = companies or []
+        self.selected_company_id = selected_company_id
+        if self.selected_company_id is None and self.companies:
+            self.selected_company_id = self.companies[0].company_id
+
+        if self.companies:
+            self.add_item(
+                ResumeCompanySelect(self, self.companies, self.selected_company_id, row=0)
+            )
+            self.add_item(ResumeChannelSelect("panel_channel_id", "選擇填單頻道", self, row=1))
+            self.add_item(ResumeChannelSelect("review_channel_id", "選擇審核頻道", self, row=2))
+            self.add_item(ResumeReviewRoleSelect(self, row=3))
+            self.add_item(ResumeToggleCompanyButton(self, row=4))
+            self.add_item(ResumeRefreshPanelButton(self, row=4))
+            self.add_item(ResumeClearRolesButton(self, row=4))
+
+        self.add_item(ResumeCreateCompanyButton(self, row=4))
+        self.add_item(ResumeBackToSystemButton(self.user_id, self.guild, row=4))
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 只有開啟此面板的管理員可設定", ephemeral=True)
+            return False
+        return True
+
+    async def _get_selected_company(self):
+        if not self.selected_company_id:
+            return None
+        return await self.service.load_company(self.selected_company_id)
+
+    async def _deploy_panel(self, settings) -> bool:
+        if not settings or not settings.panel_channel_id:
+            return False
+        panel_view = ResumePanelView(self.bot, self.dao, settings)
+        message = await self.panel_service.ensure_panel_message(settings, panel_view)
+        message_id = message.id if message else settings.panel_message_id
+        if message_id:
+            try:
+                self.bot.add_view(panel_view, message_id=message_id)
+            except Exception:
+                pass
+        return True
+
+    async def refresh_message(
+        self,
+        interaction: discord.Interaction,
+        *,
+        selected_company_id: int | None = None,
+        notice: str | None = None,
+    ) -> None:
+        companies = await self.service.list_companies(self.guild.id)
+        next_selected = selected_company_id
+        if next_selected is None and companies:
+            next_selected = self.selected_company_id or companies[0].company_id
+
+        panel = SystemAdminPanel(self.user_id)
+        embed = await panel._create_resume_settings_embed(
+            self.guild, companies, selected_company_id=next_selected
+        )
+        view = ResumeSettingsView(
+            self.user_id,
+            self.guild,
+            self.bot,
+            companies=companies,
+            selected_company_id=next_selected,
+        )
+
+        try:
+            if interaction.message:
+                await interaction.response.edit_message(embed=embed, view=view)
+                return
+        except Exception:
+            pass
+
+        if notice is None:
+            notice = "✅ 設定已更新，請重新開啟面板查看最新內容"
+        await SafeInteractionHandler.safe_respond(interaction, content=notice, ephemeral=True)
+
+    async def save_and_refresh(self, interaction: discord.Interaction, **patch):
+        settings = await self._get_selected_company()
+        if not settings:
+            await interaction.response.send_message("❌ 尚未選擇公司", ephemeral=True)
+            return
+
+        updated = await self.service.save_company(self.guild.id, settings.company_name, **patch)
+
+        if "panel_channel_id" in patch:
+            await self._deploy_panel(updated)
+
+        await self.refresh_message(interaction, selected_company_id=updated.company_id)
+
+    async def refresh_panel(self, interaction: discord.Interaction):
+        settings = await self._get_selected_company()
+        if not settings:
+            await interaction.response.send_message("❌ 尚未選擇公司", ephemeral=True)
+            return
+        if not settings.panel_channel_id:
+            await interaction.response.send_message("❌ 尚未設定填單頻道", ephemeral=True)
+            return
+
+        await self._deploy_panel(settings)
+        await self.refresh_message(interaction, selected_company_id=settings.company_id)
+
+    async def toggle_company(self, interaction: discord.Interaction):
+        settings = await self._get_selected_company()
+        if not settings:
+            await interaction.response.send_message("❌ 尚未選擇公司", ephemeral=True)
+            return
+        await self.save_and_refresh(interaction, is_enabled=not settings.is_enabled)
+
+    async def clear_roles(self, interaction: discord.Interaction):
+        await self.save_and_refresh(interaction, review_role_ids=[])
+
+
+class ResumeCompanySelect(Select):
+    """公司選擇下拉"""
+
+    def __init__(self, parent_view: ResumeSettingsView, companies: list, selected_company_id: int | None, row: int | None = None):
+        self.parent_view = parent_view
+        options = []
+        for company in companies[:25]:
+            status = "啟用" if company.is_enabled else "停用"
+            options.append(
+                discord.SelectOption(
+                    label=company.company_name,
+                    value=str(company.company_id),
+                    description=f"狀態: {status}",
+                    default=(company.company_id == selected_company_id),
+                )
+            )
+        super().__init__(
+            placeholder="選擇公司",
+            min_values=1,
+            max_values=1,
+            options=options,
+            row=row,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        selected_id = int(self.values[0])
+        await self.parent_view.refresh_message(interaction, selected_company_id=selected_id)
+
+
+class ResumeChannelSelect(ChannelSelect):
+    """履歷頻道選擇器"""
+
+    def __init__(
+        self,
+        field_key: str,
+        placeholder: str,
+        parent_view: ResumeSettingsView,
+        row: int | None = None,
+    ):
+        self.field_key = field_key
+        self.parent_view = parent_view
+        super().__init__(
+            placeholder=placeholder,
+            min_values=1,
+            max_values=1,
+            channel_types=[discord.ChannelType.text],
+            row=row,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        channel = self.values[0]
+        await self.parent_view.save_and_refresh(interaction, **{self.field_key: channel.id})
+
+
+class ResumeReviewRoleSelect(discord.ui.RoleSelect):
+    """履歷審核角色選擇"""
+
+    def __init__(self, parent_view: ResumeSettingsView, row: int | None = None):
+        self.parent_view = parent_view
+        super().__init__(
+            placeholder="選擇審核身分組（可多選）",
+            min_values=1,
+            max_values=10,
+            row=row,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        role_ids = [role.id for role in self.values]
+        await self.parent_view.save_and_refresh(interaction, review_role_ids=role_ids)
+
+
+class ResumeCompanyCreateModal(Modal):
+    """新增履歷公司"""
+
+    def __init__(self, parent_view: ResumeSettingsView):
+        super().__init__(title="新增履歷公司")
+        self.parent_view = parent_view
+
+        self.company_name = TextInput(
+            label="公司名稱",
+            placeholder="例如：星際物流",
+            max_length=100,
+            required=True,
+        )
+        self.add_item(self.company_name)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        name = self.company_name.value.strip() if self.company_name.value else ""
+        if not name:
+            await interaction.response.send_message("❌ 請輸入公司名稱", ephemeral=True)
+            return
+
+        existing = await self.parent_view.service.load_company_by_name(
+            self.parent_view.guild.id, name
+        )
+        if existing:
+            await interaction.response.send_message("❌ 公司已存在", ephemeral=True)
+            return
+
+        settings = await self.parent_view.service.save_company(self.parent_view.guild.id, name)
+        await self.parent_view.refresh_message(
+            interaction,
+            selected_company_id=settings.company_id,
+            notice="✅ 已新增公司，請重新開啟面板查看",
+        )
+
+
+class ResumeCreateCompanyButton(Button):
+    """新增公司按鈕"""
+
+    def __init__(self, parent_view: ResumeSettingsView, row: int | None = None):
+        super().__init__(label="➕ 新增公司", style=discord.ButtonStyle.success, row=row)
+        self.parent_view = parent_view
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_modal(ResumeCompanyCreateModal(self.parent_view))
+
+
+class ResumeToggleCompanyButton(Button):
+    """切換公司啟用狀態"""
+
+    def __init__(self, parent_view: ResumeSettingsView, row: int | None = None):
+        super().__init__(label="🔄 切換啟用", style=discord.ButtonStyle.secondary, row=row)
+        self.parent_view = parent_view
+
+    async def callback(self, interaction: discord.Interaction):
+        await self.parent_view.toggle_company(interaction)
+
+
+class ResumeRefreshPanelButton(Button):
+    """部署或刷新面板"""
+
+    def __init__(self, parent_view: ResumeSettingsView, row: int | None = None):
+        super().__init__(label="📌 部署面板", style=discord.ButtonStyle.primary, row=row)
+        self.parent_view = parent_view
+
+    async def callback(self, interaction: discord.Interaction):
+        await self.parent_view.refresh_panel(interaction)
+
+
+class ResumeClearRolesButton(Button):
+    """清空審核身分組"""
+
+    def __init__(self, parent_view: ResumeSettingsView, row: int | None = None):
+        super().__init__(label="🧹 清空審核身分組", style=discord.ButtonStyle.secondary, row=row)
+        self.parent_view = parent_view
+
+    async def callback(self, interaction: discord.Interaction):
+        await self.parent_view.clear_roles(interaction)
+
+
+class ResumeBackToSystemButton(Button):
+    """返回系統管理面板"""
+
+    def __init__(self, user_id: int, guild: discord.Guild, row: int | None = None):
+        super().__init__(label="← 返回管理面板", style=discord.ButtonStyle.secondary, row=row)
+        self.user_id = user_id
+        self.guild = guild
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 只有開啟此面板的管理員可設定", ephemeral=True)
+            return
+
+        embed = discord.Embed(
+            title="🔧 系統管理面板",
+            description="選擇要執行的管理操作",
+            color=0x3498DB,
+        )
+        embed.add_field(
+            name="📊 功能模組",
+            value="• 🎫 票券系統設定\n• 🎉 歡迎系統設定\n• 🗳️ 投票系統設定\n• 🛂 入境審核設定\n• 🧾 履歷系統設定\n• 🔧 系統工具",
+            inline=False,
+        )
+        embed.add_field(
+            name="💡 使用說明",
+            value="點擊下方按鈕進入相應的設定頁面",
+            inline=False,
+        )
+
+        view = SystemAdminPanel(user_id=self.user_id)
         await interaction.response.edit_message(embed=embed, view=view)
 
 

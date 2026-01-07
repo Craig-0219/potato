@@ -40,6 +40,7 @@ class DatabaseManager:
             await self._create_ticket_tables()
             await self._create_vote_tables()
             await self._create_welcome_tables()
+            await self._create_resume_tables()
             await self._create_lottery_tables()
             await self._create_webhook_tables()
 
@@ -421,6 +422,52 @@ class DatabaseManager:
         }
 
         await self._create_tables_batch(tables, "歡迎系統")
+
+    async def _create_resume_tables(self):
+        """創建履歷系統相關表格"""
+        logger.info("🧾 創建履歷系統表格...")
+
+        tables = {
+            "resume_companies": """
+                CREATE TABLE IF NOT EXISTS resume_companies (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    guild_id BIGINT NOT NULL,
+                    company_name VARCHAR(100) NOT NULL,
+                    panel_channel_id BIGINT NULL,
+                    review_channel_id BIGINT NULL,
+                    review_role_ids JSON NULL,
+                    panel_message_id BIGINT NULL,
+                    is_enabled BOOLEAN DEFAULT TRUE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+                    UNIQUE KEY uniq_guild_company (guild_id, company_name),
+                    INDEX idx_guild (guild_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+            "resume_applications": """
+                CREATE TABLE IF NOT EXISTS resume_applications (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    guild_id BIGINT NOT NULL,
+                    company_id BIGINT NOT NULL,
+                    user_id BIGINT NOT NULL,
+                    username VARCHAR(255),
+                    answers_json JSON,
+                    status VARCHAR(20) DEFAULT 'PENDING',
+                    reviewer_id BIGINT NULL,
+                    reviewer_note TEXT NULL,
+                    review_message_id BIGINT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    reviewed_at TIMESTAMP NULL,
+
+                    INDEX idx_guild_user_status (guild_id, user_id, status),
+                    INDEX idx_company_status (company_id, status),
+                    FOREIGN KEY (company_id) REFERENCES resume_companies(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+        }
+
+        await self._create_tables_batch(tables, "履歷系統")
 
     async def _create_lottery_tables(self):
         """創建抽獎系統相關表格"""

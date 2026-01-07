@@ -1,0 +1,179 @@
+"""
+Resume services.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Any, List, Optional
+
+import json
+import discord
+
+from potato_bot.db.resume_dao import ResumeDAO
+from potato_shared.logger import logger
+
+
+def _normalize_role_ids(value: Any) -> List[int]:
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [int(role_id) for role_id in value]
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, list):
+                return [int(role_id) for role_id in parsed]
+        except json.JSONDecodeError:
+            return []
+    return []
+
+
+@dataclass
+class ResumeCompanySettings:
+    company_id: int
+    guild_id: int
+    company_name: str
+    panel_channel_id: Optional[int] = None
+    review_channel_id: Optional[int] = None
+    review_role_ids: List[int] | None = None
+    panel_message_id: Optional[int] = None
+    is_enabled: bool = True
+
+    @property
+    def is_complete(self) -> bool:
+        return bool(self.panel_channel_id and self.review_channel_id and self.review_role_ids)
+
+
+class ResumeService:
+    """High-level resume settings service."""
+
+    def __init__(self, dao: ResumeDAO):
+        self.dao = dao
+
+    async def load_company(self, company_id: int) -> Optional[ResumeCompanySettings]:
+        data = await self.dao.get_company(company_id)
+        if not data:
+            return None
+        return ResumeCompanySettings(
+            company_id=data["id"],
+            guild_id=data["guild_id"],
+            company_name=data["company_name"],
+            panel_channel_id=data.get("panel_channel_id"),
+            review_channel_id=data.get("review_channel_id"),
+            review_role_ids=_normalize_role_ids(data.get("review_role_ids")),
+            panel_message_id=data.get("panel_message_id"),
+            is_enabled=bool(data.get("is_enabled", True)),
+        )
+
+    async def load_company_by_name(
+        self, guild_id: int, company_name: str
+    ) -> Optional[ResumeCompanySettings]:
+        data = await self.dao.get_company_by_name(guild_id, company_name)
+        if not data:
+            return None
+        return ResumeCompanySettings(
+            company_id=data["id"],
+            guild_id=data["guild_id"],
+            company_name=data["company_name"],
+            panel_channel_id=data.get("panel_channel_id"),
+            review_channel_id=data.get("review_channel_id"),
+            review_role_ids=_normalize_role_ids(data.get("review_role_ids")),
+            panel_message_id=data.get("panel_message_id"),
+            is_enabled=bool(data.get("is_enabled", True)),
+        )
+
+    async def list_companies(self, guild_id: int) -> List[ResumeCompanySettings]:
+        rows = await self.dao.list_companies(guild_id)
+        companies: List[ResumeCompanySettings] = []
+        for row in rows:
+            companies.append(
+                ResumeCompanySettings(
+                    company_id=row["id"],
+                    guild_id=row["guild_id"],
+                    company_name=row["company_name"],
+                    panel_channel_id=row.get("panel_channel_id"),
+                    review_channel_id=row.get("review_channel_id"),
+                    review_role_ids=_normalize_role_ids(row.get("review_role_ids")),
+                    panel_message_id=row.get("panel_message_id"),
+                    is_enabled=bool(row.get("is_enabled", True)),
+                )
+            )
+        return companies
+
+    async def save_company(
+        self,
+        guild_id: int,
+        company_name: str,
+        **settings: Any,
+    ) -> ResumeCompanySettings:
+        current = await self.dao.get_company_by_name(guild_id, company_name) or {}
+        payload = {
+            "panel_channel_id": current.get("panel_channel_id"),
+            "review_channel_id": current.get("review_channel_id"),
+            "review_role_ids": _normalize_role_ids(current.get("review_role_ids")),
+            "panel_message_id": current.get("panel_message_id"),
+            "is_enabled": current.get("is_enabled", True),
+        }
+
+        for key, value in settings.items():
+            if value is not None:
+                payload[key] = value
+
+        await self.dao.upsert_company(guild_id, company_name, **payload)
+        company = await self.load_company_by_name(guild_id, company_name)
+        if not company:
+            raise RuntimeError("Failed to save resume company settings.")
+        return company
+
+
+class ResumePanelService:
+    """Handle resume panel messages."""
+
+    def __init__(self, bot: discord.Client, dao: ResumeDAO):
+        self.bot = bot
+        self.dao = dao
+
+    async def ensure_panel_message(
+        self, settings: ResumeCompanySettings, view: discord.ui.View
+    ) -> Optional[discord.Message]:
+        if not settings.panel_channel_id:
+            logger.warning("Missing panel_channel_id for resume company.")
+            return None
+
+        guild = self.bot.get_guild(settings.guild_id)
+        if not guild:
+            return None
+
+        channel = guild.get_channel(settings.panel_channel_id)
+        if not channel:
+            logger.warning("Resume panel channel not found.")
+            return None
+
+        embed = discord.Embed(
+            title=f"Resume Submission - {settings.company_name}",
+            description="Click the button below to submit your resume.",
+            color=0x3498DB,
+        )
+
+        message = None
+        if settings.panel_message_id:
+            try:
+                message = await channel.fetch_message(settings.panel_message_id)
+            except Exception:
+                message = None
+
+        if message is None:
+            message = await channel.send(embed=embed, view=view)
+            try:
+                await message.pin()
+            except Exception:
+                pass
+            await self.dao.update_panel_message_id(settings.company_id, message.id)
+        else:
+            try:
+                await message.edit(embed=embed, view=view)
+            except Exception as e:
+                logger.warning(f"Failed to refresh resume panel message: {e}")
+
+        return message
