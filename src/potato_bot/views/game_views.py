@@ -10,8 +10,8 @@ from typing import Any, Dict
 import discord
 from discord import ui
 
-from bot.utils.embed_builder import EmbedBuilder
-from shared.logger import logger
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_shared.logger import logger
 
 
 class GameMenuView(ui.View):
@@ -153,7 +153,6 @@ class GameMenuView(ui.View):
     async def trivia_button(self, interaction: discord.Interaction, button: ui.Button):
         """問答競賽按鈕"""
         try:
-            view = TriviaView(self.game_cog)
 
             embed = EmbedBuilder.build(
                 title="🧠 問答競賽",
@@ -938,171 +937,6 @@ class NumberSelectView(ui.View):
         self.parent_view.bet_value = int(select.values[0])
         await self.parent_view._update_bet_display(interaction)
 
-
-class TriviaView(ui.View):
-    """問答競賽視圖"""
-
-    def __init__(self, game_cog):
-        super().__init__(timeout=300)
-        self.game_cog = game_cog
-        self.questions = [
-            {
-                "question": "Python 是什麼時候發布的？",
-                "answers": ["1989", "1991", "1995", "2000"],
-                "correct": 1,
-                "difficulty": "medium",
-            },
-            {
-                "question": "Discord 是用什麼程式語言開發的？",
-                "answers": ["Python", "JavaScript", "Elixir", "Go"],
-                "correct": 2,
-                "difficulty": "hard",
-            },
-            {
-                "question": "HTTP 狀態碼 404 代表什麼？",
-                "answers": ["伺服器錯誤", "未找到", "禁止訪問", "請求超時"],
-                "correct": 1,
-                "difficulty": "easy",
-            },
-            {
-                "question": "哪個不是資料庫管理系統？",
-                "answers": ["MySQL", "PostgreSQL", "Redis", "Apache"],
-                "correct": 3,
-                "difficulty": "medium",
-            },
-        ]
-        self.current_question = None
-
-    @ui.button(label="🎯 開始問答", style=discord.ButtonStyle.primary)
-    async def start_trivia(self, interaction: discord.Interaction, button: ui.Button):
-        """開始問答"""
-        try:
-            # 隨機選擇問題
-            self.current_question = random.choice(self.questions)
-
-            embed = EmbedBuilder.build(
-                title="🧠 問答競賽",
-                description=self.current_question["question"],
-                color=0x4169E1,
-            )
-
-            # 添加答案選項
-            answers_text = ""
-            for i, answer in enumerate(self.current_question["answers"], 1):
-                answers_text += f"{i}️⃣ {answer}\n"
-
-            embed.add_field(name="📝 選項", value=answers_text, inline=False)
-
-            embed.add_field(
-                name="ℹ️ 說明",
-                value=f"難度: {self.current_question['difficulty'].title()}\n點擊下方按鈕選擇答案",
-                inline=False,
-            )
-
-            # 創建答案選擇視圖
-            view = TriviaAnswerView(self.game_cog, self.current_question)
-
-            await interaction.response.edit_message(embed=embed, view=view)
-
-        except Exception as e:
-            logger.error(f"❌ 開始問答錯誤: {e}")
-            await interaction.response.send_message("❌ 開始問答時發生錯誤。", ephemeral=True)
-
-
-class TriviaAnswerView(ui.View):
-    """問答答案選擇視圖"""
-
-    def __init__(self, game_cog, question_data):
-        super().__init__(timeout=60)
-        self.game_cog = game_cog
-        self.question_data = question_data
-
-    @ui.button(label="1️⃣", style=discord.ButtonStyle.secondary)
-    async def answer_1(self, interaction: discord.Interaction, button: ui.Button):
-        await self._check_answer(interaction, 0)
-
-    @ui.button(label="2️⃣", style=discord.ButtonStyle.secondary)
-    async def answer_2(self, interaction: discord.Interaction, button: ui.Button):
-        await self._check_answer(interaction, 1)
-
-    @ui.button(label="3️⃣", style=discord.ButtonStyle.secondary)
-    async def answer_3(self, interaction: discord.Interaction, button: ui.Button):
-        await self._check_answer(interaction, 2)
-
-    @ui.button(label="4️⃣", style=discord.ButtonStyle.secondary)
-    async def answer_4(self, interaction: discord.Interaction, button: ui.Button):
-        await self._check_answer(interaction, 3)
-
-    async def _check_answer(self, interaction: discord.Interaction, selected_index: int):
-        """檢查答案"""
-        try:
-            correct_index = self.question_data["correct"]
-            is_correct = selected_index == correct_index
-            difficulty = self.question_data["difficulty"]
-
-            # 計算獎勵
-            base_reward = {"easy": 20, "medium": 35, "hard": 50}
-            reward = base_reward.get(difficulty, 20)
-
-            if is_correct:
-                # 發放獎勵
-                await self.game_cog.economy_manager.add_coins(
-                    interaction.user.id, interaction.guild.id, reward
-                )
-                await self.game_cog.economy_manager.add_experience(
-                    interaction.user.id, interaction.guild.id, reward // 2
-                )
-
-                embed = EmbedBuilder.build(
-                    title="🎉 答對了！",
-                    description="恭喜您答對了問題！",
-                    color=0x00FF00,
-                )
-
-                embed.add_field(
-                    name="🏆 獲得獎勵",
-                    value=f"💰 金幣: {reward}🪙\n⭐ 經驗: {reward // 2}",
-                    inline=True,
-                )
-
-                # 記錄勝利
-                await self.game_cog.economy_manager.increment_daily_wins(
-                    interaction.user.id, interaction.guild.id
-                )
-            else:
-                embed = EmbedBuilder.build(
-                    title="💔 答錯了！",
-                    description="很遺憾答錯了。",
-                    color=0xFF0000,
-                )
-
-                embed.add_field(
-                    name="📚 正確答案",
-                    value=f"{self.question_data['answers'][correct_index]}",
-                    inline=True,
-                )
-
-            embed.add_field(
-                name="📊 問題資訊",
-                value=f"您的答案: {self.question_data['answers'][selected_index]}\n"
-                f"正確答案: {self.question_data['answers'][correct_index]}\n"
-                f"難度: {difficulty.title()}",
-                inline=False,
-            )
-
-            # 記錄遊戲統計
-            await self.game_cog.economy_manager.increment_daily_games(
-                interaction.user.id, interaction.guild.id
-            )
-
-            # 創建新的問答視圖
-            new_view = TriviaView(self.game_cog)
-
-            await interaction.response.edit_message(embed=embed, view=new_view)
-
-        except Exception as e:
-            logger.error(f"❌ 檢查答案錯誤: {e}")
-            await interaction.response.send_message("❌ 檢查答案時發生錯誤。", ephemeral=True)
 
 
 class DiceGameView(ui.View):

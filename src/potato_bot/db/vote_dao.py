@@ -10,8 +10,8 @@ from typing import Any, Dict, List
 
 import aiomysql
 
-from bot.db.pool import db_pool
-from shared.logger import logger
+from potato_bot.db.pool import db_pool
+from potato_shared.logger import logger
 
 
 class VoteDAO:
@@ -862,6 +862,26 @@ async def get_vote_participation_stats(vote_id: int):
     except Exception as e:
         logger.error(f"get_vote_participation_stats({vote_id}) 錯誤: {e}")
         return {"unique_users": 0, "total_responses": 0, "options_stats": []}
+
+
+async def close_vote_now(vote_id: int) -> bool:
+    """將指定投票的結束時間更新為現在，並允許重新公告"""
+    try:
+        async with db_pool.connection() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute(
+                    """
+                    UPDATE votes
+                    SET end_time = UTC_TIMESTAMP(), announced = FALSE
+                    WHERE id = %s
+                    """,
+                    (vote_id,),
+                )
+                await conn.commit()
+                return cur.rowcount > 0
+    except Exception as e:
+        logger.error(f"close_vote_now({vote_id}) 錯誤: {e}")
+        return False
 
 
 async def get_guild_vote_stats(guild_id: int, days: int = 30):

@@ -16,6 +16,9 @@ aiofiles==24.1.0
 # HTTP 客戶端 (Discord.py 依賴)
 aiohttp==3.9.0
 
+# 影音下載（音樂系統）
+yt-dlp==2025.8.11
+
 # 時區處理
 pytz==2023.3
 
@@ -24,9 +27,6 @@ orjson==3.9.9
 
 # 日期時間處理
 python-dateutil==2.8.2
-
-# Redis 緩存
-redis[hiredis]==5.0.1
 
 # 系統監控
 psutil==5.9.6
@@ -48,3 +48,4 @@ PyNaCl==1.5.0
 # - 已移除 AI 相關依賴 (openai, textblob)
 # - 已移除 Minecraft 相關依賴 (mcrcon)
 # - 已移除 Web API 相關依賴 (fastapi, uvicorn, pydantic, python-jose, websockets, httpx)
+# - 已移除投票模板相關模組

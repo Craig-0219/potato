@@ -19,9 +19,9 @@ from typing import Any, Dict, List, Optional
 
 import aiohttp
 
-from bot.db.pool import db_pool
-from shared.cache_manager import cache_manager
-from shared.logger import logger
+from potato_bot.db.pool import db_pool
+from potato_shared.cache_manager import cache_manager
+from potato_shared.logger import logger
 
 # ========== 新增：跨平台經濟系統枚舉 ==========
 

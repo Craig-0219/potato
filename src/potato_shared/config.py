@@ -61,7 +61,6 @@ DB_NAME = os.getenv("DB_NAME")
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
-REDIS_URL = os.getenv("REDIS_URL")  # 可選的 Redis 連接
 
 # ======================
 # 開發工具配置
@@ -71,12 +70,7 @@ SYNC_COMMANDS = os.getenv("SYNC_COMMANDS", "true").lower() == "true"
 # ======================
 # 票券系統配置
 # ======================
-TICKET_AUTO_ASSIGNMENT = os.getenv("TICKET_AUTO_ASSIGNMENT", "true").lower() == "true"
-TICKET_SLA_MONITORING = os.getenv("TICKET_SLA_MONITORING", "true").lower() == "true"
 TICKET_AUTO_REPLIES = os.getenv("TICKET_AUTO_REPLIES", "true").lower() == "true"
-TICKET_RATING_SYSTEM = os.getenv("TICKET_RATING_SYSTEM", "true").lower() == "true"
-TICKET_ADVANCED_STATS = os.getenv("TICKET_ADVANCED_STATS", "true").lower() == "true"
-TICKET_DEFAULT_SLA_MINUTES = int(os.getenv("TICKET_DEFAULT_SLA_MINUTES", 60))
 TICKET_DEFAULT_AUTO_CLOSE_HOURS = int(os.getenv("TICKET_DEFAULT_AUTO_CLOSE_HOURS", 24))
 TICKET_MAX_PER_USER = int(os.getenv("TICKET_MAX_PER_USER", 3))
 
@@ -172,15 +166,10 @@ def get_config_summary() -> dict:
             "password": "***" if DB_PASSWORD else None,
         },
         "features": {
-            "auto_assignment": TICKET_AUTO_ASSIGNMENT,
-            "sla_monitoring": TICKET_SLA_MONITORING,
             "auto_replies": TICKET_AUTO_REPLIES,
-            "rating_system": TICKET_RATING_SYSTEM,
-            "advanced_stats": TICKET_ADVANCED_STATS,
             "economy": ECONOMY_ENABLED,
         },
         "parameters": {
-            "default_sla_minutes": TICKET_DEFAULT_SLA_MINUTES,
             "auto_close_hours": TICKET_DEFAULT_AUTO_CLOSE_HOURS,
             "max_tickets_per_user": TICKET_MAX_PER_USER,
         },
@@ -188,7 +177,6 @@ def get_config_summary() -> dict:
             "debug": DEBUG,
             "log_level": LOG_LEVEL,
             "environment": ENVIRONMENT,
-            "redis_enabled": bool(REDIS_URL),
         },
     }
 

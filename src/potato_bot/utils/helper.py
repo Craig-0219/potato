@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import discord
 
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 def format_duration(duration: Union[timedelta, int]) -> str:
@@ -589,7 +589,6 @@ def validate_settings_data(data: Dict[str, Any]) -> Tuple[bool, str]:
     numeric_limits = {
         "max_tickets_per_user": (1, 20),
         "auto_close_hours": (1, 168),
-        "sla_response_minutes": (5, 1440),
     }
 
     for field, (min_val, max_val) in numeric_limits.items():

@@ -19,8 +19,8 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Dict, List, Tuple
 
-from bot.db.pool import db_pool
-from shared.logger import logger
+from potato_bot.db.pool import db_pool
+from potato_shared.logger import logger
 
 
 class QueryType(Enum):
@@ -168,25 +168,6 @@ class DatabaseOptimizer:
                             INDEX idx_table_name (table_name),
                             INDEX idx_status (status),
                             INDEX idx_created_at (created_at)
-                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                    """
-                    )
-
-                    # 性能指標記錄表
-                    await cursor.execute(
-                        """
-                        CREATE TABLE IF NOT EXISTS db_performance_metrics (
-                            id INT AUTO_INCREMENT PRIMARY KEY,
-                            query_cache_hit_rate DECIMAL(5,2),
-                            slow_query_count INT,
-                            connections_used INT,
-                            max_connections INT,
-                            innodb_buffer_pool_hit_rate DECIMAL(5,2),
-                            table_scan_rate DECIMAL(5,2),
-                            temp_table_rate DECIMAL(5,2),
-                            key_read_hit_rate DECIMAL(5,2),
-                            recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            INDEX idx_recorded_at (recorded_at)
                         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                     """
                     )

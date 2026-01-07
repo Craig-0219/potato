@@ -10,13 +10,13 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.services.lottery_manager import LotteryManager
-from bot.utils.embed_builder import EmbedBuilder
-from bot.views.lottery_views import (
+from potato_bot.services.lottery_manager import LotteryManager
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_bot.views.lottery_views import (
     LotteryCreationModal,
     LotteryManagementView,
 )
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 class LotteryCore(commands.Cog):
@@ -315,7 +315,7 @@ class LotteryCore(commands.Cog):
     async def lottery_list(self, interaction: discord.Interaction):
         """查看抽獎列表"""
         try:
-            from bot.db.lottery_dao import LotteryDAO
+            from potato_bot.db.lottery_dao import LotteryDAO
 
             dao = LotteryDAO()
 
@@ -424,7 +424,7 @@ class LotteryCore(commands.Cog):
                 return
 
             # 查找相關抽獎
-            from bot.db.lottery_dao import LotteryDAO
+            from potato_bot.db.lottery_dao import LotteryDAO
 
             dao = LotteryDAO()
 
@@ -470,7 +470,7 @@ class LotteryCore(commands.Cog):
                 return
 
             # 查找相關抽獎
-            from bot.db.lottery_dao import LotteryDAO
+            from potato_bot.db.lottery_dao import LotteryDAO
 
             dao = LotteryDAO()
 
@@ -501,7 +501,7 @@ class LotteryCore(commands.Cog):
             await interaction.response.defer(ephemeral=True)
 
             # 導入歷史視圖
-            from bot.views.lottery_dashboard_views import (
+            from potato_bot.views.lottery_dashboard_views import (
                 UserLotteryHistoryView,
             )
 

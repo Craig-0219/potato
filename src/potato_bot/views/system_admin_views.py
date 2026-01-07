@@ -4,19 +4,18 @@
 提供圖形化的系統設定面板，包含票券系統、歡迎系統等各項設定
 """
 
-from datetime import datetime, timezone
-
 import discord
-from discord.ui import Button, Modal, Select, TextInput, View, button
+from discord.ui import Button, ChannelSelect, Modal, RoleSelect, Select, TextInput, View, button
 
-from bot.db import vote_dao
-from bot.db.ticket_dao import TicketDAO
-from bot.db.welcome_dao import WelcomeDAO
-from bot.services.data_cleanup_manager import DataCleanupManager
-from bot.services.data_export_manager import DataExportManager
-from bot.services.welcome_manager import WelcomeManager
-from bot.utils.interaction_helper import BaseView, SafeInteractionHandler
-from shared.logger import logger
+from potato_bot.db import vote_dao
+from potato_bot.db.ticket_dao import TicketDAO
+from potato_bot.db.welcome_dao import WelcomeDAO
+from potato_bot.services.data_cleanup_manager import DataCleanupManager
+from potato_bot.services.welcome_manager import WelcomeManager
+from potato_bot.services.whitelist_service import WhitelistService
+from potato_bot.db.whitelist_dao import WhitelistDAO
+from potato_bot.utils.interaction_helper import BaseView, SafeInteractionHandler
+from potato_shared.logger import logger
 
 
 class SystemAdminPanel(BaseView):
@@ -70,12 +69,12 @@ class SystemAdminPanel(BaseView):
             ephemeral=True,
         )
 
-    @button(label="📊 統計與監控", style=discord.ButtonStyle.secondary, row=1)
-    async def stats_button(self, interaction: discord.Interaction, button: Button):
-        """統計與監控按鈕"""
+    @button(label="🛂 入境審核設定", style=discord.ButtonStyle.secondary, row=1)
+    async def whitelist_settings_button(self, interaction: discord.Interaction, button: Button):
+        """入境審核設定"""
         await interaction.response.send_message(
-            embed=await self._create_stats_embed(interaction.guild),
-            view=StatsView(self.user_id),
+            embed=await self._create_whitelist_settings_embed(interaction.guild),
+            view=WhitelistSettingsView(self.user_id, interaction.guild),
             ephemeral=True,
         )
 
@@ -128,7 +127,6 @@ class SystemAdminPanel(BaseView):
         embed.add_field(
             name="⚙️ 系統參數",
             value=f"每人票券上限: {settings.get('max_tickets_per_user', 3)}\n"
-            f"SLA回應時間: {settings.get('sla_response_minutes', 60)}分鐘\n"
             f"自動關閉時間: {settings.get('auto_close_hours', 24)}小時",
             inline=True,
         )
@@ -251,42 +249,52 @@ class SystemAdminPanel(BaseView):
 
         return embed
 
-    async def _create_stats_embed(self, guild: discord.Guild) -> discord.Embed:
-        """創建統計監控嵌入"""
+    async def _create_whitelist_settings_embed(self, guild: discord.Guild) -> discord.Embed:
+        """創建入境審核設定摘要"""
+        service = WhitelistService(WhitelistDAO())
+        settings = await service.load_settings(guild.id)
+
         embed = discord.Embed(
-            title="📊 系統統計與監控",
-            description="系統運行狀態和使用統計",
+            title="🛂 入境審核設定",
+            description="入境面板、審核頻道與角色配置",
             color=0x9B59B6,
         )
 
-        # 票券統計
-        tickets, _ = await self.ticket_dao.get_tickets(guild.id, page_size=1000)
-        open_tickets = len([t for t in tickets if t["status"] == "open"])
-        total_tickets = len(tickets)
+        panel_ch = f"<#{settings.panel_channel_id}>" if settings.panel_channel_id else "未設定"
+        review_ch = f"<#{settings.review_channel_id}>" if settings.review_channel_id else "未設定"
+        result_ch = f"<#{settings.result_channel_id}>" if settings.result_channel_id else "未設定"
+
+        staff_role = f"<@&{settings.role_staff_id}>" if settings.role_staff_id else "未設定"
+        if settings.role_newcomer_ids:
+            newcomer_role = ", ".join(f"<@&{rid}>" for rid in settings.role_newcomer_ids)
+        else:
+            newcomer_role = "未設定"
+        citizen_role = f"<@&{settings.role_citizen_id}>" if settings.role_citizen_id else "未設定"
+        nickname_role = (
+            f"<@&{settings.nickname_role_id}>" if settings.nickname_role_id else "未設定"
+        )
+        nickname_prefix = settings.nickname_prefix or "未設定"
 
         embed.add_field(
-            name="🎫 票券統計",
-            value=f"總票券數: {total_tickets}\n"
-            f"開啟中: {open_tickets}\n"
-            f"已關閉: {total_tickets - open_tickets}",
+            name="📺 頻道設定",
+            value=f"面板: {panel_ch}\n審核: {review_ch}\n結果公告: {result_ch}",
+            inline=True,
+        )
+        embed.add_field(
+            name="🛡️ 角色配置",
+            value=f"審核員: {staff_role}\n新手: {newcomer_role}\n市民: {citizen_role}",
+            inline=True,
+        )
+        embed.add_field(
+            name="🏷️ 暱稱設定",
+            value=f"套用角色: {nickname_role}\n前綴: {nickname_prefix}",
             inline=True,
         )
 
-        # 歡迎統計
-        welcome_stats = await self.welcome_manager.get_welcome_statistics(guild.id, 30)
         embed.add_field(
-            name="🎉 歡迎統計 (30天)",
-            value=f"加入成員: {welcome_stats.get('joins', 0)}\n"
-            f"離開成員: {welcome_stats.get('leaves', 0)}\n"
-            f"淨增長: {welcome_stats.get('net_growth', 0)}",
-            inline=True,
-        )
-
-        # 系統健康
-        embed.add_field(
-            name="💾 系統健康",
-            value="資料庫: ✅ 正常\n" "服務: ✅ 運行中\n" "記憶體: ✅ 良好",
-            inline=True,
+            name="⚙️ 設定狀態",
+            value="✅ 已設定完整" if settings.is_complete else "⚠️ 尚未填完所有必要設定",
+            inline=False,
         )
 
         return embed
@@ -311,13 +319,264 @@ class SystemAdminPanel(BaseView):
             inline=True,
         )
 
-        embed.add_field(
-            name="📤 資料匯出",
-            value="• 匯出票券資料\n• 匯出使用統計\n• 匯出設定備份",
-            inline=True,
+        return embed
+
+
+class WhitelistSettingsView(View):
+    """入境審核設定選單"""
+
+    def __init__(self, user_id: int, guild: discord.Guild, timeout=300):
+        super().__init__(timeout=timeout)
+        self.user_id = user_id
+        self.guild = guild
+        self.service = WhitelistService(WhitelistDAO())
+
+        # 頻道選單各佔一行，避免寬度限制
+        self.add_item(WhitelistChannelSelect("panel_channel_id", "選擇申請面板頻道", self, row=0))
+        self.add_item(WhitelistChannelSelect("review_channel_id", "選擇審核頻道", self, row=1))
+        self.add_item(WhitelistChannelSelect("result_channel_id", "選擇結果公告頻道", self, row=2))
+
+        # 角色設定改為子面板
+        self.add_item(OpenRoleSettingsButton(self.user_id, self.guild, self.service, row=3))
+
+        self.add_item(CloseWhitelistSettingsButton(row=4))
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 只有開啟此面板的管理員可設定", ephemeral=True)
+            return False
+        return True
+
+    async def _build_payload(self) -> dict:
+        """取得現有設定，避免覆蓋其他欄位"""
+        current = await self.service.load_settings(self.guild.id)
+        return {
+            "panel_channel_id": current.panel_channel_id,
+            "review_channel_id": current.review_channel_id,
+            "result_channel_id": current.result_channel_id,
+            "role_newcomer_ids": current.role_newcomer_ids,
+            "role_citizen_id": current.role_citizen_id,
+            "role_staff_id": current.role_staff_id,
+            "nickname_role_id": current.nickname_role_id,
+            "nickname_prefix": current.nickname_prefix,
+            "panel_message_id": current.panel_message_id,
+        }
+
+    async def save_and_refresh(self, interaction: discord.Interaction, **patch):
+        payload = await self._build_payload()
+        payload.update(patch)
+        await self.service.save_settings(self.guild.id, **payload)
+
+        # 重新載入摘要並更新訊息
+        panel = SystemAdminPanel(self.user_id)
+        embed = await panel._create_whitelist_settings_embed(self.guild)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+
+class WhitelistChannelSelect(ChannelSelect):
+    """通用頻道選擇器"""
+
+    def __init__(
+        self,
+        field_key: str,
+        placeholder: str,
+        parent_view: WhitelistSettingsView,
+        row: int | None = None,
+    ):
+        self.field_key = field_key
+        self.parent_view = parent_view
+        super().__init__(
+            placeholder=placeholder,
+            min_values=1,
+            max_values=1,
+            channel_types=[discord.ChannelType.text],
+            row=row,
         )
 
-        return embed
+    async def callback(self, interaction: discord.Interaction):
+        channel = self.values[0]
+        await self.parent_view.save_and_refresh(interaction, **{self.field_key: channel.id})
+
+
+class WhitelistRoleSelect(RoleSelect):
+    """通用身分組選擇器"""
+
+    def __init__(
+        self,
+        field_key: str,
+        placeholder: str,
+        parent_view: WhitelistSettingsView,
+        row: int | None = None,
+        max_values: int = 1,
+    ):
+        self.field_key = field_key
+        self.parent_view = parent_view
+        super().__init__(placeholder=placeholder, min_values=1, max_values=max_values, row=row)
+
+    async def callback(self, interaction: discord.Interaction):
+        if self.field_key == "role_newcomer_ids":
+            role_ids = [role.id for role in self.values]
+            await self.parent_view.save_and_refresh(interaction, **{"role_newcomer_ids": role_ids})
+            return
+
+        role = self.values[0]
+        await self.parent_view.save_and_refresh(interaction, **{self.field_key: role.id})
+
+
+class CloseWhitelistSettingsButton(Button):
+    """關閉入境審核設定面板"""
+
+    def __init__(self, row: int | None = None):
+        super().__init__(label="❌ 關閉", style=discord.ButtonStyle.secondary, row=row)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.edit_message(
+            embed=discord.Embed(
+                title="✅ 入境審核設定已關閉", description="已關閉設定面板", color=0x95A5A6
+            ),
+            view=None,
+        )
+
+
+class OpenRoleSettingsButton(Button):
+    """開啟角色設定子面板"""
+
+    def __init__(self, user_id: int, guild: discord.Guild, service: WhitelistService, row: int | None = None):
+        super().__init__(label="👥 設定角色", style=discord.ButtonStyle.primary, row=row)
+        self.user_id = user_id
+        self.guild = guild
+        self.service = service
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 只有開啟此面板的管理員可設定", ephemeral=True)
+            return
+
+        panel = SystemAdminPanel(self.user_id)
+        embed = await panel._create_whitelist_settings_embed(self.guild)
+        view = WhitelistRoleSettingsView(self.user_id, self.guild, self.service)
+        await interaction.response.edit_message(embed=embed, view=view)
+
+
+class WhitelistRoleSettingsView(View):
+    """入境審核角色設定子面板"""
+
+    def __init__(self, user_id: int, guild: discord.Guild, service: WhitelistService, timeout=300):
+        super().__init__(timeout=timeout)
+        self.user_id = user_id
+        self.guild = guild
+        self.service = service
+
+        self.add_item(WhitelistRoleSelect("role_staff_id", "選擇審核員身分組", self, row=0))
+        self.add_item(
+            WhitelistRoleSelect(
+                "role_newcomer_ids", "選擇新手身分組（可多選）", self, row=1, max_values=10
+            )
+        )
+        self.add_item(WhitelistRoleSelect("role_citizen_id", "選擇市民身分組", self, row=2))
+        self.add_item(WhitelistRoleSelect("nickname_role_id", "選擇暱稱套用身分組", self, row=3))
+        self.add_item(WhitelistPrefixButton(self.user_id, self.guild, self.service, row=4))
+        self.add_item(BackToWhitelistButton(self.user_id, self.guild, self.service, row=4))
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 只有開啟此面板的管理員可設定", ephemeral=True)
+            return False
+        return True
+
+    async def _build_payload(self) -> dict:
+        current = await self.service.load_settings(self.guild.id)
+        return {
+            "panel_channel_id": current.panel_channel_id,
+            "review_channel_id": current.review_channel_id,
+            "result_channel_id": current.result_channel_id,
+            "role_newcomer_ids": current.role_newcomer_ids,
+            "role_citizen_id": current.role_citizen_id,
+            "role_staff_id": current.role_staff_id,
+            "nickname_role_id": current.nickname_role_id,
+            "nickname_prefix": current.nickname_prefix,
+            "panel_message_id": current.panel_message_id,
+        }
+
+    async def save_and_refresh(self, interaction: discord.Interaction, **patch):
+        payload = await self._build_payload()
+        payload.update(patch)
+        await self.service.save_settings(self.guild.id, **payload)
+
+        panel = SystemAdminPanel(self.user_id)
+        embed = await panel._create_whitelist_settings_embed(self.guild)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+
+class WhitelistPrefixModal(Modal):
+    """設定暱稱前綴"""
+
+    def __init__(self, service: WhitelistService, guild_id: int):
+        super().__init__(title="設定暱稱前綴")
+        self.service = service
+        self.guild_id = guild_id
+
+        self.prefix = TextInput(
+            label="暱稱前綴（可留空清除）",
+            max_length=32,
+            required=False,
+        )
+        self.add_item(self.prefix)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        current = await self.service.load_settings(self.guild_id)
+        prefix = self.prefix.value.strip() if self.prefix.value else ""
+
+        payload = {
+            "panel_channel_id": current.panel_channel_id,
+            "review_channel_id": current.review_channel_id,
+            "result_channel_id": current.result_channel_id,
+            "role_newcomer_ids": current.role_newcomer_ids,
+            "role_citizen_id": current.role_citizen_id,
+            "role_staff_id": current.role_staff_id,
+            "nickname_role_id": current.nickname_role_id,
+            "nickname_prefix": prefix or None,
+            "panel_message_id": current.panel_message_id,
+        }
+        await self.service.save_settings(self.guild_id, **payload)
+        await interaction.response.send_message("✅ 已更新暱稱前綴", ephemeral=True)
+
+
+class WhitelistPrefixButton(Button):
+    """開啟暱稱前綴設定"""
+
+    def __init__(self, user_id: int, guild: discord.Guild, service: WhitelistService, row: int | None = None):
+        super().__init__(label="🏷️ 設定前綴", style=discord.ButtonStyle.secondary, row=row)
+        self.user_id = user_id
+        self.guild = guild
+        self.service = service
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 只有開啟此面板的管理員可設定", ephemeral=True)
+            return
+        await interaction.response.send_modal(
+            WhitelistPrefixModal(self.service, self.guild.id)
+        )
+
+
+class BackToWhitelistButton(Button):
+    """返回主設定面板"""
+
+    def __init__(self, user_id: int, guild: discord.Guild, service: WhitelistService, row: int | None = None):
+        super().__init__(label="← 返回頻道設定", style=discord.ButtonStyle.secondary, row=row)
+        self.user_id = user_id
+        self.guild = guild
+        self.service = service
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 只有開啟此面板的管理員可設定", ephemeral=True)
+            return
+        panel = SystemAdminPanel(self.user_id)
+        embed = await panel._create_whitelist_settings_embed(self.guild)
+        view = WhitelistSettingsView(self.user_id, self.guild)
+        await interaction.response.edit_message(embed=embed, view=view)
 
 
 class TicketSettingsView(View):
@@ -396,7 +655,6 @@ class TicketSettingsView(View):
         embed.add_field(
             name="⚙️ 系統參數",
             value=f"票券上限: {settings.get('max_tickets_per_user', 3)}\n"
-            f"SLA時間: {settings.get('sla_response_minutes', 60)}分\n"
             f"自動關閉: {settings.get('auto_close_hours', 24)}小時",
             inline=True,
         )
@@ -759,137 +1017,6 @@ class WelcomeFeatureToggleView(View):
             await interaction.response.send_message(f"❌ 設定失敗：{message}", ephemeral=True)
 
 
-class StatsView(View):
-    """統計監控界面"""
-
-    def __init__(self, user_id: int, timeout=300):
-        super().__init__(timeout=timeout)
-        self.user_id = user_id
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        return interaction.user.id == self.user_id
-
-    @button(label="🎫 票券統計", style=discord.ButtonStyle.primary)
-    async def ticket_stats_button(self, interaction: discord.Interaction, button: Button):
-        """顯示票券統計"""
-        from bot.services.statistics_manager import StatisticsManager
-
-        await interaction.response.defer(ephemeral=True)
-
-        try:
-            stats_manager = StatisticsManager()
-            stats = await stats_manager.get_comprehensive_statistics(interaction.guild.id, 30)
-
-            if "error" not in stats:
-                embed = discord.Embed(
-                    title="📊 票券系統統計報告",
-                    description="過去30天的票券系統使用統計",
-                    color=0x3498DB,
-                )
-
-                # 票券統計
-                ticket_stats = stats.get("ticket_statistics", {}).get("summary", {})
-                embed.add_field(
-                    name="🎫 票券概覽",
-                    value=f"總票券數: {ticket_stats.get('total_tickets', 0)}\n"
-                    f"解決率: {ticket_stats.get('resolution_rate', 0):.1f}%\n"
-                    f"平均日票券: {ticket_stats.get('avg_daily_tickets', 0):.1f}張",
-                    inline=True,
-                )
-
-                # 用戶統計
-                user_stats = stats.get("user_statistics", {}).get("summary", {})
-                embed.add_field(
-                    name="👥 用戶活動",
-                    value=f"活躍用戶: {user_stats.get('total_unique_users', 0)}\n"
-                    f"人均票券: {user_stats.get('avg_tickets_per_user', 0):.1f}張",
-                    inline=True,
-                )
-
-                # 性能統計
-                perf_stats = stats.get("performance_statistics", {}).get("summary", {})
-                embed.add_field(
-                    name="⚡ 系統性能",
-                    value=f"平均回應: {perf_stats.get('avg_first_response_hours', 0):.1f}小時\n"
-                    f"平均解決: {perf_stats.get('avg_resolution_hours', 0):.1f}小時\n"
-                    f"24h解決率: {perf_stats.get('resolution_within_24h_rate', 0):.1f}%",
-                    inline=True,
-                )
-
-                embed.set_footer(
-                    text=f"統計生成時間: {stats.get('metadata', {}).get('generated_at', '未知')[:16]}"
-                )
-            else:
-                embed = discord.Embed(
-                    title="❌ 統計生成失敗",
-                    description=f"無法生成票券統計: {stats.get('error')}",
-                    color=0xE74C3C,
-                )
-
-            await interaction.followup.send(embed=embed, ephemeral=True)
-
-        except Exception as e:
-            embed = discord.Embed(
-                title="❌ 統計錯誤",
-                description=f"生成統計時發生錯誤: {str(e)[:100]}",
-                color=0xE74C3C,
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-
-    @button(label="🎉 歡迎統計", style=discord.ButtonStyle.success)
-    async def welcome_stats_button(self, interaction: discord.Interaction, button: Button):
-        """顯示歡迎統計"""
-        await interaction.response.defer(ephemeral=True)
-
-        try:
-            welcome_manager = WelcomeManager()
-            stats = await welcome_manager.get_welcome_statistics(interaction.guild.id, 30)
-
-            embed = discord.Embed(
-                title="🎉 歡迎系統統計報告",
-                description="過去30天的歡迎系統使用統計",
-                color=0x2ECC71,
-            )
-
-            embed.add_field(
-                name="👋 成員變化",
-                value=f"新加入: {stats.get('joins', 0)}人\n"
-                f"離開: {stats.get('leaves', 0)}人\n"
-                f"淨增長: {stats.get('net_growth', 0)}人",
-                inline=True,
-            )
-
-            embed.add_field(
-                name="📈 增長趨勢",
-                value=f"增長率: {stats.get('growth_rate', 0):.1f}%\n"
-                f"日均加入: {stats.get('avg_daily_joins', 0):.1f}人\n"
-                f"留存率: {stats.get('retention_rate', 0):.1f}%",
-                inline=True,
-            )
-
-            # 系統設定狀態
-            settings = await welcome_manager.welcome_dao.get_welcome_settings(interaction.guild.id)
-            if settings:
-                status = "✅ 已啟用" if settings.get("is_enabled") else "❌ 已停用"
-                embed.add_field(
-                    name="⚙️ 系統狀態",
-                    value=f"歡迎系統: {status}\n"
-                    f"嵌入訊息: {'✅' if settings.get('welcome_embed_enabled') else '❌'}\n"
-                    f"私訊歡迎: {'✅' if settings.get('welcome_dm_enabled') else '❌'}",
-                    inline=True,
-                )
-
-            await interaction.followup.send(embed=embed, ephemeral=True)
-
-        except Exception as e:
-            embed = discord.Embed(
-                title="❌ 統計錯誤",
-                description=f"生成歡迎統計時發生錯誤: {str(e)[:100]}",
-                color=0xE74C3C,
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-
-
 class SystemToolsView(View):
     """系統工具界面"""
 
@@ -919,32 +1046,6 @@ class SystemToolsView(View):
             inline=True,
         )
         view = DataCleanupView(self.user_id)
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
-    @button(label="📤 匯出資料", style=discord.ButtonStyle.secondary)
-    async def export_button(self, interaction: discord.Interaction, button: Button):
-        """資料匯出工具"""
-        embed = discord.Embed(
-            title="📤 資料匯出系統",
-            description="選擇要匯出的資料類型和格式",
-            color=0x3498DB,
-        )
-        embed.add_field(
-            name="📋 支援資料類型",
-            value="• 票券資料\n• 投票資料\n• 用戶統計\n• 系統日誌",
-            inline=True,
-        )
-        embed.add_field(
-            name="📁 支援格式",
-            value="• CSV 格式\n• JSON 格式\n• Excel 格式",
-            inline=True,
-        )
-        embed.add_field(
-            name="⏰ 時間範圍",
-            value="• 最近7天\n• 最近30天\n• 自定義範圍",
-            inline=True,
-        )
-        view = DataExportView(self.user_id)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
     @button(label="🗑️ 清空頻道", style=discord.ButtonStyle.danger, row=1)
@@ -1004,14 +1105,6 @@ class TicketSettingsModal(Modal):
             required=True,
         )
 
-        self.sla_minutes = TextInput(
-            label="SLA回應時間 (分鐘)",
-            placeholder="預設: 60",
-            default="60",
-            max_length=4,
-            required=True,
-        )
-
         self.auto_close_hours = TextInput(
             label="自動關閉時間 (小時)",
             placeholder="預設: 24",
@@ -1021,25 +1114,17 @@ class TicketSettingsModal(Modal):
         )
 
         self.add_item(self.max_tickets)
-        self.add_item(self.sla_minutes)
         self.add_item(self.auto_close_hours)
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
             max_tickets = int(self.max_tickets.value)
-            sla_minutes = int(self.sla_minutes.value)
             auto_close_hours = int(self.auto_close_hours.value)
 
             # 驗證範圍
             if not (1 <= max_tickets <= 10):
                 await interaction.response.send_message(
                     "❌ 每人票券數量必須在 1-10 之間", ephemeral=True
-                )
-                return
-
-            if not (5 <= sla_minutes <= 1440):
-                await interaction.response.send_message(
-                    "❌ SLA時間必須在 5-1440 分鐘之間", ephemeral=True
                 )
                 return
 
@@ -1055,7 +1140,6 @@ class TicketSettingsModal(Modal):
                 interaction.guild.id,
                 {
                     "max_tickets_per_user": max_tickets,
-                    "sla_response_minutes": sla_minutes,
                     "auto_close_hours": auto_close_hours,
                 },
             )
@@ -1064,7 +1148,6 @@ class TicketSettingsModal(Modal):
                 embed = discord.Embed(
                     title="✅ 票券系統參數已更新",
                     description=f"每人票券上限: {max_tickets}\n"
-                    f"SLA回應時間: {sla_minutes} 分鐘\n"
                     f"自動關閉時間: {auto_close_hours} 小時",
                     color=0x2ECC71,
                 )
@@ -1235,7 +1318,7 @@ class VoteSettingsView(View):
     async def modern_vote_gui_button(self, interaction: discord.Interaction, button: Button):
         """現代化GUI投票系統按鈕"""
         try:
-            from bot.views.vote_views import VoteManagementView
+            from potato_bot.views.vote_views import VoteManagementView
 
             embed = discord.Embed(
                 title="🚀 現代化GUI投票系統",
@@ -1247,14 +1330,13 @@ class VoteSettingsView(View):
                 name="✨ 新功能特色",
                 value="• 🎯 直覺的拖拉式界面\n"
                 "• ⚙️ 豐富的設定選項\n"
-                "• 📊 即時統計更新\n"
                 "• 🎨 美觀的視覺效果",
                 inline=False,
             )
 
             embed.add_field(
                 name="🔧 可用功能",
-                value="• 快速創建投票\n" "• 管理現有投票\n" "• 查看詳細統計",
+                value="• 快速創建投票\n" "• 管理現有投票",
                 inline=False,
             )
 
@@ -1339,7 +1421,7 @@ class VoteSettingsView(View):
     @button(label="🔄 重新整理", style=discord.ButtonStyle.secondary, row=2)
     async def refresh_button(self, interaction: discord.Interaction, button: Button):
         """重新整理設定按鈕"""
-        from bot.views.system_admin_views import SystemAdminPanel
+        from potato_bot.views.system_admin_views import SystemAdminPanel
 
         admin_panel = SystemAdminPanel(self.user_id)
         embed = await admin_panel._create_vote_settings_embed(interaction.guild)
@@ -1364,13 +1446,9 @@ class VoteSettingsView(View):
             embed.description = f"共有 {len(active_votes)} 個進行中的投票"
 
             for vote in active_votes[:5]:  # 最多顯示5個
-                stats = await vote_dao.get_vote_statistics(vote["id"])
-                total = sum(stats.values())
-
                 embed.add_field(
                     name=f"#{vote['id']} - {vote['title'][:50]}",
-                    value=f"📊 總票數: {total}\n"
-                    f"⏰ 結束時間: {vote['end_time'].strftime('%m-%d %H:%M')}\n"
+                    value=f"⏰ 結束時間: {vote['end_time'].strftime('%m-%d %H:%M')}\n"
                     f"🏷️ 模式: {'匿名' if vote['anonymous'] else '公開'}{'多選' if vote['is_multi'] else '單選'}",
                     inline=True,
                 )
@@ -1467,7 +1545,7 @@ class BackToVoteSettingsButton(Button):
         super().__init__(label="← 返回", style=discord.ButtonStyle.secondary)
 
     async def callback(self, interaction: discord.Interaction):
-        from bot.views.system_admin_views import SystemAdminPanel
+        from potato_bot.views.system_admin_views import SystemAdminPanel
 
         admin_panel = SystemAdminPanel(self.user_id)
         embed = await admin_panel._create_vote_settings_embed(interaction.guild)
@@ -2173,177 +2251,10 @@ class ConfirmCleanupView(View):
     @button(label="❌ 取消", style=discord.ButtonStyle.secondary)
     async def cancel_button(self, interaction: discord.Interaction, button: Button):
         """取消清理操作"""
-        embed = discord.Embed(title="✅ 已取消", description="深度清理操作已取消", color=0x95A5A6)
+        embed = discord.Embed(
+            title="✅ 已取消", description="深度清理操作已取消", color=0x95A5A6
+        )
         await interaction.response.edit_message(embed=embed, view=None)
-
-
-class DataExportView(View):
-    """資料匯出界面"""
-
-    def __init__(self, user_id: int, timeout=300):
-        super().__init__(timeout=timeout)
-        self.user_id = user_id
-        self.export_manager = DataExportManager()
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        return interaction.user.id == self.user_id
-
-    @button(label="🎫 票券資料", style=discord.ButtonStyle.primary, row=0)
-    async def export_tickets_button(self, interaction: discord.Interaction, button: Button):
-        """匯出票券資料"""
-        view = ExportFormatView(self.user_id, "tickets")
-        embed = discord.Embed(
-            title="🎫 選擇票券資料匯出格式",
-            description="請選擇要匯出的格式和時間範圍",
-            color=0x3498DB,
-        )
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
-    @button(label="🗳️ 投票資料", style=discord.ButtonStyle.success, row=0)
-    async def export_votes_button(self, interaction: discord.Interaction, button: Button):
-        """匯出投票資料"""
-        view = ExportFormatView(self.user_id, "votes")
-        embed = discord.Embed(
-            title="🗳️ 選擇投票資料匯出格式",
-            description="請選擇要匯出的格式和時間範圍",
-            color=0x3498DB,
-        )
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
-    @button(label="👥 用戶統計", style=discord.ButtonStyle.secondary, row=0)
-    async def export_user_stats_button(self, interaction: discord.Interaction, button: Button):
-        """匯出用戶統計"""
-        view = ExportFormatView(self.user_id, "user_statistics")
-        embed = discord.Embed(
-            title="👥 選擇用戶統計匯出格式",
-            description="請選擇要匯出的格式和時間範圍",
-            color=0x3498DB,
-        )
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
-    @button(label="📋 系統日誌", style=discord.ButtonStyle.secondary, row=1)
-    async def export_logs_button(self, interaction: discord.Interaction, button: Button):
-        """匯出系統日誌"""
-        view = ExportFormatView(self.user_id, "system_logs")
-        embed = discord.Embed(
-            title="📋 選擇系統日誌匯出格式",
-            description="請選擇要匯出的格式和時間範圍",
-            color=0x3498DB,
-        )
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
-
-class ExportFormatView(View):
-    """匯出格式選擇界面"""
-
-    def __init__(self, user_id: int, data_type: str, timeout=300):
-        super().__init__(timeout=timeout)
-        self.user_id = user_id
-        self.data_type = data_type
-        self.export_manager = DataExportManager()
-
-    async def interaction_check(self, interaction: discord.Interaction) -> bool:
-        return interaction.user.id == self.user_id
-
-    @button(label="📄 CSV", style=discord.ButtonStyle.primary, row=0)
-    async def csv_button(self, interaction: discord.Interaction, button: Button):
-        """匯出為CSV格式"""
-        await self._export_data(interaction, "csv")
-
-    @button(label="📋 JSON", style=discord.ButtonStyle.secondary, row=0)
-    async def json_button(self, interaction: discord.Interaction, button: Button):
-        """匯出為JSON格式"""
-        await self._export_data(interaction, "json")
-
-    @button(label="📊 Excel", style=discord.ButtonStyle.success, row=0)
-    async def excel_button(self, interaction: discord.Interaction, button: Button):
-        """匯出為Excel格式"""
-        await self._export_data(interaction, "excel")
-
-    async def _export_data(self, interaction: discord.Interaction, format_type: str):
-        """執行資料匯出"""
-        await interaction.response.defer(ephemeral=True)
-
-        try:
-            # 準備匯出參數
-            from bot.services.data_export_manager import ExportRequest
-
-            request = ExportRequest(
-                data_type=self.data_type,
-                format=format_type,
-                guild_id=interaction.guild.id,
-                requested_by=interaction.user.id,
-                days_back=30,  # 預設30天
-                filters={},
-            )
-
-            embed = discord.Embed(
-                title="📤 正在匯出資料...",
-                description=f"正在匯出{self._get_data_type_name()}為{format_type.upper()}格式",
-                color=0xF39C12,
-            )
-            embed.add_field(
-                name="⏳ 預計時間",
-                value="1-3 分鐘（取決於資料量）",
-                inline=True,
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-
-            # 執行匯出
-            result = await self.export_manager.export_data(request)
-
-            if result.success:
-                embed = discord.Embed(
-                    title="✅ 匯出完成",
-                    description=f"已成功匯出{self._get_data_type_name()}",
-                    color=0x2ECC71,
-                )
-                embed.add_field(
-                    name="📊 匯出統計",
-                    value=f"資料筆數: {result.total_records:,}\n"
-                    f"檔案大小: {result.file_size_mb:.2f} MB\n"
-                    f"匯出時間: {result.export_time_seconds:.1f} 秒",
-                    inline=False,
-                )
-                embed.add_field(
-                    name="📁 檔案資訊",
-                    value=f"格式: {format_type.upper()}\n"
-                    f"檔名: `{result.file_path.split('/')[-1] if result.file_path else '未知'}`",
-                    inline=True,
-                )
-                embed.set_footer(text="檔案已儲存到伺服器匯出目錄")
-            else:
-                embed = discord.Embed(
-                    title="❌ 匯出失敗",
-                    description=f"匯出過程中發生錯誤：{result.error}",
-                    color=0xE74C3C,
-                )
-                embed.add_field(
-                    name="💡 可能原因",
-                    value="• 資料庫連接問題\n• 磁碟空間不足\n• 權限不足",
-                    inline=False,
-                )
-
-            await interaction.followup.send(embed=embed, ephemeral=True)
-
-        except Exception as e:
-            logger.error(f"資料匯出錯誤: {e}")
-            embed = discord.Embed(
-                title="❌ 匯出失敗",
-                description=f"執行過程中發生意外錯誤：{str(e)[:100]}",
-                color=0xE74C3C,
-            )
-            await interaction.followup.send(embed=embed, ephemeral=True)
-
-    def _get_data_type_name(self) -> str:
-        """取得資料類型的中文名稱"""
-        names = {
-            "tickets": "票券資料",
-            "votes": "投票資料",
-            "user_statistics": "用戶統計",
-            "system_logs": "系統日誌",
-        }
-        return names.get(self.data_type, self.data_type)
 
 
 class VoteAdminView(View):
@@ -2405,51 +2316,7 @@ class VoteAdminView(View):
             logger.error(f"查看活躍投票錯誤: {e}")
             await interaction.followup.send("❌ 無法獲取投票資訊", ephemeral=True)
 
-    @button(label="📊 投票統計", style=discord.ButtonStyle.secondary, row=0)
-    async def vote_statistics_button(self, interaction: discord.Interaction, button: Button):
-        """投票統計按鈕"""
-        try:
-            await interaction.response.defer()
-
-            guild_stats = await vote_dao.get_guild_vote_stats(interaction.guild.id)
-            total_count = await vote_dao.get_total_vote_count(interaction.guild.id)
-
-            embed = discord.Embed(
-                title="📊 投票系統統計",
-                description=f"{interaction.guild.name} 的投票系統概覽",
-                color=0x2ECC71,
-            )
-
-            embed.add_field(
-                name="📈 基本統計",
-                value=f"總投票數: {total_count}\n"
-                f"活躍投票: {guild_stats.get('active_votes', 0)}\n"
-                f"已完成投票: {guild_stats.get('completed_votes', 0)}",
-                inline=True,
-            )
-
-            embed.add_field(
-                name="👥 參與統計",
-                value=f"總投票次數: {guild_stats.get('total_responses', 0)}\n"
-                f"參與用戶: {guild_stats.get('unique_participants', 0)}\n"
-                f"平均參與率: {guild_stats.get('avg_participation_rate', 0):.1f}%",
-                inline=True,
-            )
-
-            embed.add_field(
-                name="📅 時間範圍",
-                value="統計範圍: 最近 30 天\n"
-                f"更新時間: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-                inline=False,
-            )
-
-            await interaction.followup.send(embed=embed, ephemeral=True)
-
-        except Exception as e:
-            logger.error(f"獲取投票統計錯誤: {e}")
-            await interaction.followup.send("❌ 無法獲取投票統計", ephemeral=True)
-
-    @button(label="🛠️ 投票設定", style=discord.ButtonStyle.secondary, row=1)
+    @button(label="🛠️ 投票設定", style=discord.ButtonStyle.secondary, row=0)
     async def vote_settings_button(self, interaction: discord.Interaction, button: Button):
         """投票設定按鈕"""
         try:
@@ -2463,14 +2330,13 @@ class VoteAdminView(View):
                 name="ℹ️ 功能說明",
                 value="• 投票系統已啟用並正常運作\n"
                 "• 支援匿名和公開投票\n"
-                "• 支援單選和多選模式\n"
-                "• 自動統計和結果顯示",
+                "• 支援單選和多選模式",
                 inline=False,
             )
 
             embed.add_field(
                 name="⚙️ 系統狀態",
-                value="🟢 投票系統: 已啟用\n" "🟢 統計功能: 正常\n" "🟢 資料庫: 連接正常",
+                value="🟢 投票系統: 已啟用\n" "🟢 資料庫: 連接正常",
                 inline=False,
             )
 
@@ -2503,77 +2369,6 @@ class ActiveVoteManageView(View):
 
         return True
 
-    @button(label="📊 投票統計", style=discord.ButtonStyle.primary, row=0)
-    async def vote_statistics_button(self, interaction: discord.Interaction, button: Button):
-        """查看投票系統統計"""
-        try:
-            await interaction.response.defer()
-
-            # 獲取統計數據
-            await vote_dao.get_active_votes()
-            total_votes = await vote_dao.get_total_vote_count(interaction.guild.id)
-            guild_stats = await vote_dao.get_guild_vote_stats(interaction.guild.id, 30)
-
-            embed = discord.Embed(
-                title="📊 投票系統統計",
-                description=f"🏠 {interaction.guild.name} - 過去30天統計",
-                color=0x2ECC71,
-            )
-
-            embed.add_field(
-                name="📈 總體統計",
-                value=f"歷史投票總數: {total_votes}\n"
-                f"本月投票數: {guild_stats['total_votes']}\n"
-                f"目前活躍投票: {guild_stats['active_votes']}\n"
-                f"已完成投票: {guild_stats['finished_votes']}\n"
-                f"系統狀態: {'🟢 正常' if guild_stats['active_votes'] < 20 else '🟡 繁忙'}",
-                inline=True,
-            )
-
-            embed.add_field(
-                name="👥 參與統計",
-                value=f"獨特參與者: {guild_stats['unique_participants']}\n"
-                f"總投票次數: {guild_stats['total_responses']}\n"
-                f"平均參與度: {(guild_stats['total_responses'] / guild_stats['unique_participants']):.1f if guild_stats['unique_participants'] > 0 else 0} 票/人",
-                inline=True,
-            )
-
-            # 最活躍創建者
-            if guild_stats["top_creators"]:
-                creators_info = []
-                for creator in guild_stats["top_creators"][:3]:
-                    user = interaction.guild.get_member(creator["user_id"])
-                    user_name = user.display_name if user else f"用戶 {creator['user_id']}"
-                    creators_info.append(f"{user_name}: {creator['votes_created']} 個投票")
-
-                embed.add_field(
-                    name="🏆 活躍創建者 (TOP 3)",
-                    value=("\n".join(creators_info) if creators_info else "無資料"),
-                    inline=False,
-                )
-
-            # 近期投票活動
-            recent_votes = await vote_dao.get_recent_votes(limit=5, guild_id=interaction.guild.id)
-            if recent_votes:
-                recent_info = []
-                for vote in recent_votes:
-                    stats = await vote_dao.get_vote_statistics(vote["id"])
-                    total = sum(stats.values())
-                    status = "🟢" if vote["end_time"] > datetime.now(timezone.utc) else "🔴"
-                    recent_info.append(f"{status} #{vote['id']} {vote['title'][:25]} ({total}票)")
-
-                embed.add_field(
-                    name="🕐 近期投票 (最新5個)",
-                    value="\n".join(recent_info),
-                    inline=False,
-                )
-
-            await interaction.followup.send(embed=embed, ephemeral=True)
-
-        except Exception as e:
-            logger.error(f"獲取投票統計錯誤: {e}")
-            await interaction.followup.send("❌ 無法獲取統計資料", ephemeral=True)
-
     @button(label="🗳️ 選擇投票管理", style=discord.ButtonStyle.secondary, row=0)
     async def select_vote_button(self, interaction: discord.Interaction, button: Button):
         """選擇要管理的投票"""
@@ -2592,14 +2387,11 @@ class ActiveVoteManageView(View):
             # 創建選擇下拉選單
             options = []
             for vote in active_votes[:25]:  # Discord 限制最多25個選項
-                stats = await vote_dao.get_vote_statistics(vote["id"])
-                total = sum(stats.values())
-
                 options.append(
                     discord.SelectOption(
                         label=f"#{vote['id']} - {vote['title'][:50]}",
                         value=str(vote["id"]),
-                        description=f"票數: {total} | 結束: {vote['end_time'].strftime('%m-%d %H:%M')}",
+                        description=f"結束: {vote['end_time'].strftime('%m-%d %H:%M')}",
                     )
                 )
 
@@ -2663,9 +2455,6 @@ class VoteManageSelect(Select):
                 await interaction.response.send_message("❌ 找不到該投票", ephemeral=True)
                 return
 
-            stats = await vote_dao.get_vote_statistics(vote_id)
-            total = sum(stats.values())
-
             embed = discord.Embed(
                 title=f"🗳️ 投票管理 - #{vote_id}",
                 description=vote["title"],
@@ -2674,23 +2463,10 @@ class VoteManageSelect(Select):
 
             embed.add_field(
                 name="📊 投票資訊",
-                value=f"總票數: {total}\n"
-                f"模式: {'匿名' if vote['anonymous'] else '公開'}{'多選' if vote['is_multi'] else '單選'}\n"
+                value=f"模式: {'匿名' if vote['anonymous'] else '公開'}{'多選' if vote['is_multi'] else '單選'}\n"
                 f"結束時間: {vote['end_time'].strftime('%Y-%m-%d %H:%M')}",
                 inline=False,
             )
-
-            if stats:
-                stats_text = []
-                for option, count in sorted(stats.items(), key=lambda x: x[1], reverse=True)[:5]:
-                    percent = (count / total * 100) if total > 0 else 0
-                    stats_text.append(f"{option}: {count} 票 ({percent:.1f}%)")
-
-                embed.add_field(
-                    name="📈 目前結果 (前5名)",
-                    value="\n".join(stats_text),
-                    inline=False,
-                )
 
             view = SingleVoteManageView(self.user_id, vote_id)
             await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -2728,74 +2504,6 @@ class SingleVoteManageView(View):
         except Exception as e:
             logger.error(f"強制結束投票錯誤: {e}")
             await interaction.response.send_message("❌ 操作失敗", ephemeral=True)
-
-    @button(label="📊 詳細統計", style=discord.ButtonStyle.primary, row=0)
-    async def detailed_stats_button(self, interaction: discord.Interaction, button: Button):
-        """查看詳細統計"""
-        try:
-            await interaction.response.defer()
-
-            vote = await vote_dao.get_vote_by_id(self.vote_id)
-            stats = await vote_dao.get_vote_statistics(self.vote_id)
-            participation_stats = await vote_dao.get_vote_participation_stats(self.vote_id)
-
-            if not vote:
-                await interaction.followup.send("❌ 找不到該投票", ephemeral=True)
-                return
-
-            total = sum(stats.values())
-
-            embed = discord.Embed(
-                title=f"📊 詳細統計 - #{self.vote_id}",
-                description=vote["title"],
-                color=0x2ECC71,
-            )
-
-            embed.add_field(
-                name="🕐 時間資訊",
-                value=f"開始: {vote['start_time'].strftime('%Y-%m-%d %H:%M')}\n"
-                f"結束: {vote['end_time'].strftime('%Y-%m-%d %H:%M')}\n"
-                f"狀態: {'進行中' if vote['end_time'] > datetime.now(timezone.utc) else '已結束'}",
-                inline=True,
-            )
-
-            embed.add_field(
-                name="⚙️ 設定",
-                value=f"匿名: {'是' if vote['anonymous'] else '否'}\n"
-                f"多選: {'是' if vote['is_multi'] else '否'}\n"
-                f"總票數: {total}",
-                inline=True,
-            )
-
-            embed.add_field(
-                name="👥 參與分析",
-                value=f"獨特投票者: {participation_stats['unique_users']}\n"
-                f"總投票次數: {participation_stats['total_responses']}\n"
-                f"平均每人: {(participation_stats['total_responses'] / participation_stats['unique_users']):.1f if participation_stats['unique_users'] > 0 else 0} 票",
-                inline=True,
-            )
-
-            # 投票結果進度條
-            if stats:
-                from bot.utils.vote_utils import calculate_progress_bar
-
-                results = []
-                for option, count in sorted(stats.items(), key=lambda x: x[1], reverse=True):
-                    percent = (count / total * 100) if total > 0 else 0
-                    bar = calculate_progress_bar(percent, 15)
-                    results.append(f"{option}\n{count} 票 ({percent:.1f}%) {bar}")
-
-                embed.add_field(
-                    name="📈 投票結果",
-                    value="\n\n".join(results[:8]),  # 最多顯示8個選項
-                    inline=False,
-                )
-
-            await interaction.followup.send(embed=embed, ephemeral=True)
-
-        except Exception as e:
-            logger.error(f"獲取詳細統計錯誤: {e}")
-            await interaction.followup.send("❌ 無法獲取統計資料", ephemeral=True)
 
 
 class VoteConfirmActionView(View):

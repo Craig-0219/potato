@@ -9,6 +9,7 @@
 # - 效能優化：資料庫查詢批次化、快取機制、併發安全性
 
 import asyncio
+import json
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -16,27 +17,34 @@ import discord
 from discord import app_commands
 from discord.ext import commands, tasks
 
-from bot.db import vote_dao
-from bot.utils.vote_utils import build_result_embed, build_vote_embed
-from bot.views.vote_views import (
+from potato_bot.db import vote_dao
+from potato_bot.utils.vote_utils import build_result_embed, build_vote_embed
+from potato_bot.views.vote_views import (
     VoteButtonView,
     VoteManagementView,
 )
-from shared.logger import logger
+from potato_bot.utils.managed_cog import ManagedCog
+from potato_bot.utils.cog_loader import COGS_PREFIX
+from potato_shared.logger import logger
 
 
-class VoteCore(commands.Cog):
+class VoteCore(ManagedCog):
     vote_sessions: Dict[int, Dict[str, Any]] = {}  # 類型提示
-    _vote_cache: Dict[int, Dict[str, Any]] = {}  # 投票資料快取
+    _vote_cache: Dict[str, Dict[str, Any]] = {}  # 投票資料快取
     _cache_timeout = 300  # 快取 5 分鐘
 
     def __init__(self, bot):
-        self.bot = bot
+        super().__init__(bot)
         self._session_lock = asyncio.Lock()  # 防止併發問題
 
     async def cog_load(self):
         """Cog 載入時執行的異步初始化"""
         try:
+            listener_ext = f"{COGS_PREFIX}vote.listener.vote_listener"
+            if listener_ext not in self.bot.extensions:
+                await self.bot.load_extension(listener_ext)
+                logger.info("✅ 已一併載入 vote.listener.vote_listener")
+
             self.announce_expired_votes.start()
             logger.info("VoteCore 背景任務已啟動")
         except Exception as e:
@@ -48,6 +56,7 @@ class VoteCore(commands.Cog):
         # 清理資源
         VoteCore.vote_sessions.clear()
         VoteCore._vote_cache.clear()
+        super().cog_unload()
 
     # ✅ 快取機制：減少重複資料庫查詢
     async def _get_vote_with_cache(self, vote_id: int) -> Optional[Dict[str, Any]]:
@@ -75,9 +84,14 @@ class VoteCore(commands.Cog):
             vote_task = self._get_vote_with_cache(vote_id)
             options_task = vote_dao.get_vote_options(vote_id)
             stats_task = vote_dao.get_vote_statistics(vote_id)
+            participation_task = vote_dao.get_vote_participation_stats(vote_id)
 
-            vote, options, stats = await asyncio.gather(
-                vote_task, options_task, stats_task, return_exceptions=True
+            vote, options, stats, participation = await asyncio.gather(
+                vote_task,
+                options_task,
+                stats_task,
+                participation_task,
+                return_exceptions=True,
             )
 
             # 檢查是否有例外
@@ -85,6 +99,7 @@ class VoteCore(commands.Cog):
                 isinstance(vote, Exception)
                 or isinstance(options, Exception)
                 or isinstance(stats, Exception)
+                or isinstance(participation, Exception)
             ):
 
                 return None
@@ -92,11 +107,25 @@ class VoteCore(commands.Cog):
             if not vote:
                 return None
 
+            # 安全標準化 allowed_roles
+            allowed_roles = vote.get("allowed_roles") or []
+            if isinstance(allowed_roles, str):
+                try:
+                    allowed_roles = json.loads(allowed_roles)
+                except Exception:
+                    allowed_roles = []
+            vote["allowed_roles"] = allowed_roles
+
+            participants = 0
+            if participation and isinstance(participation, dict):
+                participants = participation.get("unique_users", 0) or 0
+
             return {
                 "vote": vote,
                 "options": options,
                 "stats": stats,
                 "total": sum(stats.values()),
+                "participants": participants,
             }
         except Exception:
 
@@ -127,7 +156,7 @@ class VoteCore(commands.Cog):
                     return
 
             # ✅ 直接顯示 GUI 模態框
-            from bot.views.vote_views import ComprehensiveVoteModal
+            from potato_bot.views.vote_views import ComprehensiveVoteModal
 
             modal = ComprehensiveVoteModal()
             await interaction.response.send_modal(modal)
@@ -180,6 +209,7 @@ class VoteCore(commands.Cog):
                 data["stats"],
                 data["total"],
                 vote_id=vote_id,
+                participants=data.get("participants"),
             )
             await interaction.response.send_message(embed=embed)
         except Exception:
@@ -209,6 +239,8 @@ class VoteCore(commands.Cog):
                 vote["anonymous"],
                 total,
                 vote_id=vote_id,
+                stats=stats,
+                participants=data.get("participants"),
             )
             view = VoteButtonView(
                 vote_id,
@@ -223,6 +255,33 @@ class VoteCore(commands.Cog):
         except Exception:
 
             await interaction.response.send_message("❌ 補發 UI 時發生錯誤。", ephemeral=True)
+
+    @app_commands.command(name="vote_close", description="提前結束並公告指定投票")
+    @app_commands.describe(vote_id="投票編號")
+    @app_commands.checks.has_permissions(manage_guild=True)
+    async def vote_close(self, interaction: discord.Interaction, vote_id: int):
+        """管理員提前結束投票並公告結果"""
+        try:
+            data = await self._get_vote_full_data(vote_id)
+            if not data:
+                await interaction.response.send_message("❌ 找不到該投票。", ephemeral=True)
+                return
+
+            updated = await vote_dao.close_vote_now(vote_id)
+            if not updated:
+                await interaction.response.send_message("❌ 無法結束該投票，請稍後再試。", ephemeral=True)
+                return
+
+            # 清除快取，更新結束時間
+            cache_key = f"vote_{vote_id}"
+            self._vote_cache.pop(cache_key, None)
+            data["vote"]["end_time"] = datetime.now(timezone.utc)
+
+            await self._process_expired_vote(data["vote"])
+            await interaction.response.send_message("✅ 已提前結束並公告結果。", ephemeral=True)
+        except Exception as e:
+            logger.error(f"提前結束投票失敗: {e}")
+            await interaction.response.send_message("❌ 結束投票時發生錯誤。", ephemeral=True)
 
     # ===== 新增：歷史查詢功能 =====
 
@@ -483,99 +542,196 @@ class VoteCore(commands.Cog):
 
             await interaction.followup.send("❌ 搜尋時發生錯誤。")
 
-    # ===== 診斷功能 =====
+    # ===== 投票系統設定指令 =====
 
-    # @app_commands.command(name="vote_debug", description="診斷投票系統問題（管理員用）")  # 已移除以節省指令空間
-    @app_commands.checks.has_permissions(manage_guild=True)
-    async def vote_debug(self, interaction: discord.Interaction):
-        await interaction.response.defer()
+    @commands.group(name="vote_settings", aliases=["投票設定"])
+    @commands.has_permissions(manage_guild=True)
+    async def vote_settings_group(self, ctx):
+        """投票系統設定指令群組"""
+        if ctx.invoked_subcommand is None:
+            settings = await vote_dao.get_vote_settings(ctx.guild.id)
 
-        try:
-            debug_info = []
+            embed = discord.Embed(
+                title="🗳️ 投票系統設定",
+                description=f"**{ctx.guild.name}** 的投票系統設定",
+                color=0x3498DB,
+            )
 
-            # 1. 測試資料庫連線
-            debug_info.append("🔍 **資料庫連線測試**")
-            try:
-                from bot.db.pool import db_pool
-
-                async with db_pool.connection() as conn:
-                    async with conn.cursor() as cur:
-                        await cur.execute("SELECT VERSION()")
-                        version = await cur.fetchone()
-                        debug_info.append(f"✅ 資料庫連線成功：{version[0]}")
-            except Exception as e:
-                debug_info.append(f"❌ 資料庫連線失敗：{e}")
-                await interaction.followup.send("\n".join(debug_info))
-                return
-
-            # 2. 檢查資料表
-            debug_info.append("\n🔍 **資料表檢查**")
-            try:
-                async with db_pool.connection() as conn:
-                    async with conn.cursor() as cur:
-                        # 檢查 votes 表
-                        await cur.execute("SELECT COUNT(*) FROM votes")
-                        total_votes = await cur.fetchone()
-                        debug_info.append(f"📊 votes 表總記錄數：{total_votes[0]}")
-
-                        # 檢查最近的投票
-                        await cur.execute(
-                            "SELECT id, title, end_time, NOW() as current_time FROM votes ORDER BY id DESC LIMIT 3"
-                        )
-                        recent_votes = await cur.fetchall()
-                        for vote in recent_votes:
-                            vote_id, title, end_time, current_time = vote
-                            debug_info.append(f"🗳 #{vote_id}: {title}")
-                            debug_info.append(f"   結束時間: {end_time}")
-                            debug_info.append(f"   現在時間: {current_time}")
-                            debug_info.append(f"   是否過期: {end_time <= current_time}")
-
-                        # 檢查進行中的投票（原始 SQL）
-                        await cur.execute("SELECT COUNT(*) FROM votes WHERE end_time > NOW()")
-                        active_count = await cur.fetchone()
-                        debug_info.append(f"🟢 進行中投票數（SQL）：{active_count[0]}")
-
-            except Exception as e:
-                debug_info.append(f"❌ 資料表檢查失敗：{e}")
-
-            # 3. 測試 DAO 函數
-            debug_info.append("\n🔍 **DAO 函數測試**")
-            try:
-                votes = await vote_dao.get_active_votes()
-                debug_info.append(
-                    f"📋 get_active_votes() 返回：{len(votes) if votes else 0} 個投票"
+            if settings:
+                vote_channel = (
+                    f"<#{settings['default_vote_channel_id']}>"
+                    if settings.get("default_vote_channel_id")
+                    else "未設定"
                 )
-                if votes:
-                    for v in votes[:3]:  # 只顯示前3個
-                        debug_info.append(f"   #{v['id']}: {v['title']} (結束: {v['end_time']})")
-            except Exception as e:
-                debug_info.append(f"❌ get_active_votes() 錯誤：{e}")
+                embed.add_field(name="📺 預設投票頻道", value=vote_channel, inline=True)
 
-            # 4. 檢查當前 sessions
-            debug_info.append("\n🔍 **Session 狀態**")
-            debug_info.append(f"📝 當前活躍 session 數：{len(VoteCore.vote_sessions)}")
-            for user_id, session in list(VoteCore.vote_sessions.items())[:3]:
-                debug_info.append(f"   用戶 {user_id}: {session.get('title', '無標題')}")
+                announce_channel = (
+                    f"<#{settings['announcement_channel_id']}>"
+                    if settings.get("announcement_channel_id")
+                    else "未設定"
+                )
+                embed.add_field(name="📢 結果公告頻道", value=announce_channel, inline=True)
 
-            # 5. 檢查時區設定
-            debug_info.append("\n🔍 **時區檢查**")
-            now_utc = datetime.now(timezone.utc)
-            debug_info.append(f"🕐 Python UTC 時間：{now_utc}")
+                status = "✅ 啟用" if settings.get("is_enabled") else "❌ 停用"
+                embed.add_field(name="🔧 系統狀態", value=status, inline=True)
 
-            # 分批發送（Discord 有字數限制）
-            message = "\n".join(debug_info)
-            if len(message) > 2000:
-                chunks = [message[i : i + 1900] for i in range(0, len(message), 1900)]
-                for i, chunk in enumerate(chunks):
-                    if i == 0:
-                        await interaction.followup.send(f"```\n{chunk}\n```")
-                    else:
-                        await interaction.followup.send(f"```\n{chunk}\n```")
+                embed.add_field(
+                    name="⏰ 時間限制",
+                    value=f"最長: {settings.get('max_vote_duration_hours', 72)}小時\n"
+                    f"最短: {settings.get('min_vote_duration_minutes', 60)}分鐘",
+                    inline=True,
+                )
+
+                features = []
+                features.append(
+                    f"匿名投票: {'✅' if settings.get('allow_anonymous_votes') else '❌'}"
+                )
+                features.append(f"多選投票: {'✅' if settings.get('allow_multi_choice') else '❌'}")
+                features.append(
+                    f"自動公告: {'✅' if settings.get('auto_announce_results') else '❌'}"
+                )
+
+                embed.add_field(name="⚙️ 功能狀態", value="\n".join(features), inline=True)
+
+                if settings.get("require_role_to_create"):
+                    role_count = len(settings.get("allowed_creator_roles", []))
+                    embed.add_field(
+                        name="👥 創建權限",
+                        value=f"需要指定角色 ({role_count} 個角色)",
+                        inline=True,
+                    )
+                else:
+                    embed.add_field(
+                        name="👥 創建權限",
+                        value="所有用戶皆可建立",
+                        inline=True,
+                    )
             else:
-                await interaction.followup.send(f"```\n{message}\n```")
+                embed.add_field(
+                    name="⚠️ 系統狀態",
+                    value="投票系統尚未設定，使用預設配置",
+                    inline=False,
+                )
 
-        except Exception as e:
-            await interaction.followup.send(f"❌ 診斷過程發生錯誤：{e}")
+            embed.add_field(
+                name="🔧 可用指令",
+                value="• `!vote_settings channel <頻道>` - 設定預設投票頻道\n"
+                "• `!vote_settings announce <頻道>` - 設定結果公告頻道\n"
+                "• `!vote_settings enable/disable` - 啟用/停用系統\n"
+                "• `!vote_settings reset` - 重置所有設定",
+                inline=False,
+            )
+
+            await ctx.send(embed=embed)
+
+    @vote_settings_group.command(name="channel")
+    @commands.has_permissions(manage_guild=True)
+    async def set_vote_channel(self, ctx, channel: discord.TextChannel = None):
+        """設定預設投票頻道"""
+        if not channel:
+            await ctx.send("❌ 請指定一個文字頻道")
+            return
+
+        success = await vote_dao.set_default_vote_channel(ctx.guild.id, channel.id)
+        if success:
+            embed = discord.Embed(
+                title="✅ 設定成功",
+                description=f"預設投票頻道已設定為 {channel.mention}",
+                color=0x2ECC71,
+            )
+            embed.add_field(
+                name="📋 說明",
+                value="新建立的投票將自動發布到此頻道",
+                inline=False,
+            )
+        else:
+            embed = discord.Embed(
+                title="❌ 設定失敗",
+                description="設定預設投票頻道時發生錯誤",
+                color=0xE74C3C,
+            )
+
+        await ctx.send(embed=embed)
+
+    @vote_settings_group.command(name="announce")
+    @commands.has_permissions(manage_guild=True)
+    async def set_announce_channel(self, ctx, channel: discord.TextChannel = None):
+        """設定投票結果公告頻道"""
+        if not channel:
+            await ctx.send("❌ 請指定一個文字頻道")
+            return
+
+        success = await vote_dao.set_announcement_channel(ctx.guild.id, channel.id)
+        if success:
+            embed = discord.Embed(
+                title="✅ 設定成功",
+                description=f"投票結果公告頻道已設定為 {channel.mention}",
+                color=0x2ECC71,
+            )
+            embed.add_field(
+                name="📋 說明",
+                value="投票結束後的結果將自動公告到此頻道",
+                inline=False,
+            )
+        else:
+            embed = discord.Embed(
+                title="❌ 設定失敗",
+                description="設定結果公告頻道時發生錯誤",
+                color=0xE74C3C,
+            )
+
+        await ctx.send(embed=embed)
+
+    @vote_settings_group.command(name="enable")
+    @commands.has_permissions(manage_guild=True)
+    async def enable_vote_system(self, ctx):
+        """啟用投票系統"""
+        success = await vote_dao.update_vote_settings(ctx.guild.id, {"is_enabled": True})
+        if success:
+            embed = discord.Embed(
+                title="✅ 系統已啟用",
+                description="投票系統現在已啟用",
+                color=0x2ECC71,
+            )
+        else:
+            embed = discord.Embed(
+                title="❌ 操作失敗",
+                description="啟用投票系統時發生錯誤",
+                color=0xE74C3C,
+            )
+
+        await ctx.send(embed=embed)
+
+    @vote_settings_group.command(name="disable")
+    @commands.has_permissions(manage_guild=True)
+    async def disable_vote_system(self, ctx):
+        """停用投票系統"""
+        success = await vote_dao.update_vote_settings(ctx.guild.id, {"is_enabled": False})
+        if success:
+            embed = discord.Embed(
+                title="⚠️ 系統已停用",
+                description="投票系統現在已停用，用戶無法建立新投票",
+                color=0xF39C12,
+            )
+        else:
+            embed = discord.Embed(
+                title="❌ 操作失敗",
+                description="停用投票系統時發生錯誤",
+                color=0xE74C3C,
+            )
+
+        await ctx.send(embed=embed)
+
+    @vote_settings_group.command(name="reset")
+    @commands.has_permissions(administrator=True)
+    async def reset_vote_settings(self, ctx):
+        """重置投票系統設定（管理員限定）"""
+        embed = discord.Embed(
+            title="🔄 重置功能",
+            description="重置功能開發中，如需重置請聯繫系統管理員",
+            color=0x95A5A6,
+        )
+        await ctx.send(embed=embed)
 
     # ===== 核心功能方法 =====
 
@@ -635,7 +791,7 @@ class VoteCore(commands.Cog):
                 del self._vote_cache[cache_key]
 
             # ✅ 更新 UI（非阻塞）
-            asyncio.create_task(self._update_vote_ui(interaction, vote_id))
+            self.create_task(self._update_vote_ui(interaction, vote_id))
 
         except Exception:
 
@@ -660,6 +816,8 @@ class VoteCore(commands.Cog):
                 vote["anonymous"],
                 data["total"],
                 vote_id=vote_id,
+                stats=data["stats"],
+                participants=data.get("participants"),
             )
 
             view = VoteButtonView(
@@ -681,7 +839,11 @@ class VoteCore(commands.Cog):
         try:
             stats = await vote_dao.get_vote_statistics(vote["id"])
             total = sum(stats.values())
-            embed = build_result_embed(vote["title"], stats, total, vote_id=vote["id"])
+            participation = await vote_dao.get_vote_participation_stats(vote["id"])
+            participants = (participation or {}).get("unique_users", 0)
+            embed = build_result_embed(
+                vote["title"], stats, total, vote_id=vote["id"], participants=participants
+            )
 
             channel = self.bot.get_channel(vote["channel_id"])
             if channel:
@@ -828,205 +990,6 @@ class NextPageButton(discord.ui.Button):
         if cog:
             await cog.vote_history.callback(cog, interaction, new_page, view.status)
 
-    # ===== 投票系統設定指令 =====
-
-    @commands.group(name="vote_settings", aliases=["投票設定"])
-    @commands.has_permissions(manage_guild=True)
-    async def vote_settings_group(self, ctx):
-        """投票系統設定指令群組"""
-        if ctx.invoked_subcommand is None:
-            # 顯示當前設定
-            settings = await vote_dao.get_vote_settings(ctx.guild.id)
-
-            embed = discord.Embed(
-                title="🗳️ 投票系統設定",
-                description=f"**{ctx.guild.name}** 的投票系統設定",
-                color=0x3498DB,
-            )
-
-            if settings:
-                # 預設投票頻道
-                vote_channel = (
-                    f"<#{settings['default_vote_channel_id']}>"
-                    if settings.get("default_vote_channel_id")
-                    else "未設定"
-                )
-                embed.add_field(name="📺 預設投票頻道", value=vote_channel, inline=True)
-
-                # 結果公告頻道
-                announce_channel = (
-                    f"<#{settings['announcement_channel_id']}>"
-                    if settings.get("announcement_channel_id")
-                    else "未設定"
-                )
-                embed.add_field(name="📢 結果公告頻道", value=announce_channel, inline=True)
-
-                # 系統狀態
-                status = "✅ 啟用" if settings.get("is_enabled") else "❌ 停用"
-                embed.add_field(name="🔧 系統狀態", value=status, inline=True)
-
-                # 時間限制
-                embed.add_field(
-                    name="⏰ 時間限制",
-                    value=f"最長: {settings.get('max_vote_duration_hours', 72)}小時\n"
-                    f"最短: {settings.get('min_vote_duration_minutes', 60)}分鐘",
-                    inline=True,
-                )
-
-                # 功能開關
-                features = []
-                features.append(
-                    f"匿名投票: {'✅' if settings.get('allow_anonymous_votes') else '❌'}"
-                )
-                features.append(f"多選投票: {'✅' if settings.get('allow_multi_choice') else '❌'}")
-                features.append(
-                    f"自動公告: {'✅' if settings.get('auto_announce_results') else '❌'}"
-                )
-
-                embed.add_field(name="⚙️ 功能狀態", value="\n".join(features), inline=True)
-
-                # 創建權限
-                if settings.get("require_role_to_create"):
-                    role_count = len(settings.get("allowed_creator_roles", []))
-                    embed.add_field(
-                        name="👥 創建權限",
-                        value=f"需要指定角色 ({role_count} 個角色)",
-                        inline=True,
-                    )
-                else:
-                    embed.add_field(
-                        name="👥 創建權限",
-                        value="所有用戶皆可建立",
-                        inline=True,
-                    )
-            else:
-                embed.add_field(
-                    name="⚠️ 系統狀態",
-                    value="投票系統尚未設定，使用預設配置",
-                    inline=False,
-                )
-
-            embed.add_field(
-                name="🔧 可用指令",
-                value="• `!vote_settings channel <頻道>` - 設定預設投票頻道\n"
-                "• `!vote_settings announce <頻道>` - 設定結果公告頻道\n"
-                "• `!vote_settings enable/disable` - 啟用/停用系統\n"
-                "• `!vote_settings reset` - 重置所有設定",
-                inline=False,
-            )
-
-            await ctx.send(embed=embed)
-
-    @vote_settings_group.command(name="channel")
-    @commands.has_permissions(manage_guild=True)
-    async def set_vote_channel(self, ctx, channel: discord.TextChannel = None):
-        """設定預設投票頻道"""
-        if not channel:
-            await ctx.send("❌ 請指定一個文字頻道")
-            return
-
-        success = await vote_dao.set_default_vote_channel(ctx.guild.id, channel.id)
-        if success:
-            embed = discord.Embed(
-                title="✅ 設定成功",
-                description=f"預設投票頻道已設定為 {channel.mention}",
-                color=0x2ECC71,
-            )
-            embed.add_field(
-                name="📋 說明",
-                value="新建立的投票將自動發布到此頻道",
-                inline=False,
-            )
-        else:
-            embed = discord.Embed(
-                title="❌ 設定失敗",
-                description="設定預設投票頻道時發生錯誤",
-                color=0xE74C3C,
-            )
-
-        await ctx.send(embed=embed)
-
-    @vote_settings_group.command(name="announce")
-    @commands.has_permissions(manage_guild=True)
-    async def set_announce_channel(self, ctx, channel: discord.TextChannel = None):
-        """設定投票結果公告頻道"""
-        if not channel:
-            await ctx.send("❌ 請指定一個文字頻道")
-            return
-
-        success = await vote_dao.set_announcement_channel(ctx.guild.id, channel.id)
-        if success:
-            embed = discord.Embed(
-                title="✅ 設定成功",
-                description=f"投票結果公告頻道已設定為 {channel.mention}",
-                color=0x2ECC71,
-            )
-            embed.add_field(
-                name="📋 說明",
-                value="投票結束後的結果將自動公告到此頻道",
-                inline=False,
-            )
-        else:
-            embed = discord.Embed(
-                title="❌ 設定失敗",
-                description="設定結果公告頻道時發生錯誤",
-                color=0xE74C3C,
-            )
-
-        await ctx.send(embed=embed)
-
-    @vote_settings_group.command(name="enable")
-    @commands.has_permissions(manage_guild=True)
-    async def enable_vote_system(self, ctx):
-        """啟用投票系統"""
-        success = await vote_dao.update_vote_settings(ctx.guild.id, {"is_enabled": True})
-        if success:
-            embed = discord.Embed(
-                title="✅ 系統已啟用",
-                description="投票系統現在已啟用",
-                color=0x2ECC71,
-            )
-        else:
-            embed = discord.Embed(
-                title="❌ 操作失敗",
-                description="啟用投票系統時發生錯誤",
-                color=0xE74C3C,
-            )
-
-        await ctx.send(embed=embed)
-
-    @vote_settings_group.command(name="disable")
-    @commands.has_permissions(manage_guild=True)
-    async def disable_vote_system(self, ctx):
-        """停用投票系統"""
-        success = await vote_dao.update_vote_settings(ctx.guild.id, {"is_enabled": False})
-        if success:
-            embed = discord.Embed(
-                title="⚠️ 系統已停用",
-                description="投票系統現在已停用，用戶無法建立新投票",
-                color=0xF39C12,
-            )
-        else:
-            embed = discord.Embed(
-                title="❌ 操作失敗",
-                description="停用投票系統時發生錯誤",
-                color=0xE74C3C,
-            )
-
-        await ctx.send(embed=embed)
-
-    @vote_settings_group.command(name="reset")
-    @commands.has_permissions(administrator=True)
-    async def reset_vote_settings(self, ctx):
-        """重置投票系統設定（管理員限定）"""
-        # 這裡可以添加重置邏輯
-        embed = discord.Embed(
-            title="🔄 重置功能",
-            description="重置功能開發中，如需重置請聯繫系統管理員",
-            color=0x95A5A6,
-        )
-        await ctx.send(embed=embed)
-
     # ============ 現代化 GUI 投票系統 ============
 
     @app_commands.command(name="quick_vote", description="🗳️ 快速創建投票 (現代GUI)")
@@ -1042,7 +1005,7 @@ class NextPageButton(discord.ui.Button):
                 return
 
             # 顯示快速投票模態
-            from bot.views.vote_views import QuickVoteModal
+            from potato_bot.views.vote_views import QuickVoteModal
 
             modal = QuickVoteModal()
             await interaction.response.send_modal(modal)
@@ -1050,44 +1013,6 @@ class NextPageButton(discord.ui.Button):
         except Exception as e:
             logger.error(f"快速投票命令錯誤: {e}")
             await interaction.response.send_message("❌ 啟動快速投票時發生錯誤", ephemeral=True)
-
-    @app_commands.command(name="vote_template", description="🗳️ 使用投票模板快速創建投票")
-    async def vote_template(self, interaction: discord.Interaction):
-        """投票模板系統入口"""
-        try:
-            # ✅ 檢查投票系統是否啟用
-            if not await vote_dao.is_vote_system_enabled(interaction.guild.id):
-                await interaction.response.send_message("❌ 投票系統已被停用。", ephemeral=True)
-                return
-
-            # ✅ 檢查是否在指定投票頻道中
-            vote_settings = await vote_dao.get_vote_settings(interaction.guild.id)
-            if vote_settings and vote_settings.get("default_vote_channel_id"):
-                allowed_channel_id = vote_settings["default_vote_channel_id"]
-                if interaction.channel.id != allowed_channel_id:
-                    allowed_channel = interaction.guild.get_channel(allowed_channel_id)
-                    channel_mention = (
-                        allowed_channel.mention if allowed_channel else f"<#{allowed_channel_id}>"
-                    )
-                    await interaction.response.send_message(
-                        f"❌ 投票只能在指定的投票頻道 {channel_mention} 中建立。",
-                        ephemeral=True,
-                    )
-                    return
-
-            # 顯示模板選擇界面
-            from bot.views.vote_template_views import TemplateSelectionView
-
-            template_view = TemplateSelectionView(interaction.user.id, interaction.guild.id)
-            embed = template_view.create_embed()
-
-            await interaction.response.send_message(embed=embed, view=template_view, ephemeral=True)
-
-        except Exception as e:
-            logger.error(f"啟動投票模板系統時發生錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 啟動投票模板系統時發生錯誤。", ephemeral=True
-            )
 
     @app_commands.command(name="vote_panel", description="📊 投票管理面板 (現代GUI)")
     @app_commands.default_permissions(manage_messages=True)

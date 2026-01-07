@@ -10,10 +10,10 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from bot.services.webhook_manager import WebhookEvent, webhook_manager
-from bot.utils.embed_builder import EmbedBuilder
-from bot.views.webhook_views import WebhookConfigModal, WebhookManagerView
-from shared.logger import logger
+from potato_bot.services.webhook_manager import WebhookEvent, webhook_manager
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_bot.views.webhook_views import WebhookConfigModal, WebhookManagerView
+from potato_shared.logger import logger
 
 
 class WebhookCore(commands.Cog):

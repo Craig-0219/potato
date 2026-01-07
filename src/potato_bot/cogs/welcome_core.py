@@ -9,18 +9,31 @@ from typing import Optional
 import discord
 from discord.ext import commands
 
-from bot.db.welcome_dao import WelcomeDAO
-from bot.services.welcome_manager import WelcomeManager
-from shared.logger import logger
+from potato_bot.db.welcome_dao import WelcomeDAO
+from potato_bot.services.welcome_manager import WelcomeManager
+from potato_bot.utils.managed_cog import ManagedCog
+from potato_bot.utils.cog_loader import COGS_PREFIX
+from potato_shared.logger import logger
 
 
-class WelcomeCore(commands.Cog):
+class WelcomeCore(ManagedCog):
     """歡迎系統核心指令"""
 
     def __init__(self, bot):
-        self.bot = bot
+        super().__init__(bot)
         self.welcome_dao = WelcomeDAO()
         self.welcome_manager = WelcomeManager(self.welcome_dao)
+
+    async def cog_load(self):
+        """載入 Cog 時執行的初始化邏輯"""
+        listener_ext = f"{COGS_PREFIX}welcome.listener.welcome_listener"
+        if listener_ext not in self.bot.extensions:
+            try:
+                await self.bot.load_extension(listener_ext)
+                logger.info("✅ 已一併載入 welcome.listener.welcome_listener")
+            except Exception as e:
+                logger.error(f"❌ 載入 welcome.listener.welcome_listener 失敗：{e}")
+                raise commands.ExtensionFailed("welcome_core", e)
 
     def cog_check(self, ctx):
         """Cog檢查：確保在伺服器中使用"""

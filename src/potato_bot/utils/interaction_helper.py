@@ -8,7 +8,7 @@ from typing import Optional
 
 import discord
 
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 class SafeInteractionHandler:
@@ -251,3 +251,8 @@ class SafeView(discord.ui.View):
         """處理 View 錯誤"""
         logger.error(f"View 組件錯誤: {error}")
         await SafeInteractionHandler.handle_interaction_error(interaction, error, "面板操作")
+
+
+# 兼容舊版名稱
+class BaseView(SafeView):
+    """兼容舊代碼的 BaseView 別名"""

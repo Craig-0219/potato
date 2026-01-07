@@ -8,8 +8,8 @@ import json
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from bot.db.base_dao import BaseDAO
-from shared.logger import logger
+from potato_bot.db.base_dao import BaseDAO
+from potato_shared.logger import logger
 
 
 class WebhookDAO(BaseDAO):
@@ -17,6 +17,7 @@ class WebhookDAO(BaseDAO):
 
     def __init__(self):
         super().__init__()
+        self._column_checked = False
 
     async def _initialize(self):
         """初始化資料庫表格"""
@@ -113,6 +114,16 @@ class WebhookDAO(BaseDAO):
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
                 """
                 )
+
+                # 確保新欄位存在（向後相容：last_triggered）
+                await cursor.execute("SHOW COLUMNS FROM webhooks LIKE 'last_triggered'")
+                column_exists = await cursor.fetchone()
+                if not column_exists:
+                    await cursor.execute(
+                        "ALTER TABLE webhooks ADD COLUMN last_triggered TIMESTAMP NULL AFTER failure_count"
+                    )
+                    logger.info("✅ 已補齊 webhooks.last_triggered 欄位")
+                self._column_checked = True
 
                 await conn.commit()
 
@@ -219,6 +230,7 @@ class WebhookDAO(BaseDAO):
     async def get_webhook(self, webhook_id: str) -> Optional[Dict[str, Any]]:
         """獲取單個Webhook配置"""
         try:
+            await self._ensure_last_triggered_column()
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
                     await cursor.execute(
@@ -266,6 +278,7 @@ class WebhookDAO(BaseDAO):
     ) -> List[Dict[str, Any]]:
         """獲取Webhook列表"""
         try:
+            await self._ensure_last_triggered_column()
             conditions = []
             params = []
 
@@ -319,6 +332,21 @@ class WebhookDAO(BaseDAO):
         except Exception as e:
             logger.error(f"獲取Webhook列表失敗: {e}")
             return []
+
+    async def _ensure_last_triggered_column(self):
+        """確保 last_triggered 欄位存在（防呆）"""
+        if self._column_checked:
+            return
+        async with self.db.connection() as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute("SHOW COLUMNS FROM webhooks LIKE 'last_triggered'")
+                column_exists = await cursor.fetchone()
+                if not column_exists:
+                    await cursor.execute(
+                        "ALTER TABLE webhooks ADD COLUMN last_triggered TIMESTAMP NULL AFTER failure_count"
+                    )
+                    logger.info("✅ 已補齊 webhooks.last_triggered 欄位（runtime）")
+                self._column_checked = True
 
     async def get_all_webhooks(self) -> List[Dict[str, Any]]:
         """獲取所有Webhook配置"""

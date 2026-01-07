@@ -9,39 +9,38 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import discord
 
-from bot.db.welcome_dao import WelcomeDAO
-from shared.logger import logger
+from potato_bot.db.welcome_dao import WelcomeDAO
+from potato_shared.logger import logger
 
 
 class WelcomeManager:
     """歡迎系統管理器"""
 
-    def __init__(self, welcome_dao: WelcomeDAO = None):
+    def __init__(self, welcome_dao: Optional[WelcomeDAO] = None):
         self.welcome_dao = welcome_dao or WelcomeDAO()
 
         # 預設訊息模板
-        self.default_welcome_message = """🎉 歡迎 {user_mention} 加入 **{guild_name}**！
+        self.default_welcome_message = (
+            "🎉 歡迎 {user_mention} 加入 **{guild_name}**！\n\n"
+            "你是我們的第 **{member_count}** 位成員！\n\n"
+            "📋 請確認你已閱讀規則\n"
+            "🎯 如有問題請建立票券尋求協助\n"
+            "💬 在頻道中與大家互動交流\n\n"
+            "希望你在這裡有愉快的體驗！ ✨"
+        )
 
-你是我們的第 **{member_count}** 位成員！
+        self.default_leave_message = (
+            "👋 **{username}** 離開了 **{guild_name}**\n\n"
+            "加入時間：{join_date}\n"
+            "成員編號：#{member_count}\n\n"
+            "希望未來有機會再見！"
+        )
 
-📋 請確認你已閱讀規則
-🎯 如有問題請建立票券尋求協助
-💬 在頻道中與大家互動交流
-
-希望你在這裡有愉快的體驗！ ✨"""
-
-        self.default_leave_message = """👋 **{username}** 離開了 **{guild_name}**
-
-加入時間：{join_date}
-成員編號：#{member_count}
-
-希望未來有機會再見！"""
-
-        self.default_dm_message = """👋 歡迎加入 **{guild_name}**！
-
-感謝你成為我們社群的一員。如果你有任何問題或需要協助，請隨時在伺服器中建立票券。
-
-我們期待與你的互動！ 🎉"""
+        self.default_dm_message = (
+            "👋 歡迎加入 **{guild_name}**！\n\n"
+            "感謝你成為我們社群的一員。如果你有任何問題或需要協助，請隨時在伺服器中建立票券。\n\n"
+            "我們期待與你的互動！ 🎉"
+        )
 
     # ========== 成員事件處理 ==========
 
@@ -265,10 +264,17 @@ class WelcomeManager:
             # 格式化私訊內容
             dm_content = await self._format_message(settings["welcome_dm_message"], member, "dm")
 
+            color_value = settings.get("welcome_color", 0x00FF00)
+            if isinstance(color_value, str):
+                try:
+                    color_value = int(color_value, 0)
+                except ValueError:
+                    color_value = 0x00FF00
+
             embed = discord.Embed(
                 title=f"歡迎加入 {member.guild.name}！",
                 description=dm_content,
-                color=settings.get("welcome_color", 0x00FF00),
+                color=color_value,
                 timestamp=datetime.now(timezone.utc),
             )
 
@@ -290,9 +296,16 @@ class WelcomeManager:
         self, member: discord.Member, content: str, settings: Dict[str, Any]
     ) -> discord.Embed:
         """創建歡迎嵌入訊息"""
+        color_value = settings.get("welcome_color", 0x00FF00)
+        if isinstance(color_value, str):
+            try:
+                color_value = int(color_value, 0)
+            except ValueError:
+                color_value = 0x00FF00
+
         embed = discord.Embed(
             description=content,
-            color=settings.get("welcome_color", 0x00FF00),
+            color=color_value,
             timestamp=datetime.now(timezone.utc),
         )
 

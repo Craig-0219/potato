@@ -119,7 +119,7 @@ class EmbedBuilder:
     def ticket_embed(ticket_info: Dict[str, Any], **kwargs) -> discord.Embed:
         """建立票券專用嵌入"""
         try:
-            from bot.utils.ticket_constants import (
+            from potato_bot.utils.ticket_constants import (
                 get_priority_color,
                 get_priority_emoji,
                 get_status_emoji,

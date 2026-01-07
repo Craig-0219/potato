@@ -8,8 +8,33 @@ import json
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from bot.db.base_dao import BaseDAO
-from shared.logger import logger
+from potato_bot.db.base_dao import BaseDAO
+from potato_shared.logger import logger
+
+
+def _normalize_color(value: Any, default: int = 0x00FF00) -> int:
+    if value is None:
+        return default
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return default
+        if text.startswith("#"):
+            text = text[1:]
+            try:
+                return int(text, 16)
+            except ValueError:
+                return default
+        try:
+            return int(text, 0)
+        except ValueError:
+            try:
+                return int(text, 16)
+            except ValueError:
+                return default
+    return default
 
 
 class WelcomeDAO(BaseDAO):
@@ -56,7 +81,7 @@ class WelcomeDAO(BaseDAO):
                             "auto_roles": (json.loads(result[9]) if result[9] else []),
                             "welcome_image_url": result[10],
                             "welcome_thumbnail_url": result[11],
-                            "welcome_color": result[12],
+                            "welcome_color": _normalize_color(result[12]),
                             "is_enabled": bool(result[13]),
                             "created_at": result[14],
                             "updated_at": result[15],
@@ -224,15 +249,14 @@ class WelcomeDAO(BaseDAO):
                     await cursor.execute(
                         """
                         INSERT INTO welcome_logs (
-                            guild_id, user_id, username, action_type,
+                            guild_id, user_id, username,
                             welcome_sent, roles_assigned, dm_sent, error_message
-                        ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                        ) VALUES (%s, %s, %s, %s, %s, %s, %s)
                     """,
                         (
                             guild_id,
                             user_id,
                             username,
-                            action_type,
                             welcome_sent,
                             roles_json,
                             dm_sent,

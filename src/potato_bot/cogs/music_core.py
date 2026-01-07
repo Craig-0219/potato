@@ -15,8 +15,8 @@ import yt_dlp
 from discord import FFmpegPCMAudio, app_commands
 from discord.ext import commands
 
-from bot.utils.embed_builder import EmbedBuilder
-from shared.logger import logger
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_shared.logger import logger
 
 # 禁用yt-dlp日誌
 logging.getLogger("yt_dlp").setLevel(logging.ERROR)
@@ -516,7 +516,7 @@ class MusicCore(commands.Cog):
             is_connected = self._check_voice_connection(player, interaction.guild)
 
             # 創建控制面板
-            from bot.views.music_views import MusicControlView
+            from potato_bot.views.music_views import MusicControlView
 
             if is_connected:
                 embed = EmbedBuilder.create_info_embed("🎛️ 音樂控制面板", "使用下方按鈕控制音樂播放")
@@ -804,6 +804,7 @@ class MusicCore(commands.Cog):
             logger.error(traceback.format_exc())
 
     @app_commands.command(name="connection_status", description="🤖 檢查 Bot 連接狀態")
+    @app_commands.checks.has_permissions(administrator=True)
     async def connection_status(self, interaction: discord.Interaction):
         """檢查 Bot 的連接狀態"""
         try:
@@ -899,7 +900,7 @@ class MusicCore(commands.Cog):
                 logger.warning("音樂菜單互動已被處理")
                 return
 
-            from bot.views.music_views import MusicMenuView
+            from potato_bot.views.music_views import MusicMenuView
 
             embed = EmbedBuilder.create_info_embed(
                 "🎵 音樂系統",

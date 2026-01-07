@@ -1,16 +1,17 @@
 # bot/views/ticket_views.py - v2.1
 """
 票券系統專用互動式 UI View 模組
-支援 Persistent View 註冊、分頁、評分、控制操作
+支援 Persistent View 註冊、分頁、控制操作
 """
 
 from typing import Any, Dict, List, Optional
 
 import discord
-from discord.ui import Button, Select, View, button
+from discord.ui import Button, Select, View
 
-from bot.utils.ticket_constants import TicketConstants
-from shared.logger import logger
+from potato_bot.utils.ticket_constants import TicketConstants
+from potato_bot.utils.managed_cog import register_persistent_view
+from potato_shared.logger import logger
 
 # ============ 票券主面板 View ============
 
@@ -168,8 +169,8 @@ class PrioritySelect(Select):
             )
 
             # 調用票券創建邏輯
-            from bot.db.ticket_dao import TicketDAO
-            from bot.services.ticket_manager import TicketManager
+            from potato_bot.db.ticket_dao import TicketDAO
+            from potato_bot.services.ticket_manager import TicketManager
 
             ticket_dao = TicketDAO()
             ticket_manager = TicketManager(ticket_dao)
@@ -228,28 +229,6 @@ class PrioritySelect(Select):
 
                 await interaction.followup.send(embed=embed, ephemeral=True)
 
-                # 如果是高優先級，自動嘗試指派
-                if priority == "high" and ticket_id:
-                    try:
-                        from bot.db.assignment_dao import AssignmentDAO
-                        from bot.services.assignment_manager import (
-                            AssignmentManager,
-                        )
-
-                        assignment_dao = AssignmentDAO()
-                        assignment_manager = AssignmentManager(assignment_dao, ticket_dao)
-
-                        # 嘗試自動指派高優先級票券
-                        auto_success, auto_message, assigned_to = (
-                            await assignment_manager.auto_assign_ticket(ticket_id, user.id)
-                        )
-
-                        if auto_success and assigned_to:
-                            logger.info(f"高優先級票券 #{ticket_id} 自動指派給 {assigned_to}")
-
-                    except Exception as auto_assign_error:
-                        logger.error(f"高優先級票券自動指派失敗: {auto_assign_error}")
-
             else:
                 await interaction.followup.send(f"❌ {message}", ephemeral=True)
 
@@ -270,23 +249,12 @@ class PrioritySelect(Select):
 class TicketControlView(View):
     """
     單一票券頻道的控制列（PersistentView）
-    包含關閉、指派、評分等按鈕，以及優先級狀態顯示
+    包含關閉按鈕與優先級狀態顯示
     """
 
-    def __init__(
-        self,
-        can_close=True,
-        can_assign=True,
-        can_rate=False,
-        ticket_id: Optional[int] = None,
-        priority: str = None,
-        timeout=None,
-    ):
+    def __init__(self, can_close: bool = True, priority: str = None, timeout=None):
         super().__init__(timeout=timeout)
         self.can_close = can_close
-        self.can_assign = can_assign
-        self.can_rate = can_rate
-        self.ticket_id = ticket_id
         self.priority = priority
 
         # 添加優先級狀態按鈕（僅顯示，不可點擊）
@@ -295,10 +263,6 @@ class TicketControlView(View):
 
         if can_close:
             self.add_item(TicketCloseButton())
-        if can_assign:
-            self.add_item(TicketAssignButton())
-        if can_rate:
-            self.add_item(RatingButton(ticket_id))
 
 
 class PriorityStatusButton(Button):
@@ -353,19 +317,24 @@ class TicketCloseButton(Button):
             # 先回應用戶，避免超時
             await interaction.response.send_message("🔄 請稍候，正在關閉票券...", ephemeral=True)
 
-            # 獲取票券核心處理器
-            ticket_core = interaction.client.get_cog("TicketCore")
+            # 嘗試取得票券核心（優先快取版）
+            ticket_core = interaction.client.get_cog("CachedTicketCore") or interaction.client.get_cog(
+                "TicketCore"
+            )
             if not ticket_core:
                 await interaction.followup.send("❌ 系統錯誤：找不到票券處理模組", ephemeral=True)
                 return
 
-            # 檢查是否為票券頻道
-            if not await ticket_core._is_ticket_channel(interaction.channel):
-                await interaction.followup.send("❌ 此按鈕只能在票券頻道中使用", ephemeral=True)
+            # 取得 DAO 與 Manager
+            dao = getattr(ticket_core, "cached_dao", None)
+            dao = getattr(dao, "ticket_dao", None) if dao else getattr(ticket_core, "DAO", None)
+            manager = getattr(ticket_core, "manager", None)
+            if not dao or not manager:
+                await interaction.followup.send("❌ 系統錯誤：找不到票券處理模組", ephemeral=True)
                 return
 
-            # 獲取票券資訊
-            ticket = await ticket_core.DAO.get_ticket_by_channel(interaction.channel.id)
+            # 讀取票券資訊（直接以資料庫判定票券頻道）
+            ticket = await dao.get_ticket_by_channel(interaction.channel.id)
             if not ticket:
                 await interaction.followup.send("❌ 找不到票券資訊", ephemeral=True)
                 return
@@ -375,11 +344,12 @@ class TicketCloseButton(Button):
                 return
 
             # 檢查權限
-            settings = await ticket_core.DAO.get_settings(interaction.guild.id)
-            can_close = await ticket_core._check_close_permission(
-                interaction.user, ticket, settings
-            )
-            if not can_close:
+            settings = await dao.get_settings(interaction.guild.id)
+            support_roles = settings.get("support_roles") or []
+            user_roles = [r.id for r in getattr(interaction.user, "roles", [])]
+            is_support = any(int(rid) in user_roles for rid in support_roles)
+            is_owner = str(interaction.user.id) == str(ticket.get("discord_id"))
+            if not (is_owner or is_support or interaction.user.guild_permissions.manage_guild):
                 await interaction.followup.send(
                     "❌ 只有票券創建者或客服人員可以關閉票券", ephemeral=True
                 )
@@ -387,10 +357,10 @@ class TicketCloseButton(Button):
 
             # 在關閉票券前先匯入聊天歷史記錄
             try:
-                from bot.services.chat_transcript_manager import (
+                from potato_bot.services.chat_transcript_manager import (
                     ChatTranscriptManager,
                 )
-                from shared.logger import logger
+                from potato_shared.logger import logger
 
                 transcript_manager = ChatTranscriptManager()
 
@@ -404,163 +374,38 @@ class TicketCloseButton(Button):
                 logger.error(f"❌ 匯入聊天歷史失敗: {transcript_error}")
 
             # 關閉票券
-            success = await ticket_core.manager.close_ticket(
-                ticket_id=ticket["id"],
-                closed_by=interaction.user.id,
-                reason="按鈕關閉",
-            )
+            success = await manager.close_ticket(ticket_id=ticket["id"], closed_by=interaction.user.id, reason="按鈕關閉")
 
             if success:
-                # 更新指派統計（如果票券有指派）
-                if ticket.get("assigned_to"):
-                    await ticket_core.assignment_manager.update_ticket_completion(ticket["id"])
-
-                # 發送成功消息
-                from bot.utils.embed_builder import EmbedBuilder
-                from bot.utils.ticket_constants import TicketConstants
-
-                embed = EmbedBuilder.build(
+                embed = discord.Embed(
                     title="✅ 票券已關閉",
                     description=f"票券 #{ticket['id']:04d} 已成功關閉",
-                    color=TicketConstants.COLORS["success"],
+                    color=0x2ECC71,
                 )
                 embed.add_field(name="關閉原因", value="按鈕關閉", inline=False)
                 embed.add_field(name="關閉者", value=interaction.user.mention, inline=False)
-
                 await interaction.followup.send(embed=embed)
 
-                # 顯示評分界面
-                await ticket_core._show_rating_interface(interaction.channel, ticket["id"])
+                await interaction.followup.send(
+                    "✅ 票券已關閉，將移除頻道。", ephemeral=True
+                )
+                try:
+                    await interaction.channel.delete(reason="Ticket closed")
+                except Exception as delete_err:
+                    from potato_shared.logger import logger
 
-                # 30秒後刪除頻道
-                await ticket_core._schedule_channel_deletion(interaction.channel, 30)
-
+                    logger.error(f"刪除票券頻道失敗 #{ticket['id']}: {delete_err}")
             else:
                 await interaction.followup.send("❌ 關閉票券時發生錯誤", ephemeral=True)
 
         except Exception as e:
-            from shared.logger import logger
+            from potato_shared.logger import logger
 
             logger.error(f"關閉票券按鈕錯誤: {e}")
             try:
                 await interaction.followup.send("❌ 處理關閉票券請求時發生錯誤", ephemeral=True)
             except:
                 pass
-
-
-class TicketAssignButton(Button):
-    def __init__(self):
-        super().__init__(
-            style=discord.ButtonStyle.primary,
-            label="指派客服",
-            emoji="👥",
-            custom_id="ticket_assign_btn",
-        )
-
-    async def callback(self, interaction: discord.Interaction):
-        await interaction.response.send_message("🔄 請輸入要指派的客服", ephemeral=True)
-        # 可引導用戶輸入/選擇指派對象
-
-
-class RatingButton(Button):
-    def __init__(self, ticket_id: Optional[int]):
-        super().__init__(
-            style=discord.ButtonStyle.success,
-            label="評分票券",
-            emoji="⭐",
-            custom_id=f"ticket_rating_btn_{ticket_id or 'x'}",
-        )
-
-    async def callback(self, interaction: discord.Interaction):
-        await interaction.response.send_message(
-            "請點擊下方進行評分：",
-            ephemeral=True,
-            view=RatingView(ticket_id=self.custom_id.split("_")[-1]),
-        )
-
-
-# ============ 評分/回饋專用 View ============
-
-
-class RatingView(View):
-    """
-    票券評分專用 View（可直接多星點擊）
-    """
-
-    def __init__(self, ticket_id: int, timeout=300):
-        super().__init__(timeout=timeout)
-        self.ticket_id = ticket_id
-
-    @button(
-        label="1 星",
-        style=discord.ButtonStyle.secondary,
-        emoji="1️⃣",
-        custom_id="rating_1",
-    )
-    async def rate_1(self, interaction: discord.Interaction, button: Button):
-        await self.send_rating(interaction, 1)
-
-    @button(
-        label="2 星",
-        style=discord.ButtonStyle.secondary,
-        emoji="2️⃣",
-        custom_id="rating_2",
-    )
-    async def rate_2(self, interaction: discord.Interaction, button: Button):
-        await self.send_rating(interaction, 2)
-
-    @button(
-        label="3 星",
-        style=discord.ButtonStyle.secondary,
-        emoji="3️⃣",
-        custom_id="rating_3",
-    )
-    async def rate_3(self, interaction: discord.Interaction, button: Button):
-        await self.send_rating(interaction, 3)
-
-    @button(
-        label="4 星",
-        style=discord.ButtonStyle.success,
-        emoji="4️⃣",
-        custom_id="rating_4",
-    )
-    async def rate_4(self, interaction: discord.Interaction, button: Button):
-        await self.send_rating(interaction, 4)
-
-    @button(
-        label="5 星",
-        style=discord.ButtonStyle.success,
-        emoji="5️⃣",
-        custom_id="rating_5",
-    )
-    async def rate_5(self, interaction: discord.Interaction, button: Button):
-        await self.send_rating(interaction, 5)
-
-    async def send_rating(self, interaction: discord.Interaction, rating: int):
-        try:
-            # 導入必要的模組
-            from bot.db.ticket_dao import TicketDAO
-            from bot.services.ticket_manager import TicketManager
-
-            # 獲取票券管理器並保存評分
-            ticket_dao = TicketDAO()
-            ticket_manager = TicketManager(ticket_dao)
-            success = await ticket_manager.save_rating(int(self.ticket_id), rating, "")
-
-            if success:
-                await interaction.response.send_message(
-                    f"✅ 感謝您的評分！票券 #{self.ticket_id:>04} 已評分 {rating} 星",
-                    ephemeral=True,
-                )
-            else:
-                await interaction.response.send_message(
-                    "❌ 評分保存失敗，請稍後再試", ephemeral=True
-                )
-        except Exception as e:
-            from shared.logger import logger
-
-            logger.error(f"保存評分時發生錯誤: {e}")
-            await interaction.response.send_message(f"❌ 評分保存失敗: {str(e)}", ephemeral=True)
 
 
 # ============ 票券分頁/列表瀏覽 ============
@@ -622,10 +467,9 @@ def register_ticket_views(bot: discord.Client):
     """
     try:
         # PanelView 永遠帶防呆空 settings（PersistentView無法帶參數/隨機內容，建議 settings 用預設或查表）
-        bot.add_view(TicketPanelView(), persistent=True)
-        bot.add_view(TicketControlView(), persistent=True)
-        bot.add_view(RatingView(ticket_id=0))
-        # 分頁、評分等如果需 Persistent 也可註冊
+        register_persistent_view(bot, TicketPanelView(), persistent=True)
+        register_persistent_view(bot, TicketControlView(), persistent=True)
+        # 分頁等如果需 Persistent 也可註冊
         logger.info("✅ 票券所有主要 View 已註冊 PersistentView")
     except Exception as e:
         logger.error(f"❌ Persistent View 註冊失敗：{e}")

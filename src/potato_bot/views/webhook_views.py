@@ -11,9 +11,9 @@ from typing import Any, Dict
 import discord
 from discord import ui
 
-from bot.services.webhook_manager import WebhookEvent, webhook_manager
-from bot.utils.embed_builder import EmbedBuilder
-from shared.logger import logger
+from potato_bot.services.webhook_manager import WebhookEvent, webhook_manager
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_shared.logger import logger
 
 
 class WebhookManagerView(ui.View):
@@ -464,7 +464,7 @@ class WebhookDetailView(ui.View):
         await interaction.response.defer(ephemeral=True)
 
         try:
-            from bot.db.webhook_dao import WebhookDAO
+            from potato_bot.db.webhook_dao import WebhookDAO
 
             webhook_dao = WebhookDAO()
 

@@ -10,12 +10,11 @@
 """
 
 import asyncio
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
-from bot.db.ticket_dao import TicketDAO
-from shared.cache_manager import CacheStrategy, cache_manager, cached
-from shared.logger import logger
+from potato_bot.db.ticket_dao import TicketDAO
+from potato_shared.cache_manager import CacheStrategy, cache_manager, cached
+from potato_shared.logger import logger
 
 
 class CachedTicketDAO:
@@ -27,7 +26,6 @@ class CachedTicketDAO:
 
         # 快取配置
         self.DEFAULT_TTL = 300  # 5分鐘
-        self.STATS_TTL = 60  # 統計數據1分鐘
         self.LIST_TTL = 180  # 列表數據3分鐘
         self.DETAIL_TTL = 600  # 詳細數據10分鐘
 
@@ -66,8 +64,26 @@ class CachedTicketDAO:
     async def create_ticket(self, ticket_data: Dict) -> Optional[int]:
         """創建票券（帶快取失效）"""
         try:
+            discord_id = ticket_data.get("discord_id") or ticket_data.get("user_id")
+            username = ticket_data.get("username") or ticket_data.get("discord_username")
+            ticket_type = ticket_data.get("ticket_type") or ticket_data.get("type")
+            channel_id = ticket_data.get("channel_id")
+            guild_id = ticket_data.get("guild_id")
+            priority = ticket_data.get("priority", "medium")
+
+            if not all([discord_id, username, ticket_type, channel_id, guild_id]):
+                logger.warning("創建票券資料不完整，已略過")
+                return None
+
             # 創建票券
-            ticket_id = await self.ticket_dao.create_ticket(ticket_data)
+            ticket_id = await self.ticket_dao.create_ticket(
+                discord_id=str(discord_id),
+                username=username,
+                ticket_type=ticket_type,
+                channel_id=channel_id,
+                guild_id=guild_id,
+                priority=priority,
+            )
 
             if ticket_id:
                 # 失效相關快取
@@ -139,10 +155,12 @@ class CachedTicketDAO:
         # 嘗試從快取獲取
         cached_result = await self.cache.get(cache_key)
         if cached_result is not None:
+            return cached_result
 
-            return []
+        tickets = await self.ticket_dao.get_user_tickets(user_id, guild_id, status, limit)
+        await self.cache.set(cache_key, tickets, self.LIST_TTL)
+        return tickets
 
-    @cached("guild_tickets", ttl=180)
     async def get_guild_tickets(
         self,
         guild_id: int,
@@ -152,68 +170,27 @@ class CachedTicketDAO:
     ) -> Tuple[List[Dict], int]:
         """獲取伺服器票券列表（帶快取和分頁）"""
         try:
+            list_cache_key = f"guild_tickets:{guild_id}:{status}:{limit}:{offset}"
+            cached_result = await self.cache.get(list_cache_key)
+            if cached_result is not None:
+                return cached_result
+
             tickets, total = await self.ticket_dao.get_guild_tickets(
                 guild_id, status, limit, offset
             )
 
             # 快取個別票券
             for ticket in tickets:
-                cache_key = f"ticket:{ticket['id']}"
-                await self.cache.set(cache_key, ticket, self.DETAIL_TTL)
+                ticket_cache_key = f"ticket:{ticket['id']}"
+                await self.cache.set(ticket_cache_key, ticket, self.DETAIL_TTL)
+
+            await self.cache.set(list_cache_key, (tickets, total), self.LIST_TTL)
 
             return tickets, total
 
         except Exception as e:
             logger.error(f"❌ 獲取伺服器票券失敗 {guild_id}: {e}")
             return [], 0
-
-    # ========== 快取優化的統計查詢 ==========
-
-    @cached("ticket_stats", ttl=60)
-    async def get_ticket_statistics(self, guild_id: int, period_days: int = 7) -> Dict[str, Any]:
-        """獲取票券統計（帶快取）"""
-        try:
-            stats = await self.ticket_dao.get_ticket_statistics(guild_id, period_days)
-
-            # 添加快取資訊到統計中
-            cache_stats = await self.cache.get_statistics()
-            stats["cache_performance"] = {
-                "hit_rate": cache_stats["requests"]["hit_rate"],
-                "l1_usage": cache_stats["l1_memory"]["usage"],
-                "redis_connected": cache_stats["l2_redis"]["connected"],
-            }
-
-            return stats
-
-        except Exception as e:
-            logger.error(f"❌ 獲取票券統計失敗 {guild_id}: {e}")
-            return {}
-
-    @cached("daily_stats", ttl=3600)  # 每小時更新
-    async def get_daily_statistics(self, guild_id: int, date: str) -> Dict[str, Any]:
-        """獲取每日統計（帶長時間快取）"""
-        try:
-            return await self.ticket_dao.get_daily_statistics(guild_id, date)
-        except Exception as e:
-            logger.error(f"❌ 獲取每日統計失敗 {guild_id}, {date}: {e}")
-            return {}
-
-    async def get_performance_metrics(self, guild_id: int) -> Dict[str, Any]:
-        """獲取性能指標（實時數據，不快取）"""
-        try:
-            # 組合多個數據源
-            db_metrics = await self.ticket_dao.get_performance_metrics(guild_id)
-            cache_stats = await self.cache.get_statistics()
-
-            return {
-                "database": db_metrics,
-                "cache": cache_stats,
-                "timestamp": datetime.now(timezone.utc).isoformat(),
-            }
-
-        except Exception as e:
-            logger.error(f"❌ 獲取性能指標失敗: {e}")
-            return {}
 
     # ========== 快取管理操作 ==========
 
@@ -223,8 +200,6 @@ class CachedTicketDAO:
             # 清理伺服器相關快取
             patterns = [
                 f"guild_tickets:{guild_id}:*",
-                f"ticket_stats:{guild_id}:*",
-                f"daily_stats:{guild_id}:*",
                 f"user_tickets:*:{guild_id}:*",
             ]
 
@@ -238,7 +213,10 @@ class CachedTicketDAO:
         """預載熱點數據"""
         try:
             # 預載最近活躍的票券
-            recent_tickets = await self.ticket_dao.get_recent_active_tickets(limit=50)
+            if hasattr(self.ticket_dao, "get_recent_active_tickets"):
+                recent_tickets = await self.ticket_dao.get_recent_active_tickets(limit=50)
+            else:
+                recent_tickets = []
 
             for ticket in recent_tickets:
                 cache_key = f"ticket:{ticket['id']}"
@@ -253,7 +231,7 @@ class CachedTicketDAO:
         """預載相關數據"""
         try:
             # 預載同用戶的其他票券
-            user_id = ticket.get("user_id")
+            user_id = ticket.get("user_id") or ticket.get("discord_id")
             guild_id = ticket.get("guild_id")
 
             if user_id and guild_id:
@@ -320,9 +298,6 @@ class CachedTicketDAO:
         if hit_rate < 0.6:
             recommendations.append("考慮增加快取 TTL 時間")
 
-        if not stats["l2_redis"]["connected"]:
-            recommendations.append("建議啟用 Redis 以提升性能")
-
         l1_usage = float(stats["l1_memory"]["usage"].rstrip("%")) / 100
         if l1_usage > 0.9:
             recommendations.append("L1 記憶體快取接近滿載，考慮增加容量")
@@ -340,13 +315,6 @@ class CachedTicketDAO:
             # 預熱活躍票券
             active_tickets, _ = await self.get_guild_tickets(guild_id, "open", limit=20)
             logger.info(f"預熱活躍票券: {len(active_tickets)} 個")
-
-            # 預熱統計數據
-            await self.get_ticket_statistics(guild_id)
-
-            # 預熱今日統計
-            today = datetime.now().strftime("%Y-%m-%d")
-            await self.get_daily_statistics(guild_id, today)
 
             logger.info(f"✅ 快取預熱完成: {guild_id}")
 

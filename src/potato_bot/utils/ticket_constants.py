@@ -19,7 +19,6 @@ def validate_text_input(text: str, field_type: str) -> tuple[bool, str]:
         "ticket_type": 50,
         "username": 32,
         "close_reason": 200,
-        "rating_feedback": 500,
         "template_name": 100,
         "template_content": 2000,
         "tag_name": 30,
@@ -45,10 +44,8 @@ def validate_text_input(text: str, field_type: str) -> tuple[bool, str]:
 def validate_numeric_input(value: int, field_type: str) -> tuple[bool, str]:
     """驗證數值輸入"""
     limits = {
-        "rating": (1, 5),
         "max_tickets_per_user": (1, 20),
         "auto_close_hours": (1, 168),
-        "sla_response_minutes": (5, 1440),
         "batch_operation_size": (1, 100),
     }
 
@@ -85,27 +82,13 @@ class TicketConstants:
 
     COLORS = {
         "primary": 0x3498DB,  # 藍
+        "secondary": 0x95A5A6,  # 灰
         "success": 0x2ECC71,  # 綠
         "warning": 0xF39C12,  # 橘
         "danger": 0xE74C3C,  # 紅
         "info": 0x9B59B6,  # 紫
     }
 
-    RATING_EMOJIS = {
-        1: "⭐",
-        2: "⭐⭐",
-        3: "⭐⭐⭐",
-        4: "⭐⭐⭐⭐",
-        5: "⭐⭐⭐⭐⭐",
-    }
-
-    RATING_COLORS = {
-        1: 0xE74C3C,
-        2: 0xF39C12,
-        3: 0xF1C40F,
-        4: 0x2ECC71,
-        5: 0x27AE60,
-    }
 
     DEFAULT_TICKET_TYPES = [
         {
@@ -146,20 +129,15 @@ class TicketConstants:
         },
     ]
 
-    SLA_MULTIPLIERS = {"high": 0.5, "medium": 1.0, "low": 1.5}
-
     DEFAULT_SETTINGS = {
         "max_tickets_per_user": 3,
         "auto_close_hours": 24,
-        "sla_response_minutes": 60,
         "welcome_message": "歡迎使用客服系統！請選擇問題類型來建立支援票券。",
     }
 
     LIMITS = {
         "max_tickets_per_user": (1, 10),
         "auto_close_hours": (1, 168),
-        "sla_response_minutes": (5, 1440),
-        "feedback_length": (0, 500),
         "reason_length": (0, 200),
     }
 
@@ -174,10 +152,6 @@ ERROR_MESSAGES = {
     "not_ticket_channel": "❌ 此指令只能在票券頻道中使用。",
     "ticket_limit_reached": "❌ 你已達到票券上限！請先關閉現有票券。",
     "ticket_already_closed": "❌ 此票券已經關閉。",
-    "invalid_rating": "❌ 評分必須在 1-5 之間。",
-    "already_rated": "❌ 此票券已經評分過了。",
-    "cannot_rate_open": "❌ 只能為已關閉的票券評分。",
-    "cannot_rate_open_ticket": "❌ 只能為已關閉的票券評分。",
     "category_not_set": "❌ 尚未設定票券分類頻道。",
     "invalid_setting": "❌ 無效的設定項目。",
     "invalid_value": "❌ 無效的設定值。",
@@ -189,9 +163,7 @@ ERROR_MESSAGES = {
 SUCCESS_MESSAGES = {
     "ticket_created": "✅ 票券建立成功！",
     "ticket_closed": "✅ 票券已關閉。",
-    "ticket_assigned": "✅ 票券指派完成。",
     "priority_updated": "✅ 優先級已更新。",
-    "rating_saved": "✅ 評分已保存，感謝你的回饋！",
     "setting_updated": "✅ 設定已更新。",
 }
 
@@ -214,25 +186,12 @@ def get_status_color(status: str) -> int:
     return TicketConstants.STATUS_COLORS.get(status, 0x00FF00)
 
 
-def get_rating_emoji(rating: int) -> str:
-    return TicketConstants.RATING_EMOJIS.get(rating, "⭐")
-
-
-def calculate_sla_time(priority: str, base_minutes: int = 60) -> int:
-    multiplier = TicketConstants.SLA_MULTIPLIERS.get(priority, 1.0)
-    return int(base_minutes * multiplier)
-
-
 def is_valid_priority(priority: str) -> bool:
     return priority in TicketConstants.PRIORITIES
 
 
 def is_valid_status(status: str) -> bool:
     return status in TicketConstants.STATUSES
-
-
-def is_valid_rating(rating: int) -> bool:
-    return 1 <= rating <= 5
 
 
 def get_ticket_type_info(type_name: str) -> Dict[str, Any]:
@@ -248,9 +207,6 @@ def validate_setting_value(setting: str, value: Any) -> bool:
         return isinstance(value, int) and min_val <= value <= max_val
     elif setting == "auto_close_hours":
         min_val, max_val = TicketConstants.LIMITS["auto_close_hours"]
-        return isinstance(value, int) and min_val <= value <= max_val
-    elif setting == "sla_response_minutes":
-        min_val, max_val = TicketConstants.LIMITS["sla_response_minutes"]
         return isinstance(value, int) and min_val <= value <= max_val
     elif setting == "welcome_message":
         return isinstance(value, str) and len(value) <= 2000
@@ -282,16 +238,6 @@ def create_priority_options() -> List[discord.SelectOption]:
             description="非緊急問題，可稍後處理",
             emoji="🟢",
         ),
-    ]
-
-
-def create_rating_options() -> List[discord.SelectOption]:
-    return [
-        discord.SelectOption(label="⭐ 1星 - 非常不滿意", value="1", emoji="⭐"),
-        discord.SelectOption(label="⭐⭐ 2星 - 不滿意", value="2", emoji="⭐"),
-        discord.SelectOption(label="⭐⭐⭐ 3星 - 普通", value="3", emoji="⭐"),
-        discord.SelectOption(label="⭐⭐⭐⭐ 4星 - 滿意", value="4", emoji="⭐"),
-        discord.SelectOption(label="⭐⭐⭐⭐⭐ 5星 - 非常滿意", value="5", emoji="⭐"),
     ]
 
 
@@ -375,15 +321,11 @@ __all__ = [
     "get_status_emoji",
     "get_priority_color",
     "get_status_color",
-    "get_rating_emoji",
-    "calculate_sla_time",
     "is_valid_priority",
     "is_valid_status",
-    "is_valid_rating",
     "get_ticket_type_info",
     "validate_setting_value",
     "create_priority_options",
-    "create_rating_options",
     "create_status_filter_options",
     "format_duration_chinese",
     "get_time_ago_chinese",

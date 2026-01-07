@@ -10,9 +10,9 @@ from typing import Any, Dict, List
 import discord
 from discord import ui
 
-from bot.db import vote_dao
-from bot.utils.embed_builder import EmbedBuilder
-from shared.logger import logger
+from potato_bot.db import vote_dao
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_shared.logger import logger
 
 # ============ 基礎投票 UI 組件 ============
 
@@ -661,8 +661,9 @@ class CreateVoteButton(ui.Button):
                     await vote_dao.add_vote_option(vote_id, option)
 
                 # 創建投票視圖
-                from bot.utils.vote_utils import build_vote_embed
+                from potato_bot.utils.vote_utils import build_vote_embed
 
+                empty_stats = {opt: 0 for opt in session_data["options"]}
                 vote_embed = build_vote_embed(
                     session_data["title"],
                     session_data["start_time"],
@@ -671,6 +672,8 @@ class CreateVoteButton(ui.Button):
                     session_data["anonymous"],
                     0,
                     vote_id=vote_id,
+                    stats=empty_stats,
+                    participants=0,
                 )
 
                 vote_view = VoteButtonView(
@@ -679,6 +682,8 @@ class CreateVoteButton(ui.Button):
                     session_data["allowed_roles"],
                     session_data["is_multi"],
                     session_data["anonymous"],
+                    empty_stats,
+                    0,
                 )
 
                 # 發布投票
@@ -757,8 +762,9 @@ class VoteCreationConfirmView(ui.View):
                     await vote_dao.add_vote_option(vote_id, option)
 
                 # 創建投票視圖
-                from bot.utils.vote_utils import build_vote_embed
+                from potato_bot.utils.vote_utils import build_vote_embed
 
+                empty_stats = {opt: 0 for opt in self.vote_config["options"]}
                 vote_embed = build_vote_embed(
                     session_data["title"],
                     session_data["start_time"],
@@ -767,6 +773,8 @@ class VoteCreationConfirmView(ui.View):
                     session_data["anonymous"],
                     0,
                     vote_id=vote_id,
+                    stats=empty_stats,
+                    participants=0,
                 )
 
                 vote_view = VoteButtonView(
@@ -775,6 +783,8 @@ class VoteCreationConfirmView(ui.View):
                     session_data["allowed_roles"],
                     session_data["is_multi"],
                     session_data["anonymous"],
+                    empty_stats,
+                    0,
                 )
 
                 # 發布投票

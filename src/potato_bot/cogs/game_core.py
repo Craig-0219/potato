@@ -24,22 +24,17 @@ from discord import app_commands
 from discord.ext import commands, tasks
 
 # 遊戲相關導入
-from bot.db.pool import db_pool
-from bot.services.achievement_manager import AchievementManager
-from bot.services.cross_platform_economy import cross_platform_economy
-from bot.services.economy_manager import EconomyManager
-from bot.services.game_manager import GameManager
-from bot.utils.embed_builder import EmbedBuilder
-from bot.views.game_views import (
+from potato_bot.db.pool import db_pool
+from potato_bot.services.achievement_manager import AchievementManager
+from potato_bot.services.economy_manager import EconomyManager
+from potato_bot.services.game_manager import GameManager
+from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_bot.views.game_views import (
     GameMenuView,
     GuessNumberView,
 )
-from shared.cache_manager import cache_manager
-from shared.logger import logger
-from shared.prometheus_metrics import (
-    prometheus_metrics,
-    track_command_execution,
-)
+from potato_shared.cache_manager import cache_manager
+from potato_shared.logger import logger
 
 
 class GameType(Enum):
@@ -143,9 +138,6 @@ class GameEntertainment(commands.Cog):
     async def games_menu(self, interaction: discord.Interaction):
         """遊戲選單"""
         try:
-            # 記錄指令執行
-            track_command_execution("games", interaction.guild.id)
-
             # 獲取用戶經濟狀態
             user_economy = await self.economy_manager.get_user_economy(
                 interaction.user.id, interaction.guild.id
@@ -271,11 +263,6 @@ class GameEntertainment(commands.Cog):
 
             await interaction.response.send_message(embed=embed)
 
-            # 記錄指標
-            prometheus_metrics.increment_counter(
-                "potato_bot_daily_checkins_total", {"guild": str(guild_id)}
-            )
-
         except Exception as e:
             logger.error(f"❌ 每日簽到錯誤: {e}")
             await interaction.response.send_message(
@@ -354,7 +341,7 @@ class GameEntertainment(commands.Cog):
             logger.error(f"❌ 查看餘額錯誤: {e}")
             await interaction.response.send_message("❌ 查看餘額時發生錯誤。", ephemeral=True)
 
-    @app_commands.command(name="leaderboard", description="查看排行榜")
+    @app_commands.command(name="game_leaderboard", description="查看排行榜")
     @app_commands.describe(category="排行榜類型")
     @app_commands.choices(
         category=[
@@ -653,268 +640,6 @@ class GameEntertainment(commands.Cog):
         bar = "█" * filled + "░" * (length - filled)
         return f"[{bar}]"
 
-    # ========== 跨平台經濟系統 ==========
-
-    @app_commands.command(name="link_minecraft", description="綁定Minecraft帳號以同步經濟數據")
-    @app_commands.describe(minecraft_username="您的Minecraft用戶名")
-    async def link_minecraft_account(
-        self, interaction: discord.Interaction, minecraft_username: str
-    ):
-        """綁定Minecraft帳號"""
-        try:
-            # 這裡需要將用戶名轉換為UUID，簡化處理暫時使用用戶名
-            # 實際環境中應該調用Mojang API獲取UUID
-            minecraft_uuid = f"minecraft_{minecraft_username}"  # 簡化UUID
-
-            result = await cross_platform_economy.link_accounts(
-                discord_id=interaction.user.id,
-                minecraft_uuid=minecraft_uuid,
-                guild_id=interaction.guild.id,
-            )
-
-            if result["success"]:
-                embed = EmbedBuilder.build(
-                    title="🔗 帳號綁定成功！",
-                    description=f"您的Discord帳號已成功綁定到Minecraft帳號 `{minecraft_username}`",
-                    color=0x00FF00,
-                )
-
-                embed.add_field(
-                    name="✅ 綁定信息",
-                    value=f"Discord: <@{interaction.user.id}>\n"
-                    f"Minecraft: {minecraft_username}\n"
-                    f"同步狀態: {'已完成' if result.get('sync_completed') else '待同步'}",
-                    inline=True,
-                )
-
-                embed.add_field(
-                    name="🎮 跨平台功能",
-                    value="• 經濟數據自動同步\n"
-                    "• 成就進度共享\n"
-                    "• 排行榜統一計算\n"
-                    "• 未來更多功能...",
-                    inline=True,
-                )
-
-                embed.add_field(
-                    name="📋 後續步驟",
-                    value="使用 `/sync_economy` 可手動同步數據\n"
-                    "使用 `/cross_platform_status` 查看同步狀態",
-                    inline=False,
-                )
-
-            else:
-                embed = EmbedBuilder.build(
-                    title="❌ 帳號綁定失敗",
-                    description=result.get("error", "未知錯誤"),
-                    color=0xFF0000,
-                )
-
-                if "已綁定" in result.get("error", ""):
-                    embed.add_field(
-                        name="💡 提示",
-                        value="如需重新綁定，請先使用 `/unlink_minecraft` 解除當前綁定",
-                        inline=False,
-                    )
-
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        except Exception as e:
-            logger.error(f"❌ 綁定Minecraft帳號錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 綁定過程中發生錯誤，請稍後再試。", ephemeral=True
-            )
-
-    @app_commands.command(name="unlink_minecraft", description="解除Minecraft帳號綁定")
-    async def unlink_minecraft_account(self, interaction: discord.Interaction):
-        """解除Minecraft帳號綁定"""
-        try:
-            result = await cross_platform_economy.unlink_accounts(discord_id=interaction.user.id)
-
-            if result["success"]:
-                embed = EmbedBuilder.build(
-                    title="🔓 帳號解綁成功",
-                    description="您的Discord與Minecraft帳號綁定已解除",
-                    color=0x00FF00,
-                )
-
-                embed.add_field(
-                    name="⚠️ 注意事項",
-                    value="• 經濟數據將不再同步\n" "• 已同步的數據會保留\n" "• 可以隨時重新綁定",
-                    inline=False,
-                )
-            else:
-                embed = EmbedBuilder.build(
-                    title="❌ 解綁失敗",
-                    description=result.get("error", "未找到綁定記錄"),
-                    color=0xFF0000,
-                )
-
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        except Exception as e:
-            logger.error(f"❌ 解除Minecraft綁定錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 解綁過程中發生錯誤，請稍後再試。", ephemeral=True
-            )
-
-    @app_commands.command(name="sync_economy", description="手動同步經濟數據到Minecraft")
-    @app_commands.describe(direction="同步方向")
-    @app_commands.choices(
-        direction=[
-            app_commands.Choice(name="Discord → Minecraft", value="to_minecraft"),
-            app_commands.Choice(name="Minecraft → Discord", value="from_minecraft"),
-        ]
-    )
-    async def sync_economy_data(
-        self, interaction: discord.Interaction, direction: str = "to_minecraft"
-    ):
-        """手動同步經濟數據"""
-        try:
-            await interaction.response.defer(ephemeral=True)
-
-            result = await cross_platform_economy.sync_user_economy(
-                discord_id=interaction.user.id,
-                guild_id=interaction.guild.id,
-                direction=direction,
-            )
-
-            if result["success"]:
-                embed = EmbedBuilder.build(
-                    title="🔄 數據同步成功！",
-                    description=f"經濟數據已成功同步：{direction.replace('_', ' → ').title()}",
-                    color=0x00FF00,
-                )
-
-                if direction == "to_minecraft" and "discord_data" in result:
-                    discord_data = result["discord_data"]
-                    embed.add_field(
-                        name="📊 已同步數據",
-                        value=f"🪙 金幣: {discord_data.get('coins', 0):,}\n"
-                        f"💎 寶石: {discord_data.get('gems', 0):,}\n"
-                        f"⭐ 經驗: {discord_data.get('experience', 0):,}\n"
-                        f"🏆 等級: {(await self.economy_manager.calculate_level(discord_data.get('experience', 0)))['level']}",
-                        inline=True,
-                    )
-
-                embed.add_field(
-                    name="⏰ 同步時間",
-                    value=f"<t:{int(time.time())}:R>",
-                    inline=True,
-                )
-
-                if result.get("cached"):
-                    embed.add_field(
-                        name="📦 緩存狀態",
-                        value="數據已緩存，將在Minecraft服務器上線時自動同步",
-                        inline=False,
-                    )
-            else:
-                embed = EmbedBuilder.build(
-                    title="❌ 數據同步失敗",
-                    description=result.get("error", "未知錯誤"),
-                    color=0xFF0000,
-                )
-
-                if "未綁定" in result.get("error", ""):
-                    embed.add_field(
-                        name="💡 解決方法",
-                        value="請先使用 `/link_minecraft` 綁定您的Minecraft帳號",
-                        inline=False,
-                    )
-
-            await interaction.followup.send(embed=embed, ephemeral=True)
-
-        except Exception as e:
-            logger.error(f"❌ 同步經濟數據錯誤: {e}")
-            await interaction.followup.send("❌ 同步過程中發生錯誤，請稍後再試。", ephemeral=True)
-
-    @app_commands.command(name="cross_platform_status", description="查看跨平台狀態")
-    async def cross_platform_status(self, interaction: discord.Interaction):
-        """查看跨平台同步狀態"""
-        try:
-            # 獲取綁定信息
-            link_info = await cross_platform_economy._get_account_link(
-                discord_id=interaction.user.id
-            )
-
-            embed = EmbedBuilder.build(
-                title="🌐 跨平台狀態",
-                description="您的跨平台整合狀態",
-                color=0x4169E1,
-            )
-
-            if link_info:
-                embed.add_field(name="🔗 綁定狀態", value="✅ 已綁定", inline=True)
-
-                embed.add_field(
-                    name="🎮 Minecraft帳號",
-                    value=f"`{link_info['minecraft_uuid']}`",
-                    inline=True,
-                )
-
-                embed.add_field(
-                    name="📅 綁定時間",
-                    value=f"<t:{int(link_info['linked_at'].timestamp())}:R>",
-                    inline=True,
-                )
-
-                # 獲取交易記錄
-                transactions = await cross_platform_economy.get_user_transactions(
-                    str(interaction.user.id), limit=5
-                )
-
-                if transactions:
-                    recent_transactions = []
-                    for trans in transactions[:3]:
-                        trans_time = trans["timestamp"]
-                        recent_transactions.append(
-                            f"• {trans['currency_type']} {trans['amount']:+} "
-                            f"({trans['transaction_type']}) "
-                            f"<t:{int(trans_time.timestamp())}:R>"
-                        )
-
-                    embed.add_field(
-                        name="📋 最近交易",
-                        value=(
-                            "\n".join(recent_transactions)
-                            if recent_transactions
-                            else "暫無交易記錄"
-                        ),
-                        inline=False,
-                    )
-
-                embed.add_field(
-                    name="⚙️ 可用操作",
-                    value="• `/sync_economy` - 手動同步數據\n"
-                    "• `/unlink_minecraft` - 解除綁定\n"
-                    "• `/cross_platform_stats` - 詳細統計",
-                    inline=False,
-                )
-            else:
-                embed.add_field(name="🔗 綁定狀態", value="❌ 未綁定", inline=True)
-
-                embed.add_field(
-                    name="🚀 開始使用",
-                    value="使用 `/link_minecraft` 綁定您的Minecraft帳號",
-                    inline=False,
-                )
-
-                embed.add_field(
-                    name="🎁 跨平台優勢",
-                    value="• 經濟數據跨平台同步\n"
-                    "• 成就進度共享\n"
-                    "• 統一排行榜計算\n"
-                    "• 更多功能持續開發中...",
-                    inline=False,
-                )
-
-            await interaction.response.send_message(embed=embed, ephemeral=True)
-
-        except Exception as e:
-            logger.error(f"❌ 查看跨平台狀態錯誤: {e}")
-            await interaction.response.send_message("❌ 獲取狀態時發生錯誤。", ephemeral=True)
-
     # ========== 具體遊戲實現 ==========
 
     @app_commands.command(name="guess", description="猜數字遊戲")
@@ -1160,7 +885,7 @@ async def setup(bot):
     # 確保資料庫表格存在
     await _ensure_game_tables()
     # 確保成就表格存在
-    from bot.services.achievement_manager import ensure_achievement_tables
+    from potato_bot.services.achievement_manager import ensure_achievement_tables
 
     await ensure_achievement_tables()
     await bot.add_cog(GameEntertainment(bot))

@@ -231,6 +231,9 @@ class GlobalErrorHandler:
 
     async def _handle_ticket_command_help(self, ctx: commands.Context, content: str):
         """處理票券指令錯誤並提供幫助"""
+        # 忽略已移除的舊指令名稱，避免多餘提示
+        if "ticket_settings" in content:
+            return
         embed = discord.Embed(
             title="❓ 票券指令使用說明",
             description="看起來您在使用票券指令時遇到了問題，以下是正確的使用方式：",
@@ -241,21 +244,16 @@ class GlobalErrorHandler:
         if "set_ticket_category" in content:
             embed.add_field(
                 name="🎯 設定票券分類頻道",
-                value="```\n!set_ticket_category #分類頻道名稱\n```\n**注意：指令和頻道之間要有空格**",
-                inline=False,
-            )
-            embed.add_field(
-                name="📋 範例",
-                value="`!set_ticket_category #客服中心`\n`!set_category 票券系統`",
+                value="已改為使用 `/ticket_settings` 進行分類/客服角色/限額設定。\n請使用 `/ticket_settings` 進入設定面板。",
                 inline=False,
             )
         else:
             embed.add_field(
                 name="🎫 常用票券指令",
                 value="`!setup_ticket` - 建立票券面板\n"
-                "`!set_ticket_category #頻道` - 設定分類\n"
-                "`!ticket_settings` - 查看設定\n"
-                "`!ticket_test` - 測試系統",
+                "`!ticket_help` - 查看票券使用說明\n"
+                "`/ticket_settings` - 設定分類/客服角色/限額\n"
+                "`/my_tickets` - 查看自己的票券",
                 inline=False,
             )
 

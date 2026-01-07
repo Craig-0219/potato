@@ -9,13 +9,13 @@ from typing import Any, Dict, Optional, Tuple
 
 import discord
 
-from bot.services.chat_transcript_manager import ChatTranscriptManager
-from bot.services.realtime_sync_manager import (
+from potato_bot.services.chat_transcript_manager import ChatTranscriptManager
+from potato_bot.services.realtime_sync_manager import (
     SyncEvent,
     SyncEventType,
     realtime_sync,
 )
-from shared.logger import logger
+from potato_shared.logger import logger
 
 
 class TicketManager:
@@ -75,18 +75,6 @@ class TicketManager:
             await self._send_welcome_message(
                 channel, user, ticket_id, ticket_type, priority, settings
             )
-
-            # 應用自動標籤
-            await self._apply_auto_tags(
-                ticket_id,
-                user.guild.id,
-                ticket_type,
-                f"{ticket_type} 票券",
-                user,
-            )
-
-            # 自動分配（如果有客服在線）
-            await self._try_auto_assign(ticket_id, user.guild, settings)
 
             logger.info(f"建立票券成功 #{ticket_id:04d} - 用戶: {user}")
             return True, f"票券 #{ticket_id:04d} 建立成功", ticket_id
@@ -191,8 +179,8 @@ class TicketManager:
     ):
         """發送歡迎訊息"""
         try:
-            from bot.utils.ticket_constants import TicketConstants
-            from bot.views.ticket_views import TicketControlView
+            from potato_bot.utils.ticket_constants import TicketConstants
+            from potato_bot.views.ticket_views import TicketControlView
 
             priority_emoji = TicketConstants.PRIORITY_EMOJIS.get(priority, "🟡")
             priority_color = TicketConstants.PRIORITY_COLORS.get(priority, 0x00FF00)
@@ -206,8 +194,7 @@ class TicketManager:
             embed.add_field(
                 name="📋 票券資訊",
                 value=f"**類型：** {ticket_type}\n"
-                f"**優先級：** {priority_emoji} {priority.upper()}\n"
-                f"**預期回覆：** {settings.get('sla_response_minutes', 60)} 分鐘內",
+                f"**優先級：** {priority_emoji} {priority.upper()}",
                 inline=True,
             )
 
@@ -221,85 +208,17 @@ class TicketManager:
                 name="💡 使用說明",
                 value="• 使用 `/close` 關閉票券\n"
                 "• 請詳細描述問題\n"
-                "• 保持禮貌和耐心\n"
-                "• 關閉後可為服務評分",
+                "• 保持禮貌和耐心",
                 inline=False,
             )
 
             # 控制面板（包含優先級顯示）
-            view = TicketControlView(ticket_id=ticket_id, priority=priority)
+            view = TicketControlView(priority=priority)
 
             await channel.send(content=f"{user.mention}", embed=embed, view=view)
 
         except Exception as e:
             logger.error(f"發送歡迎訊息錯誤：{e}")
-
-    async def _try_auto_assign(self, ticket_id: int, guild: discord.Guild, settings: Dict):
-        """嘗試自動分配"""
-        try:
-            support_roles = settings.get("support_roles", [])
-            if not support_roles:
-                return
-
-            # 找到在線客服
-            online_staff = []
-            for role_id in support_roles:
-                role = guild.get_role(role_id)
-                if role:
-                    for member in role.members:
-                        if (
-                            not member.bot
-                            and member.status != discord.Status.offline
-                            and member not in online_staff
-                        ):
-                            online_staff.append(member)
-
-            if online_staff:
-                # 簡單的輪流分配
-                import random
-
-                assigned_staff = random.choice(online_staff)
-
-                success = await self.repository.assign_ticket(ticket_id, assigned_staff.id, 0)
-                if success:
-                    # 通知被分配的客服
-                    try:
-                        await assigned_staff.send(f"📋 你被自動分配了票券 #{ticket_id:04d}")
-                    except:
-                        pass
-
-                    logger.info(f"自動分配票券 #{ticket_id:04d} 給 {assigned_staff}")
-
-        except Exception as e:
-            logger.error(f"自動分配錯誤：{e}")
-
-    async def _apply_auto_tags(
-        self,
-        ticket_id: int,
-        guild_id: int,
-        ticket_type: str,
-        content: str,
-        user: discord.Member,
-    ):
-        """應用自動標籤"""
-        try:
-            from bot.db.tag_dao import TagDAO
-            from bot.services.tag_manager import TagManager
-
-            tag_dao = TagDAO()
-            tag_manager = TagManager(tag_dao)
-
-            # 應用自動標籤規則
-            applied_tags = await tag_manager.apply_auto_tags(
-                guild_id, ticket_id, ticket_type, content, user
-            )
-
-            if applied_tags:
-                tag_names = [tag["display_name"] for tag in applied_tags]
-                logger.info(f"票券 #{ticket_id} 自動應用標籤: {', '.join(tag_names)}")
-
-        except Exception as e:
-            logger.error(f"應用自動標籤錯誤：{e}")
 
     # ===== 票券關閉 =====
 
@@ -313,9 +232,7 @@ class TicketManager:
                 await realtime_sync.publish_event(
                     SyncEvent(
                         event_type=SyncEventType.TICKET_CLOSED,
-                        ticket_id=ticket_id,
-                        user_id=closed_by,
-                        data={"reason": reason},
+                        payload={"ticket_id": ticket_id, "user_id": closed_by, "reason": reason},
                     )
                 )
                 # 自動匯出聊天記錄
@@ -351,57 +268,6 @@ class TicketManager:
             logger.error(f"關閉票券錯誤：{e}")
             return False
 
-    # ===== 票券指派 =====
-
-    async def assign_ticket(self, ticket_id: int, assigned_to: int, assigned_by: int) -> bool:
-        """指派票券"""
-        try:
-            success = await self.repository.assign_ticket(ticket_id, assigned_to, assigned_by)
-
-            if success:
-                # 發布即時同步事件
-                await realtime_sync.publish_event(
-                    SyncEvent(
-                        event_type=SyncEventType.TICKET_ASSIGNED,
-                        ticket_id=ticket_id,
-                        user_id=assigned_by,
-                        data={"assigned_to": assigned_to},
-                    )
-                )
-                logger.info(f"指派票券 #{ticket_id:04d} 給用戶 {assigned_to}")
-
-            return success
-
-        except Exception as e:
-            logger.error(f"指派票券錯誤：{e}")
-            return False
-
-    # ===== 評分系統 =====
-
-    async def save_rating(self, ticket_id: int, rating: int, feedback: str = None) -> bool:
-        """保存票券評分"""
-        try:
-            if not 1 <= rating <= 5:
-                return False
-
-            success = await self.repository.save_rating(ticket_id, rating, feedback)
-
-            if success:
-                # 發布即時同步事件
-                await realtime_sync.publish_event(
-                    SyncEvent(
-                        event_type=SyncEventType.TICKET_RATED,
-                        ticket_id=ticket_id,
-                        data={"rating": rating, "feedback": feedback},
-                    )
-                )
-                logger.info(f"保存評分 #{ticket_id:04d} - {rating}星")
-
-            return success
-
-        except Exception as e:
-            logger.error(f"保存評分錯誤：{e}")
-            return False
 
     # ===== 通知服務 =====
 
@@ -448,90 +314,6 @@ class TicketManager:
             logger.error(f"發送頻道通知錯誤：{e}")
             return False
 
-    # ===== SLA 監控 =====
-
-    async def handle_overdue_ticket(self, ticket: Dict, guild: discord.Guild) -> bool:
-        """處理超時票券"""
-        try:
-            from bot.utils.ticket_constants import TicketConstants
-
-            # 計算超時時間
-            now = datetime.now(timezone.utc)
-            created_at = ticket["created_at"]
-            # 確保時間戳有時區資訊
-            if created_at.tzinfo is None:
-                created_at = created_at.replace(tzinfo=timezone.utc)
-            overdue_minutes = (now - created_at).total_seconds() / 60
-
-            # 取得 SLA 目標時間
-            sla_minutes = ticket.get("sla_response_minutes", 60)
-            priority_multiplier = {"high": 0.5, "medium": 1.0, "low": 1.5}.get(
-                ticket["priority"], 1.0
-            )
-
-            target_minutes = sla_minutes * priority_multiplier
-            actual_overdue = overdue_minutes - target_minutes
-
-            # 建立警告訊息
-            priority_emoji = TicketConstants.PRIORITY_EMOJIS.get(ticket["priority"], "🟡")
-
-            embed = discord.Embed(
-                title="⚠️ SLA 超時警告",
-                description=f"票券 #{ticket['id']:04d} 已超過目標回應時間",
-                color=0xFF0000,
-            )
-
-            embed.add_field(
-                name="票券資訊",
-                value=f"**類型：** {ticket['type']}\n"
-                f"**優先級：** {priority_emoji} {ticket['priority'].upper()}\n"
-                f"**開票者：** <@{ticket['discord_id']}>",
-                inline=True,
-            )
-
-            embed.add_field(
-                name="超時資訊",
-                value=f"**超時時間：** {actual_overdue:.0f} 分鐘\n"
-                f"**頻道：** <#{ticket['channel_id']}>",
-                inline=True,
-            )
-
-            # 發送到日誌頻道（如果設定）
-            settings = await self.repository.get_settings(guild.id)
-            log_channel_id = settings.get("log_channel_id")
-
-            if log_channel_id:
-                log_channel = guild.get_channel(log_channel_id)
-                if log_channel:
-                    await log_channel.send(embed=embed)
-
-            # 通知客服人員
-            support_roles = settings.get("support_roles", [])
-            notified_users = set()
-
-            for role_id in support_roles:
-                role = guild.get_role(role_id)
-                if role:
-                    for member in role.members:
-                        if (
-                            not member.bot
-                            and member.status != discord.Status.offline
-                            and member.id not in notified_users
-                        ):
-
-                            try:
-                                await member.send(embed=embed)
-                                notified_users.add(member.id)
-                            except:
-                                pass
-
-            logger.warning(f"SLA 超時警告 - 票券 #{ticket['id']:04d}")
-            return True
-
-        except Exception as e:
-            logger.error(f"處理超時票券錯誤：{e}")
-            return False
-
     # ===== 系統維護 =====
 
     async def cleanup_old_tickets(self, guild_id: int, hours_threshold: int = 24) -> int:
@@ -556,7 +338,6 @@ class TicketManager:
                 "services": {
                     "database": "healthy",
                     "notifications": "healthy",
-                    "sla_monitor": "healthy",
                 },
             }
 

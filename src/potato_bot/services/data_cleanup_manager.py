@@ -10,8 +10,8 @@ from typing import Dict, List, Optional
 
 import aiomysql
 
-from bot.db.pool import db_pool
-from shared.logger import logger
+from potato_bot.db.pool import db_pool
+from potato_shared.logger import logger
 
 
 @dataclass
@@ -62,10 +62,6 @@ class CleanupConfig:
     closed_ticket_retention_days: int = 365
     draft_ticket_retention_days: int = 30
 
-    # 統計資料清理設定
-    daily_stats_retention_days: int = 90
-    hourly_stats_retention_days: int = 7
-
     # 用戶活動清理設定
     inactive_user_threshold_days: int = 180
     temporary_data_retention_hours: int = 24
@@ -98,9 +94,6 @@ class DataCleanupManager:
             # 清理票券相關資料
             results["ticket_logs"] = await self._cleanup_ticket_logs()
             results["closed_tickets"] = await self._cleanup_old_tickets()
-
-            # 清理統計資料
-            results["statistics_cache"] = await self._cleanup_statistics_cache()
 
             # 清理安全事件
             results["security_events"] = await self._cleanup_security_events()
@@ -163,9 +156,6 @@ class DataCleanupManager:
 
             # 清理票券日誌
             basic_results["ticket_logs"] = await self._cleanup_ticket_logs()
-
-            # 清理統計快取
-            basic_results["statistics_cache"] = await self._cleanup_statistics_cache()
 
             # 計算結果
             success_count = 0
@@ -497,14 +487,6 @@ class DataCleanupManager:
                 error_message=str(e),
             )
 
-    async def _cleanup_statistics_cache(self) -> CleanupResult:
-        """清理統計快取資料"""
-        return await self._generic_cleanup_by_date(
-            "ticket_statistics_cache",
-            "created_at",
-            self.config.daily_stats_retention_days,
-        )
-
     async def _cleanup_security_events(self) -> CleanupResult:
         """清理安全事件記錄"""
         return await self._generic_cleanup_by_date(
@@ -621,26 +603,6 @@ class DataCleanupManager:
 
             async with self.db.connection() as conn:
                 async with conn.cursor(aiomysql.DictCursor) as cursor:
-                    # 清理孤立的票券標籤映射
-                    orphaned_tags_query = """
-                    DELETE ttm FROM ticket_tag_mappings ttm
-                    LEFT JOIN tickets t ON ttm.ticket_id = t.id
-                    WHERE t.id IS NULL
-                    """
-                    await cursor.execute(orphaned_tags_query)
-                    deleted_tags = cursor.rowcount
-                    total_deleted += deleted_tags
-
-                    # 清理孤立的指派記錄
-                    orphaned_assignments_query = """
-                    DELETE ah FROM assignment_history ah
-                    LEFT JOIN tickets t ON ah.ticket_id = t.id
-                    WHERE t.id IS NULL
-                    """
-                    await cursor.execute(orphaned_assignments_query)
-                    deleted_assignments = cursor.rowcount
-                    total_deleted += deleted_assignments
-
                     # 清理孤立的投票回應
                     orphaned_votes_query = """
                     DELETE vr FROM vote_responses vr
@@ -688,7 +650,6 @@ class DataCleanupManager:
                 "ticket_logs",
                 "votes",
                 "vote_responses",
-                "ticket_statistics_cache",
                 "security_events",
                 "user_sessions",
             ]

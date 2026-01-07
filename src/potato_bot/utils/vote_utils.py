@@ -39,11 +39,17 @@ def build_vote_embed(
     anonymous: bool,
     total: int = 0,
     vote_id: int = None,
+    stats: dict | None = None,
+    participants: int | None = None,
 ) -> Embed:
     # ✅ 在標題中加入投票編號
     embed_title = f"🗳 {title}"
     if vote_id is not None:
         embed_title = f"🗳 #{vote_id} - {title}"
+
+    # 若提供 stats，則以統計資料更新總票數
+    if stats:
+        total = total or sum(stats.values())
 
     embed = Embed(
         title=embed_title,
@@ -60,11 +66,34 @@ def build_vote_embed(
         value=f"{'匿名' if anonymous else '公開'}、{'多選' if is_multi else '單選'}",
         inline=False,
     )
+
+    if stats is not None:
+        lines = []
+        for opt, count in sorted(stats.items(), key=lambda x: x[1], reverse=True):
+            percent = (count / total * 100) if total else 0
+            bar = calculate_progress_bar(percent)
+            lines.append(f"{opt} — {count} 票 ({percent:.1f}%) {bar}")
+
+        embed.add_field(
+            name="📊 即時票數",
+            value="\n".join(lines) if lines else "尚無票數",
+            inline=False,
+        )
+
+        if participants is not None:
+            embed.add_field(name="👥 參與人數", value=f"{participants} 人", inline=True)
+
+        if stats:
+            top_opt, top_count = max(stats.items(), key=lambda x: x[1])
+            embed.add_field(name="🏆 暫時領先", value=f"{top_opt}（{top_count} 票）", inline=True)
+
     return embed
 
 
 # ✅ 建立投票結果 Embed（進度條樣式，加入投票編號）
-def build_result_embed(title: str, stats: dict, total: int, vote_id: int = None) -> Embed:
+def build_result_embed(
+    title: str, stats: dict, total: int, vote_id: int = None, participants: int | None = None
+) -> Embed:
     # ✅ 在標題中加入投票編號
     embed_title = f"📢 投票結束：{title}"
     if vote_id is not None:
@@ -72,8 +101,22 @@ def build_result_embed(title: str, stats: dict, total: int, vote_id: int = None)
 
     embed = Embed(title=embed_title, color=0xE74C3C)
     embed.description = f"🧮 總票數：{total} 票"
+
+    if participants is not None:
+        embed.description += f"\n👥 參與人數：{participants} 人"
+
+    top_opt = None
+    top_count = 0
     for opt, count in stats.items():
         percent = (count / total * 100) if total else 0
         bar = calculate_progress_bar(percent)
         embed.add_field(name=opt, value=f"{count} 票 ({percent:.1f}%)\n{bar}", inline=False)
+
+        if count > top_count:
+            top_opt = opt
+            top_count = count
+
+    if top_opt is not None:
+        embed.add_field(name="🏆 最高票選項", value=f"{top_opt}（{top_count} 票）", inline=False)
+
     return embed
