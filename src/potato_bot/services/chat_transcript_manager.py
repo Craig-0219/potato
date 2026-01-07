@@ -54,61 +54,6 @@ class ChatTranscriptManager:
         self.transcript_dir = Path("transcripts")
         self.transcript_dir.mkdir(exist_ok=True)
 
-    async def initialize_tables(self):
-        """初始化資料庫表"""
-        try:
-            async with self.db.connection() as conn:
-                async with conn.cursor() as cursor:
-                    # 聊天訊息記錄表
-                    await cursor.execute(
-                        """
-                        CREATE TABLE IF NOT EXISTS ticket_messages (
-                            id INT AUTO_INCREMENT PRIMARY KEY,
-                            ticket_id INT NOT NULL,
-                            message_id BIGINT NOT NULL COMMENT 'Discord 訊息 ID',
-                            author_id BIGINT NOT NULL COMMENT '發送者 Discord ID',
-                            author_name VARCHAR(100) NOT NULL COMMENT '發送者名稱',
-                            content TEXT COMMENT '訊息內容',
-                            attachments JSON COMMENT '附件資訊',
-                            message_type ENUM('user', 'staff', 'system', 'bot') DEFAULT 'user',
-                            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            edited_timestamp TIMESTAMP NULL,
-                            reply_to BIGINT NULL COMMENT '回覆的訊息 ID',
-                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            INDEX idx_ticket_id (ticket_id),
-                            INDEX idx_message_id (message_id),
-                            INDEX idx_timestamp (timestamp),
-                            FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE
-                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                    """
-                    )
-
-                    # 聊天記錄匯出表
-                    await cursor.execute(
-                        """
-                        CREATE TABLE IF NOT EXISTS ticket_transcripts (
-                            id INT AUTO_INCREMENT PRIMARY KEY,
-                            ticket_id INT NOT NULL,
-                            transcript_html LONGTEXT COMMENT 'HTML 格式記錄',
-                            transcript_text LONGTEXT COMMENT '純文字記錄',
-                            transcript_json LONGTEXT COMMENT 'JSON 格式記錄',
-                            message_count INT DEFAULT 0,
-                            file_path VARCHAR(500) COMMENT '檔案路徑',
-                            file_size BIGINT DEFAULT 0,
-                            export_format VARCHAR(20) DEFAULT 'html',
-                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            UNIQUE KEY unique_ticket_transcript (ticket_id),
-                            FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE
-                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                    """
-                    )
-
-                    await conn.commit()
-                    logger.info("✅ 聊天記錄資料庫表初始化完成")
-
-        except Exception as e:
-            logger.error(f"❌ 初始化聊天記錄表失敗: {e}")
-
     async def record_message(self, ticket_id: int, message: discord.Message) -> bool:
         """記錄單一聊天訊息"""
         try:

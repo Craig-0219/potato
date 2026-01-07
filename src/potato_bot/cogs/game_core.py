@@ -549,7 +549,11 @@ class GameEntertainment(commands.Cog):
     ):
         """查看成就進度"""
         try:
+            await interaction.response.defer(ephemeral=True)
             user_id = interaction.user.id
+            if not interaction.guild:
+                await interaction.followup.send("❌ 請在伺服器中使用此指令。", ephemeral=True)
+                return
             guild_id = interaction.guild.id
 
             if achievement_id:
@@ -559,12 +563,12 @@ class GameEntertainment(commands.Cog):
                 )
 
                 if not progress:
-                    await interaction.response.send_message("❌ 未找到該成就。", ephemeral=True)
+                    await interaction.followup.send("❌ 未找到該成就。", ephemeral=True)
                     return
 
                 achievement_def = self.achievement_manager.achievements.get(achievement_id)
                 if not achievement_def:
-                    await interaction.response.send_message("❌ 成就定義不存在。", ephemeral=True)
+                    await interaction.followup.send("❌ 成就定義不存在。", ephemeral=True)
                     return
 
                 embed = EmbedBuilder.build(
@@ -628,11 +632,14 @@ class GameEntertainment(commands.Cog):
                 elif incomplete_count > 8:
                     embed.set_footer(text=f"還有 {incomplete_count - 8} 個成就未顯示")
 
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            await interaction.followup.send(embed=embed, ephemeral=True)
 
         except Exception as e:
             logger.error(f"❌ 查看成就進度錯誤: {e}")
-            await interaction.response.send_message("❌ 查看成就進度時發生錯誤。", ephemeral=True)
+            if interaction.response.is_done():
+                await interaction.followup.send("❌ 查看成就進度時發生錯誤。", ephemeral=True)
+            else:
+                await interaction.response.send_message("❌ 查看成就進度時發生錯誤。", ephemeral=True)
 
     def _create_progress_bar(self, progress: float, length: int = 10) -> str:
         """創建進度條"""
@@ -882,74 +889,4 @@ class GameEntertainment(commands.Cog):
 
 async def setup(bot):
     """設置 Cog"""
-    # 確保資料庫表格存在
-    await _ensure_game_tables()
-    # 確保成就表格存在
-    from potato_bot.services.achievement_manager import ensure_achievement_tables
-
-    await ensure_achievement_tables()
     await bot.add_cog(GameEntertainment(bot))
-
-
-async def _ensure_game_tables():
-    """確保遊戲相關表格存在"""
-    try:
-        async with db_pool.connection() as conn:
-            async with conn.cursor() as cursor:
-                # 遊戲結果表
-                await cursor.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS game_results (
-                        game_id VARCHAR(255) PRIMARY KEY,
-                        game_type VARCHAR(50) NOT NULL,
-                        player_id BIGINT NOT NULL,
-                        guild_id BIGINT NOT NULL,
-                        channel_id BIGINT NOT NULL,
-                        start_time TIMESTAMP NOT NULL,
-                        end_time TIMESTAMP NULL,
-                        won BOOLEAN DEFAULT FALSE,
-                        score INT DEFAULT 0,
-                        game_data JSON,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-                        INDEX idx_player_guild (player_id, guild_id),
-                        INDEX idx_game_type (game_type),
-                        INDEX idx_start_time (start_time)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """
-                )
-
-                # 用戶經濟表
-                await cursor.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS user_economy (
-                        user_id BIGINT NOT NULL,
-                        guild_id BIGINT NOT NULL,
-                        coins BIGINT DEFAULT 0,
-                        gems INT DEFAULT 0,
-                        tickets INT DEFAULT 0,
-                        experience BIGINT DEFAULT 0,
-                        total_games INT DEFAULT 0,
-                        total_wins INT DEFAULT 0,
-                        daily_games INT DEFAULT 0,
-                        daily_wins INT DEFAULT 0,
-                        daily_claimed BOOLEAN DEFAULT FALSE,
-                        last_checkin TIMESTAMP NULL,
-                        last_daily_reset DATE NULL,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-                        PRIMARY KEY (user_id, guild_id),
-                        INDEX idx_coins (coins DESC),
-                        INDEX idx_experience (experience DESC),
-                        INDEX idx_last_checkin (last_checkin)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """
-                )
-
-                await conn.commit()
-                logger.info("✅ 遊戲相關表格檢查完成")
-
-    except Exception as e:
-        logger.error(f"❌ 建立遊戲表格失敗: {e}")
-        raise

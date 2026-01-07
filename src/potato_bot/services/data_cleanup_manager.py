@@ -735,24 +735,6 @@ class DataCleanupManager:
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor(aiomysql.DictCursor) as cursor:
-                    # 創建清理日誌表（如果不存在）
-                    create_table_query = """
-                    CREATE TABLE IF NOT EXISTS cleanup_logs (
-                        id INT AUTO_INCREMENT PRIMARY KEY,
-                        operation_name VARCHAR(100) NOT NULL,
-                        table_name VARCHAR(100) NOT NULL,
-                        records_before INT DEFAULT 0,
-                        records_after INT DEFAULT 0,
-                        deleted_count INT DEFAULT 0,
-                        deletion_percentage DECIMAL(5,2) DEFAULT 0.00,
-                        success BOOLEAN DEFAULT TRUE,
-                        error_message TEXT,
-                        cleanup_time DATETIME DEFAULT CURRENT_TIMESTAMP,
-                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                    """
-                    await cursor.execute(create_table_query)
-
                     # 插入清理記錄
                     for operation, result in results.items():
                         insert_query = """

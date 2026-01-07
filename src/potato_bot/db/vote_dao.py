@@ -321,24 +321,9 @@ async def get_active_votes(guild_id: int = None):
 
 
 async def get_expired_votes_to_announce():
-    """查詢所有已過期但尚未公告的投票 - 使用獨立連接避免事件循環衝突"""
+    """查詢所有已過期但尚未公告的投票"""
     try:
-        # 為背景任務創建獨立的資料庫連接
-        import os
-
-        import aiomysql
-
-        conn = await aiomysql.connect(
-            host=os.getenv("DB_HOST", "localhost"),
-            port=int(os.getenv("DB_PORT", 3306)),
-            user=os.getenv("DB_USER", "root"),
-            password=os.getenv("DB_PASSWORD", ""),
-            db=os.getenv("DB_NAME", "potato_db"),
-            charset="utf8mb4",
-            autocommit=True,
-        )
-
-        try:
+        async with db_pool.connection() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(
                     """
@@ -368,33 +353,15 @@ async def get_expired_votes_to_announce():
                     processed_votes.append(row)
 
                 return processed_votes
-        finally:
-            conn.close()
-
     except Exception as e:
         logger.error(f"get_expired_votes_to_announce 錯誤: {e}")
         return []
 
 
 async def mark_vote_announced(vote_id):
-    """將已公告的投票標記為 announced = TRUE - 使用獨立連接避免事件循環衝突"""
+    """將已公告的投票標記為 announced = TRUE"""
     try:
-        # 為背景任務創建獨立的資料庫連接
-        import os
-
-        import aiomysql
-
-        conn = await aiomysql.connect(
-            host=os.getenv("DB_HOST", "localhost"),
-            port=int(os.getenv("DB_PORT", 3306)),
-            user=os.getenv("DB_USER", "root"),
-            password=os.getenv("DB_PASSWORD", ""),
-            db=os.getenv("DB_NAME", "potato_db"),
-            charset="utf8mb4",
-            autocommit=True,
-        )
-
-        try:
+        async with db_pool.connection() as conn:
             async with conn.cursor() as cur:
                 await cur.execute(
                     """
@@ -402,11 +369,7 @@ async def mark_vote_announced(vote_id):
                 """,
                     (vote_id,),
                 )
-
-        except Exception as e:
-            logger.error(f"標記投票為已公告時失敗: {e}")
-        finally:
-            await conn.ensure_closed()
+                await conn.commit()
 
     except Exception as e:
         logger.error(f"標記投票為已公告時發生外層錯誤: {e}")

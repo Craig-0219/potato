@@ -1,5 +1,5 @@
 """
-Resume services.
+履歷服務模組。
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ class ResumeCompanySettings:
 
 
 class ResumeService:
-    """High-level resume settings service."""
+    """履歷設定服務（高階封裝）。"""
 
     def __init__(self, dao: ResumeDAO):
         self.dao = dao
@@ -123,12 +123,12 @@ class ResumeService:
         await self.dao.upsert_company(guild_id, company_name, **payload)
         company = await self.load_company_by_name(guild_id, company_name)
         if not company:
-            raise RuntimeError("Failed to save resume company settings.")
+            raise RuntimeError("儲存履歷公司設定失敗。")
         return company
 
 
 class ResumePanelService:
-    """Handle resume panel messages."""
+    """處理履歷面板訊息。"""
 
     def __init__(self, bot: discord.Client, dao: ResumeDAO):
         self.bot = bot
@@ -138,7 +138,7 @@ class ResumePanelService:
         self, settings: ResumeCompanySettings, view: discord.ui.View
     ) -> Optional[discord.Message]:
         if not settings.panel_channel_id:
-            logger.warning("Missing panel_channel_id for resume company.")
+            logger.warning("履歷公司未設定 panel_channel_id。")
             return None
 
         guild = self.bot.get_guild(settings.guild_id)
@@ -147,12 +147,12 @@ class ResumePanelService:
 
         channel = guild.get_channel(settings.panel_channel_id)
         if not channel:
-            logger.warning("Resume panel channel not found.")
+            logger.warning("找不到履歷面板頻道。")
             return None
 
         embed = discord.Embed(
-            title=f"Resume Submission - {settings.company_name}",
-            description="Click the button below to submit your resume.",
+            title=f"履歷提交櫃台- {settings.company_name}",
+            description="點擊下方按鈕以提交您的履歷。提交後，相關負責人員將會收到通知並進行審核。",
             color=0x3498DB,
         )
 
@@ -174,6 +174,6 @@ class ResumePanelService:
             try:
                 await message.edit(embed=embed, view=view)
             except Exception as e:
-                logger.warning(f"Failed to refresh resume panel message: {e}")
+                logger.warning(f"更新履歷面板訊息失敗: {e}")
 
         return message

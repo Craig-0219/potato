@@ -9,6 +9,7 @@ from discord.ui import Button, ChannelSelect, Modal, RoleSelect, Select, TextInp
 
 from potato_bot.db import vote_dao
 from potato_bot.db.resume_dao import ResumeDAO
+from potato_bot.db.pool import db_pool
 from potato_bot.db.ticket_dao import TicketDAO
 from potato_bot.db.welcome_dao import WelcomeDAO
 from potato_bot.services.data_cleanup_manager import DataCleanupManager
@@ -123,6 +124,22 @@ class SystemAdminPanel(BaseView):
             logger.error(f"履歷系統設定開啟失敗: {e}")
             await SafeInteractionHandler.handle_interaction_error(
                 interaction, e, operation_name="履歷系統設定"
+            )
+
+    @button(label="📊 系統狀態", style=discord.ButtonStyle.secondary, row=2)
+    async def system_status_button(self, interaction: discord.Interaction, button: Button):
+        """系統狀態按鈕"""
+        await SafeInteractionHandler.safe_defer(interaction, ephemeral=True)
+        try:
+            embed = await self._create_system_status_embed(interaction)
+            view = SystemStatusView(self.user_id, interaction.guild)
+            await SafeInteractionHandler.safe_respond(
+                interaction, embed=embed, view=view, ephemeral=True
+            )
+        except Exception as e:
+            logger.error(f"系統狀態面板開啟失敗: {e}")
+            await SafeInteractionHandler.handle_interaction_error(
+                interaction, e, operation_name="系統狀態"
             )
 
     @button(label="🔧 系統工具", style=discord.ButtonStyle.secondary, row=2)
@@ -409,6 +426,95 @@ class SystemAdminPanel(BaseView):
 
         return embed
 
+    async def _create_system_status_embed(
+        self, interaction: discord.Interaction
+    ) -> discord.Embed:
+        """創建系統狀態嵌入"""
+        bot = interaction.client
+        guild = interaction.guild
+
+        latency_ms = None
+        if bot and bot.latency is not None:
+            latency_ms = round(bot.latency * 1000, 2)
+
+        uptime = "未知"
+        if bot and hasattr(bot, "get_uptime"):
+            uptime = bot.get_uptime()
+
+        guild_count = len(bot.guilds) if bot else 0
+        member_count = guild.member_count if guild and guild.member_count else 0
+
+        overall_status = "healthy"
+        db_status_text = "❓ 未知"
+        db_latency = "N/A"
+        pool_status = "N/A"
+        db_name = "N/A"
+
+        try:
+            health = await db_pool.health_check()
+            db_status = health.get("status", "unknown")
+            db_latency = health.get("latency", "N/A")
+            pool_status = health.get("pool_status", "N/A")
+            db_name = (health.get("database") or {}).get("name", "N/A")
+
+            if db_status == "healthy":
+                db_status_text = "✅ 正常"
+            elif db_status == "unhealthy":
+                db_status_text = "❌ 異常"
+                overall_status = "unhealthy"
+            else:
+                db_status_text = f"⚠️ {db_status}"
+                overall_status = "degraded"
+        except Exception as e:
+            logger.error(f"系統狀態檢查失敗: {e}")
+            db_status_text = "❌ 無法取得"
+            overall_status = "degraded"
+
+        if latency_ms is not None and latency_ms >= 1000 and overall_status == "healthy":
+            overall_status = "degraded"
+
+        status_color = {
+            "healthy": 0x2ECC71,
+            "degraded": 0xF1C40F,
+            "unhealthy": 0xE74C3C,
+        }.get(overall_status, 0x95A5A6)
+
+        overall_text = {
+            "healthy": "✅ 正常",
+            "degraded": "⚠️ 注意",
+            "unhealthy": "❌ 異常",
+        }.get(overall_status, "❓ 未知")
+
+        embed = discord.Embed(
+            title="📊 系統狀態",
+            description="系統運行狀態概覽",
+            color=status_color,
+        )
+        embed.add_field(name="📈 整體狀態", value=overall_text, inline=True)
+
+        latency_text = f"{latency_ms} ms" if latency_ms is not None else "未知"
+        bot_lines = [
+            f"延遲: {latency_text}",
+            f"運行時間: {uptime}",
+            f"連接伺服器: {guild_count}",
+        ]
+        if member_count:
+            bot_lines.append(f"本伺服器成員: {member_count}")
+        embed.add_field(name="🤖 機器人", value="\n".join(bot_lines), inline=False)
+
+        db_lines = [
+            f"狀態: {db_status_text}",
+            f"延遲: {db_latency}",
+            f"連線池: {pool_status}",
+        ]
+        if db_name and db_name != "N/A":
+            db_lines.append(f"資料庫: {db_name}")
+        embed.add_field(name="🗄️ 資料庫", value="\n".join(db_lines), inline=False)
+
+        embed.set_footer(text="資料為即時快照")
+        embed.timestamp = discord.utils.utcnow()
+        return embed
+
     def _create_system_tools_embed(self) -> discord.Embed:
         """創建系統工具嵌入"""
         embed = discord.Embed(
@@ -430,6 +536,24 @@ class SystemAdminPanel(BaseView):
         )
 
         return embed
+
+
+class SystemStatusView(BaseView):
+    """系統狀態面板"""
+
+    def __init__(self, user_id: int, guild: discord.Guild, timeout=300):
+        super().__init__(user_id=user_id, timeout=timeout)
+        self.guild = guild
+
+        self.add_item(ResumeBackToSystemButton(user_id, guild, row=1))
+
+    @button(label="🔄 重新整理", style=discord.ButtonStyle.secondary, row=0)
+    async def refresh_status(self, interaction: discord.Interaction, button: Button):
+        """重新整理系統狀態"""
+        await SafeInteractionHandler.safe_defer(interaction, ephemeral=True)
+        panel = SystemAdminPanel(self.user_id)
+        embed = await panel._create_system_status_embed(interaction)
+        await interaction.edit_original_response(embed=embed, view=self)
 
 
 class WhitelistSettingsView(View):
@@ -1015,7 +1139,7 @@ class ResumeBackToSystemButton(Button):
         )
         embed.add_field(
             name="📊 功能模組",
-            value="• 🎫 票券系統設定\n• 🎉 歡迎系統設定\n• 🗳️ 投票系統設定\n• 🛂 入境審核設定\n• 🧾 履歷系統設定\n• 🔧 系統工具",
+            value="• 🎫 票券系統設定\n• 🎉 歡迎系統設定\n• 🗳️ 投票系統設定\n• 🛂 入境審核設定\n• 🧾 履歷系統設定\n• 📊 系統狀態\n• 🔧 系統工具",
             inline=False,
         )
         embed.add_field(

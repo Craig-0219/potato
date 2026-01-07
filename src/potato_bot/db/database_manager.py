@@ -41,8 +41,12 @@ class DatabaseManager:
             await self._create_vote_tables()
             await self._create_welcome_tables()
             await self._create_resume_tables()
+            await self._create_whitelist_tables()
+            await self._create_game_tables()
+            await self._create_achievement_tables()
             await self._create_lottery_tables()
             await self._create_webhook_tables()
+            await self._create_cleanup_tables()
 
             # 更新資料庫版本
             await self._update_database_version(self.current_version)
@@ -469,6 +473,124 @@ class DatabaseManager:
 
         await self._create_tables_batch(tables, "履歷系統")
 
+    async def _create_whitelist_tables(self):
+        """創建入境審核相關表格"""
+        logger.info("🛂 創建入境審核表格...")
+
+        tables = {
+            "whitelist_applications": """
+                CREATE TABLE IF NOT EXISTS whitelist_applications (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    guild_id BIGINT NOT NULL,
+                    user_id BIGINT NOT NULL,
+                    username VARCHAR(255),
+                    answers_json JSON,
+                    status VARCHAR(20) DEFAULT 'PENDING',
+                    reviewer_id BIGINT NULL,
+                    reviewer_note TEXT NULL,
+                    review_message_id BIGINT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    reviewed_at TIMESTAMP NULL,
+
+                    INDEX idx_guild_user_status (guild_id, user_id, status),
+                    INDEX idx_status (status)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+            "whitelist_settings": """
+                CREATE TABLE IF NOT EXISTS whitelist_settings (
+                    guild_id BIGINT PRIMARY KEY,
+                    panel_channel_id BIGINT NULL,
+                    review_channel_id BIGINT NULL,
+                    result_channel_id BIGINT NULL,
+                    role_newcomer_ids JSON NULL,
+                    role_citizen_id BIGINT NULL,
+                    role_staff_id BIGINT NULL,
+                    nickname_role_id BIGINT NULL,
+                    nickname_prefix VARCHAR(32) NULL,
+                    panel_message_id BIGINT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+        }
+
+        await self._create_tables_batch(tables, "入境審核")
+
+    async def _create_game_tables(self):
+        """創建遊戲系統相關表格"""
+        logger.info("🎮 創建遊戲系統表格...")
+
+        tables = {
+            "game_results": """
+                CREATE TABLE IF NOT EXISTS game_results (
+                    game_id VARCHAR(255) PRIMARY KEY,
+                    game_type VARCHAR(50) NOT NULL,
+                    player_id BIGINT NOT NULL,
+                    guild_id BIGINT NOT NULL,
+                    channel_id BIGINT NOT NULL,
+                    start_time TIMESTAMP NOT NULL,
+                    end_time TIMESTAMP NULL,
+                    won BOOLEAN DEFAULT FALSE,
+                    score INT DEFAULT 0,
+                    game_data JSON,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+                    INDEX idx_player_guild (player_id, guild_id),
+                    INDEX idx_game_type (game_type),
+                    INDEX idx_start_time (start_time)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+            "user_economy": """
+                CREATE TABLE IF NOT EXISTS user_economy (
+                    user_id BIGINT NOT NULL,
+                    guild_id BIGINT NOT NULL,
+                    coins BIGINT DEFAULT 0,
+                    gems INT DEFAULT 0,
+                    tickets INT DEFAULT 0,
+                    experience BIGINT DEFAULT 0,
+                    total_games INT DEFAULT 0,
+                    total_wins INT DEFAULT 0,
+                    daily_games INT DEFAULT 0,
+                    daily_wins INT DEFAULT 0,
+                    daily_claimed BOOLEAN DEFAULT FALSE,
+                    last_checkin TIMESTAMP NULL,
+                    last_daily_reset DATE NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+                    PRIMARY KEY (user_id, guild_id),
+                    INDEX idx_coins (coins DESC),
+                    INDEX idx_experience (experience DESC),
+                    INDEX idx_last_checkin (last_checkin)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+        }
+
+        await self._create_tables_batch(tables, "遊戲系統")
+
+    async def _create_achievement_tables(self):
+        """創建成就系統相關表格"""
+        logger.info("🏆 創建成就系統表格...")
+
+        tables = {
+            "user_achievements": """
+                CREATE TABLE IF NOT EXISTS user_achievements (
+                    user_id BIGINT NOT NULL,
+                    guild_id BIGINT NOT NULL,
+                    achievement_id VARCHAR(50) NOT NULL,
+                    unlocked_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    progress JSON,
+
+                    PRIMARY KEY (user_id, guild_id, achievement_id),
+                    INDEX idx_user_guild (user_id, guild_id),
+                    INDEX idx_achievement (achievement_id),
+                    INDEX idx_unlocked_at (unlocked_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+        }
+
+        await self._create_tables_batch(tables, "成就系統")
+
     async def _create_lottery_tables(self):
         """創建抽獎系統相關表格"""
         logger.info("🎲 創建抽獎系統表格...")
@@ -582,23 +704,27 @@ class DatabaseManager:
                     id VARCHAR(32) PRIMARY KEY,
                     name VARCHAR(255) NOT NULL,
                     url TEXT NOT NULL,
-                    type ENUM('incoming','outgoing') NOT NULL,
+                    type ENUM('incoming', 'outgoing', 'both') NOT NULL DEFAULT 'outgoing',
                     events JSON NOT NULL,
-                    secret VARCHAR(255) NULL,
+                    secret VARCHAR(64) NULL,
                     headers JSON NULL,
                     timeout INT DEFAULT 30,
                     retry_count INT DEFAULT 3,
                     retry_interval INT DEFAULT 5,
-                    status ENUM('active','paused','disabled') DEFAULT 'active',
+                    status ENUM('active', 'inactive', 'paused', 'error') DEFAULT 'active',
                     guild_id BIGINT NOT NULL,
-                    created_by BIGINT NOT NULL,
+                    created_by BIGINT DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    last_triggered TIMESTAMP NULL,
                     success_count INT DEFAULT 0,
                     failure_count INT DEFAULT 0,
-                    last_triggered TIMESTAMP NULL,
-                    last_success_at TIMESTAMP NULL,
-                    last_failure_at TIMESTAMP NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+
+                    INDEX idx_guild_id (guild_id),
+                    INDEX idx_status (status),
+                    INDEX idx_type (type),
+                    INDEX idx_created_by (created_by),
+                    INDEX idx_last_triggered (last_triggered)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
             "webhook_logs": """
@@ -607,12 +733,19 @@ class DatabaseManager:
                     webhook_id VARCHAR(32) NOT NULL,
                     event_type VARCHAR(50) NOT NULL,
                     direction ENUM('incoming','outgoing') NOT NULL,
-                    payload JSON NULL,
+                    payload JSON NOT NULL,
                     response JSON NULL,
-                    status_code INT NULL,
-                    success BOOLEAN DEFAULT FALSE,
+                    status ENUM('success', 'failure', 'timeout', 'error') NOT NULL,
+                    http_status INT NULL,
+                    error_message TEXT NULL,
+                    execution_time DECIMAL(8,3) DEFAULT 0.000,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
                     INDEX idx_webhook_id (webhook_id),
+                    INDEX idx_event_type (event_type),
+                    INDEX idx_direction (direction),
+                    INDEX idx_status (status),
+                    INDEX idx_created_at (created_at),
                     FOREIGN KEY (webhook_id) REFERENCES webhooks(id) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
@@ -624,9 +757,12 @@ class DatabaseManager:
                     total_requests INT DEFAULT 0,
                     successful_requests INT DEFAULT 0,
                     failed_requests INT DEFAULT 0,
-                    avg_response_time FLOAT DEFAULT 0,
+                    avg_response_time DECIMAL(8,3) DEFAULT 0.000,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                     UNIQUE KEY unique_webhook_date (webhook_id, date),
                     INDEX idx_webhook_id (webhook_id),
+                    INDEX idx_date (date),
                     FOREIGN KEY (webhook_id) REFERENCES webhooks(id) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
@@ -643,6 +779,30 @@ class DatabaseManager:
                         raise
                 await conn.commit()
                 logger.info("✅ Webhook 表格創建完成")
+
+    async def _create_cleanup_tables(self):
+        """創建清理日誌相關表格"""
+        logger.info("🧹 創建清理日誌表格...")
+
+        tables = {
+            "cleanup_logs": """
+                CREATE TABLE IF NOT EXISTS cleanup_logs (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    operation_name VARCHAR(100) NOT NULL,
+                    table_name VARCHAR(100) NOT NULL,
+                    records_before INT DEFAULT 0,
+                    records_after INT DEFAULT 0,
+                    deleted_count INT DEFAULT 0,
+                    deletion_percentage DECIMAL(5,2) DEFAULT 0.00,
+                    success BOOLEAN DEFAULT TRUE,
+                    error_message TEXT,
+                    cleanup_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+        }
+
+        await self._create_tables_batch(tables, "清理日誌")
 
 # ===== 單例模式實現 =====
 

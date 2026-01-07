@@ -27,7 +27,6 @@ def normalize_cog_name(name: str) -> str:
         "ticket_listener": "ticket.listener.ticket_listener",
         "ticket.cache.cached_ticket_core": "ticket_core",
         "cached_ticket_core": "ticket_core",
-        "vote_listener": "vote.listener.vote_listener",
     }
     if trimmed in alias:
         return alias[trimmed]

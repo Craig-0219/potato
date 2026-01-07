@@ -23,97 +23,26 @@ class WebhookDAO(BaseDAO):
         """初始化資料庫表格"""
         try:
             await self._create_webhook_tables()
-            logger.info("✅ Webhook資料庫表格初始化完成")
+            logger.info("✅ Webhook資料庫表格檢查完成")
         except Exception as e:
-            logger.error(f"❌ Webhook資料庫初始化失敗: {e}")
+            logger.error(f"❌ Webhook資料庫檢查失敗: {e}")
             raise
 
     async def _create_webhook_tables(self):
-        """創建Webhook相關表格"""
+        """檢查Webhook相關表格"""
         async with self.db.connection() as conn:
             async with conn.cursor() as cursor:
+                await cursor.execute("SHOW TABLES LIKE 'webhooks'")
+                if not await cursor.fetchone():
+                    raise RuntimeError("webhooks 表不存在，請先初始化資料庫")
 
-                # Webhook配置表
-                await cursor.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS webhooks (
-                        id VARCHAR(32) PRIMARY KEY,
-                        name VARCHAR(255) NOT NULL,
-                        url TEXT NOT NULL,
-                        type ENUM('incoming', 'outgoing', 'both') NOT NULL DEFAULT 'outgoing',
-                        events JSON NOT NULL,
-                        secret VARCHAR(64) NULL,
-                        headers JSON NULL,
-                        timeout INT DEFAULT 30,
-                        retry_count INT DEFAULT 3,
-                        retry_interval INT DEFAULT 5,
-                        status ENUM('active', 'inactive', 'paused', 'error') DEFAULT 'active',
-                        guild_id BIGINT NOT NULL,
-                        created_by BIGINT DEFAULT 0,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                        last_triggered TIMESTAMP NULL,
-                        success_count INT DEFAULT 0,
-                        failure_count INT DEFAULT 0,
+                await cursor.execute("SHOW TABLES LIKE 'webhook_logs'")
+                if not await cursor.fetchone():
+                    raise RuntimeError("webhook_logs 表不存在，請先初始化資料庫")
 
-                        INDEX idx_guild_id (guild_id),
-                        INDEX idx_status (status),
-                        INDEX idx_type (type),
-                        INDEX idx_created_by (created_by),
-                        INDEX idx_last_triggered (last_triggered)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """
-                )
-
-                # Webhook執行日誌表
-                await cursor.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS webhook_logs (
-                        id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                        webhook_id VARCHAR(32) NOT NULL,
-                        event_type VARCHAR(50) NOT NULL,
-                        direction ENUM('incoming', 'outgoing') NOT NULL,
-                        payload JSON NOT NULL,
-                        response JSON NULL,
-                        status ENUM('success', 'failure', 'timeout', 'error') NOT NULL,
-                        http_status INT NULL,
-                        error_message TEXT NULL,
-                        execution_time DECIMAL(8,3) DEFAULT 0.000,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-                        INDEX idx_webhook_id (webhook_id),
-                        INDEX idx_event_type (event_type),
-                        INDEX idx_direction (direction),
-                        INDEX idx_status (status),
-                        INDEX idx_created_at (created_at),
-
-                        FOREIGN KEY (webhook_id) REFERENCES webhooks(id) ON DELETE CASCADE
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """
-                )
-
-                # Webhook統計表
-                await cursor.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS webhook_statistics (
-                        id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                        webhook_id VARCHAR(32) NOT NULL,
-                        date DATE NOT NULL,
-                        total_requests INT DEFAULT 0,
-                        successful_requests INT DEFAULT 0,
-                        failed_requests INT DEFAULT 0,
-                        avg_response_time DECIMAL(8,3) DEFAULT 0.000,
-                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-                        UNIQUE KEY unique_webhook_date (webhook_id, date),
-                        INDEX idx_webhook_id (webhook_id),
-                        INDEX idx_date (date),
-
-                        FOREIGN KEY (webhook_id) REFERENCES webhooks(id) ON DELETE CASCADE
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """
-                )
+                await cursor.execute("SHOW TABLES LIKE 'webhook_statistics'")
+                if not await cursor.fetchone():
+                    raise RuntimeError("webhook_statistics 表不存在，請先初始化資料庫")
 
                 # 確保新欄位存在（向後相容：last_triggered）
                 await cursor.execute("SHOW COLUMNS FROM webhooks LIKE 'last_triggered'")

@@ -149,6 +149,45 @@ class SafeInteractionHandler:
             return False
 
 
+def apply_ephemeral_delete_after_policy(delete_after: float = 30.0) -> None:
+    """Auto-delete ephemeral messages without views after a short delay."""
+    if getattr(discord, "_ephemeral_delete_policy_applied", False):
+        return
+
+    setattr(discord, "_ephemeral_delete_policy_applied", True)
+
+    original_send_message = discord.InteractionResponse.send_message
+
+    async def patched_send_message(self, *args, **kwargs):
+        if (
+            kwargs.get("ephemeral")
+            and kwargs.get("delete_after") is None
+            and kwargs.get("view") is None
+        ):
+            kwargs["delete_after"] = delete_after
+        return await original_send_message(self, *args, **kwargs)
+
+    discord.InteractionResponse.send_message = patched_send_message
+
+    try:
+        from discord.webhook.async_ import Webhook as AsyncWebhook
+    except Exception:
+        from discord.webhook import Webhook as AsyncWebhook
+
+    original_webhook_send = AsyncWebhook.send
+
+    async def patched_webhook_send(self, *args, **kwargs):
+        if (
+            kwargs.get("ephemeral")
+            and kwargs.get("delete_after") is None
+            and kwargs.get("view") is None
+        ):
+            kwargs["delete_after"] = delete_after
+        return await original_webhook_send(self, *args, **kwargs)
+
+    AsyncWebhook.send = patched_webhook_send
+
+
 class InteractionContext:
     """互動上下文管理器"""
 

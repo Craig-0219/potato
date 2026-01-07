@@ -24,27 +24,20 @@ from potato_bot.views.vote_views import (
     VoteManagementView,
 )
 from potato_bot.utils.managed_cog import ManagedCog
-from potato_bot.utils.cog_loader import COGS_PREFIX
 from potato_shared.logger import logger
 
 
 class VoteCore(ManagedCog):
-    vote_sessions: Dict[int, Dict[str, Any]] = {}  # 類型提示
     _vote_cache: Dict[str, Dict[str, Any]] = {}  # 投票資料快取
     _cache_timeout = 300  # 快取 5 分鐘
 
     def __init__(self, bot):
         super().__init__(bot)
-        self._session_lock = asyncio.Lock()  # 防止併發問題
+        self._submit_locks: Dict[tuple[int, int], asyncio.Lock] = {}
 
     async def cog_load(self):
         """Cog 載入時執行的異步初始化"""
         try:
-            listener_ext = f"{COGS_PREFIX}vote.listener.vote_listener"
-            if listener_ext not in self.bot.extensions:
-                await self.bot.load_extension(listener_ext)
-                logger.info("✅ 已一併載入 vote.listener.vote_listener")
-
             self.announce_expired_votes.start()
             logger.info("VoteCore 背景任務已啟動")
         except Exception as e:
@@ -54,7 +47,6 @@ class VoteCore(ManagedCog):
         if hasattr(self, "announce_expired_votes"):
             self.announce_expired_votes.cancel()
         # 清理資源
-        VoteCore.vote_sessions.clear()
         VoteCore._vote_cache.clear()
         super().cog_unload()
 
@@ -120,11 +112,17 @@ class VoteCore(ManagedCog):
             if participation and isinstance(participation, dict):
                 participants = participation.get("unique_users", 0) or 0
 
+            normalized_stats = {}
+            if isinstance(stats, dict) and options:
+                normalized_stats = {opt: stats.get(opt, 0) for opt in options}
+            elif isinstance(stats, dict):
+                normalized_stats = stats
+
             return {
                 "vote": vote,
                 "options": options,
-                "stats": stats,
-                "total": sum(stats.values()),
+                "stats": normalized_stats,
+                "total": sum(normalized_stats.values()),
                 "participants": participants,
             }
         except Exception:
@@ -166,6 +164,59 @@ class VoteCore(ManagedCog):
                 await interaction.response.send_message(
                     "❌ 啟動投票創建時發生錯誤。", ephemeral=True
                 )
+
+    # ============ 現代化 GUI 投票系統 ============
+
+    @app_commands.command(name="quick_vote", description="🗳️ 快速創建投票 (現代GUI)")
+    async def quick_vote(self, interaction: discord.Interaction):
+        """快速創建投票的現代GUI界面"""
+        try:
+            # 檢查投票系統是否啟用
+            vote_settings = await vote_dao.get_vote_settings(interaction.guild.id)
+            if not vote_settings or not vote_settings.get("is_enabled", True):
+                await interaction.response.send_message(
+                    "❌ 投票系統目前已停用，請聯絡管理員", ephemeral=True
+                )
+                return
+
+            # 顯示快速投票模態
+            from potato_bot.views.vote_views import QuickVoteModal
+
+            modal = QuickVoteModal()
+            await interaction.response.send_modal(modal)
+
+        except Exception as e:
+            logger.error(f"快速投票命令錯誤: {e}")
+            await interaction.response.send_message("❌ 啟動快速投票時發生錯誤", ephemeral=True)
+
+    @app_commands.command(name="vote_panel", description="📊 投票管理面板 (現代GUI)")
+    @app_commands.default_permissions(manage_messages=True)
+    async def vote_panel(self, interaction: discord.Interaction):
+        """顯示投票管理面板"""
+        try:
+            embed = discord.Embed(
+                title="🗳️ 投票系統管理面板",
+                description="使用現代化GUI界面管理投票系統",
+                color=0x3498DB,
+            )
+
+            embed.add_field(
+                name="🎯 主要功能",
+                value="• 🗳️ 創建新投票\n• ⚙️ 管理現有投票\n• 📊 查看投票統計",
+                inline=False,
+            )
+
+            embed.add_field(
+                name="💡 使用說明",
+                value="點擊下方按鈕開始使用投票系統",
+                inline=False,
+            )
+
+            view = VoteManagementView()
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"投票面板命令錯誤: {e}")
 
     @app_commands.command(
         name="votes",
@@ -735,13 +786,6 @@ class VoteCore(ManagedCog):
 
     # ===== 核心功能方法 =====
 
-    async def finalize_vote(self, user_id: int, guild: discord.Guild):
-        """✅ 修復版本：正確的參數傳遞"""
-        async with self._session_lock:
-            session = VoteCore.vote_sessions.get(user_id)
-            if not session:
-                return
-
     async def handle_vote_submit(
         self,
         interaction: discord.Interaction,
@@ -750,48 +794,83 @@ class VoteCore(ManagedCog):
     ):
         """✅ 優化版本：更好的錯誤處理和效能"""
         try:
-            # ✅ 批次取得資料
-            data = await self._get_vote_full_data(vote_id)
-            if not data:
-                await interaction.response.send_message("❌ 找不到此投票。", ephemeral=True)
-                return
+            lock_key = (vote_id, interaction.user.id)
+            lock = self._submit_locks.setdefault(lock_key, asyncio.Lock())
 
-            vote = data["vote"]
+            async with lock:
+                # ✅ 批次取得資料
+                data = await self._get_vote_full_data(vote_id)
+                if not data:
+                    await interaction.response.send_message("❌ 找不到此投票。", ephemeral=True)
+                    return
 
-            # ✅ 權限檢查優化
-            if vote["allowed_roles"] and not self._check_user_permission(
-                interaction.user, vote["allowed_roles"]
-            ):
-                await interaction.response.send_message("❌ 你沒有權限參與此投票。", ephemeral=True)
-                return
+                vote = data["vote"]
 
-            # ✅ 重複投票檢查
-            if await vote_dao.has_voted(vote_id, interaction.user.id):
-                await interaction.response.send_message(
-                    "❗ 你已參與過此投票，不能重複投票。", ephemeral=True
+                # ✅ 投票時間檢查
+                end_time = vote.get("end_time")
+                if end_time and end_time.tzinfo is None:
+                    end_time = end_time.replace(tzinfo=timezone.utc)
+                if end_time and datetime.now(timezone.utc) >= end_time:
+                    await interaction.response.send_message("❌ 此投票已結束。", ephemeral=True)
+                    return
+
+                # ✅ 基本選項驗證
+                if not selected_options:
+                    await interaction.response.send_message("❌ 請至少選擇一個選項。", ephemeral=True)
+                    return
+
+                deduped = []
+                seen = set()
+                for opt in selected_options:
+                    if isinstance(opt, str) and opt not in seen:
+                        seen.add(opt)
+                        deduped.append(opt)
+                selected_options = deduped
+
+                if not vote.get("is_multi") and len(selected_options) > 1:
+                    await interaction.response.send_message("❌ 單選投票只能選擇一個選項。", ephemeral=True)
+                    return
+
+                valid_options = set(data["options"])
+                invalid = [opt for opt in selected_options if opt not in valid_options]
+                if invalid:
+                    await interaction.response.send_message("❌ 你選擇的選項已失效。", ephemeral=True)
+                    return
+
+                # ✅ 權限檢查優化
+                if vote["allowed_roles"] and not self._check_user_permission(
+                    interaction.user, vote["allowed_roles"]
+                ):
+                    await interaction.response.send_message("❌ 你沒有權限參與此投票。", ephemeral=True)
+                    return
+
+                # ✅ 重複投票檢查
+                if await vote_dao.has_voted(vote_id, interaction.user.id):
+                    await interaction.response.send_message(
+                        "❗ 你已參與過此投票，不能重複投票。", ephemeral=True
+                    )
+                    return
+
+                # ✅ 批次插入投票結果
+                await asyncio.gather(
+                    *[
+                        vote_dao.insert_vote_response(vote_id, interaction.user.id, opt)
+                        for opt in selected_options
+                    ]
                 )
-                return
 
-            # ✅ 批次插入投票結果
-            await asyncio.gather(
-                *[
-                    vote_dao.insert_vote_response(vote_id, interaction.user.id, opt)
-                    for opt in selected_options
-                ]
-            )
+                await interaction.response.send_message(
+                    f"🎉 投票成功！你選擇了：{', '.join(selected_options)}",
+                    ephemeral=True,
+                )
 
-            await interaction.response.send_message(
-                f"🎉 投票成功！你選擇了：{', '.join(selected_options)}",
-                ephemeral=True,
-            )
+                # ✅ 清除快取，強制重新載入
+                cache_key = f"vote_{vote_id}"
+                if cache_key in self._vote_cache:
+                    del self._vote_cache[cache_key]
 
-            # ✅ 清除快取，強制重新載入
-            cache_key = f"vote_{vote_id}"
-            if cache_key in self._vote_cache:
-                del self._vote_cache[cache_key]
-
-            # ✅ 更新 UI（非阻塞）
-            self.create_task(self._update_vote_ui(interaction, vote_id))
+                # ✅ 更新 UI（非阻塞）
+                self.create_task(self._update_vote_ui(interaction, vote_id))
 
         except Exception:
 
@@ -852,27 +931,6 @@ class VoteCore(ManagedCog):
             await vote_dao.mark_vote_announced(vote["id"])
         except Exception as e:
             logger.error(f"處理過期投票失敗: {e}")
-
-    async def _cleanup_expired_sessions(self):
-        """✅ 清理過期的建立投票 session"""
-        try:
-            now = datetime.now(timezone.utc)
-            expired_users = []
-
-            async with self._session_lock:
-                for user_id, session in list(VoteCore.vote_sessions.items()):
-                    last_activity = session.get("last_activity", session.get("start_time"))
-                    if (now - last_activity).total_seconds() > 1800:  # 30 分鐘過期
-                        expired_users.append(user_id)
-
-                for user_id in expired_users:
-                    VoteCore.vote_sessions.pop(user_id, None)
-
-            if expired_users:
-                logger.info(f"清理了 {len(expired_users)} 個過期的投票會話")
-
-        except Exception as e:
-            logger.error(f"清理過期會話時發生錯誤: {e}")
 
     # ✅ 輔助方法優化
     def _check_user_permission(self, user: discord.Member, allowed_roles: List[int]) -> bool:
@@ -989,59 +1047,6 @@ class NextPageButton(discord.ui.Button):
         cog = interaction.client.get_cog("VoteCore")
         if cog:
             await cog.vote_history.callback(cog, interaction, new_page, view.status)
-
-    # ============ 現代化 GUI 投票系統 ============
-
-    @app_commands.command(name="quick_vote", description="🗳️ 快速創建投票 (現代GUI)")
-    async def quick_vote(self, interaction: discord.Interaction):
-        """快速創建投票的現代GUI界面"""
-        try:
-            # 檢查投票系統是否啟用
-            vote_settings = await vote_dao.get_vote_settings(interaction.guild.id)
-            if not vote_settings or not vote_settings.get("is_enabled", True):
-                await interaction.response.send_message(
-                    "❌ 投票系統目前已停用，請聯絡管理員", ephemeral=True
-                )
-                return
-
-            # 顯示快速投票模態
-            from potato_bot.views.vote_views import QuickVoteModal
-
-            modal = QuickVoteModal()
-            await interaction.response.send_modal(modal)
-
-        except Exception as e:
-            logger.error(f"快速投票命令錯誤: {e}")
-            await interaction.response.send_message("❌ 啟動快速投票時發生錯誤", ephemeral=True)
-
-    @app_commands.command(name="vote_panel", description="📊 投票管理面板 (現代GUI)")
-    @app_commands.default_permissions(manage_messages=True)
-    async def vote_panel(self, interaction: discord.Interaction):
-        """顯示投票管理面板"""
-        try:
-            embed = discord.Embed(
-                title="🗳️ 投票系統管理面板",
-                description="使用現代化GUI界面管理投票系統",
-                color=0x3498DB,
-            )
-
-            embed.add_field(
-                name="🎯 主要功能",
-                value="• 🗳️ 創建新投票\n• ⚙️ 管理現有投票\n• 📊 查看投票統計",
-                inline=False,
-            )
-
-            embed.add_field(
-                name="💡 使用說明",
-                value="點擊下方按鈕開始使用投票系統",
-                inline=False,
-            )
-
-            view = VoteManagementView()
-            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
-
-        except Exception as e:
-            logger.error(f"投票面板命令錯誤: {e}")
             await interaction.response.send_message("❌ 載入投票面板時發生錯誤", ephemeral=True)
 
 

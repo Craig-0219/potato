@@ -1,5 +1,5 @@
 """
-Resume views: panel, modal, review actions.
+履歷系統視圖：面板、表單、審核操作。
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from potato_shared.logger import logger
 
 
 class ResumeApplyModal(discord.ui.Modal):
-    """Resume submission form."""
+    """履歷提交表單。"""
 
     def __init__(
         self,
@@ -24,7 +24,7 @@ class ResumeApplyModal(discord.ui.Modal):
         dao: ResumeDAO,
         settings: ResumeCompanySettings,
         *,
-        title: str = "Resume Submission",
+        title: str = "履歷申請",
         prefill: Optional[Dict[str, Any]] = None,
         app_id: Optional[int] = None,
     ):
@@ -36,33 +36,33 @@ class ResumeApplyModal(discord.ui.Modal):
         self.existing_app_id = app_id
 
         self.full_name = discord.ui.TextInput(
-            label="Full name",
+            label="DC名稱/城內名稱",
             max_length=64,
             required=True,
             default=str(self.prefill.get("full_name", ""))[:64],
         )
         self.contact = discord.ui.TextInput(
-            label="Contact (email/phone)",
+            label="年齡",
             max_length=128,
             required=True,
             default=str(self.prefill.get("contact", ""))[:128],
         )
         self.experience = discord.ui.TextInput(
-            label="Experience summary (1000 chars)",
+            label="經歷摘要&為何想加入（最多1000字）",
             style=discord.TextStyle.paragraph,
             max_length=1000,
             required=True,
             default=str(self.prefill.get("experience", ""))[:1000],
         )
         self.skills = discord.ui.TextInput(
-            label="Skills / tools",
+            label="上線時段",
             style=discord.TextStyle.paragraph,
-            max_length=1000,
+            max_length=50,
             required=True,
             default=str(self.prefill.get("skills", ""))[:1000],
         )
         self.portfolio = discord.ui.TextInput(
-            label="Portfolio / links (optional)",
+            label="是否能配合公司規章制度？若不能請說明原因（最多1000字）",
             style=discord.TextStyle.paragraph,
             max_length=1000,
             required=False,
@@ -82,12 +82,12 @@ class ResumeApplyModal(discord.ui.Modal):
         guild = interaction.guild
         if not guild:
             await interaction.response.send_message(
-                "This feature can only be used in a guild.", ephemeral=True
+                "此功能只能在伺服器中使用。", ephemeral=True
             )
             return
 
         if not self.settings.is_enabled:
-            await interaction.response.send_message("This company is disabled.", ephemeral=True)
+            await interaction.response.send_message("此公司目前已停用。", ephemeral=True)
             return
 
         review_channel = (
@@ -97,14 +97,14 @@ class ResumeApplyModal(discord.ui.Modal):
         )
         if not review_channel:
             await interaction.response.send_message(
-                "Review channel is not configured. Please contact an admin.",
+                "尚未設定審核頻道，請聯絡管理員。",
                 ephemeral=True,
             )
             return
 
         if await self.dao.has_pending(guild.id, self.settings.company_id, interaction.user.id):
             await interaction.response.send_message(
-                "You already have a pending application for this company.",
+                "你已經有此公司的待審履歷，請等待審核。",
                 ephemeral=True,
             )
             return
@@ -173,20 +173,20 @@ class ResumeApplyModal(discord.ui.Modal):
             except Exception:
                 pass
         except Exception as send_error:
-            logger.error(f"Failed to send resume review card: {send_error}")
+            logger.error(f"送出履歷審核卡失敗: {send_error}")
             await interaction.response.send_message(
-                "Failed to send review card. Please contact an admin.",
+                "送出審核卡片失敗，請聯絡管理員。",
                 ephemeral=True,
             )
             return
 
         await interaction.response.send_message(
-            f"Application #{app_id} submitted. Please wait for review.", ephemeral=True
+            f"已提交履歷申請 #{app_id}，請等待審核。", ephemeral=True
         )
 
 
 class ResumePanelView(discord.ui.View):
-    """Resume panel persistent view."""
+    """履歷面板常駐 View。"""
 
     def __init__(self, bot: commands.Bot, dao: ResumeDAO, settings: ResumeCompanySettings):
         super().__init__(timeout=None)
@@ -194,7 +194,7 @@ class ResumePanelView(discord.ui.View):
         self.dao = dao
         self.settings = settings
 
-        label = f"Apply - {settings.company_name}".strip()
+        label = f"填寫{settings.company_name}履歷申請".strip()
         if len(label) > 80:
             label = label[:80]
         button = discord.ui.Button(
@@ -208,7 +208,7 @@ class ResumePanelView(discord.ui.View):
     async def apply_button(self, interaction: discord.Interaction):
         if not interaction.guild:
             await interaction.response.send_message(
-                "This feature can only be used in a guild.", ephemeral=True
+                "此功能只能在伺服器中使用。", ephemeral=True
             )
             return
         latest = await self.dao.get_latest_application(
@@ -218,10 +218,10 @@ class ResumePanelView(discord.ui.View):
             statuses=["NEED_MORE"],
         )
         prefill = {}
-        title = "Resume Submission"
+        title = "履歷申請"
         app_id = None
         if latest:
-            title = "Resume Submission (Update)"
+            title = "履歷申請（補件）"
             app_id = latest.get("id")
             answers_json = latest.get("answers_json")
             if isinstance(answers_json, str):
@@ -244,7 +244,7 @@ class ResumePanelView(discord.ui.View):
 
 
 class ResumeReviewView(discord.ui.View):
-    """Resume review persistent view."""
+    """履歷審核常駐 View。"""
 
     def __init__(
         self,
@@ -270,13 +270,13 @@ class ResumeReviewView(discord.ui.View):
         review_role_ids = self.settings.review_role_ids or []
         if not review_role_ids:
             await interaction.response.send_message(
-                "Reviewer roles are not configured for this company.",
+                "此公司尚未設定審核身分組。",
                 ephemeral=True,
             )
             return False
         if any(role.id in review_role_ids for role in interaction.user.roles):
             return True
-        await interaction.response.send_message("You do not have review permission.", ephemeral=True)
+        await interaction.response.send_message("你沒有審核權限。", ephemeral=True)
         return False
 
     async def _notify_applicant(
@@ -287,13 +287,13 @@ class ResumeReviewView(discord.ui.View):
         note: Optional[str] = None,
     ) -> None:
         status_text = {
-            "APPROVED": "APPROVED",
-            "DENIED": "DENIED",
-            "NEED_MORE": "NEED MORE INFO",
+            "APPROVED": "通過",
+            "DENIED": "拒絕",
+            "NEED_MORE": "需補件",
         }.get(status, status)
         embed = discord.Embed(
-            title="Resume Review Result",
-            description=f"Company: {self.settings.company_name}\nStatus: {status_text}",
+            title="履歷審核結果",
+            description=f"公司：{self.settings.company_name}\n狀態：{status_text}",
             color={
                 "APPROVED": 0x2ECC71,
                 "DENIED": 0xE74C3C,
@@ -301,7 +301,7 @@ class ResumeReviewView(discord.ui.View):
             }.get(status, 0x3498DB),
         )
         if note:
-            embed.add_field(name="Note", value=note[:1024], inline=False)
+            embed.add_field(name="備註", value=note[:1024], inline=False)
         try:
             member = guild.get_member(user_id) or await self.bot.fetch_user(user_id)
             if member:
@@ -313,17 +313,17 @@ class ResumeReviewView(discord.ui.View):
         await interaction.response.defer(ephemeral=True)
         app = await self.dao.get_application(self.app_id)
         if not app:
-            await interaction.followup.send("Application not found.", ephemeral=True)
+            await interaction.followup.send("找不到申請資料。", ephemeral=True)
             return
 
         applicant_id = app.get("user_id", self.applicant_id)
         if app.get("status") not in ("PENDING", "NEED_MORE"):
-            await interaction.followup.send("Application already processed.", ephemeral=True)
+            await interaction.followup.send("申請已處理。", ephemeral=True)
             return
 
         updated = await self.dao.set_status(self.app_id, status, interaction.user.id, note)
         if not updated:
-            await interaction.followup.send("Application already handled by another reviewer.", ephemeral=True)
+            await interaction.followup.send("申請已被其他審核員處理。", ephemeral=True)
             return
 
         answers = app.get("answers_json")
@@ -359,21 +359,28 @@ class ResumeReviewView(discord.ui.View):
             pass
 
         await self._notify_applicant(interaction.guild, applicant_id, status, note)
-        await interaction.followup.send(f"Updated application #{self.app_id} to {status}.", ephemeral=True)
+        status_display = {
+            "APPROVED": "通過",
+            "DENIED": "拒絕",
+            "NEED_MORE": "需補件",
+        }.get(status, status)
+        await interaction.followup.send(
+            f"已將申請 #{self.app_id} 更新為 {status_display}。", ephemeral=True
+        )
 
-    @discord.ui.button(label="Approve", style=discord.ButtonStyle.success, custom_id="resume:approve")
+    @discord.ui.button(label="通過", style=discord.ButtonStyle.success, custom_id="resume:approve")
     async def approve(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not await self._check_reviewer(interaction):
             return
         await self._mark_done(interaction, "APPROVED")
 
-    @discord.ui.button(label="Deny", style=discord.ButtonStyle.danger, custom_id="resume:deny")
+    @discord.ui.button(label="拒絕", style=discord.ButtonStyle.danger, custom_id="resume:deny")
     async def deny(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not await self._check_reviewer(interaction):
             return
         await interaction.response.send_modal(ResumeReasonModal(self, status="DENIED"))
 
-    @discord.ui.button(label="Need More", style=discord.ButtonStyle.secondary, custom_id="resume:needmore")
+    @discord.ui.button(label="需補件", style=discord.ButtonStyle.secondary, custom_id="resume:needmore")
     async def need_more(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not await self._check_reviewer(interaction):
             return
@@ -381,14 +388,14 @@ class ResumeReviewView(discord.ui.View):
 
 
 class ResumeReasonModal(discord.ui.Modal):
-    """Review reason modal (optional)."""
+    """審核備註表單（選填）。"""
 
     def __init__(self, review_view: ResumeReviewView, status: str):
-        super().__init__(title="Review note (optional)", timeout=180)
+        super().__init__(title="審核備註（選填）", timeout=180)
         self.review_view = review_view
         self.status = status
         self.note = discord.ui.TextInput(
-            label="Note", style=discord.TextStyle.paragraph, required=False, max_length=500
+            label="備註", style=discord.TextStyle.paragraph, required=False, max_length=500
         )
         self.add_item(self.note)
 
@@ -409,10 +416,10 @@ def build_review_embed(
 ) -> discord.Embed:
     status_code = status or "PENDING"
     status_text = {
-        "PENDING": "PENDING",
-        "APPROVED": "APPROVED",
-        "DENIED": "DENIED",
-        "NEED_MORE": "NEED MORE INFO",
+        "PENDING": "待審核",
+        "APPROVED": "通過",
+        "DENIED": "拒絕",
+        "NEED_MORE": "需補件",
     }.get(status_code, status_code)
     color_map = {
         "PENDING": 0x3498DB,
@@ -423,22 +430,22 @@ def build_review_embed(
     mention = applicant.mention if applicant else f"<@{applicant_id}>"
     display_id = applicant.id if applicant else applicant_id
     embed = discord.Embed(
-        title=f"Resume Application #{app_id}",
-        description=f"Company: {company_name}\nApplicant: {mention} (`{display_id}`)",
+        title=f"履歷申請 #{app_id}",
+        description=f"公司：{company_name}\n申請人：{mention} (`{display_id}`)",
         color=color_map.get(status_code, 0x3498DB),
     )
-    embed.add_field(name="Full name", value=answers.get("full_name", "N/A"), inline=False)
-    embed.add_field(name="Contact", value=answers.get("contact", "N/A"), inline=False)
+    embed.add_field(name="姓名", value=answers.get("full_name", "未填"), inline=False)
+    embed.add_field(name="聯絡方式", value=answers.get("contact", "未填"), inline=False)
     embed.add_field(
-        name="Experience summary", value=answers.get("experience", "N/A")[:1024], inline=False
+        name="經歷摘要", value=answers.get("experience", "未填")[:1024], inline=False
     )
-    embed.add_field(name="Skills / tools", value=answers.get("skills", "N/A")[:1024], inline=False)
+    embed.add_field(name="技能 / 工具", value=answers.get("skills", "未填")[:1024], inline=False)
     embed.add_field(
-        name="Portfolio / links", value=answers.get("portfolio", "N/A")[:1024], inline=False
+        name="作品集 / 連結", value=answers.get("portfolio", "未填")[:1024], inline=False
     )
-    embed.add_field(name="Status", value=status_text, inline=False)
+    embed.add_field(name="狀態", value=status_text, inline=False)
     if reviewer:
-        embed.add_field(name="Reviewer", value=reviewer.mention, inline=False)
+        embed.add_field(name="審核員", value=reviewer.mention, inline=False)
     if note:
-        embed.add_field(name="Note", value=note[:1024], inline=False)
+        embed.add_field(name="備註", value=note[:1024], inline=False)
     return embed

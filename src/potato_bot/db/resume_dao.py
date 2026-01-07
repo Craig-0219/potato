@@ -27,55 +27,21 @@ class ResumeDAO(BaseDAO):
         self._tables_initialized = True
 
     async def _ensure_tables(self) -> None:
-        """Create required tables if missing."""
+        """Check required tables exist."""
         try:
             async with db_pool.connection() as conn:
                 async with conn.cursor() as cursor:
-                    await cursor.execute(
-                        """
-                        CREATE TABLE IF NOT EXISTS resume_companies (
-                            id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                            guild_id BIGINT NOT NULL,
-                            company_name VARCHAR(100) NOT NULL,
-                            panel_channel_id BIGINT NULL,
-                            review_channel_id BIGINT NULL,
-                            review_role_ids JSON NULL,
-                            panel_message_id BIGINT NULL,
-                            is_enabled BOOLEAN DEFAULT TRUE,
-                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                            UNIQUE KEY uniq_guild_company (guild_id, company_name),
-                            INDEX idx_guild (guild_id)
-                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-                        """
-                    )
+                    await cursor.execute("SHOW TABLES LIKE 'resume_companies'")
+                    if not await cursor.fetchone():
+                        raise RuntimeError("resume_companies 表不存在，請先初始化資料庫")
 
-                    await cursor.execute(
-                        """
-                        CREATE TABLE IF NOT EXISTS resume_applications (
-                            id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                            guild_id BIGINT NOT NULL,
-                            company_id BIGINT NOT NULL,
-                            user_id BIGINT NOT NULL,
-                            username VARCHAR(255),
-                            answers_json JSON,
-                            status VARCHAR(20) DEFAULT 'PENDING',
-                            reviewer_id BIGINT NULL,
-                            reviewer_note TEXT NULL,
-                            review_message_id BIGINT NULL,
-                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            reviewed_at TIMESTAMP NULL,
-                            INDEX idx_guild_user_status (guild_id, user_id, status),
-                            INDEX idx_company_status (company_id, status),
-                            FOREIGN KEY (company_id) REFERENCES resume_companies(id) ON DELETE CASCADE
-                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-                        """
-                    )
+                    await cursor.execute("SHOW TABLES LIKE 'resume_applications'")
+                    if not await cursor.fetchone():
+                        raise RuntimeError("resume_applications 表不存在，請先初始化資料庫")
 
-                    await conn.commit()
             logger.info("✅ resume 資料表檢查完成")
         except Exception as e:
-            logger.error(f"❌ 建立 resume 資料表失敗: {e}")
+            logger.error(f"❌ 檢查 resume 資料表失敗: {e}")
             raise
 
     # --------- Company settings ----------

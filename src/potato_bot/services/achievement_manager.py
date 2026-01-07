@@ -772,36 +772,3 @@ class AchievementManager:
 
 # 全域實例
 achievement_manager = AchievementManager()
-
-# ========== 數據庫初始化 ==========
-
-
-async def ensure_achievement_tables():
-    """確保成就相關表格存在"""
-    try:
-        async with db_pool.connection() as conn:
-            async with conn.cursor() as cursor:
-                # 用戶成就表
-                await cursor.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS user_achievements (
-                        user_id BIGINT NOT NULL,
-                        guild_id BIGINT NOT NULL,
-                        achievement_id VARCHAR(50) NOT NULL,
-                        unlocked_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                        progress JSON,
-
-                        PRIMARY KEY (user_id, guild_id, achievement_id),
-                        INDEX idx_user_guild (user_id, guild_id),
-                        INDEX idx_achievement (achievement_id),
-                        INDEX idx_unlocked_at (unlocked_at)
-                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-                """
-                )
-
-                await conn.commit()
-                logger.info("✅ 成就相關表格檢查完成")
-
-    except Exception as e:
-        logger.error(f"❌ 建立成就表格失敗: {e}")
-        raise

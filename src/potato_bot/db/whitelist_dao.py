@@ -27,50 +27,17 @@ class WhitelistDAO(BaseDAO):
         self._tables_initialized = True
 
     async def _ensure_tables(self) -> None:
-        """建立所需資料表"""
+        """檢查所需資料表與欄位"""
         try:
             async with db_pool.connection() as conn:
                 async with conn.cursor() as cursor:
-                    # 申請表
-                    await cursor.execute(
-                        """
-                        CREATE TABLE IF NOT EXISTS whitelist_applications (
-                            id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                            guild_id BIGINT NOT NULL,
-                            user_id BIGINT NOT NULL,
-                            username VARCHAR(255),
-                            answers_json JSON,
-                            status VARCHAR(20) DEFAULT 'PENDING',
-                            reviewer_id BIGINT NULL,
-                            reviewer_note TEXT NULL,
-                            review_message_id BIGINT NULL,
-                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            reviewed_at TIMESTAMP NULL,
-                            INDEX idx_guild_user_status (guild_id, user_id, status),
-                            INDEX idx_status (status)
-                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-                        """
-                    )
+                    await cursor.execute("SHOW TABLES LIKE 'whitelist_applications'")
+                    if not await cursor.fetchone():
+                        raise RuntimeError("whitelist_applications 表不存在，請先初始化資料庫")
 
-                    # 設定表
-                    await cursor.execute(
-                        """
-                        CREATE TABLE IF NOT EXISTS whitelist_settings (
-                            guild_id BIGINT PRIMARY KEY,
-                            panel_channel_id BIGINT NULL,
-                            review_channel_id BIGINT NULL,
-                            result_channel_id BIGINT NULL,
-                            role_newcomer_ids JSON NULL,
-                            role_citizen_id BIGINT NULL,
-                            role_staff_id BIGINT NULL,
-                            nickname_role_id BIGINT NULL,
-                            nickname_prefix VARCHAR(32) NULL,
-                            panel_message_id BIGINT NULL,
-                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-                        """
-                    )
+                    await cursor.execute("SHOW TABLES LIKE 'whitelist_settings'")
+                    if not await cursor.fetchone():
+                        raise RuntimeError("whitelist_settings 表不存在，請先初始化資料庫")
 
                     # 向後相容：補齊暱稱設定欄位
                     await cursor.execute(
@@ -125,7 +92,7 @@ class WhitelistDAO(BaseDAO):
                     await conn.commit()
             logger.info("✅ whitelist 資料表檢查完成")
         except Exception as e:
-            logger.error(f"❌ 建立 whitelist 資料表失敗: {e}")
+            logger.error(f"❌ 檢查 whitelist 資料表失敗: {e}")
             raise
 
     # --------- Applications ----------
