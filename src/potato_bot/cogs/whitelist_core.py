@@ -46,12 +46,15 @@ class WhitelistCore(ManagedCog):
             # 面板 view（依各 guild 設定）
             for guild in self.bot.guilds:
                 settings = await self.service.load_settings(guild.id)
-                if settings.panel_message_id:
+                if settings.panel_channel_id:
                     panel_view = PanelView(self.bot, self.dao, settings)
-                    try:
-                        self.bot.add_view(panel_view, message_id=settings.panel_message_id)
-                    except Exception:
-                        pass
+                    message = await self.panel_service.ensure_panel_message(settings, panel_view)
+                    message_id = settings.panel_message_id or (message.id if message else None)
+                    if message_id:
+                        try:
+                            self.bot.add_view(panel_view, message_id=message_id)
+                        except Exception:
+                            pass
 
             # 審核 view
             pending = await self.dao.list_pending_with_message()

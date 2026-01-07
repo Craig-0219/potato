@@ -298,6 +298,9 @@ class PotatoBot(commands.Bot):
             self.startup_time = discord.utils.utcnow()
         logger.info(f"🤖 Bot 已登入：{self.user} (ID: {self.user.id})")
         logger.info(f"🏠 已連接 {len(self.guilds)} 個伺服器")
+        if self.guilds:
+            guild_list = ", ".join([f"{g.name}({g.id})" for g in self.guilds])
+            logger.info(f"🧾 伺服器清單：{guild_list}")
 
         activity = discord.Activity(
             type=discord.ActivityType.watching,
