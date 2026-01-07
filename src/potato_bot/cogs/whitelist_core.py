@@ -34,6 +34,7 @@ class WhitelistCore(ManagedCog):
         # 重新綁定 pending 審核 view
         await self._rebind_pending_views()
 
+    @commands.Cog.listener()
     async def on_ready(self):
         if self._ready:
             return
@@ -49,7 +50,7 @@ class WhitelistCore(ManagedCog):
                 if settings.panel_channel_id:
                     panel_view = PanelView(self.bot, self.dao, settings)
                     message = await self.panel_service.ensure_panel_message(settings, panel_view)
-                    message_id = settings.panel_message_id or (message.id if message else None)
+                    message_id = message.id if message else settings.panel_message_id
                     if message_id:
                         try:
                             self.bot.add_view(panel_view, message_id=message_id)
@@ -96,11 +97,13 @@ class WhitelistCore(ManagedCog):
             await self.service.save_settings(guild.id, panel_channel_id=settings.panel_channel_id)
 
         panel_view = PanelView(self.bot, self.dao, settings)
-        await self.panel_service.ensure_panel_message(settings, panel_view)
+        message = await self.panel_service.ensure_panel_message(settings, panel_view)
 
         # 註冊 persistent view（無 message_id 仍可讓新訊息工作）
         try:
-            self.bot.add_view(panel_view, message_id=settings.panel_message_id)
+            message_id = message.id if message else settings.panel_message_id
+            if message_id:
+                self.bot.add_view(panel_view, message_id=message_id)
         except Exception:
             pass
 
@@ -139,9 +142,11 @@ class WhitelistCore(ManagedCog):
         # 立即刷新申請面板，避免需要重啟
         panel_view = PanelView(self.bot, self.dao, settings)
         try:
-            await self.panel_service.ensure_panel_message(settings, panel_view)
+            message = await self.panel_service.ensure_panel_message(settings, panel_view)
             try:
-                self.bot.add_view(panel_view, message_id=settings.panel_message_id)
+                message_id = message.id if message else settings.panel_message_id
+                if message_id:
+                    self.bot.add_view(panel_view, message_id=message_id)
             except Exception:
                 pass
         except Exception as e:

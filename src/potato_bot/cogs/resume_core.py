@@ -32,6 +32,7 @@ class ResumeCore(ManagedCog):
         await self.dao._ensure_tables()
         await self._rebind_pending_views()
 
+    @commands.Cog.listener()
     async def on_ready(self):
         if self._ready:
             return
