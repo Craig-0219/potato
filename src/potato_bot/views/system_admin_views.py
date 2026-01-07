@@ -79,7 +79,7 @@ class SystemAdminPanel(BaseView):
             embed = await self._create_whitelist_settings_embed(
                 interaction.guild, settings=settings
             )
-            view = WhitelistSettingsView(self.user_id, interaction.guild, settings=settings)
+            view = WhitelistSettingsView(self.user_id, interaction.guild)
             await SafeInteractionHandler.safe_respond(
                 interaction,
                 embed=embed,
@@ -342,47 +342,16 @@ class SystemAdminPanel(BaseView):
 class WhitelistSettingsView(View):
     """入境審核設定選單"""
 
-    def __init__(self, user_id: int, guild: discord.Guild, settings=None, timeout=300):
+    def __init__(self, user_id: int, guild: discord.Guild, timeout=300):
         super().__init__(timeout=timeout)
         self.user_id = user_id
         self.guild = guild
-        self.settings = settings
         self.service = WhitelistService(WhitelistDAO())
 
         # 頻道選單各佔一行，避免寬度限制
-        self.add_item(
-            WhitelistChannelSelect(
-                "panel_channel_id",
-                "選擇申請面板頻道",
-                self,
-                row=0,
-                default_values=self._channel_defaults(
-                    self.settings.panel_channel_id if self.settings else None
-                ),
-            )
-        )
-        self.add_item(
-            WhitelistChannelSelect(
-                "review_channel_id",
-                "選擇審核頻道",
-                self,
-                row=1,
-                default_values=self._channel_defaults(
-                    self.settings.review_channel_id if self.settings else None
-                ),
-            )
-        )
-        self.add_item(
-            WhitelistChannelSelect(
-                "result_channel_id",
-                "選擇結果公告頻道",
-                self,
-                row=2,
-                default_values=self._channel_defaults(
-                    self.settings.result_channel_id if self.settings else None
-                ),
-            )
-        )
+        self.add_item(WhitelistChannelSelect("panel_channel_id", "選擇申請面板頻道", self, row=0))
+        self.add_item(WhitelistChannelSelect("review_channel_id", "選擇審核頻道", self, row=1))
+        self.add_item(WhitelistChannelSelect("result_channel_id", "選擇結果公告頻道", self, row=2))
 
         # 角色設定改為子面板
         self.add_item(OpenRoleSettingsButton(self.user_id, self.guild, self.service, row=3))
@@ -418,20 +387,8 @@ class WhitelistSettingsView(View):
         # 重新載入摘要並更新訊息
         panel = SystemAdminPanel(self.user_id)
         embed = await panel._create_whitelist_settings_embed(self.guild, settings=settings)
-        view = WhitelistSettingsView(self.user_id, self.guild, settings=settings)
+        view = WhitelistSettingsView(self.user_id, self.guild)
         await interaction.response.edit_message(embed=embed, view=view)
-
-    def _channel_defaults(self, channel_id: int | None):
-        if not channel_id:
-            return []
-        channel = self.guild.get_channel(channel_id)
-        if not channel:
-            return []
-        return [
-            discord.SelectDefaultValue(
-                id=channel.id, type=discord.SelectDefaultValueType.channel
-            )
-        ]
 
 
 class WhitelistChannelSelect(ChannelSelect):
@@ -443,7 +400,6 @@ class WhitelistChannelSelect(ChannelSelect):
         placeholder: str,
         parent_view: WhitelistSettingsView,
         row: int | None = None,
-        default_values=None,
     ):
         self.field_key = field_key
         self.parent_view = parent_view
@@ -453,7 +409,6 @@ class WhitelistChannelSelect(ChannelSelect):
             max_values=1,
             channel_types=[discord.ChannelType.text],
             row=row,
-            default_values=default_values,
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -471,7 +426,6 @@ class WhitelistRoleSelect(RoleSelect):
         parent_view: WhitelistSettingsView,
         row: int | None = None,
         max_values: int = 1,
-        default_values=None,
     ):
         self.field_key = field_key
         self.parent_view = parent_view
@@ -480,7 +434,6 @@ class WhitelistRoleSelect(RoleSelect):
             min_values=1,
             max_values=max_values,
             row=row,
-            default_values=default_values,
         )
 
     async def callback(self, interaction: discord.Interaction):
@@ -525,9 +478,7 @@ class OpenRoleSettingsButton(Button):
         settings = await self.service.load_settings(self.guild.id)
         panel = SystemAdminPanel(self.user_id)
         embed = await panel._create_whitelist_settings_embed(self.guild, settings=settings)
-        view = WhitelistRoleSettingsView(
-            self.user_id, self.guild, self.service, settings=settings
-        )
+        view = WhitelistRoleSettingsView(self.user_id, self.guild, self.service)
         await interaction.response.edit_message(embed=embed, view=view)
 
 
@@ -539,26 +490,14 @@ class WhitelistRoleSettingsView(View):
         user_id: int,
         guild: discord.Guild,
         service: WhitelistService,
-        settings=None,
         timeout=300,
     ):
         super().__init__(timeout=timeout)
         self.user_id = user_id
         self.guild = guild
         self.service = service
-        self.settings = settings
 
-        self.add_item(
-            WhitelistRoleSelect(
-                "role_staff_id",
-                "選擇審核員身分組",
-                self,
-                row=0,
-                default_values=self._role_defaults(
-                    [self.settings.role_staff_id] if self.settings else []
-                ),
-            )
-        )
+        self.add_item(WhitelistRoleSelect("role_staff_id", "選擇審核員身分組", self, row=0))
         self.add_item(
             WhitelistRoleSelect(
                 "role_newcomer_ids",
@@ -566,34 +505,10 @@ class WhitelistRoleSettingsView(View):
                 self,
                 row=1,
                 max_values=10,
-                default_values=self._role_defaults(
-                    self.settings.role_newcomer_ids if self.settings else [],
-                    max_values=10,
-                ),
             )
         )
-        self.add_item(
-            WhitelistRoleSelect(
-                "role_citizen_id",
-                "選擇市民身分組",
-                self,
-                row=2,
-                default_values=self._role_defaults(
-                    [self.settings.role_citizen_id] if self.settings else []
-                ),
-            )
-        )
-        self.add_item(
-            WhitelistRoleSelect(
-                "nickname_role_id",
-                "選擇暱稱套用身分組",
-                self,
-                row=3,
-                default_values=self._role_defaults(
-                    [self.settings.nickname_role_id] if self.settings else []
-                ),
-            )
-        )
+        self.add_item(WhitelistRoleSelect("role_citizen_id", "選擇市民身分組", self, row=2))
+        self.add_item(WhitelistRoleSelect("nickname_role_id", "選擇暱稱套用身分組", self, row=3))
         self.add_item(WhitelistPrefixButton(self.user_id, self.guild, self.service, row=4))
         self.add_item(BackToWhitelistButton(self.user_id, self.guild, self.service, row=4))
 
@@ -624,20 +539,8 @@ class WhitelistRoleSettingsView(View):
 
         panel = SystemAdminPanel(self.user_id)
         embed = await panel._create_whitelist_settings_embed(self.guild, settings=settings)
-        view = WhitelistRoleSettingsView(self.user_id, self.guild, self.service, settings=settings)
+        view = WhitelistRoleSettingsView(self.user_id, self.guild, self.service)
         await interaction.response.edit_message(embed=embed, view=view)
-
-    def _role_defaults(self, role_ids, max_values: int = 1):
-        if not role_ids:
-            return []
-        if not isinstance(role_ids, list):
-            role_ids = [role_ids]
-        valid_ids = [rid for rid in role_ids if rid and self.guild.get_role(rid)]
-        valid_ids = valid_ids[:max_values]
-        return [
-            discord.SelectDefaultValue(id=rid, type=discord.SelectDefaultValueType.role)
-            for rid in valid_ids
-        ]
 
 
 class WhitelistPrefixModal(Modal):
@@ -710,7 +613,7 @@ class BackToWhitelistButton(Button):
         settings = await self.service.load_settings(self.guild.id)
         panel = SystemAdminPanel(self.user_id)
         embed = await panel._create_whitelist_settings_embed(self.guild, settings=settings)
-        view = WhitelistSettingsView(self.user_id, self.guild, settings=settings)
+        view = WhitelistSettingsView(self.user_id, self.guild)
         await interaction.response.edit_message(embed=embed, view=view)
 
 

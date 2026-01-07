@@ -31,31 +31,25 @@ class SafeInteractionHandler:
 
             # 如果互動已經完成，使用 followup
             if interaction.response.is_done():
-                await interaction.followup.send(
-                    content=content,
-                    embed=embed,
-                    view=view,
-                    ephemeral=ephemeral,
-                )
+                kwargs = {"content": content, "embed": embed, "ephemeral": ephemeral}
+                if view is not None:
+                    kwargs["view"] = view
+                await interaction.followup.send(**kwargs)
             else:
-                await interaction.response.send_message(
-                    content=content,
-                    embed=embed,
-                    view=view,
-                    ephemeral=ephemeral,
-                )
+                kwargs = {"content": content, "embed": embed, "ephemeral": ephemeral}
+                if view is not None:
+                    kwargs["view"] = view
+                await interaction.response.send_message(**kwargs)
 
             return True
 
         except discord.InteractionResponded:
             logger.debug("互動已被回應，嘗試使用 followup")
             try:
-                await interaction.followup.send(
-                    content=content,
-                    embed=embed,
-                    view=view,
-                    ephemeral=ephemeral,
-                )
+                kwargs = {"content": content, "embed": embed, "ephemeral": ephemeral}
+                if view is not None:
+                    kwargs["view"] = view
+                await interaction.followup.send(**kwargs)
                 return True
             except Exception as followup_error:
                 logger.error(f"Followup 失敗: {followup_error}")
@@ -81,9 +75,10 @@ class SafeInteractionHandler:
                 logger.warning("互動對象無效或缺少followup屬性")
                 return False
 
-            await interaction.followup.send(
-                content=content, embed=embed, view=view, ephemeral=ephemeral
-            )
+            kwargs = {"content": content, "embed": embed, "ephemeral": ephemeral}
+            if view is not None:
+                kwargs["view"] = view
+            await interaction.followup.send(**kwargs)
             return True
 
         except Exception as e:
