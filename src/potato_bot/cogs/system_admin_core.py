@@ -155,6 +155,16 @@ class SystemAdmin(commands.Cog):
         """取得快取健康狀態"""
         try:
             stats = await cache_manager.get_statistics()
+
+            total_requests = stats.get("requests", {}).get("total", 0)
+            if total_requests < 100:
+                return {
+                    "status": "initializing",
+                    "hit_rate": "N/A",
+                    "total_requests": total_requests,
+                    "recommendations": ["快取預熱中，等待收集足夠數據..."],
+                }
+
             hit_rate_str = stats.get("requests", {}).get("hit_rate", "0.0%")
             hit_rate = float(hit_rate_str.rstrip('%')) / 100.0
             
