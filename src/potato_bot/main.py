@@ -30,7 +30,7 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 from potato_bot.utils.boot import bootstrap_paths
-from potato_bot.utils.interaction_helper import apply_ephemeral_delete_after_policy
+# from potato_bot.utils.interaction_helper import apply_ephemeral_delete_after_policy
 
 # 路徑/別名初始化（先跑，後續模組才能正常 import shared/bot）
 CURRENT_FILE_DIR, PROJECT_ROOT = bootstrap_paths(__file__)
@@ -42,7 +42,7 @@ from potato_bot.utils.persistent_views import log_persistent_views
 load_dotenv()
 
 # Auto-delete ephemeral dialogs without views after 30 seconds.
-apply_ephemeral_delete_after_policy()
+# apply_ephemeral_delete_after_policy()
 
 # ==============================
 # ✅ 3. Logger / Config
