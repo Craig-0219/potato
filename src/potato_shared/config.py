@@ -87,14 +87,6 @@ IMAGE_SUPPORTED_FORMATS = os.getenv("IMAGE_SUPPORTED_FORMATS", "jpg,jpeg,png,gif
 CLOUD_STORAGE_BUCKET = os.getenv("CLOUD_STORAGE_BUCKET")  # 可選的雲端存儲
 
 # ======================
-# 經濟系統配置
-# ======================
-ECONOMY_ENABLED = os.getenv("ECONOMY_ENABLED", "true").lower() == "true"
-ECONOMY_STARTING_COINS = int(os.getenv("ECONOMY_STARTING_COINS", 1000))
-ECONOMY_DAILY_BONUS = int(os.getenv("ECONOMY_DAILY_BONUS", 100))
-ECONOMY_SERVICE_COSTS = os.getenv("ECONOMY_SERVICE_COSTS", "true").lower() == "true"
-
-# ======================
 # 音樂系統配置
 # ======================
 YOUTUBE_API_KEY = os.getenv("YOUTUBE_API_KEY")
@@ -167,7 +159,6 @@ def get_config_summary() -> dict:
         },
         "features": {
             "auto_replies": TICKET_AUTO_REPLIES,
-            "economy": ECONOMY_ENABLED,
         },
         "parameters": {
             "auto_close_hours": TICKET_DEFAULT_AUTO_CLOSE_HOURS,

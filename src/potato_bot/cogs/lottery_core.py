@@ -369,8 +369,13 @@ class LotteryCore(commands.Cog):
                 await interaction.followup.send(f"📊 最近 {days} 天沒有抽獎活動", ephemeral=True)
                 return
 
-            basic_stats = stats.get("basic_stats", {})
-            participation_stats = stats.get("participation_stats", {})
+            # 兼容巢狀或扁平結構
+            if "basic_stats" in stats:
+                basic_stats = stats.get("basic_stats", {})
+                participation_stats = stats.get("participation_stats", {})
+            else:
+                basic_stats = stats
+                participation_stats = stats
 
             embed = EmbedBuilder.build(title=f"📊 抽獎統計 - 最近 {days} 天", color="info")
 

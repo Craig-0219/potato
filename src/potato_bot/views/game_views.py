@@ -17,10 +17,9 @@ from potato_shared.logger import logger
 class GameMenuView(ui.View):
     """遊戲選單視圖"""
 
-    def __init__(self, game_cog, user_economy: Dict[str, Any]):
+    def __init__(self, game_cog):
         super().__init__(timeout=300)
         self.game_cog = game_cog
-        self.user_economy = user_economy
 
     @ui.button(label="🔢 猜數字", style=discord.ButtonStyle.primary, row=0)
     async def guess_number_button(self, interaction: discord.Interaction, button: ui.Button):
@@ -37,19 +36,19 @@ class GameMenuView(ui.View):
 
             embed.add_field(
                 name="🟢 簡單",
-                value="• 範圍: 1-50\n• 機會: 8次\n• 獎勵: 50🪙",
+                value="• 範圍: 1-50\n• 機會: 8次",
                 inline=True,
             )
 
             embed.add_field(
                 name="🟡 中等",
-                value="• 範圍: 1-100\n• 機會: 6次\n• 獎勵: 100🪙",
+                value="• 範圍: 1-100\n• 機會: 6次",
                 inline=True,
             )
 
             embed.add_field(
                 name="🔴 困難",
-                value="• 範圍: 1-200\n• 機會: 5次\n• 獎勵: 200🪙",
+                value="• 範圍: 1-200\n• 機會: 5次",
                 inline=True,
             )
 
@@ -73,7 +72,7 @@ class GameMenuView(ui.View):
 
             embed.add_field(
                 name="🎯 遊戲規則",
-                value="• 剪刀勝紙，紙勝石頭，石頭勝剪刀\n• 勝利獎勵: 30🪙\n• 平手獎勵: 10🪙",
+                value="• 剪刀勝紙，紙勝石頭，石頭勝剪刀",
                 inline=False,
             )
 
@@ -87,7 +86,7 @@ class GameMenuView(ui.View):
     async def coin_flip_button(self, interaction: discord.Interaction, button: ui.Button):
         """拋硬幣遊戲按鈕"""
         try:
-            view = CoinFlipView(self.game_cog, self.user_economy)
+            view = CoinFlipView(self.game_cog)
 
             embed = EmbedBuilder.build(
                 title="🪙 拋硬幣遊戲",
@@ -96,14 +95,8 @@ class GameMenuView(ui.View):
             )
 
             embed.add_field(
-                name="💰 您的金幣",
-                value=f"{self.user_economy.get('coins', 0):,} 🪙",
-                inline=True,
-            )
-
-            embed.add_field(
                 name="🎯 遊戲規則",
-                value="• 最小下注: 10🪙\n• 最大下注: 1000🪙\n• 勝利倍率: 2倍",
+                value="• 猜對即可獲勝",
                 inline=True,
             )
 
@@ -117,13 +110,7 @@ class GameMenuView(ui.View):
     async def roulette_button(self, interaction: discord.Interaction, button: ui.Button):
         """輪盤遊戲按鈕"""
         try:
-            if self.user_economy.get("coins", 0) < 20:
-                await interaction.response.send_message(
-                    "❌ 您的金幣不足！輪盤遊戲最少需要 20🪙", ephemeral=True
-                )
-                return
-
-            view = RouletteView(self.game_cog, self.user_economy)
+            view = RouletteView(self.game_cog)
 
             embed = EmbedBuilder.build(
                 title="🎰 輪盤遊戲",
@@ -132,14 +119,8 @@ class GameMenuView(ui.View):
             )
 
             embed.add_field(
-                name="💰 您的金幣",
-                value=f"{self.user_economy.get('coins', 0):,} 🪙",
-                inline=True,
-            )
-
-            embed.add_field(
                 name="🎯 下注選項",
-                value="• 特定數字: 35倍\n• 紅/黑: 2倍\n• 奇/偶: 2倍\n• 打組: 3倍",
+                value="• 特定數字\n• 紅/黑\n• 奇/偶\n• 打組",
                 inline=True,
             )
 
@@ -166,12 +147,6 @@ class GameMenuView(ui.View):
                 inline=True,
             )
 
-            embed.add_field(
-                name="🏆 獎勵系統",
-                value="• 答對: 20🪙 + 經驗\n• 連續答對有額外獎勵\n• 困難題目獎勵更高",
-                inline=True,
-            )
-
             await interaction.response.edit_message(embed=embed, view=view)
 
         except Exception as e:
@@ -182,7 +157,7 @@ class GameMenuView(ui.View):
     async def dice_game_button(self, interaction: discord.Interaction, button: ui.Button):
         """骰子遊戲按鈕"""
         try:
-            view = DiceGameView(self.game_cog, self.user_economy)
+            view = DiceGameView(self.game_cog)
 
             embed = EmbedBuilder.build(
                 title="🎲 骰子遊戲", description="運氣大比拼！", color=0x32CD32
@@ -190,13 +165,7 @@ class GameMenuView(ui.View):
 
             embed.add_field(
                 name="🎯 遊戲方式",
-                value="• 擲出兩顆骰子\n• 猜測點數總和\n• 越準確獎勵越高",
-                inline=True,
-            )
-
-            embed.add_field(
-                name="💰 獎勵規則",
-                value="• 猜中確切數字: 10倍\n• 猜中範圍: 2-5倍\n• 特殊組合有額外獎勵",
+                value="• 擲出兩顆骰子\n• 猜測點數總和",
                 inline=True,
             )
 
@@ -400,9 +369,7 @@ class GuessNumberView(ui.View):
                 embed.add_field(
                     name="🏆 遊戲結果",
                     value=f"✅ 猜中數字: {secret_number}\n"
-                    f"🎯 使用次數: {self.session.data['max_attempts'] - self.session.data['attempts_left']}\n"
-                    f"💰 獲得金幣: {self.session.data['reward']}🪙\n"
-                    f"⭐ 獲得經驗: {self.session.data['reward'] // 2}",
+                    f"🎯 使用次數: {self.session.data['max_attempts'] - self.session.data['attempts_left']}",
                     inline=False,
                 )
 
@@ -496,24 +463,15 @@ class RockPaperScissorsView(ui.View):
             result = self._determine_winner(player_choice, computer_choice)
 
             # 計算獎勵
-            reward = 0
             if result == "win":
-                reward = 30
                 result_text = "🎉 您贏了！"
                 result_color = 0x00FF00
             elif result == "draw":
-                reward = 10
                 result_text = "🤝 平手！"
                 result_color = 0xFFAA00
             else:
                 result_text = "💔 您輸了！"
                 result_color = 0xFF0000
-
-            # 發放獎勵
-            if reward > 0:
-                await self.game_cog.economy_manager.add_coins(
-                    interaction.user.id, interaction.guild.id, reward
-                )
 
             # 創建結果嵌入
             embed = EmbedBuilder.build(
@@ -525,8 +483,7 @@ class RockPaperScissorsView(ui.View):
             embed.add_field(
                 name="🎯 對戰結果",
                 value=f"您的選擇: {player_emoji} {player_choice.title()}\n"
-                f"電腦選擇: {computer_emoji} {computer_choice.title()}\n"
-                f"獲得金幣: {reward}🪙",
+                f"電腦選擇: {computer_emoji} {computer_choice.title()}",
                 inline=False,
             )
 
@@ -534,16 +491,6 @@ class RockPaperScissorsView(ui.View):
             new_view = RockPaperScissorsView(self.game_cog)
 
             await interaction.response.edit_message(embed=embed, view=new_view)
-
-            # 記錄遊戲統計
-            await self.game_cog.economy_manager.increment_daily_games(
-                interaction.user.id, interaction.guild.id
-            )
-
-            if result == "win":
-                await self.game_cog.economy_manager.increment_daily_wins(
-                    interaction.user.id, interaction.guild.id
-                )
 
         except Exception as e:
             logger.error(f"❌ 剪刀石頭布遊戲錯誤: {e}")
@@ -569,30 +516,9 @@ class RockPaperScissorsView(ui.View):
 class CoinFlipView(ui.View):
     """拋硬幣視圖"""
 
-    def __init__(self, game_cog, user_economy: Dict[str, Any]):
+    def __init__(self, game_cog):
         super().__init__(timeout=180)
         self.game_cog = game_cog
-        self.user_economy = user_economy
-        self.bet_amount = 50  # 預設下注金額
-
-    @ui.button(label="🔼 增加下注", style=discord.ButtonStyle.secondary, row=0)
-    async def increase_bet(self, interaction: discord.Interaction, button: ui.Button):
-        """增加下注金額"""
-        max_coins = self.user_economy.get("coins", 0)
-        if self.bet_amount < min(1000, max_coins):
-            self.bet_amount = min(self.bet_amount + 50, min(1000, max_coins))
-            await self._update_bet_display(interaction)
-        else:
-            await interaction.response.send_message("❌ 已達到最大下注金額！", ephemeral=True)
-
-    @ui.button(label="🔽 減少下注", style=discord.ButtonStyle.secondary, row=0)
-    async def decrease_bet(self, interaction: discord.Interaction, button: ui.Button):
-        """減少下注金額"""
-        if self.bet_amount > 10:
-            self.bet_amount = max(self.bet_amount - 50, 10)
-            await self._update_bet_display(interaction)
-        else:
-            await interaction.response.send_message("❌ 已達到最小下注金額！", ephemeral=True)
 
     @ui.button(label="👑 正面", style=discord.ButtonStyle.primary, row=1)
     async def heads_button(self, interaction: discord.Interaction, button: ui.Button):
@@ -602,50 +528,11 @@ class CoinFlipView(ui.View):
     async def tails_button(self, interaction: discord.Interaction, button: ui.Button):
         await self._play_coin_flip(interaction, "tails", "🪙")
 
-    async def _update_bet_display(self, interaction: discord.Interaction):
-        """更新下注顯示"""
-        try:
-            embed = interaction.message.embeds[0].copy() if interaction.message.embeds else None
-
-            if embed:
-                # 更新下注金額顯示
-                for i, field in enumerate(embed.fields):
-                    if "下注金額" in field.name:
-                        embed.set_field_at(
-                            i,
-                            name="💰 目前下注",
-                            value=f"{self.bet_amount}🪙",
-                            inline=True,
-                        )
-                        break
-                else:
-                    embed.add_field(
-                        name="💰 目前下注",
-                        value=f"{self.bet_amount}🪙",
-                        inline=True,
-                    )
-
-            await interaction.response.edit_message(embed=embed, view=self)
-
-        except Exception as e:
-            logger.error(f"❌ 更新下注顯示錯誤: {e}")
-
     async def _play_coin_flip(
         self, interaction: discord.Interaction, choice: str, choice_emoji: str
     ):
         """進行拋硬幣遊戲"""
         try:
-            user_coins = self.user_economy.get("coins", 0)
-
-            if user_coins < self.bet_amount:
-                await interaction.response.send_message("❌ 金幣不足！", ephemeral=True)
-                return
-
-            # 扣除下注金額
-            await self.game_cog.economy_manager.add_coins(
-                interaction.user.id, interaction.guild.id, -self.bet_amount
-            )
-
             # 拋硬幣
             result = random.choice(["heads", "tails"])
             result_emoji = "👑" if result == "heads" else "🪙"
@@ -654,17 +541,9 @@ class CoinFlipView(ui.View):
             won = choice == result
 
             if won:
-                winnings = self.bet_amount * 2  # 2倍獎勵
-                await self.game_cog.economy_manager.add_coins(
-                    interaction.user.id, interaction.guild.id, winnings
-                )
                 result_text = "🎉 恭喜您猜中了！"
                 result_color = 0x00FF00
-                await self.game_cog.economy_manager.increment_daily_wins(
-                    interaction.user.id, interaction.guild.id
-                )
             else:
-                winnings = 0
                 result_text = "💔 很遺憾，猜錯了！"
                 result_color = 0xFF0000
 
@@ -678,24 +557,14 @@ class CoinFlipView(ui.View):
             embed.add_field(
                 name="🎯 對戰結果",
                 value=f"您的猜測: {choice_emoji} {choice.title()}\n"
-                f"硬幣結果: {result_emoji} {result.title()}\n"
-                f"下注金額: {self.bet_amount}🪙\n"
-                f"獲得金額: {winnings}🪙",
+                f"硬幣結果: {result_emoji} {result.title()}",
                 inline=False,
             )
 
-            # 更新經濟狀態
-            self.user_economy["coins"] = user_coins - self.bet_amount + winnings
-
             # 創建新的視圖
-            new_view = CoinFlipView(self.game_cog, self.user_economy)
+            new_view = CoinFlipView(self.game_cog)
 
             await interaction.response.edit_message(embed=embed, view=new_view)
-
-            # 記錄遊戲統計
-            await self.game_cog.economy_manager.increment_daily_games(
-                interaction.user.id, interaction.guild.id
-            )
 
         except Exception as e:
             logger.error(f"❌ 拋硬幣遊戲錯誤: {e}")
@@ -705,11 +574,9 @@ class CoinFlipView(ui.View):
 class RouletteView(ui.View):
     """輪盤遊戲視圖"""
 
-    def __init__(self, game_cog, user_economy: Dict[str, Any]):
+    def __init__(self, game_cog):
         super().__init__(timeout=300)
         self.game_cog = game_cog
-        self.user_economy = user_economy
-        self.bet_amount = 50
         self.bet_type = None
         self.bet_value = None
 
@@ -737,23 +604,6 @@ class RouletteView(ui.View):
         else:
             await self._update_bet_display(interaction)
 
-    @ui.button(label="🔼 增加下注", style=discord.ButtonStyle.secondary, row=1)
-    async def increase_bet(self, interaction: discord.Interaction, button: ui.Button):
-        max_coins = self.user_economy.get("coins", 0)
-        if self.bet_amount < min(500, max_coins):
-            self.bet_amount = min(self.bet_amount + 25, min(500, max_coins))
-            await self._update_bet_display(interaction)
-        else:
-            await interaction.response.send_message("❌ 已達到最大下注金額！", ephemeral=True)
-
-    @ui.button(label="🔽 減少下注", style=discord.ButtonStyle.secondary, row=1)
-    async def decrease_bet(self, interaction: discord.Interaction, button: ui.Button):
-        if self.bet_amount > 20:
-            self.bet_amount = max(self.bet_amount - 25, 20)
-            await self._update_bet_display(interaction)
-        else:
-            await interaction.response.send_message("❌ 已達到最小下注金額！", ephemeral=True)
-
     @ui.button(label="🎰 轉動輪盤", style=discord.ButtonStyle.danger, row=2)
     async def spin_button(self, interaction: discord.Interaction, button: ui.Button):
         await self._spin_roulette(interaction)
@@ -777,14 +627,7 @@ class RouletteView(ui.View):
 
             embed.add_field(
                 name="💰 下注資訊",
-                value=f"金額: {self.bet_amount}🪙\n"
-                f"類型: {bet_type_display.get(self.bet_type, '未選擇')}",
-                inline=True,
-            )
-
-            embed.add_field(
-                name="💳 您的金幣",
-                value=f"{self.user_economy.get('coins', 0):,}🪙",
+                value=f"類型: {bet_type_display.get(self.bet_type, '未選擇')}",
                 inline=True,
             )
 
@@ -799,15 +642,6 @@ class RouletteView(ui.View):
             if not self.bet_type:
                 await interaction.response.send_message("❌ 請先選擇下注類型！", ephemeral=True)
                 return
-
-            if self.user_economy.get("coins", 0) < self.bet_amount:
-                await interaction.response.send_message("❌ 金幣不足！", ephemeral=True)
-                return
-
-            # 扣除下注金額
-            await self.game_cog.economy_manager.add_coins(
-                interaction.user.id, interaction.guild.id, -self.bet_amount
-            )
 
             # 生成結果 (0-36)
             result_number = random.randint(0, 36)
@@ -840,31 +674,17 @@ class RouletteView(ui.View):
 
             # 計算獎勵
             won = False
-            payout_multiplier = 0
 
             if self.bet_type == "red" and is_red:
                 won = True
-                payout_multiplier = 2
             elif self.bet_type == "black" and is_black:
                 won = True
-                payout_multiplier = 2
             elif self.bet_type == "odd" and is_odd:
                 won = True
-                payout_multiplier = 2
             elif self.bet_type == "even" and is_even:
                 won = True
-                payout_multiplier = 2
             elif self.bet_type == "number" and self.bet_value == result_number:
                 won = True
-                payout_multiplier = 35
-
-            # 發放獎勵
-            winnings = 0
-            if won:
-                winnings = self.bet_amount * payout_multiplier
-                await self.game_cog.economy_manager.add_coins(
-                    interaction.user.id, interaction.guild.id, winnings
-                )
 
             # 創建結果嵌入
             result_color = "🔴" if is_red else ("⚫" if is_black else "🟢")
@@ -885,33 +705,10 @@ class RouletteView(ui.View):
                 inline=True,
             )
 
-            embed.add_field(
-                name="💰 金錢變化",
-                value=f"下注金額: -{self.bet_amount}🪙\n"
-                f"獲得獎金: +{winnings}🪙\n"
-                f"淨收益: {winnings - self.bet_amount:+}🪙",
-                inline=True,
-            )
-
-            # 更新經濟狀態
-            self.user_economy["coins"] = (
-                self.user_economy.get("coins", 0) - self.bet_amount + winnings
-            )
-
             # 創建新的視圖
-            new_view = RouletteView(self.game_cog, self.user_economy)
+            new_view = RouletteView(self.game_cog)
 
             await interaction.response.edit_message(embed=embed, view=new_view)
-
-            # 記錄統計
-            await self.game_cog.economy_manager.increment_daily_games(
-                interaction.user.id, interaction.guild.id
-            )
-
-            if won:
-                await self.game_cog.economy_manager.increment_daily_wins(
-                    interaction.user.id, interaction.guild.id
-                )
 
         except Exception as e:
             logger.error(f"❌ 輪盤遊戲錯誤: {e}")
@@ -942,11 +739,9 @@ class NumberSelectView(ui.View):
 class DiceGameView(ui.View):
     """骰子遊戲視圖"""
 
-    def __init__(self, game_cog, user_economy: Dict[str, Any]):
+    def __init__(self, game_cog):
         super().__init__(timeout=180)
         self.game_cog = game_cog
-        self.user_economy = user_economy
-        self.bet_amount = 30
         self.prediction = None
 
     @ui.select(
@@ -965,23 +760,6 @@ class DiceGameView(ui.View):
         self.prediction = select.values[0]
         await self._update_display(interaction)
 
-    @ui.button(label="🔼 增加下注", style=discord.ButtonStyle.secondary, row=1)
-    async def increase_bet(self, interaction: discord.Interaction, button: ui.Button):
-        max_coins = self.user_economy.get("coins", 0)
-        if self.bet_amount < min(300, max_coins):
-            self.bet_amount = min(self.bet_amount + 30, min(300, max_coins))
-            await self._update_display(interaction)
-        else:
-            await interaction.response.send_message("❌ 已達到最大下注金額！", ephemeral=True)
-
-    @ui.button(label="🔽 減少下注", style=discord.ButtonStyle.secondary, row=1)
-    async def decrease_bet(self, interaction: discord.Interaction, button: ui.Button):
-        if self.bet_amount > 30:
-            self.bet_amount = max(self.bet_amount - 30, 30)
-            await self._update_display(interaction)
-        else:
-            await interaction.response.send_message("❌ 已達到最小下注金額！", ephemeral=True)
-
     @ui.button(label="🎲 擲骰子", style=discord.ButtonStyle.primary, row=2)
     async def roll_dice(self, interaction: discord.Interaction, button: ui.Button):
         """擲骰子"""
@@ -990,39 +768,25 @@ class DiceGameView(ui.View):
                 await interaction.response.send_message("❌ 請先選擇預測類型！", ephemeral=True)
                 return
 
-            if self.user_economy.get("coins", 0) < self.bet_amount:
-                await interaction.response.send_message("❌ 金幣不足！", ephemeral=True)
-                return
-
-            # 扣除下注金額
-            await self.game_cog.economy_manager.add_coins(
-                interaction.user.id, interaction.guild.id, -self.bet_amount
-            )
-
             # 擲三顆骰子
             dice = [random.randint(1, 6) for _ in range(3)]
             total = sum(dice)
 
             # 判斷結果
             won = False
-            multiplier = 0
             result_description = ""
 
             if self.prediction == "small" and 3 <= total <= 8:
                 won = True
-                multiplier = 2
                 result_description = "小點數命中！"
             elif self.prediction == "big" and 9 <= total <= 18:
                 won = True
-                multiplier = 2
                 result_description = "大點數命中！"
             elif self.prediction == "triple" and len(set(dice)) == 1:
                 won = True
-                multiplier = 10
                 result_description = "豹子！三個相同！"
             elif self.prediction == "pair" and len(set(dice)) == 2:
                 won = True
-                multiplier = 3
                 result_description = "對子！兩個相同！"
             elif self.prediction == "straight":
                 sorted_dice = sorted(dice)
@@ -1033,16 +797,7 @@ class DiceGameView(ui.View):
                     or sorted_dice == [4, 5, 6]
                 ):
                     won = True
-                    multiplier = 5
                     result_description = "順子！連續數字！"
-
-            # 計算獎勵
-            winnings = 0
-            if won:
-                winnings = self.bet_amount * multiplier
-                await self.game_cog.economy_manager.add_coins(
-                    interaction.user.id, interaction.guild.id, winnings
-                )
 
             # 骰子表情
             dice_emojis = {1: "⚀", 2: "⚁", 3: "⚂", 4: "⚃", 5: "⚄", 6: "⚅"}
@@ -1063,33 +818,10 @@ class DiceGameView(ui.View):
                 inline=True,
             )
 
-            embed.add_field(
-                name="💰 金錢變化",
-                value=f"下注金額: -{self.bet_amount}🪙\n"
-                f"獲得獎金: +{winnings}🪙\n"
-                f"淨收益: {winnings - self.bet_amount:+}🪙",
-                inline=True,
-            )
-
-            # 更新經濟狀態
-            self.user_economy["coins"] = (
-                self.user_economy.get("coins", 0) - self.bet_amount + winnings
-            )
-
             # 創建新的視圖
-            new_view = DiceGameView(self.game_cog, self.user_economy)
+            new_view = DiceGameView(self.game_cog)
 
             await interaction.response.edit_message(embed=embed, view=new_view)
-
-            # 記錄統計
-            await self.game_cog.economy_manager.increment_daily_games(
-                interaction.user.id, interaction.guild.id
-            )
-
-            if won:
-                await self.game_cog.economy_manager.increment_daily_wins(
-                    interaction.user.id, interaction.guild.id
-                )
 
         except Exception as e:
             logger.error(f"❌ 骰子遊戲錯誤: {e}")
@@ -1114,20 +846,7 @@ class DiceGameView(ui.View):
 
             embed.add_field(
                 name="💰 下注資訊",
-                value=f"金額: {self.bet_amount}🪙\n"
-                f"預測: {prediction_names.get(self.prediction, '未選擇')}",
-                inline=True,
-            )
-
-            embed.add_field(
-                name="💳 您的金幣",
-                value=f"{self.user_economy.get('coins', 0):,}🪙",
-                inline=True,
-            )
-
-            embed.add_field(
-                name="🎯 賠率說明",
-                value="小/大: 2倍\n對子: 3倍\n順子: 5倍\n豹子: 10倍",
+                value=f"預測: {prediction_names.get(self.prediction, '未選擇')}",
                 inline=True,
             )
 

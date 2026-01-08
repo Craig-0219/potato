@@ -193,10 +193,16 @@ class DatabaseOptimizer:
             # 分析查詢類型
             query_type = self._detect_query_type(query)
 
-            # 執行查詢並測量性能
-            execution_time, rows_examined, rows_sent = await self._execute_and_measure(
-                query, params
-            )
+            # 執行查詢並測量性能 (僅針對 SELECT 避免副作用)
+            if query_type == QueryType.SELECT:
+                execution_time, rows_examined, rows_sent = await self._execute_and_measure(
+                    query, params
+                )
+            else:
+                # 非 SELECT 查詢不實際執行測量，避免重複寫入/修改資料
+                execution_time = 0.0
+                rows_examined = 0
+                rows_sent = 0
 
             # 提取表格和索引信息
             tables_used = self._extract_tables_from_explain(explain_result)

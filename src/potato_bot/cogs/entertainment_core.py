@@ -4,7 +4,7 @@ Discord Bot 娛樂模組 v2.3.0
 提供各種小遊戲和娛樂功能，使用 Discord 原生 GUI 組件
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from enum import Enum
 from typing import Dict, Optional
 
@@ -41,6 +41,7 @@ class EntertainmentCore(commands.Cog):
         self.active_games: Dict[int, Dict] = {}  # 進行中的遊戲
         self.user_stats: Dict[int, Dict] = {}  # 用戶統計
         self.daily_limits: Dict[int, int] = {}  # 每日遊戲限制
+        self.daily_limits_date: Dict[int, date] = {}  # 每日限制日期追蹤
 
         # 遊戲配置
         self.game_config = {
@@ -78,6 +79,13 @@ class EntertainmentCore(commands.Cog):
         stats["total_games"] += 1
         stats["last_played"] = datetime.now()
         stats["points"] += points
+
+        # 更新每日限制計數
+        today = datetime.now().date()
+        if user_id not in self.daily_limits_date or self.daily_limits_date[user_id] != today:
+            self.daily_limits[user_id] = 0
+            self.daily_limits_date[user_id] = today
+        self.daily_limits[user_id] = self.daily_limits.get(user_id, 0) + 1
 
         if won:
             stats["wins"] += 1
@@ -123,12 +131,16 @@ class EntertainmentCore(commands.Cog):
 
     async def check_daily_limit(self, user_id: int) -> bool:
         """檢查每日遊戲限制"""
-        datetime.now().date()
+        today = datetime.now().date()
+
+        # 檢查日期並重置
+        if user_id not in self.daily_limits_date or self.daily_limits_date[user_id] != today:
+            self.daily_limits[user_id] = 0
+            self.daily_limits_date[user_id] = today
+
         if user_id not in self.daily_limits:
             self.daily_limits[user_id] = 0
 
-        # 重置每日計數
-        # 實際應用中應該用資料庫存儲
         return self.daily_limits[user_id] < self.game_config["daily_limit"]
 
     # ========== 主要娛樂指令 ==========
@@ -265,16 +277,12 @@ class EntertainmentCore(commands.Cog):
 
         leaderboard_text = ""
         for i, (user_id, stats) in enumerate(sorted_users[:10], 1):
-            try:
-                user = self.bot.get_user(user_id)
-                username = user.display_name if user else f"User#{user_id}"
+            user = self.bot.get_user(user_id)
+            username = user.display_name if user else f"User#{user_id}"
 
-                medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}."
-                leaderboard_text += f"{medal} {username}\n"
-                leaderboard_text += f"   💎 {stats['points']}分 | 🏆 {stats['wins']}勝 | 🎮 {stats['total_games']}場\n\n"
-
-            except Exception:
-                continue
+            medal = "🥇" if i == 1 else "🥈" if i == 2 else "🥉" if i == 3 else f"{i}."
+            leaderboard_text += f"{medal} {username}\n"
+            leaderboard_text += f"   💎 {stats['points']}分 | 🏆 {stats['wins']}勝 | 🎮 {stats['total_games']}場\n\n"
 
         if not leaderboard_text:
             leaderboard_text = "暫無排行榜數據"

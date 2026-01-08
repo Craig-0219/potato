@@ -76,7 +76,7 @@ class CachedTicketCore(commands.Cog):
         self.cached_dao = cached_ticket_dao
 
         # 服務層
-        self.manager = TicketManager(self.cached_dao.ticket_dao)  # 傳入原始 DAO
+        self.manager = TicketManager(self.cached_dao.ticket_dao, self.bot)  # 傳入原始 DAO 和 bot 實例
 
         # 性能監控
         self.performance_stats = {
@@ -310,114 +310,7 @@ class CachedTicketCore(commands.Cog):
         view = TicketSettingsView(self.cached_dao.ticket_dao, interaction.guild, settings)
         await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
-    @app_commands.command(name="cache_control", description="快取控制（管理員專用）")
-    @app_commands.describe(action="執行的動作", target="目標範圍")
-    @app_commands.choices(
-        action=[
-            app_commands.Choice(name="清空快取", value="clear"),
-            app_commands.Choice(name="預熱快取", value="warm"),
-            app_commands.Choice(name="快取統計", value="stats"),
-            app_commands.Choice(name="健康檢查", value="health"),
-        ]
-    )
-    @app_commands.default_permissions(administrator=True)
-    async def cache_control(
-        self,
-        interaction: discord.Interaction,
-        action: str,
-        target: str = "all",
-    ):
-        """快取控制命令"""
-        try:
-            await interaction.response.defer(ephemeral=True)
 
-            if action == "clear":
-                # 清空快取
-                pattern = f"*{interaction.guild.id}*" if target == "guild" else "*"
-                count = await cache_manager.clear_all(pattern)
-
-                embed = EmbedBuilder.build(
-                    title="🧹 快取清理完成",
-                    description=f"已清理 {count} 個快取條目",
-                    color=TicketConstants.COLORS["success"],
-                )
-
-            elif action == "warm":
-                # 預熱快取
-                await self.cached_dao.warm_cache(interaction.guild.id)
-
-                embed = EmbedBuilder.build(
-                    title="🔥 快取預熱完成",
-                    description="已預載熱點數據到快取",
-                    color=TicketConstants.COLORS["success"],
-                )
-
-            elif action == "stats":
-                # 快取統計
-                stats = await cache_manager.get_statistics()
-
-                embed = EmbedBuilder.build(
-                    title="📊 快取詳細統計",
-                    color=TicketConstants.COLORS["info"],
-                )
-
-                embed.add_field(
-                    name="請求統計",
-                    value=f"總請求：{stats['requests']['total']}\n"
-                    f"命中：{stats['requests']['hits']}\n"
-                    f"未命中：{stats['requests']['misses']}\n"
-                    f"命中率：{stats['requests']['hit_rate']}",
-                    inline=True,
-                )
-
-                embed.add_field(
-                    name="L1 記憶體快取",
-                    value=f"大小：{stats['l1_memory']['size']}/{stats['l1_memory']['max_size']}\n"
-                    f"使用率：{stats['l1_memory']['usage']}\n"
-                    f"命中率：{stats['l1_memory']['hit_rate']}",
-                    inline=True,
-                )
-
-            elif action == "health":
-                # 健康檢查
-                health = await self._get_cache_health()
-
-                status_colors = {
-                    "healthy": TicketConstants.COLORS["success"],
-                    "warning": TicketConstants.COLORS["warning"],
-                    "critical": TicketConstants.COLORS["error"],
-                    "error": TicketConstants.COLORS["error"],
-                }
-
-                embed = EmbedBuilder.build(
-                    title="🏥 快取健康檢查",
-                    description=f"狀態：{health.get('status', '未知')}",
-                    color=status_colors.get(
-                        health.get("status"),
-                        TicketConstants.COLORS["secondary"],
-                    ),
-                )
-
-                embed.add_field(
-                    name="關鍵指標",
-                    value=f"命中率：{health.get('hit_rate', 'N/A')}\n"
-                    f"總請求：{health.get('total_requests', 0)}",
-                    inline=True,
-                )
-
-                recommendations = health.get("recommendations", [])
-                if recommendations:
-                    embed.add_field(
-                        name="建議",
-                        value="\n".join([f"• {rec}" for rec in recommendations]),
-                        inline=False,
-                    )
-
-            await interaction.followup.send(embed=embed, ephemeral=True)
-
-        except Exception as e:
-            logger.error(f"❌ 快取控制操作失敗: {e}")
-            await interaction.followup.send("❌ 快取控制操作失敗。", ephemeral=True)
 
     @commands.command(name="ticket_help")
     async def ticket_help(self, ctx: commands.Context):
@@ -525,18 +418,40 @@ class CachedTicketCore(commands.Cog):
             logger.error(f"❌ 全域快取預熱失敗: {e}")
 
     async def _cleanup_expired_tickets(self):
-        """清理過期票券（快取優化版）"""
-        # 實現票券清理邏輯
+        """清理所有伺服器的過期票券"""
+        logger.info("⏰ 開始執行過期票券清理任務...")
+        all_settings = await self.cached_dao.ticket_dao.get_all_ticket_settings()
+        
+        if not all_settings:
+            logger.info("未找到任何票券設定，任務結束。")
+            return
+            
+        cleaned_count = 0
+        for settings in all_settings:
+            guild_id = settings.get("guild_id")
+            auto_close_hours = settings.get("auto_close_hours")
 
-    async def _get_cache_health(self) -> Dict[str, Any]:
-        """安全取得快取健康資訊，未實作時回傳空 dict 避免噴錯"""
-        if hasattr(self.cached_dao, "get_cache_health"):
+            if not guild_id or not auto_close_hours or auto_close_hours <= 0:
+                continue
+
             try:
-                return await self.cached_dao.get_cache_health()
+                guild = self.bot.get_guild(guild_id)
+                if not guild:
+                    logger.warning(f"清理任務：找不到伺服器 {guild_id}")
+                    continue
+                
+                logger.info(f"正在檢查伺服器 {guild.name} (ID: {guild_id}) 的過期票券...")
+                count = await self.manager.cleanup_old_tickets(guild_id, auto_close_hours)
+                if count > 0:
+                    logger.info(f"伺服器 {guild.name} 清理了 {count} 張票券。")
+                    cleaned_count += count
+
             except Exception as e:
-                logger.error(f"❌ 取得快取健康失敗: {e}")
-                return {}
-        return {}
+                logger.error(f"清理伺服器 {guild_id} 的票券時發生錯誤: {e}")
+        
+        logger.info(f"✅ 過期票券清理任務完成，共處理了 {cleaned_count} 張票券。")
+
+
 
     @cleanup_task.before_loop
     @cache_maintenance.before_loop

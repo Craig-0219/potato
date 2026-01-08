@@ -15,14 +15,17 @@ from potato_bot.services.realtime_sync_manager import (
     SyncEventType,
     realtime_sync,
 )
+from potato_bot.utils.ticket_constants import TicketConstants
+from potato_bot.views.ticket_views import TicketControlView
 from potato_shared.logger import logger
 
 
 class TicketManager:
     """票券管理服務"""
 
-    def __init__(self, repository):
+    def __init__(self, repository, bot):
         self.repository = repository
+        self.bot = bot
         self.transcript_manager = ChatTranscriptManager()
 
     # ===== 票券建立 =====
@@ -179,9 +182,6 @@ class TicketManager:
     ):
         """發送歡迎訊息"""
         try:
-            from potato_bot.utils.ticket_constants import TicketConstants
-            from potato_bot.views.ticket_views import TicketControlView
-
             priority_emoji = TicketConstants.PRIORITY_EMOJIS.get(priority, "🟡")
             priority_color = TicketConstants.PRIORITY_COLORS.get(priority, 0x00FF00)
 
@@ -220,11 +220,119 @@ class TicketManager:
         except Exception as e:
             logger.error(f"發送歡迎訊息錯誤：{e}")
 
+    # ===== Interaction Handlers =====
+
+    async def create_ticket_from_interaction(
+        self, interaction: discord.Interaction, ticket_type: str, priority: str
+    ):
+        """從互動事件建立票券"""
+        try:
+            await interaction.response.defer(ephemeral=True, thinking=True)
+            # 確保 interaction.user 是 Member
+            if not isinstance(interaction.user, discord.Member):
+                user = interaction.guild.get_member(interaction.user.id)
+                if not user:
+                    await interaction.followup.send(
+                        "❌ 無法在此伺服器中找到您的成員資訊。", ephemeral=True
+                    )
+                    return
+            else:
+                user = interaction.user
+
+            success, message, ticket_id = await self.create_ticket(
+                user=user, ticket_type=ticket_type, priority=priority
+            )
+
+            if success:
+                priority_name = {"high": "高", "medium": "中", "low": "低"}.get(priority, priority)
+                priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(priority, "🟡")
+                priority_colors = {
+                    "high": 0xFF0000,
+                    "medium": 0xFFAA00,
+                    "low": 0x00FF00,
+                }
+                embed = discord.Embed(
+                    title="✅ 票券建立成功！",
+                    description=f"{message}\n\n{priority_emoji} **{priority_name}優先級** - {ticket_type}",
+                    color=priority_colors.get(priority, 0x00FF00),
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+            else:
+                await interaction.followup.send(f"❌ {message}", ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"從互動建立票券錯誤: {e}")
+            try:
+                await interaction.followup.send("❌ 建立票券時發生錯誤。", ephemeral=True)
+            except:
+                pass
+
+    async def close_ticket_from_interaction(self, interaction: discord.Interaction):
+        """從互動事件關閉票券"""
+        try:
+            await interaction.response.defer(ephemeral=True, thinking=True)
+            ticket = await self.repository.get_ticket_by_channel(interaction.channel.id)
+            if not ticket:
+                await interaction.followup.send("❌ 找不到票券資訊", ephemeral=True)
+                return
+
+            if ticket["status"] == "closed":
+                await interaction.followup.send("❌ 此票券已經關閉", ephemeral=True)
+                return
+
+            # 檢查權限
+            settings = await self.repository.get_settings(interaction.guild.id)
+            support_roles = settings.get("support_roles", [])
+            user_roles = [r.id for r in getattr(interaction.user, "roles", [])]
+            is_support = any(int(rid) in user_roles for rid in support_roles)
+            is_owner = str(interaction.user.id) == str(ticket.get("discord_id"))
+            if not (is_owner or is_support or interaction.user.guild_permissions.manage_guild):
+                await interaction.followup.send(
+                    "❌ 只有票券創建者或客服人員可以關閉票券", ephemeral=True
+                )
+                return
+
+            # 關閉票券
+            success = await self.close_ticket(
+                ticket_id=ticket["id"],
+                closed_by=interaction.user.id,
+                reason="按鈕關閉",
+                channel=interaction.channel
+            )
+
+            if success:
+                await interaction.followup.send("✅ 票券已關閉，頻道將在幾秒後刪除。", ephemeral=True)
+                await interaction.channel.delete(reason="Ticket closed by button")
+            else:
+                await interaction.followup.send("❌ 關閉票券時發生錯誤", ephemeral=True)
+        except Exception as e:
+            logger.error(f"從互動關閉票券錯誤: {e}")
+            try:
+                await interaction.followup.send("❌ 處理關閉票券請求時發生錯誤", ephemeral=True)
+            except:
+                pass
+
     # ===== 票券關閉 =====
 
-    async def close_ticket(self, ticket_id: int, closed_by: int, reason: str = None) -> bool:
+    async def close_ticket(
+        self,
+        ticket_id: int,
+        closed_by: int,
+        reason: str = None,
+        channel: discord.TextChannel = None,
+    ) -> bool:
         """關閉票券"""
         try:
+            # 自動匯出聊天記錄
+            if channel:
+                try:
+                    message_count = await self.transcript_manager.batch_record_channel_history(
+                        ticket_id, channel, limit=None
+                    )
+                    logger.info(f"📝 票券 #{ticket_id:04d} 已匯入 {message_count} 條歷史訊息")
+                except Exception as transcript_error:
+                    logger.error(f"❌ 匯入聊天歷史失敗: {transcript_error}")
+
             success = await self.repository.close_ticket(ticket_id, closed_by, reason)
 
             if success:
@@ -235,31 +343,6 @@ class TicketManager:
                         payload={"ticket_id": ticket_id, "user_id": closed_by, "reason": reason},
                     )
                 )
-                # 自動匯出聊天記錄
-                try:
-                    # 首先嘗試從資料庫匯出
-                    transcript_path = await self.transcript_manager.export_transcript(
-                        ticket_id, "html"
-                    )
-                    if transcript_path:
-                        logger.info(f"✅ 票券 #{ticket_id:04d} 聊天記錄已匯出: {transcript_path}")
-                    else:
-                        # 如果資料庫中沒有記錄，嘗試從 Discord 頻道匯入歷史訊息並匯出
-                        logger.info(
-                            f"🔄 票券 #{ticket_id:04d} 正在嘗試從 Discord 頻道匯入歷史訊息..."
-                        )
-
-                        # 獲取票券資訊以取得頻道 ID
-                        ticket_info = await self.repository.get_ticket_by_id(ticket_id)
-                        if ticket_info and ticket_info.get("channel_id"):
-                            # 這裡需要 bot 實例來獲取頻道，但在當前架構下較難實現
-                            # 建議使用背景任務或在關閉票券的指令中直接處理
-                            logger.warning(f"⚠️ 票券 #{ticket_id:04d} 需要手動匯入頻道歷史訊息")
-                        else:
-                            logger.warning(f"⚠️ 票券 #{ticket_id:04d} 聊天記錄匯出失敗或無記錄")
-                except Exception as transcript_error:
-                    logger.error(f"❌ 票券 #{ticket_id:04d} 聊天記錄匯出錯誤: {transcript_error}")
-
                 logger.info(f"關閉票券 #{ticket_id:04d}")
 
             return success
@@ -316,16 +399,67 @@ class TicketManager:
 
     # ===== 系統維護 =====
 
-    async def cleanup_old_tickets(self, guild_id: int, hours_threshold: int = 24) -> int:
+    async def cleanup_old_tickets(self, guild_id: int, hours_threshold: int) -> int:
         """清理舊的無活動票券"""
-        try:
-            # 這裡可以實作自動關閉無活動票券的邏輯
-            # 暫時返回0，因為需要在 repository 中實作相關方法
-            logger.info(f"執行票券清理 - 伺服器: {guild_id}, 閾值: {hours_threshold}小時")
+        if not hours_threshold or hours_threshold <= 0:
             return 0
 
+        try:
+            cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours_threshold)
+            inactive_tickets = await self.repository.get_inactive_tickets(
+                guild_id, cutoff_time
+            )
+            
+            if not inactive_tickets:
+                return 0
+
+            logger.info(f"伺服器 {guild_id} 發現 {len(inactive_tickets)} 張無活動票券，開始清理...")
+            
+            closed_count = 0
+            for ticket in inactive_tickets:
+                try:
+                    channel = self.bot.get_channel(ticket["channel_id"])
+                    
+                    if not channel:
+                        logger.warning(f"找不到票券 #{ticket['ticket_id']} 的頻道 {ticket['channel_id']}，可能已被手動刪除。")
+                        # Even if channel is gone, try to close the ticket in DB
+                        await self.close_ticket(ticket_id=ticket['ticket_id'], closed_by=self.bot.user.id, reason="自動關閉 (頻道不存在)")
+                        closed_count += 1
+                        continue
+
+                    # Send notification before closing
+                    try:
+                        user = await self.bot.fetch_user(ticket['discord_id'])
+                        await self.send_channel_notification(
+                            channel,
+                            "⌛ 票券自動關閉",
+                            f"你好 {user.mention}，此票券因超過 {hours_threshold} 小時無活動，已被系統自動關閉。\n如有需要，請建立新的票券。",
+                            color=TicketConstants.COLORS["warning"],
+                        )
+                    except Exception as notify_err:
+                        logger.warning(f"自動關閉通知失敗 T:{ticket['ticket_id']} C:{channel.id}: {notify_err}")
+
+                    # Close ticket and delete channel
+                    success = await self.close_ticket(
+                        ticket_id=ticket["ticket_id"],
+                        closed_by=self.bot.user.id,
+                        reason=f"自動關閉 (超過 {hours_threshold} 小時無活動)",
+                        channel=channel,
+                    )
+                    
+                    if success:
+                        closed_count += 1
+                        await asyncio.sleep(1) # sleep to avoid rate limits
+                        await channel.delete(reason="Ticket auto-closed")
+
+                except Exception as e:
+                    logger.error(f"清理單張票券 #{ticket.get('ticket_id')} 失敗: {e}")
+            
+            logger.info(f"伺服器 {guild_id} 清理完畢，共關閉 {closed_count} 張票券。")
+            return closed_count
+
         except Exception as e:
-            logger.error(f"清理舊票券錯誤：{e}")
+            logger.error(f"清理舊票券錯誤 (伺服器 {guild_id}): {e}")
             return 0
 
     async def get_system_health(self) -> Dict[str, Any]:

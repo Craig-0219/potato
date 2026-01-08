@@ -20,7 +20,6 @@ class AchievementType(Enum):
 
     DAILY = "daily"  # 每日相關
     GAMES = "games"  # 遊戲相關
-    ECONOMY = "economy"  # 經濟相關
     SOCIAL = "social"  # 社交相關
     SPECIAL = "special"  # 特殊成就
     MILESTONE = "milestone"  # 里程碑
@@ -87,7 +86,6 @@ class AchievementManager:
                     type=AchievementType.DAILY,
                     rarity=AchievementRarity.COMMON,
                     requirements={"checkin_days": 1},
-                    rewards={"coins": 100, "experience": 50},
                     icon="🎯",
                 ),
                 "week_warrior": Achievement(
@@ -97,7 +95,6 @@ class AchievementManager:
                     type=AchievementType.DAILY,
                     rarity=AchievementRarity.UNCOMMON,
                     requirements={"streak_days": 7},
-                    rewards={"coins": 500, "gems": 20, "experience": 200},
                     icon="⚔️",
                 ),
                 "month_master": Achievement(
@@ -107,7 +104,6 @@ class AchievementManager:
                     type=AchievementType.DAILY,
                     rarity=AchievementRarity.RARE,
                     requirements={"streak_days": 30},
-                    rewards={"coins": 2000, "gems": 100, "experience": 1000},
                     icon="👑",
                 ),
             }
@@ -123,7 +119,6 @@ class AchievementManager:
                     type=AchievementType.GAMES,
                     rarity=AchievementRarity.COMMON,
                     requirements={"total_games": 1},
-                    rewards={"coins": 50, "experience": 25},
                     icon="🎮",
                 ),
                 "first_win": Achievement(
@@ -133,7 +128,6 @@ class AchievementManager:
                     type=AchievementType.GAMES,
                     rarity=AchievementRarity.COMMON,
                     requirements={"total_wins": 1},
-                    rewards={"coins": 100, "experience": 50},
                     icon="🏆",
                 ),
                 "game_addict": Achievement(
@@ -143,7 +137,6 @@ class AchievementManager:
                     type=AchievementType.GAMES,
                     rarity=AchievementRarity.UNCOMMON,
                     requirements={"total_games": 100},
-                    rewards={"coins": 1000, "gems": 50, "experience": 500},
                     icon="🎯",
                 ),
                 "win_streak_5": Achievement(
@@ -153,7 +146,6 @@ class AchievementManager:
                     type=AchievementType.GAMES,
                     rarity=AchievementRarity.RARE,
                     requirements={"win_streak": 5},
-                    rewards={"coins": 750, "gems": 30, "experience": 300},
                     icon="🔥",
                 ),
                 "guess_master": Achievement(
@@ -163,64 +155,7 @@ class AchievementManager:
                     type=AchievementType.GAMES,
                     rarity=AchievementRarity.EPIC,
                     requirements={"perfect_guess": True},
-                    rewards={"coins": 1500, "gems": 75, "experience": 750},
                     icon="🎊",
-                ),
-            }
-        )
-
-        # 經濟成就
-        self.achievements.update(
-            {
-                "first_coin": Achievement(
-                    id="first_coin",
-                    name="第一桶金",
-                    description="擁有 1000 金幣",
-                    type=AchievementType.ECONOMY,
-                    rarity=AchievementRarity.COMMON,
-                    requirements={"total_coins": 1000},
-                    rewards={"gems": 10, "experience": 100},
-                    icon="🪙",
-                ),
-                "coin_collector": Achievement(
-                    id="coin_collector",
-                    name="金幣收藏家",
-                    description="擁有 10000 金幣",
-                    type=AchievementType.ECONOMY,
-                    rarity=AchievementRarity.UNCOMMON,
-                    requirements={"total_coins": 10000},
-                    rewards={"gems": 50, "experience": 500},
-                    icon="💰",
-                ),
-                "millionaire": Achievement(
-                    id="millionaire",
-                    name="百萬富翁",
-                    description="擁有 100000 金幣",
-                    type=AchievementType.ECONOMY,
-                    rarity=AchievementRarity.LEGENDARY,
-                    requirements={"total_coins": 100000},
-                    rewards={"gems": 500, "experience": 5000},
-                    icon="💎",
-                ),
-                "level_10": Achievement(
-                    id="level_10",
-                    name="十級戰士",
-                    description="達到等級 10",
-                    type=AchievementType.ECONOMY,
-                    rarity=AchievementRarity.UNCOMMON,
-                    requirements={"level": 10},
-                    rewards={"coins": 1000, "gems": 25},
-                    icon="⭐",
-                ),
-                "level_50": Achievement(
-                    id="level_50",
-                    name="五十級大師",
-                    description="達到等級 50",
-                    type=AchievementType.ECONOMY,
-                    rarity=AchievementRarity.EPIC,
-                    requirements={"level": 50},
-                    rewards={"coins": 5000, "gems": 150},
-                    icon="🌟",
                 ),
             }
         )
@@ -235,7 +170,6 @@ class AchievementManager:
                     type=AchievementType.SPECIAL,
                     rarity=AchievementRarity.RARE,
                     requirements={"daily_wins": 10},
-                    rewards={"coins": 1000, "gems": 50, "experience": 500},
                     icon="🍀",
                 ),
                 "perfect_day": Achievement(
@@ -245,7 +179,6 @@ class AchievementManager:
                     type=AchievementType.SPECIAL,
                     rarity=AchievementRarity.EPIC,
                     requirements={"perfect_day": True, "min_games": 5},
-                    rewards={"coins": 2000, "gems": 100, "experience": 1000},
                     icon="✨",
                 ),
                 "late_night_gamer": Achievement(
@@ -255,7 +188,6 @@ class AchievementManager:
                     type=AchievementType.SPECIAL,
                     rarity=AchievementRarity.UNCOMMON,
                     requirements={"late_night_play": True},
-                    rewards={"coins": 300, "experience": 150},
                     icon="🌙",
                 ),
             }
@@ -304,44 +236,10 @@ class AchievementManager:
         achievements_earned = []
 
         try:
-            # 獲取用戶遊戲統計
-            from potato_bot.services.economy_manager import EconomyManager
-
-            economy_manager = EconomyManager()
-            user_economy = await economy_manager.get_user_economy(user_id, guild_id)
-
-            # 檢查基礎遊戲成就
-            if user_economy.get("total_games", 0) >= 1:
-                if not await self._user_has_achievement(user_id, guild_id, "first_game"):
-                    achievement = await self._grant_achievement(user_id, guild_id, "first_game")
-                    if achievement:
-                        achievements_earned.append(achievement)
-
-            if user_economy.get("total_wins", 0) >= 1 and won:
-                if not await self._user_has_achievement(user_id, guild_id, "first_win"):
-                    achievement = await self._grant_achievement(user_id, guild_id, "first_win")
-                    if achievement:
-                        achievements_earned.append(achievement)
-
-            # 檢查遊戲次數成就
-            if user_economy.get("total_games", 0) >= 100:
-                if not await self._user_has_achievement(user_id, guild_id, "game_addict"):
-                    achievement = await self._grant_achievement(user_id, guild_id, "game_addict")
-                    if achievement:
-                        achievements_earned.append(achievement)
-
             # 檢查特殊遊戲成就
             if game_type == "guess_number" and won and score == 1:  # 一次猜中
                 if not await self._user_has_achievement(user_id, guild_id, "guess_master"):
                     achievement = await self._grant_achievement(user_id, guild_id, "guess_master")
-                    if achievement:
-                        achievements_earned.append(achievement)
-
-            # 檢查每日特殊成就
-            daily_wins = user_economy.get("daily_wins", 0)
-            if daily_wins >= 10:
-                if not await self._user_has_achievement(user_id, guild_id, "lucky_day"):
-                    achievement = await self._grant_achievement(user_id, guild_id, "lucky_day")
                     if achievement:
                         achievements_earned.append(achievement)
 
@@ -359,53 +257,6 @@ class AchievementManager:
 
         except Exception as e:
             logger.error(f"❌ 檢查遊戲成就失敗: {e}")
-            return []
-
-    async def check_economy_achievements(self, user_id: int, guild_id: int) -> List[Dict[str, Any]]:
-        """檢查經濟相關成就"""
-        achievements_earned = []
-
-        try:
-            from potato_bot.services.economy_manager import EconomyManager
-
-            economy_manager = EconomyManager()
-            user_economy = await economy_manager.get_user_economy(user_id, guild_id)
-            level_info = await economy_manager.calculate_level(user_economy.get("experience", 0))
-
-            # 檢查金幣成就
-            coins = user_economy.get("coins", 0)
-            coin_achievements = [
-                ("first_coin", 1000),
-                ("coin_collector", 10000),
-                ("millionaire", 100000),
-            ]
-
-            for achievement_id, required_coins in coin_achievements:
-                if coins >= required_coins:
-                    if not await self._user_has_achievement(user_id, guild_id, achievement_id):
-                        achievement = await self._grant_achievement(
-                            user_id, guild_id, achievement_id
-                        )
-                        if achievement:
-                            achievements_earned.append(achievement)
-
-            # 檢查等級成就
-            level = level_info["level"]
-            level_achievements = [("level_10", 10), ("level_50", 50)]
-
-            for achievement_id, required_level in level_achievements:
-                if level >= required_level:
-                    if not await self._user_has_achievement(user_id, guild_id, achievement_id):
-                        achievement = await self._grant_achievement(
-                            user_id, guild_id, achievement_id
-                        )
-                        if achievement:
-                            achievements_earned.append(achievement)
-
-            return achievements_earned
-
-        except Exception as e:
-            logger.error(f"❌ 檢查經濟成就失敗: {e}")
             return []
 
     # ========== 成就管理功能 ==========
@@ -506,27 +357,7 @@ class AchievementManager:
         self, user_id: int, guild_id: int, achievement: Achievement
     ):
         """發放成就獎勵"""
-        try:
-            from potato_bot.services.economy_manager import EconomyManager
-
-            economy_manager = EconomyManager()
-
-            # 發放金幣
-            if achievement.rewards.get("coins", 0) > 0:
-                await economy_manager.add_coins(user_id, guild_id, achievement.rewards["coins"])
-
-            # 發放寶石
-            if achievement.rewards.get("gems", 0) > 0:
-                await economy_manager.add_gems(user_id, guild_id, achievement.rewards["gems"])
-
-            # 發放經驗值
-            if achievement.rewards.get("experience", 0) > 0:
-                await economy_manager.add_experience(
-                    user_id, guild_id, achievement.rewards["experience"]
-                )
-
-        except Exception as e:
-            logger.error(f"❌ 發放成就獎勵失敗: {e}")
+        pass
 
     # ========== 查詢功能 ==========
 
@@ -613,60 +444,7 @@ class AchievementManager:
         self, user_id: int, guild_id: int, achievement: Achievement
     ) -> Dict[str, Any]:
         """計算成就進度"""
-        try:
-            from potato_bot.services.economy_manager import EconomyManager
-
-            economy_manager = EconomyManager()
-            user_economy = await economy_manager.get_user_economy(user_id, guild_id)
-
-            requirements = achievement.requirements
-            progress = {"current": 0, "required": 1, "percentage": 0.0}
-
-            # 根據成就類型計算進度
-            if "total_games" in requirements:
-                current = user_economy.get("total_games", 0)
-                required = requirements["total_games"]
-                progress = {
-                    "current": current,
-                    "required": required,
-                    "percentage": min(100.0, (current / required) * 100),
-                }
-
-            elif "total_wins" in requirements:
-                current = user_economy.get("total_wins", 0)
-                required = requirements["total_wins"]
-                progress = {
-                    "current": current,
-                    "required": required,
-                    "percentage": min(100.0, (current / required) * 100),
-                }
-
-            elif "total_coins" in requirements:
-                current = user_economy.get("coins", 0)
-                required = requirements["total_coins"]
-                progress = {
-                    "current": current,
-                    "required": required,
-                    "percentage": min(100.0, (current / required) * 100),
-                }
-
-            elif "level" in requirements:
-                level_info = await economy_manager.calculate_level(
-                    user_economy.get("experience", 0)
-                )
-                current = level_info["level"]
-                required = requirements["level"]
-                progress = {
-                    "current": current,
-                    "required": required,
-                    "percentage": min(100.0, (current / required) * 100),
-                }
-
-            return progress
-
-        except Exception as e:
-            logger.error(f"❌ 計算成就進度失敗: {e}")
-            return {"current": 0, "required": 1, "percentage": 0.0}
+        return {"current": 0, "required": 1, "percentage": 0.0}
 
     # ========== 統計功能 ==========
 

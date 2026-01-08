@@ -692,6 +692,27 @@ class TicketDAO:
             logger.error(f"查詢用戶票券列表錯誤：{e}")
             return []
 
+    async def get_all_ticket_settings(self) -> List[Dict[str, Any]]:
+        """取得所有伺服器的票券設定"""
+        await self._ensure_initialized()
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor(aiomysql.DictCursor) as cursor:
+                    await cursor.execute("SELECT * FROM ticket_settings")
+                    results = await cursor.fetchall()
+                    for settings in results:
+                        if settings.get("support_roles"):
+                            try:
+                                settings["support_roles"] = json.loads(settings["support_roles"])
+                            except:
+                                settings["support_roles"] = []
+                        else:
+                            settings["support_roles"] = []
+                    return results
+        except Exception as e:
+            logger.error(f"取得所有設定錯誤：{e}")
+            return []
+
     async def get_settings(self, guild_id: int) -> Dict[str, Any]:
         """取得伺服器設定 - 修復異步"""
         await self._ensure_initialized()

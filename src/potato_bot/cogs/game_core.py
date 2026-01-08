@@ -26,7 +26,6 @@ from discord.ext import commands, tasks
 # 遊戲相關導入
 from potato_bot.db.pool import db_pool
 from potato_bot.services.achievement_manager import AchievementManager
-from potato_bot.services.economy_manager import EconomyManager
 from potato_bot.services.game_manager import GameManager
 from potato_bot.utils.embed_builder import EmbedBuilder
 from potato_bot.views.game_views import (
@@ -85,7 +84,6 @@ class GameEntertainment(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.game_manager = GameManager()
-        self.economy_manager = EconomyManager()
         self.achievement_manager = AchievementManager()
 
         # 活躍的遊戲會話
@@ -97,11 +95,9 @@ class GameEntertainment(commands.Cog):
                 "min_number": 1,
                 "max_number": 100,
                 "max_attempts": 6,
-                "rewards": {"easy": 50, "medium": 100, "hard": 200},
             },
             GameType.ROCK_PAPER_SCISSORS: {
                 "choices": ["rock", "paper", "scissors"],
-                "rewards": {"win": 30, "draw": 10},
             },
             GameType.COIN_FLIP: {
                 "min_bet": 10,
@@ -138,32 +134,11 @@ class GameEntertainment(commands.Cog):
     async def games_menu(self, interaction: discord.Interaction):
         """遊戲選單"""
         try:
-            # 獲取用戶經濟狀態
-            user_economy = await self.economy_manager.get_user_economy(
-                interaction.user.id, interaction.guild.id
-            )
-
             # 創建遊戲選單嵌入
             embed = EmbedBuilder.build(
                 title="🎮 遊戲娛樂中心",
                 description="選擇您想要遊玩的遊戲！",
                 color=0x00FF88,
-            )
-
-            embed.add_field(
-                name="💰 您的資產",
-                value=f"🪙 金幣: {user_economy.get('coins', 0):,}\n"
-                f"💎 寶石: {user_economy.get('gems', 0):,}\n"
-                f"⭐ 經驗: {user_economy.get('experience', 0):,}",
-                inline=True,
-            )
-
-            embed.add_field(
-                name="🏆 今日狀態",
-                value=f"✅ 每日簽到: {'已完成' if user_economy.get('daily_claimed') else '未完成'}\n"
-                f"🎯 遊戲次數: {user_economy.get('daily_games', 0)}/10\n"
-                f"🏅 勝利次數: {user_economy.get('daily_wins', 0)}",
-                inline=True,
             )
 
             # 可用遊戲列表
@@ -179,280 +154,13 @@ class GameEntertainment(commands.Cog):
             embed.add_field(name="🎯 可用遊戲", value="\n".join(games_list), inline=False)
 
             # 創建遊戲選單視圖
-            view = GameMenuView(self, user_economy)
+            view = GameMenuView(self)
 
             await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
         except Exception as e:
             logger.error(f"❌ 遊戲選單錯誤: {e}")
             await interaction.response.send_message("❌ 開啟遊戲選單時發生錯誤。", ephemeral=True)
-
-    # ========== 經濟系統指令 ==========
-
-    @app_commands.command(name="daily", description="每日簽到獎勵")
-    async def daily_checkin(self, interaction: discord.Interaction):
-        """每日簽到"""
-        try:
-            user_id = interaction.user.id
-            guild_id = interaction.guild.id
-
-            # 檢查是否已簽到
-            last_checkin = await self.economy_manager.get_last_checkin(user_id, guild_id)
-            today = datetime.now(timezone.utc).date()
-
-            if last_checkin and last_checkin.date() >= today:
-                embed = EmbedBuilder.build(
-                    title="⏰ 已完成簽到",
-                    description="您今天已經完成每日簽到了！明天再來吧~",
-                    color=0xFFAA00,
-                )
-                await interaction.response.send_message(embed=embed, ephemeral=True)
-                return
-
-            # 計算連續簽到天數
-            streak = await self.economy_manager.calculate_checkin_streak(user_id, guild_id)
-
-            # 計算獎勵
-            base_coins = 100
-            streak_bonus = min(streak * 10, 500)  # 最多額外500
-            total_coins = base_coins + streak_bonus
-
-            # 隨機額外獎勵
-            bonus_gems = 0
-            if random.random() < 0.1:  # 10% 機率獲得寶石
-                bonus_gems = random.randint(5, 20)
-
-            # 發放獎勵
-            await self.economy_manager.add_coins(user_id, guild_id, total_coins)
-            if bonus_gems > 0:
-                await self.economy_manager.add_gems(user_id, guild_id, bonus_gems)
-
-            # 記錄簽到
-            await self.economy_manager.record_checkin(user_id, guild_id)
-
-            # 創建獎勵嵌入
-            embed = EmbedBuilder.build(
-                title="✅ 每日簽到成功！",
-                description="感謝您的持續參與！",
-                color=0x00FF00,
-            )
-
-            embed.add_field(
-                name="🎁 今日獎勵",
-                value=f"🪙 基礎金幣: {base_coins:,}\n"
-                f"🔥 連續獎勵: {streak_bonus:,} (第{streak}天)\n"
-                + (f"💎 幸運寶石: {bonus_gems}" if bonus_gems > 0 else ""),
-                inline=True,
-            )
-
-            embed.add_field(
-                name="📊 統計資訊",
-                value=f"🔥 連續簽到: {streak} 天\n"
-                f"🏆 累計簽到: {await self.economy_manager.get_total_checkins(user_id, guild_id)} 天",
-                inline=True,
-            )
-
-            # 檢查成就
-            achievements = await self.achievement_manager.check_daily_achievements(
-                user_id, guild_id, streak
-            )
-
-            if achievements:
-                achievement_text = "\n".join([f"🏆 {ach['name']}" for ach in achievements])
-                embed.add_field(name="🎊 獲得成就", value=achievement_text, inline=False)
-
-            await interaction.response.send_message(embed=embed)
-
-        except Exception as e:
-            logger.error(f"❌ 每日簽到錯誤: {e}")
-            await interaction.response.send_message(
-                "❌ 簽到時發生錯誤，請稍後再試。", ephemeral=True
-            )
-
-    @app_commands.command(name="balance", description="查看錢包餘額")
-    async def check_balance(self, interaction: discord.Interaction, user: discord.User = None):
-        """查看餘額"""
-        try:
-            target_user = user or interaction.user
-            user_id = target_user.id
-            guild_id = interaction.guild.id
-
-            # 獲取經濟狀態
-            economy = await self.economy_manager.get_user_economy(user_id, guild_id)
-
-            # 獲取排名資訊
-            coin_rank = await self.economy_manager.get_user_rank(user_id, guild_id, "coins")
-            level_info = await self.economy_manager.calculate_level(economy.get("experience", 0))
-
-            embed = EmbedBuilder.build(
-                title=f"💰 {target_user.display_name} 的錢包", color=0xFFD700
-            )
-
-            # 設置頭像
-            embed.set_thumbnail(url=target_user.display_avatar.url)
-
-            # 資產資訊
-            embed.add_field(
-                name="💳 資產狀況",
-                value=f"🪙 金幣: {economy.get('coins', 0):,}\n"
-                f"💎 寶石: {economy.get('gems', 0):,}\n"
-                f"🎫 遊戲券: {economy.get('tickets', 0):,}",
-                inline=True,
-            )
-
-            # 等級資訊
-            embed.add_field(
-                name="📈 等級資訊",
-                value=f"⭐ 等級: {level_info['level']}\n"
-                f"🎯 經驗: {economy.get('experience', 0):,}\n"
-                f"📊 下級需要: {level_info['next_level_exp']:,}",
-                inline=True,
-            )
-
-            # 統計資訊
-            embed.add_field(
-                name="🏆 遊戲統計",
-                value=f"🎮 總遊戲: {economy.get('total_games', 0):,}\n"
-                f"🏅 勝利數: {economy.get('total_wins', 0):,}\n"
-                f"📈 勝率: {economy.get('win_rate', 0):.1f}%",
-                inline=True,
-            )
-
-            # 排名資訊
-            embed.add_field(
-                name="🏆 伺服器排名",
-                value=f"💰 金幣排名: #{coin_rank}\n"
-                f"⭐ 等級排名: #{await self.economy_manager.get_user_rank(user_id, guild_id, 'experience')}",
-                inline=True,
-            )
-
-            # 每日狀態
-            embed.add_field(
-                name="📅 今日狀態",
-                value=f"✅ 簽到: {'已完成' if economy.get('daily_claimed') else '未完成'}\n"
-                f"🎮 遊戲: {economy.get('daily_games', 0)}/10\n"
-                f"🏆 勝利: {economy.get('daily_wins', 0)}",
-                inline=True,
-            )
-
-            await interaction.response.send_message(embed=embed, ephemeral=user is None)
-
-        except Exception as e:
-            logger.error(f"❌ 查看餘額錯誤: {e}")
-            await interaction.response.send_message("❌ 查看餘額時發生錯誤。", ephemeral=True)
-
-    @app_commands.command(name="game_leaderboard", description="查看排行榜")
-    @app_commands.describe(category="排行榜類型")
-    @app_commands.choices(
-        category=[
-            app_commands.Choice(name="金幣排行", value="coins"),
-            app_commands.Choice(name="等級排行", value="experience"),
-            app_commands.Choice(name="勝場排行", value="wins"),
-            app_commands.Choice(name="遊戲次數", value="games"),
-        ]
-    )
-    async def leaderboard(self, interaction: discord.Interaction, category: str = "coins"):
-        """排行榜"""
-        try:
-            guild_id = interaction.guild.id
-
-            # 獲取排行榜數據
-            leaderboard_data = await self.economy_manager.get_leaderboard(
-                guild_id, category, limit=10
-            )
-
-            category_names = {
-                "coins": "💰 金幣排行榜",
-                "experience": "⭐ 等級排行榜",
-                "wins": "🏆 勝場排行榜",
-                "games": "🎮 遊戲次數排行榜",
-            }
-
-            category_emojis = {
-                "coins": "🪙",
-                "experience": "⭐",
-                "wins": "🏅",
-                "games": "🎯",
-            }
-
-            embed = EmbedBuilder.build(
-                title=category_names.get(category, "📊 排行榜"),
-                description=f"🏆 {interaction.guild.name} 的頂尖玩家",
-                color=0xFFD700,
-            )
-
-            if not leaderboard_data:
-                embed.add_field(
-                    name="📝 暫無數據",
-                    value="還沒有玩家參與遊戲，快來成為第一名！",
-                    inline=False,
-                )
-            else:
-                rank_text = []
-                for i, entry in enumerate(leaderboard_data[:10], 1):
-                    user = self.bot.get_user(entry["user_id"])
-                    username = user.display_name if user else f"用戶{entry['user_id']}"
-
-                    # 排名表情
-                    rank_emoji = {1: "🥇", 2: "🥈", 3: "🥉"}.get(i, f"{i}.")
-
-                    # 格式化數值
-                    value = entry[category]
-                    if category == "experience":
-                        level = await self.economy_manager.calculate_level(value)
-                        value_text = f"等級 {level['level']} ({value:,} XP)"
-                    else:
-                        value_text = f"{value:,}"
-
-                    rank_text.append(
-                        f"{rank_emoji} {username}\n{category_emojis[category]} {value_text}"
-                    )
-
-                # 分成兩欄顯示
-                mid_point = len(rank_text) // 2 + 1
-                embed.add_field(
-                    name="🏆 前5名",
-                    value="\n\n".join(rank_text[:mid_point]),
-                    inline=True,
-                )
-
-                if len(rank_text) > mid_point:
-                    embed.add_field(
-                        name="🎖️ 6-10名",
-                        value="\n\n".join(rank_text[mid_point:]),
-                        inline=True,
-                    )
-
-            # 用戶排名
-            user_rank = await self.economy_manager.get_user_rank(
-                interaction.user.id, guild_id, category
-            )
-            user_economy = await self.economy_manager.get_user_economy(
-                interaction.user.id, guild_id
-            )
-
-            user_value = user_economy.get(category, 0)
-            if category == "experience":
-                level = await self.economy_manager.calculate_level(user_value)
-                user_value_text = f"等級 {level['level']}"
-            else:
-                user_value_text = f"{user_value:,}"
-
-            embed.add_field(
-                name="📍 您的排名",
-                value=f"排名: #{user_rank}\n{category_emojis[category]} {user_value_text}",
-                inline=False,
-            )
-
-            embed.set_footer(
-                text=f"數據更新時間: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}"
-            )
-
-            await interaction.response.send_message(embed=embed)
-
-        except Exception as e:
-            logger.error(f"❌ 排行榜錯誤: {e}")
-            await interaction.response.send_message("❌ 獲取排行榜時發生錯誤。", ephemeral=True)
 
     # ========== 成就系統指令 ==========
 
@@ -588,13 +296,7 @@ class GameEntertainment(commands.Cog):
                         inline=False,
                     )
 
-                embed.add_field(
-                    name="🎁 獎勵",
-                    value=f"🪙 金幣: {achievement_def.rewards.get('coins', 0)}\n"
-                    f"💎 寶石: {achievement_def.rewards.get('gems', 0)}\n"
-                    f"⭐ 經驗: {achievement_def.rewards.get('experience', 0)}",
-                    inline=True,
-                )
+
 
             else:
                 # 顯示所有未完成成就的進度
@@ -729,11 +431,6 @@ class GameEntertainment(commands.Cog):
 
             await interaction.response.send_message(embed=embed, view=view)
 
-            # 記錄遊戲開始
-            await self.economy_manager.increment_daily_games(
-                interaction.user.id, interaction.guild.id
-            )
-
         except Exception as e:
             logger.error(f"❌ 猜數字遊戲錯誤: {e}")
             await interaction.response.send_message("❌ 開始遊戲時發生錯誤。", ephemeral=True)
@@ -757,20 +454,6 @@ class GameEntertainment(commands.Cog):
             session.end_time = datetime.now(timezone.utc)
             session.status = "completed"
             session.score = score
-
-            # 發放獎勵
-            if won and session.data.get("reward", 0) > 0:
-                reward = session.data["reward"]
-                await self.economy_manager.add_coins(session.player_id, session.guild_id, reward)
-
-                # 增加經驗
-                exp_reward = reward // 2
-                await self.economy_manager.add_experience(
-                    session.player_id, session.guild_id, exp_reward
-                )
-
-                # 更新勝利統計
-                await self.economy_manager.increment_daily_wins(session.player_id, session.guild_id)
 
             # 檢查成就
             await self.achievement_manager.check_game_achievements(
@@ -855,30 +538,10 @@ class GameEntertainment(commands.Cog):
     async def daily_reset(self):
         """每日重置任務"""
         try:
-            # 重置每日統計
-            await self.economy_manager.reset_daily_stats()
-
-            # 更新排行榜快取
-            await self._update_leaderboard_cache()
-
             logger.info("🔄 每日重置任務完成")
 
         except Exception as e:
             logger.error(f"❌ 每日重置任務錯誤: {e}")
-
-    async def _update_leaderboard_cache(self):
-        """更新排行榜快取"""
-        try:
-            # 清理排行榜相關快取
-            await cache_manager.clear_all("leaderboard:*")
-
-            # 預載前10名的排行榜
-            for guild in self.bot.guilds:
-                for category in ["coins", "experience", "wins", "games"]:
-                    await self.economy_manager.get_leaderboard(guild.id, category, 10)
-
-        except Exception as e:
-            logger.error(f"❌ 更新排行榜快取錯誤: {e}")
 
     @cleanup_sessions.before_loop
     @daily_reset.before_loop

@@ -566,7 +566,6 @@ class VoteCore(ManagedCog):
             embed = discord.Embed(title=f"🔍 搜尋結果：「{keyword}」", color=0xF39C12)
             embed.set_footer(text=f"找到 {len(results)} 筆符合的投票")
 
-            datetime.now(timezone.utc)
             for vote in results:
                 is_active = vote["is_active"] == 1
                 status_emoji = "🟢" if is_active else "🔴"
@@ -1047,7 +1046,6 @@ class NextPageButton(discord.ui.Button):
         cog = interaction.client.get_cog("VoteCore")
         if cog:
             await cog.vote_history.callback(cog, interaction, new_page, view.status)
-            await interaction.response.send_message("❌ 載入投票面板時發生錯誤", ephemeral=True)
 
 
 async def setup(bot):

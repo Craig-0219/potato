@@ -540,30 +540,6 @@ class DatabaseManager:
                     INDEX idx_start_time (start_time)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             """,
-            "user_economy": """
-                CREATE TABLE IF NOT EXISTS user_economy (
-                    user_id BIGINT NOT NULL,
-                    guild_id BIGINT NOT NULL,
-                    coins BIGINT DEFAULT 0,
-                    gems INT DEFAULT 0,
-                    tickets INT DEFAULT 0,
-                    experience BIGINT DEFAULT 0,
-                    total_games INT DEFAULT 0,
-                    total_wins INT DEFAULT 0,
-                    daily_games INT DEFAULT 0,
-                    daily_wins INT DEFAULT 0,
-                    daily_claimed BOOLEAN DEFAULT FALSE,
-                    last_checkin TIMESTAMP NULL,
-                    last_daily_reset DATE NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-                    PRIMARY KEY (user_id, guild_id),
-                    INDEX idx_coins (coins DESC),
-                    INDEX idx_experience (experience DESC),
-                    INDEX idx_last_checkin (last_checkin)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            """,
         }
 
         await self._create_tables_batch(tables, "遊戲系統")
