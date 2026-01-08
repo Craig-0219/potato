@@ -227,7 +227,6 @@ class TicketManager:
     ):
         """從互動事件建立票券"""
         try:
-            await interaction.response.defer(ephemeral=True, thinking=True)
             # 確保 interaction.user 是 Member
             if not isinstance(interaction.user, discord.Member):
                 user = interaction.guild.get_member(interaction.user.id)
