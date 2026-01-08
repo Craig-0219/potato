@@ -45,9 +45,6 @@ def discover_cog_modules() -> List[str]:
             continue
         if filename.startswith("_") or filename == "__init__.py":
             continue
-        # game system removed
-        if filename == "game_core.py":
-            continue
         # 跳過已停用的 security_admin_core（依賴缺失）
         if filename == "security_admin_core.py":
             continue

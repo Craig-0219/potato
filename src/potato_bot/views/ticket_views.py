@@ -168,11 +168,16 @@ class PrioritySelect(Select):
                 )
                 return
 
+            # Edit the message to remove the priority selection UI and show a processing state
+            await interaction.response.edit_message(
+                content="處理中，請稍候...", # Show a processing message
+                view=None, # Remove the view components
+                embed=None # Remove the embed
+            )
+
             await ticket_core.manager.create_ticket_from_interaction(
                 interaction, self.ticket_type, priority
             )
-            # Delete the ephemeral message that contained the priority selection
-            await interaction.delete_original_response()
 
         except Exception as e:
             logger.error(f"優先級選擇處理錯誤: {e}")
