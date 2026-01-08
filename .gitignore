@@ -91,3 +91,4 @@ tmp/
 
 # Project-specific
 transcripts/
+cleanup_deprecated_tables.py

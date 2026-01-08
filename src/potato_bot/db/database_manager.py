@@ -42,8 +42,6 @@ class DatabaseManager:
             await self._create_welcome_tables()
             await self._create_resume_tables()
             await self._create_whitelist_tables()
-            await self._create_game_tables()
-            await self._create_achievement_tables()
             await self._create_lottery_tables()
             await self._create_webhook_tables()
             await self._create_cleanup_tables()
@@ -515,57 +513,6 @@ class DatabaseManager:
         }
 
         await self._create_tables_batch(tables, "入境審核")
-
-    async def _create_game_tables(self):
-        """創建遊戲系統相關表格"""
-        logger.info("🎮 創建遊戲系統表格...")
-
-        tables = {
-            "game_results": """
-                CREATE TABLE IF NOT EXISTS game_results (
-                    game_id VARCHAR(255) PRIMARY KEY,
-                    game_type VARCHAR(50) NOT NULL,
-                    player_id BIGINT NOT NULL,
-                    guild_id BIGINT NOT NULL,
-                    channel_id BIGINT NOT NULL,
-                    start_time TIMESTAMP NOT NULL,
-                    end_time TIMESTAMP NULL,
-                    won BOOLEAN DEFAULT FALSE,
-                    score INT DEFAULT 0,
-                    game_data JSON,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-                    INDEX idx_player_guild (player_id, guild_id),
-                    INDEX idx_game_type (game_type),
-                    INDEX idx_start_time (start_time)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            """,
-        }
-
-        await self._create_tables_batch(tables, "遊戲系統")
-
-    async def _create_achievement_tables(self):
-        """創建成就系統相關表格"""
-        logger.info("🏆 創建成就系統表格...")
-
-        tables = {
-            "user_achievements": """
-                CREATE TABLE IF NOT EXISTS user_achievements (
-                    user_id BIGINT NOT NULL,
-                    guild_id BIGINT NOT NULL,
-                    achievement_id VARCHAR(50) NOT NULL,
-                    unlocked_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    progress JSON,
-
-                    PRIMARY KEY (user_id, guild_id, achievement_id),
-                    INDEX idx_user_guild (user_id, guild_id),
-                    INDEX idx_achievement (achievement_id),
-                    INDEX idx_unlocked_at (unlocked_at)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-            """,
-        }
-
-        await self._create_tables_batch(tables, "成就系統")
 
     async def _create_lottery_tables(self):
         """創建抽獎系統相關表格"""

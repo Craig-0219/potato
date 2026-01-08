@@ -395,6 +395,53 @@ class CachedTicketCore(commands.Cog):
 
     # ========== 輔助方法 ==========
 
+    async def _get_cache_health(self) -> Dict[str, Any]:
+        """取得快取健康狀態"""
+        try:
+            stats = await cache_manager.get_statistics()
+
+            total_requests = stats.get("requests", {}).get("total", 0)
+            if total_requests < 100:
+                return {
+                    "status": "initializing",
+                    "hit_rate": "N/A",
+                    "total_requests": total_requests,
+                    "recommendations": ["快取預熱中，等待收集足夠數據..."],
+                }
+
+            hit_rate_str = stats.get("requests", {}).get("hit_rate", "0.0%")
+            hit_rate = float(hit_rate_str.rstrip('%')) / 100.0
+            
+            status = "healthy"
+            if hit_rate < 0.8:
+                status = "warning"
+            if hit_rate < 0.6:
+                status = "critical"
+            
+            recommendations = []
+            if status == "warning":
+                recommendations.append("快取命中率偏低，可考慮增加常用查詢的 TTL。")
+            elif status == "critical":
+                recommendations.append("快取命中率嚴重偏低，建議檢查快取策略或增加預熱。")
+
+            l1_usage_str = stats.get("l1_memory", {}).get("usage", "0.0%")
+            l1_usage = float(l1_usage_str.rstrip('%')) / 100.0
+            if l1_usage > 0.9:
+                recommendations.append("L1 記憶體快取接近滿載，考慮增加容量。")
+            
+            if not recommendations:
+                recommendations.append("快取性能良好。")
+
+            return {
+                "status": status,
+                "hit_rate": f"{hit_rate:.2%}",
+                "total_requests": stats.get("requests", {}).get("total", 0),
+                "recommendations": recommendations,
+            }
+        except Exception as e:
+            logger.error(f"❌ 取得快取健康狀態失敗: {e}")
+            return {"status": "error", "recommendations": ["無法獲取快取狀態。"]}
+
     async def _warm_global_cache(self):
         """預熱全域快取"""
         try:
@@ -437,7 +484,8 @@ class CachedTicketCore(commands.Cog):
             try:
                 guild = self.bot.get_guild(guild_id)
                 if not guild:
-                    logger.warning(f"清理任務：找不到伺服器 {guild_id}")
+                    logger.warning(f"清理任務：找不到伺服器 {guild_id}，將清理其設定。")
+                    await self.cached_dao.ticket_dao.delete_settings(guild_id)
                     continue
                 
                 logger.info(f"正在檢查伺服器 {guild.name} (ID: {guild_id}) 的過期票券...")

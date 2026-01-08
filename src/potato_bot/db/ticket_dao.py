@@ -883,6 +883,25 @@ class TicketDAO:
             logger.error(f"批量更新設定錯誤：{e}")
             return False
 
+    async def delete_settings(self, guild_id: int) -> bool:
+        """刪除伺服器設定"""
+        await self._ensure_initialized()
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    await cursor.execute(
+                        "DELETE FROM ticket_settings WHERE guild_id = %s",
+                        (guild_id,),
+                    )
+                    await conn.commit()
+                    deleted_count = cursor.rowcount
+                    if deleted_count > 0:
+                        logger.info(f"已刪除伺服器 {guild_id} 的票券設定。")
+                    return deleted_count > 0
+        except Exception as e:
+            logger.error(f"刪除伺服器設定錯誤：{e}")
+            return False
+
     async def get_next_ticket_id(self) -> int:
         """取得下一個票券 ID - 修復異步"""
         await self._ensure_initialized()

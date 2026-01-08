@@ -4,7 +4,7 @@
 專注於核心業務邏輯，移除過度複雜的功能
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Any, Dict, Optional, Tuple
 
 import discord
