@@ -82,7 +82,7 @@ class ResumeCore(ManagedCog):
 
     # ===== Slash Commands =====
 
-    @app_commands.command(name="resume_company", description="Create or update resume company settings")
+    @app_commands.command(name="resume_company", description="創建或者更新履歷設定")
     @app_commands.checks.has_permissions(administrator=True)
     async def resume_company(
         self,
@@ -99,13 +99,13 @@ class ResumeCore(ManagedCog):
     ):
         guild = interaction.guild
         if not guild:
-            await interaction.response.send_message("This command must be used in a guild.", ephemeral=True)
+            await interaction.response.send_message("此指令必須在指定頻道使用", ephemeral=True)
             return
 
         existing = await self.service.load_company_by_name(guild.id, company_name)
         if not existing and review_channel is None:
             await interaction.response.send_message(
-                "Review channel is required when creating a new company.",
+                "必須設置審核頻道",
                 ephemeral=True,
             )
             return
@@ -120,7 +120,7 @@ class ResumeCore(ManagedCog):
         )
         if not review_channel_id:
             await interaction.response.send_message(
-                "Review channel is required for this company.",
+                "尚未設置審核頻道",
                 ephemeral=True,
             )
             return
@@ -147,16 +147,16 @@ class ResumeCore(ManagedCog):
                 if message_id:
                     self.bot.add_view(panel_view, message_id=message_id)
             except Exception as e:
-                logger.error(f"Failed to refresh resume panel: {e}")
+                logger.error(f"面板刷新失敗: {e}")
 
         embed = discord.Embed(
-            title="Resume Company Settings",
-            description=f"Company: {settings.company_name}",
+            title="履歷設定",
+            description=f"公司名稱: {settings.company_name}",
             color=0x3498DB,
         )
         embed.add_field(
-            name="Channels",
-            value=f"Panel: <#{settings.panel_channel_id}>\nReview: <#{settings.review_channel_id}>",
+            name="頻道",
+            value=f"面板: <#{settings.panel_channel_id}>\審核: <#{settings.review_channel_id}>",
             inline=False,
         )
         if settings.review_role_ids:
@@ -168,7 +168,7 @@ class ResumeCore(ManagedCog):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="resume_panel", description="Deploy or refresh resume panel for a company")
+    @app_commands.command(name="resume_panel", description="部屬或刷新履歷面板")
     @app_commands.checks.has_permissions(administrator=True)
     async def resume_panel(
         self,
@@ -178,12 +178,12 @@ class ResumeCore(ManagedCog):
     ):
         guild = interaction.guild
         if not guild:
-            await interaction.response.send_message("This command must be used in a guild.", ephemeral=True)
+            await interaction.response.send_message("此指令必須在指定頻道使用", ephemeral=True)
             return
 
         settings = await self.service.load_company_by_name(guild.id, company_name)
         if not settings:
-            await interaction.response.send_message("Company not found.", ephemeral=True)
+            await interaction.response.send_message("不存在的企業名稱", ephemeral=True)
             return
 
         if panel_channel:
@@ -208,19 +208,19 @@ class ResumeCore(ManagedCog):
         except Exception:
             pass
 
-        await interaction.response.send_message("Resume panel deployed/refreshed.", ephemeral=True)
+        await interaction.response.send_message("履歷面板已佈署/刷新", ephemeral=True)
 
-    @app_commands.command(name="resume_companies", description="List resume companies in this guild")
+    @app_commands.command(name="resume_companies", description="列出所有履歷公司履歷設定")
     @app_commands.checks.has_permissions(administrator=True)
     async def resume_companies(self, interaction: discord.Interaction):
         guild = interaction.guild
         if not guild:
-            await interaction.response.send_message("This command must be used in a guild.", ephemeral=True)
+            await interaction.response.send_message("此指令必須在指定頻道使用", ephemeral=True)
             return
 
         companies = await self.service.list_companies(guild.id)
         if not companies:
-            await interaction.response.send_message("No resume companies configured.", ephemeral=True)
+            await interaction.response.send_message("不存在的設定", ephemeral=True)
             return
 
         embed = discord.Embed(title="Resume Companies", color=0x3498DB)
