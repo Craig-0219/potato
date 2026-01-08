@@ -136,77 +136,42 @@ class SafeInteractionHandler:
         except Exception as handle_error:
             logger.error(f"處理互動錯誤時發生異常: {handle_error}")
 
-        @staticmethod
+    @staticmethod
+    def is_interaction_valid(interaction: discord.Interaction) -> bool:
+        """檢查互動是否有效"""
+        try:
+            return (
+                interaction is not None
+                and hasattr(interaction, "response")
+                and hasattr(interaction, "user")
+            )
+        except Exception:
+            return False
 
-        def is_interaction_valid(interaction: discord.Interaction) -> bool:
 
-            """檢查互動是否有效"""
+def apply_ephemeral_delete_after_policy(delete_after: float = 30.0) -> None:
+    """Auto-delete ephemeral messages without views after a short delay."""
+    if getattr(discord, "_ephemeral_delete_policy_applied", False):
+        return
 
-            try:
+    setattr(discord, "_ephemeral_delete_policy_applied", True)
 
-                return (
+    original_send_message = discord.InteractionResponse.send_message
 
-                    interaction is not None
+    async def patched_send_message(self, *args, **kwargs):
+        if (
+            kwargs.get("ephemeral")
+            and kwargs.get("delete_after") is None
+            and kwargs.get("view") is None
+        ):
+            kwargs["delete_after"] = delete_after
+        return await original_send_message(self, *args, **kwargs)
 
-                    and hasattr(interaction, "response")
+    discord.InteractionResponse.send_message = patched_send_message
 
-                    and hasattr(interaction, "user")
 
-                )
-
-            except Exception:
-
-                return False
-
-    
-
-    
-
-    def apply_ephemeral_delete_after_policy(delete_after: float = 30.0) -> None:
-
-        """Auto-delete ephemeral messages without views after a short delay."""
-
-        if getattr(discord, "_ephemeral_delete_policy_applied", False):
-
-            return
-
-    
-
-        setattr(discord, "_ephemeral_delete_policy_applied", True)
-
-    
-
-        original_send_message = discord.InteractionResponse.send_message
-
-    
-
-        async def patched_send_message(self, *args, **kwargs):
-
-            if (
-
-                kwargs.get("ephemeral")
-
-                and kwargs.get("delete_after") is None
-
-                and kwargs.get("view") is None
-
-            ):
-
-                kwargs["delete_after"] = delete_after
-
-            return await original_send_message(self, *args, **kwargs)
-
-    
-
-        discord.InteractionResponse.send_message = patched_send_message
-
-    
-
-    
-
-    class InteractionContext:
-
-        """互動上下文管理器"""
+class InteractionContext:
+    """互動上下文管理器"""
 
     def __init__(self, interaction: discord.Interaction, operation_name: str = "操作"):
         self.interaction = interaction
