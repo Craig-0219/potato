@@ -171,6 +171,8 @@ class PrioritySelect(Select):
             await ticket_core.manager.create_ticket_from_interaction(
                 interaction, self.ticket_type, priority
             )
+            # Delete the ephemeral message that contained the priority selection
+            await interaction.delete_original_response()
 
         except Exception as e:
             logger.error(f"優先級選擇處理錯誤: {e}")
