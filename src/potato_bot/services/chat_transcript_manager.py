@@ -533,7 +533,7 @@ class ChatTranscriptManager:
                 # 避免 API 限制
                 await asyncio.sleep(0.1)
 
-            logger.info(f"✅ 批量記錄完成，共記錄 {recorded_count} 條訊息")
+            logger.debug(f"✅ 批量記錄完成，共記錄 {recorded_count} 條訊息")
             return recorded_count
 
         except Exception as e:

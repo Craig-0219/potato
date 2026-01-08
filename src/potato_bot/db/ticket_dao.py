@@ -446,7 +446,7 @@ class TicketDAO:
                         )
 
                         await conn.commit()
-                        logger.info(f"關閉票券 #{ticket_id:04d}")
+                        logger.debug(f"關閉票券 #{ticket_id:04d}")
                         return True
 
             return False
