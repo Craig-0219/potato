@@ -309,6 +309,32 @@ class ResumeReviewView(discord.ui.View):
         except Exception:
             pass
 
+    async def _apply_approved_roles(self, guild: discord.Guild, user_id: int) -> None:
+        role_ids = self.settings.approved_role_ids or []
+        if not role_ids:
+            return
+
+        member = guild.get_member(user_id)
+        if not member:
+            return
+
+        existing_role_ids = {role.id for role in member.roles}
+        roles_to_add = []
+        for role_id in role_ids:
+            if role_id in existing_role_ids:
+                continue
+            role = guild.get_role(role_id)
+            if role:
+                roles_to_add.append(role)
+
+        if not roles_to_add:
+            return
+
+        try:
+            await member.add_roles(*roles_to_add, reason="Resume approved")
+        except Exception as e:
+            logger.error(f"履歷通過自動身分組失敗: {e}")
+
     async def _mark_done(self, interaction: discord.Interaction, status: str, note: str | None = None):
         await interaction.response.defer(ephemeral=True)
         app = await self.dao.get_application(self.app_id)
@@ -339,6 +365,8 @@ class ResumeReviewView(discord.ui.View):
                 applicant = await self.bot.fetch_user(applicant_id)
             except Exception:
                 applicant = None
+        if status == "APPROVED":
+            await self._apply_approved_roles(interaction.guild, applicant_id)
 
         embed = build_review_embed(
             self.app_id,

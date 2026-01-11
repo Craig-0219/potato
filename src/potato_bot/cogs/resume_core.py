@@ -95,6 +95,11 @@ class ResumeCore(ManagedCog):
         review_role_3: Optional[discord.Role] = None,
         review_role_4: Optional[discord.Role] = None,
         review_role_5: Optional[discord.Role] = None,
+        approved_role_1: Optional[discord.Role] = None,
+        approved_role_2: Optional[discord.Role] = None,
+        approved_role_3: Optional[discord.Role] = None,
+        approved_role_4: Optional[discord.Role] = None,
+        approved_role_5: Optional[discord.Role] = None,
         enabled: Optional[bool] = None,
     ):
         guild = interaction.guild
@@ -130,12 +135,24 @@ class ResumeCore(ManagedCog):
         role_ids = [role.id for role in role_inputs if role]
         role_ids = list(dict.fromkeys(role_ids))
 
+        approved_role_inputs = [
+            approved_role_1,
+            approved_role_2,
+            approved_role_3,
+            approved_role_4,
+            approved_role_5,
+        ]
+        approved_roles_provided = any(role is not None for role in approved_role_inputs)
+        approved_role_ids = [role.id for role in approved_role_inputs if role]
+        approved_role_ids = list(dict.fromkeys(approved_role_ids))
+
         settings = await self.service.save_company(
             guild.id,
             company_name,
             panel_channel_id=panel_channel_id,
             review_channel_id=review_channel_id,
             review_role_ids=(role_ids if roles_provided else None),
+            approved_role_ids=(approved_role_ids if approved_roles_provided else None),
             is_enabled=enabled,
         )
 
@@ -164,6 +181,11 @@ class ResumeCore(ManagedCog):
         else:
             role_text = "Not set"
         embed.add_field(name="Reviewer roles", value=role_text, inline=False)
+        if settings.approved_role_ids:
+            approved_text = ", ".join(f"<@&{role_id}>" for role_id in settings.approved_role_ids)
+        else:
+            approved_text = "Not set"
+        embed.add_field(name="Approved roles", value=approved_text, inline=False)
         embed.add_field(name="Enabled", value="Yes" if settings.is_enabled else "No", inline=False)
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -232,9 +254,14 @@ class ResumeCore(ManagedCog):
                 if settings.review_role_ids
                 else "Not set"
             )
+            approved_roles = (
+                ", ".join(f"<@&{role_id}>" for role_id in settings.approved_role_ids)
+                if settings.approved_role_ids
+                else "Not set"
+            )
             embed.add_field(
                 name=settings.company_name,
-                value=f"Panel: {panel}\nReview: {review}\nRoles: {roles}\nEnabled: {'Yes' if settings.is_enabled else 'No'}",
+                value=f"Panel: {panel}\nReview: {review}\nReviewer roles: {roles}\nApproved roles: {approved_roles}\nEnabled: {'Yes' if settings.is_enabled else 'No'}",
                 inline=False,
             )
 

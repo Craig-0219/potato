@@ -37,6 +37,7 @@ class ResumeCompanySettings:
     panel_channel_id: Optional[int] = None
     review_channel_id: Optional[int] = None
     review_role_ids: List[int] | None = None
+    approved_role_ids: List[int] | None = None
     panel_message_id: Optional[int] = None
     is_enabled: bool = True
 
@@ -62,6 +63,7 @@ class ResumeService:
             panel_channel_id=data.get("panel_channel_id"),
             review_channel_id=data.get("review_channel_id"),
             review_role_ids=_normalize_role_ids(data.get("review_role_ids")),
+            approved_role_ids=_normalize_role_ids(data.get("approved_role_ids")),
             panel_message_id=data.get("panel_message_id"),
             is_enabled=bool(data.get("is_enabled", True)),
         )
@@ -79,6 +81,7 @@ class ResumeService:
             panel_channel_id=data.get("panel_channel_id"),
             review_channel_id=data.get("review_channel_id"),
             review_role_ids=_normalize_role_ids(data.get("review_role_ids")),
+            approved_role_ids=_normalize_role_ids(data.get("approved_role_ids")),
             panel_message_id=data.get("panel_message_id"),
             is_enabled=bool(data.get("is_enabled", True)),
         )
@@ -95,6 +98,7 @@ class ResumeService:
                     panel_channel_id=row.get("panel_channel_id"),
                     review_channel_id=row.get("review_channel_id"),
                     review_role_ids=_normalize_role_ids(row.get("review_role_ids")),
+                    approved_role_ids=_normalize_role_ids(row.get("approved_role_ids")),
                     panel_message_id=row.get("panel_message_id"),
                     is_enabled=bool(row.get("is_enabled", True)),
                 )
@@ -112,6 +116,7 @@ class ResumeService:
             "panel_channel_id": current.get("panel_channel_id"),
             "review_channel_id": current.get("review_channel_id"),
             "review_role_ids": _normalize_role_ids(current.get("review_role_ids")),
+            "approved_role_ids": _normalize_role_ids(current.get("approved_role_ids")),
             "panel_message_id": current.get("panel_message_id"),
             "is_enabled": current.get("is_enabled", True),
         }

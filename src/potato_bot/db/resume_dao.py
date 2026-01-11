@@ -39,6 +39,16 @@ class ResumeDAO(BaseDAO):
                     if not await cursor.fetchone():
                         raise RuntimeError("resume_applications 表不存在，請先初始化資料庫")
 
+                    await cursor.execute(
+                        "SHOW COLUMNS FROM resume_companies LIKE 'approved_role_ids'"
+                    )
+                    column_exists = await cursor.fetchone()
+                    if not column_exists:
+                        await cursor.execute(
+                            "ALTER TABLE resume_companies ADD COLUMN approved_role_ids JSON NULL AFTER review_role_ids"
+                        )
+
+                    await conn.commit()
             logger.info("✅ resume 資料表檢查完成")
         except Exception as e:
             logger.error(f"❌ 檢查 resume 資料表失敗: {e}")
@@ -68,16 +78,20 @@ class ResumeDAO(BaseDAO):
         review_role_ids = settings.get("review_role_ids")
         if review_role_ids is not None:
             review_role_ids = json.dumps(review_role_ids, ensure_ascii=False)
+        approved_role_ids = settings.get("approved_role_ids")
+        if approved_role_ids is not None:
+            approved_role_ids = json.dumps(approved_role_ids, ensure_ascii=False)
 
         query = """
             INSERT INTO resume_companies (
                 guild_id, company_name, panel_channel_id, review_channel_id,
-                review_role_ids, panel_message_id, is_enabled
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                review_role_ids, approved_role_ids, panel_message_id, is_enabled
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
                 panel_channel_id=VALUES(panel_channel_id),
                 review_channel_id=VALUES(review_channel_id),
                 review_role_ids=VALUES(review_role_ids),
+                approved_role_ids=VALUES(approved_role_ids),
                 panel_message_id=VALUES(panel_message_id),
                 is_enabled=VALUES(is_enabled)
         """
@@ -89,6 +103,7 @@ class ResumeDAO(BaseDAO):
                 settings.get("panel_channel_id"),
                 settings.get("review_channel_id"),
                 review_role_ids,
+                approved_role_ids,
                 settings.get("panel_message_id"),
                 settings.get("is_enabled", True),
             ),
