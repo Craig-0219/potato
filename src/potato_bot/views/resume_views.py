@@ -462,14 +462,14 @@ def build_review_embed(
         description=f"公司：{company_name}\n申請人：{mention} (`{display_id}`)",
         color=color_map.get(status_code, 0x3498DB),
     )
-    embed.add_field(name="姓名", value=answers.get("full_name", "未填"), inline=False)
-    embed.add_field(name="聯絡方式", value=answers.get("contact", "未填"), inline=False)
+    embed.add_field(name="DC名稱/城內名稱", value=answers.get("full_name", "未填"), inline=False)
+    embed.add_field(name="年齡", value=answers.get("age", "未填"), inline=False)
     embed.add_field(
-        name="經歷摘要", value=answers.get("experience", "未填")[:1024], inline=False
+        name="經歷摘要/為何想加入", value=answers.get("experience", "未填")[:1024], inline=False
     )
-    embed.add_field(name="技能 / 工具", value=answers.get("skills", "未填")[:1024], inline=False)
+    embed.add_field(name="上線時段", value=answers.get("online_time", "未填")[:1024], inline=False)
     embed.add_field(
-        name="作品集 / 連結", value=answers.get("portfolio", "未填")[:1024], inline=False
+        name="是否能配合公司規章制度？", value=answers.get("can_follow_rules", "未填")[:1024], inline=False
     )
     embed.add_field(name="狀態", value=status_text, inline=False)
     if reviewer:
