@@ -55,7 +55,7 @@ class ApplyModal(discord.ui.Modal):
             default=str(self.prefill.get("background", ""))[:1000],
         )
         self.roleplay_examples = discord.ui.TextInput(
-            label="請舉例：什麼是超人扮演與情緒帶入",
+            label="請舉例：什麼是超人扮演與情緒帶入(兩者均要回答)",
             style=discord.TextStyle.paragraph,
             max_length=500,
             required=True,
@@ -348,6 +348,6 @@ def build_review_embed(app_id: int, user: discord.abc.User, answers: Dict[str, A
     embed.add_field(name="角色名", value=answers.get("character_name", "未填"), inline=False)
     embed.add_field(name="年齡", value=answers.get("age", "未填"), inline=False)
     embed.add_field(name="角色背景", value=answers.get("background", "未填")[:1024], inline=False)
-    embed.add_field(name="超人扮演/情緒帶入示例(兩者均要回答)", value=answers.get("roleplay_examples", "未填")[:1024], inline=False)
-    embed.add_field(name="是否同意規章", value=answers.get("rules", "未填"), inline=False)
+    embed.add_field(name="超人扮演/情緒帶入示例", value=answers.get("roleplay_examples", "未填")[:1024], inline=False)
+    embed.add_field(name="同意規章", value=answers.get("rules", "未填"), inline=False)
     return embed
