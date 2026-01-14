@@ -347,7 +347,7 @@ def build_review_embed(app_id: int, user: discord.abc.User, answers: Dict[str, A
     )
     embed.add_field(name="角色名", value=answers.get("character_name", "未填"), inline=False)
     embed.add_field(name="年齡", value=answers.get("age", "未填"), inline=False)
-    embed.add_field(name="背景", value=answers.get("background", "未填")[:1024], inline=False)
-    embed.add_field(name="超人/情緒帶入示例", value=answers.get("roleplay_examples", "未填")[:1024], inline=False)
-    embed.add_field(name="同意規章", value=answers.get("rules", "未填"), inline=False)
+    embed.add_field(name="角色背景", value=answers.get("background", "未填")[:1024], inline=False)
+    embed.add_field(name="超人扮演/情緒帶入示例(兩者均要回答)", value=answers.get("roleplay_examples", "未填")[:1024], inline=False)
+    embed.add_field(name="是否同意規章", value=answers.get("rules", "未填"), inline=False)
     return embed
