@@ -41,11 +41,11 @@ class ResumeApplyModal(discord.ui.Modal):
             required=True,
             default=str(self.prefill.get("full_name", ""))[:64],
         )
-        self.contact = discord.ui.TextInput(
+        self.age = discord.ui.TextInput(
             label="年齡",
             max_length=128,
             required=True,
-            default=str(self.prefill.get("contact", ""))[:128],
+            default=str(self.prefill.get("age", self.prefill.get("contact", "")))[:128],
         )
         self.experience = discord.ui.TextInput(
             label="經歷摘要&為何想加入（最多1000字）",
@@ -54,27 +54,29 @@ class ResumeApplyModal(discord.ui.Modal):
             required=True,
             default=str(self.prefill.get("experience", ""))[:1000],
         )
-        self.skills = discord.ui.TextInput(
+        self.online_time = discord.ui.TextInput(
             label="上線時段",
             style=discord.TextStyle.paragraph,
             max_length=50,
             required=True,
-            default=str(self.prefill.get("skills", ""))[:1000],
+            default=str(self.prefill.get("online_time", self.prefill.get("skills", "")))[:50],
         )
-        self.portfolio = discord.ui.TextInput(
+        self.can_follow_rules = discord.ui.TextInput(
             label="是否能配合公司規章制度？若不能請說明原因（最多1000字）",
             style=discord.TextStyle.paragraph,
             max_length=1000,
             required=False,
-            default=str(self.prefill.get("portfolio", ""))[:1000],
+            default=str(
+                self.prefill.get("can_follow_rules", self.prefill.get("portfolio", ""))
+            )[:1000],
         )
 
         for item in [
             self.full_name,
-            self.contact,
+            self.age,
             self.experience,
-            self.skills,
-            self.portfolio,
+            self.online_time,
+            self.can_follow_rules,
         ]:
             self.add_item(item)
 
@@ -111,10 +113,10 @@ class ResumeApplyModal(discord.ui.Modal):
 
         answers: Dict[str, Any] = {
             "full_name": str(self.full_name),
-            "contact": str(self.contact),
+            "age": str(self.age),
             "experience": str(self.experience),
-            "skills": str(self.skills),
-            "portfolio": str(self.portfolio),
+            "online_time": str(self.online_time),
+            "can_follow_rules": str(self.can_follow_rules),
         }
 
         app_id = self.existing_app_id
@@ -462,14 +464,21 @@ def build_review_embed(
         description=f"公司：{company_name}\n申請人：{mention} (`{display_id}`)",
         color=color_map.get(status_code, 0x3498DB),
     )
+    age_value = answers.get("age") or answers.get("contact") or "未填"
+    online_time_value = answers.get("online_time") or answers.get("skills") or "未填"
+    can_follow_rules_value = (
+        answers.get("can_follow_rules") or answers.get("portfolio") or "未填"
+    )
     embed.add_field(name="DC名稱/城內名稱", value=answers.get("full_name", "未填"), inline=False)
-    embed.add_field(name="年齡", value=answers.get("age", "未填"), inline=False)
+    embed.add_field(name="年齡", value=str(age_value), inline=False)
     embed.add_field(
         name="經歷摘要/為何想加入", value=answers.get("experience", "未填")[:1024], inline=False
     )
-    embed.add_field(name="上線時段", value=answers.get("online_time", "未填")[:1024], inline=False)
+    embed.add_field(name="上線時段", value=str(online_time_value)[:1024], inline=False)
     embed.add_field(
-        name="是否能配合公司規章制度？", value=answers.get("can_follow_rules", "未填")[:1024], inline=False
+        name="是否能配合公司規章制度？",
+        value=str(can_follow_rules_value)[:1024],
+        inline=False,
     )
     embed.add_field(name="狀態", value=status_text, inline=False)
     if reviewer:
