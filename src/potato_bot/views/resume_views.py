@@ -492,10 +492,15 @@ def build_review_embed(
 def build_company_role_panel_embed(
     guild: discord.Guild, settings: ResumeCompanySettings
 ) -> discord.Embed:
-    allowed_role_ids = settings.approved_role_ids or []
-    allowed_roles = [guild.get_role(role_id) for role_id in allowed_role_ids]
-    allowed_mentions = [role.mention for role in allowed_roles if role]
-    allowed_text = "、".join(allowed_mentions) if allowed_mentions else "未設定"
+    manageable_role_ids = settings.get_manageable_role_ids()
+    manageable_roles = [guild.get_role(role_id) for role_id in manageable_role_ids]
+    manageable_mentions = [role.mention for role in manageable_roles if role]
+    manageable_text = "、".join(manageable_mentions) if manageable_mentions else "未設定"
+
+    approved_role_ids = settings.approved_role_ids or []
+    approved_roles = [guild.get_role(role_id) for role_id in approved_role_ids]
+    approved_mentions = [role.mention for role in approved_roles if role]
+    approved_text = "、".join(approved_mentions) if approved_mentions else "未設定"
 
     manager_role_ids = settings.review_role_ids or []
     manager_roles = [guild.get_role(role_id) for role_id in manager_role_ids]
@@ -504,9 +509,11 @@ def build_company_role_panel_embed(
 
     embed = EmbedBuilder.create_info_embed(
         f"🏷️ {settings.company_name} 身分組管理",
-        "選擇成員與身分組後，使用下方按鈕進行新增或移除。",
+        "選擇成員與身分組後，使用下方按鈕進行新增或移除。\n"
+        "僅可操作「可管理身分組」，通過身分組僅供參考。",
     )
-    embed.add_field(name="可管理身分組", value=allowed_text, inline=False)
+    embed.add_field(name="可管理身分組", value=manageable_text, inline=False)
+    embed.add_field(name="通過身分組", value=approved_text, inline=False)
     embed.add_field(name="可操作身分組的高層", value=manager_text, inline=False)
     return embed
 
@@ -553,7 +560,7 @@ class CompanyRoleCompanySelect(discord.ui.Select):
     def __init__(self, parent_view: CompanyRoleSelectView):
         options = []
         for company in parent_view.companies[:25]:
-            role_count = len(company.approved_role_ids or [])
+            role_count = len(company.get_manageable_role_ids())
             description = (
                 f"可管理 {role_count} 個身分組" if role_count else "尚未設定可管理身分組"
             )
@@ -584,7 +591,7 @@ class CompanyRoleCompanySelect(discord.ui.Select):
             await interaction.response.send_message("找不到公司設定。", ephemeral=True)
             return
 
-        if not settings.approved_role_ids:
+        if not settings.get_manageable_role_ids():
             await interaction.response.send_message(
                 "此公司尚未設定可管理的身分組，請通知管理員設定。", ephemeral=True
             )
@@ -646,7 +653,7 @@ class CompanyRolePanelView(discord.ui.View):
             await interaction.followup.send("此功能只能在伺服器中使用。", ephemeral=True)
             return
 
-        allowed_role_ids = set(self.settings.approved_role_ids or [])
+        allowed_role_ids = set(self.settings.get_manageable_role_ids())
         if not allowed_role_ids:
             await interaction.followup.send(
                 "此公司尚未設定可管理的身分組，請通知管理員設定。", ephemeral=True

@@ -439,6 +439,7 @@ class DatabaseManager:
                     review_channel_id BIGINT NULL,
                     review_role_ids JSON NULL,
                     approved_role_ids JSON NULL,
+                    manageable_role_ids JSON NULL,
                     panel_message_id BIGINT NULL,
                     is_enabled BOOLEAN DEFAULT TRUE,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

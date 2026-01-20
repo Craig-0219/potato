@@ -48,6 +48,15 @@ class ResumeDAO(BaseDAO):
                             "ALTER TABLE resume_companies ADD COLUMN approved_role_ids JSON NULL AFTER review_role_ids"
                         )
 
+                    await cursor.execute(
+                        "SHOW COLUMNS FROM resume_companies LIKE 'manageable_role_ids'"
+                    )
+                    column_exists = await cursor.fetchone()
+                    if not column_exists:
+                        await cursor.execute(
+                            "ALTER TABLE resume_companies ADD COLUMN manageable_role_ids JSON NULL AFTER approved_role_ids"
+                        )
+
                     await conn.commit()
             logger.info("✅ resume 資料表檢查完成")
         except Exception as e:
@@ -81,17 +90,22 @@ class ResumeDAO(BaseDAO):
         approved_role_ids = settings.get("approved_role_ids")
         if approved_role_ids is not None:
             approved_role_ids = json.dumps(approved_role_ids, ensure_ascii=False)
+        manageable_role_ids = settings.get("manageable_role_ids")
+        if manageable_role_ids is not None:
+            manageable_role_ids = json.dumps(manageable_role_ids, ensure_ascii=False)
 
         query = """
             INSERT INTO resume_companies (
                 guild_id, company_name, panel_channel_id, review_channel_id,
-                review_role_ids, approved_role_ids, panel_message_id, is_enabled
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                review_role_ids, approved_role_ids, manageable_role_ids,
+                panel_message_id, is_enabled
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
                 panel_channel_id=VALUES(panel_channel_id),
                 review_channel_id=VALUES(review_channel_id),
                 review_role_ids=VALUES(review_role_ids),
                 approved_role_ids=VALUES(approved_role_ids),
+                manageable_role_ids=VALUES(manageable_role_ids),
                 panel_message_id=VALUES(panel_message_id),
                 is_enabled=VALUES(is_enabled)
         """
@@ -104,6 +118,7 @@ class ResumeDAO(BaseDAO):
                 settings.get("review_channel_id"),
                 review_role_ids,
                 approved_role_ids,
+                manageable_role_ids,
                 settings.get("panel_message_id"),
                 settings.get("is_enabled", True),
             ),

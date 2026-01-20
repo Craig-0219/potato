@@ -38,12 +38,16 @@ class ResumeCompanySettings:
     review_channel_id: Optional[int] = None
     review_role_ids: List[int] | None = None
     approved_role_ids: List[int] | None = None
+    manageable_role_ids: List[int] | None = None
     panel_message_id: Optional[int] = None
     is_enabled: bool = True
 
     @property
     def is_complete(self) -> bool:
         return bool(self.panel_channel_id and self.review_channel_id and self.review_role_ids)
+
+    def get_manageable_role_ids(self) -> List[int]:
+        return list(self.manageable_role_ids or [])
 
 
 class ResumeService:
@@ -64,6 +68,7 @@ class ResumeService:
             review_channel_id=data.get("review_channel_id"),
             review_role_ids=_normalize_role_ids(data.get("review_role_ids")),
             approved_role_ids=_normalize_role_ids(data.get("approved_role_ids")),
+            manageable_role_ids=_normalize_role_ids(data.get("manageable_role_ids")),
             panel_message_id=data.get("panel_message_id"),
             is_enabled=bool(data.get("is_enabled", True)),
         )
@@ -82,6 +87,7 @@ class ResumeService:
             review_channel_id=data.get("review_channel_id"),
             review_role_ids=_normalize_role_ids(data.get("review_role_ids")),
             approved_role_ids=_normalize_role_ids(data.get("approved_role_ids")),
+            manageable_role_ids=_normalize_role_ids(data.get("manageable_role_ids")),
             panel_message_id=data.get("panel_message_id"),
             is_enabled=bool(data.get("is_enabled", True)),
         )
@@ -99,6 +105,7 @@ class ResumeService:
                     review_channel_id=row.get("review_channel_id"),
                     review_role_ids=_normalize_role_ids(row.get("review_role_ids")),
                     approved_role_ids=_normalize_role_ids(row.get("approved_role_ids")),
+                    manageable_role_ids=_normalize_role_ids(row.get("manageable_role_ids")),
                     panel_message_id=row.get("panel_message_id"),
                     is_enabled=bool(row.get("is_enabled", True)),
                 )
@@ -117,6 +124,7 @@ class ResumeService:
             "review_channel_id": current.get("review_channel_id"),
             "review_role_ids": _normalize_role_ids(current.get("review_role_ids")),
             "approved_role_ids": _normalize_role_ids(current.get("approved_role_ids")),
+            "manageable_role_ids": _normalize_role_ids(current.get("manageable_role_ids")),
             "panel_message_id": current.get("panel_message_id"),
             "is_enabled": current.get("is_enabled", True),
         }

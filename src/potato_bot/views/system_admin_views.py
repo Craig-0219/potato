@@ -429,6 +429,14 @@ class SystemAdminPanel(BaseView):
             approved_text = "未設定"
         embed.add_field(name="🎯 通過身分組", value=approved_text, inline=True)
 
+        if selected.manageable_role_ids:
+            manageable_text = ", ".join(
+                f"<@&{role_id}>" for role_id in selected.manageable_role_ids
+            )
+        else:
+            manageable_text = "未設定"
+        embed.add_field(name="🏷️ 可管理身分組", value=manageable_text, inline=True)
+
         status_text = "✅ 啟用" if selected.is_enabled else "❌ 停用"
         embed.add_field(name="⚙️ 狀態", value=status_text, inline=True)
 
@@ -994,9 +1002,11 @@ class ResumeRoleSettingsView(View):
 
         self.add_item(ResumeReviewRoleSelect(self, row=0))
         self.add_item(ResumeApprovedRoleSelect(self, row=1))
-        self.add_item(ResumeClearReviewRolesButton(self, row=2))
-        self.add_item(ResumeClearApprovedRolesButton(self, row=2))
-        self.add_item(ResumeBackToResumeSettingsButton(self, row=2))
+        self.add_item(ResumeManageableRoleSelect(self, row=2))
+        self.add_item(ResumeClearReviewRolesButton(self, row=3))
+        self.add_item(ResumeClearApprovedRolesButton(self, row=3))
+        self.add_item(ResumeClearManageableRolesButton(self, row=3))
+        self.add_item(ResumeBackToResumeSettingsButton(self, row=3))
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.user_id:
@@ -1057,6 +1067,9 @@ class ResumeRoleSettingsView(View):
 
     async def clear_approved_roles(self, interaction: discord.Interaction):
         await self.save_and_refresh(interaction, approved_role_ids=[])
+
+    async def clear_manageable_roles(self, interaction: discord.Interaction):
+        await self.save_and_refresh(interaction, manageable_role_ids=[])
 
     async def back_to_settings(self, interaction: discord.Interaction):
         companies = await self.service.list_companies(self.guild.id)
@@ -1164,6 +1177,25 @@ class ResumeApprovedRoleSelect(discord.ui.RoleSelect):
     async def callback(self, interaction: discord.Interaction):
         role_ids = [role.id for role in self.values]
         await self.parent_view.save_and_refresh(interaction, approved_role_ids=role_ids)
+
+
+class ResumeManageableRoleSelect(discord.ui.RoleSelect):
+    """履歷可管理身分組選擇"""
+
+    def __init__(self, parent_view, row: int | None = None):
+        self.parent_view = parent_view
+        super().__init__(
+            placeholder="選擇可管理身分組（可多選）",
+            min_values=1,
+            max_values=10,
+            row=row,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        role_ids = [role.id for role in self.values]
+        await self.parent_view.save_and_refresh(
+            interaction, manageable_role_ids=role_ids
+        )
 
 
 class ResumeCompanyCreateModal(Modal):
@@ -1284,6 +1316,17 @@ class ResumeClearApprovedRolesButton(Button):
 
     async def callback(self, interaction: discord.Interaction):
         await self.parent_view.clear_approved_roles(interaction)
+
+
+class ResumeClearManageableRolesButton(Button):
+    """清空可管理身分組"""
+
+    def __init__(self, parent_view, row: int | None = None):
+        super().__init__(label="🧹 清空可管理身分組", style=discord.ButtonStyle.secondary, row=row)
+        self.parent_view = parent_view
+
+    async def callback(self, interaction: discord.Interaction):
+        await self.parent_view.clear_manageable_roles(interaction)
 
 
 class ResumeBackToResumeSettingsButton(Button):

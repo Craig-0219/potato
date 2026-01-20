@@ -1,5 +1,5 @@
 """
-Resume Core
+履歷核心
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ from potato_shared.logger import logger
 
 
 class ResumeCore(ManagedCog):
-    """Resume system core."""
+    """履歷系統核心。"""
 
     def __init__(self, bot: commands.Bot):
         super().__init__(bot)
@@ -47,7 +47,7 @@ class ResumeCore(ManagedCog):
         await self._rebind_pending_views()
 
     async def _rebind_pending_views(self):
-        """Rebind persistent views on restart."""
+        """重啟後重新綁定常駐 View。"""
         try:
             for guild in self.bot.guilds:
                 companies = await self.service.list_companies(guild.id)
@@ -85,7 +85,7 @@ class ResumeCore(ManagedCog):
                 except Exception:
                     pass
         except Exception as e:
-            logger.error(f"Resume view rebind failed: {e}")
+            logger.error(f"履歷面板重新綁定失敗: {e}")
 
     # ===== Slash Commands =====
 
@@ -107,6 +107,11 @@ class ResumeCore(ManagedCog):
         approved_role_3: Optional[discord.Role] = None,
         approved_role_4: Optional[discord.Role] = None,
         approved_role_5: Optional[discord.Role] = None,
+        manageable_role_1: Optional[discord.Role] = None,
+        manageable_role_2: Optional[discord.Role] = None,
+        manageable_role_3: Optional[discord.Role] = None,
+        manageable_role_4: Optional[discord.Role] = None,
+        manageable_role_5: Optional[discord.Role] = None,
         enabled: Optional[bool] = None,
     ):
         guild = interaction.guild
@@ -153,6 +158,17 @@ class ResumeCore(ManagedCog):
         approved_role_ids = [role.id for role in approved_role_inputs if role]
         approved_role_ids = list(dict.fromkeys(approved_role_ids))
 
+        manageable_role_inputs = [
+            manageable_role_1,
+            manageable_role_2,
+            manageable_role_3,
+            manageable_role_4,
+            manageable_role_5,
+        ]
+        manageable_roles_provided = any(role is not None for role in manageable_role_inputs)
+        manageable_role_ids = [role.id for role in manageable_role_inputs if role]
+        manageable_role_ids = list(dict.fromkeys(manageable_role_ids))
+
         settings = await self.service.save_company(
             guild.id,
             company_name,
@@ -160,6 +176,9 @@ class ResumeCore(ManagedCog):
             review_channel_id=review_channel_id,
             review_role_ids=(role_ids if roles_provided else None),
             approved_role_ids=(approved_role_ids if approved_roles_provided else None),
+            manageable_role_ids=(
+                manageable_role_ids if manageable_roles_provided else None
+            ),
             is_enabled=enabled,
         )
 
@@ -180,20 +199,30 @@ class ResumeCore(ManagedCog):
         )
         embed.add_field(
             name="頻道",
-            value=f"面板: <#{settings.panel_channel_id}>\審核: <#{settings.review_channel_id}>",
+            value=(
+                f"填單頻道: <#{settings.panel_channel_id}>\n"
+                f"審核頻道: <#{settings.review_channel_id}>"
+            ),
             inline=False,
         )
         if settings.review_role_ids:
             role_text = ", ".join(f"<@&{role_id}>" for role_id in settings.review_role_ids)
         else:
-            role_text = "Not set"
-        embed.add_field(name="Reviewer roles", value=role_text, inline=False)
+            role_text = "未設定"
+        embed.add_field(name="審核身分組", value=role_text, inline=False)
         if settings.approved_role_ids:
             approved_text = ", ".join(f"<@&{role_id}>" for role_id in settings.approved_role_ids)
         else:
-            approved_text = "Not set"
-        embed.add_field(name="Approved roles", value=approved_text, inline=False)
-        embed.add_field(name="Enabled", value="Yes" if settings.is_enabled else "No", inline=False)
+            approved_text = "未設定"
+        embed.add_field(name="通過身分組", value=approved_text, inline=False)
+        if settings.manageable_role_ids:
+            manageable_text = ", ".join(
+                f"<@&{role_id}>" for role_id in settings.manageable_role_ids
+            )
+        else:
+            manageable_text = "未設定"
+        embed.add_field(name="可管理身分組", value=manageable_text, inline=False)
+        embed.add_field(name="啟用狀態", value="啟用" if settings.is_enabled else "停用", inline=False)
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
@@ -225,7 +254,7 @@ class ResumeCore(ManagedCog):
             )
 
         if not settings.panel_channel_id:
-            await interaction.response.send_message("Panel channel is not set.", ephemeral=True)
+            await interaction.response.send_message("尚未設定填單頻道。", ephemeral=True)
             return
 
         panel_view = ResumePanelView(self.bot, self.dao, settings)
@@ -252,23 +281,35 @@ class ResumeCore(ManagedCog):
             await interaction.response.send_message("不存在的設定", ephemeral=True)
             return
 
-        embed = discord.Embed(title="Resume Companies", color=0x3498DB)
+        embed = discord.Embed(title="履歷公司列表", color=0x3498DB)
         for settings in companies[:20]:
-            panel = f"<#{settings.panel_channel_id}>" if settings.panel_channel_id else "Not set"
-            review = f"<#{settings.review_channel_id}>" if settings.review_channel_id else "Not set"
+            panel = f"<#{settings.panel_channel_id}>" if settings.panel_channel_id else "未設定"
+            review = f"<#{settings.review_channel_id}>" if settings.review_channel_id else "未設定"
             roles = (
                 ", ".join(f"<@&{role_id}>" for role_id in settings.review_role_ids)
                 if settings.review_role_ids
-                else "Not set"
+                else "未設定"
             )
             approved_roles = (
                 ", ".join(f"<@&{role_id}>" for role_id in settings.approved_role_ids)
                 if settings.approved_role_ids
-                else "Not set"
+                else "未設定"
+            )
+            manageable_roles = (
+                ", ".join(f"<@&{role_id}>" for role_id in settings.manageable_role_ids)
+                if settings.manageable_role_ids
+                else "未設定"
             )
             embed.add_field(
                 name=settings.company_name,
-                value=f"Panel: {panel}\nReview: {review}\nReviewer roles: {roles}\nApproved roles: {approved_roles}\nEnabled: {'Yes' if settings.is_enabled else 'No'}",
+                value=(
+                    f"填單頻道: {panel}\n"
+                    f"審核頻道: {review}\n"
+                    f"審核身分組: {roles}\n"
+                    f"通過身分組: {approved_roles}\n"
+                    f"可管理身分組: {manageable_roles}\n"
+                    f"啟用狀態: {'啟用' if settings.is_enabled else '停用'}"
+                ),
                 inline=False,
             )
 
@@ -296,7 +337,7 @@ class ResumeCore(ManagedCog):
 
         if len(manageable) == 1:
             settings = manageable[0]
-            if not settings.approved_role_ids:
+            if not settings.get_manageable_role_ids():
                 await interaction.response.send_message(
                     "此公司尚未設定可管理的身分組，請通知管理員設定。", ephemeral=True
                 )
