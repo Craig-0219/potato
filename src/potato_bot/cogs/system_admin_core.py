@@ -22,10 +22,15 @@ class SystemAdmin(commands.Cog):
         self.bot = bot
 
     @app_commands.command(name="admin", description="系統管理面板")
-    @app_commands.default_permissions(administrator=True)
     async def admin_panel(self, interaction: discord.Interaction):
         """系統管理面板"""
         try:
+            if not await self.bot.is_owner(interaction.user):
+                await interaction.response.send_message(
+                    "❌ 此功能僅限機器人擁有者使用", ephemeral=True
+                )
+                return
+
             from potato_bot.views.system_admin_views import SystemAdminPanel
 
             embed = discord.Embed(

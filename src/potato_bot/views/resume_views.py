@@ -737,6 +737,19 @@ class CompanyRolePanelView(discord.ui.View):
             return candidate or member.name
         return raw_name
 
+    @staticmethod
+    def _extract_nickname_role_names(member: discord.Member) -> list[str]:
+        raw_name = (member.nick or "").strip()
+        if not raw_name:
+            return []
+        separator = "｜" if "｜" in raw_name else "|"
+        if separator not in raw_name:
+            return []
+        parts = [part.strip() for part in raw_name.split(separator) if part.strip()]
+        if len(parts) < 3:
+            return []
+        return parts[:2]
+
     async def _resolve_member(self, interaction: discord.Interaction):
         guild = self.guild
         if not guild:
@@ -842,6 +855,10 @@ class CompanyRolePanelView(discord.ui.View):
         if not resolved:
             return
         guild, member = resolved
+        try:
+            member = await guild.fetch_member(member.id)
+        except Exception:
+            pass
 
         bot_member = guild.get_member(self.bot.user.id) if self.bot.user else None
         if not bot_member or not bot_member.guild_permissions.manage_roles:
@@ -851,6 +868,12 @@ class CompanyRolePanelView(discord.ui.View):
         approved_role_ids = set(self.settings.approved_role_ids or [])
         manageable_role_ids = set(self.settings.manageable_role_ids or [])
         role_ids_to_remove = approved_role_ids | manageable_role_ids
+
+        nickname_role_names = self._extract_nickname_role_names(member)
+        if nickname_role_names:
+            for role in member.roles:
+                if role.name in nickname_role_names:
+                    role_ids_to_remove.add(role.id)
 
         blocked = []
         roles_to_remove = []

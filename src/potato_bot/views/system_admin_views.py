@@ -37,6 +37,9 @@ class SystemAdminPanel(BaseView):
         if not await super().interaction_check(interaction):
             return False
 
+        if await interaction.client.is_owner(interaction.user):
+            return True
+
         # 檢查管理權限
         if not interaction.user.guild_permissions.manage_guild:
             await SafeInteractionHandler.safe_respond(
