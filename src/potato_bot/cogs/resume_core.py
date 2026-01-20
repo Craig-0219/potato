@@ -20,6 +20,7 @@ from potato_bot.views.resume_views import (
     ResumeReviewView,
     build_company_role_panel_embed,
     build_company_role_select_embed,
+    get_manageable_roles,
 )
 from potato_shared.logger import logger
 
@@ -337,16 +338,16 @@ class ResumeCore(ManagedCog):
 
         if len(manageable) == 1:
             settings = manageable[0]
-            if not settings.get_manageable_role_ids():
+            if not get_manageable_roles(guild, settings):
                 await interaction.response.send_message(
                     "此公司尚未設定可管理的身分組，請通知管理員設定。", ephemeral=True
                 )
                 return
             embed = build_company_role_panel_embed(guild, settings)
-            view = CompanyRolePanelView(self.bot, settings, interaction.user.id)
+            view = CompanyRolePanelView(self.bot, settings, interaction.user.id, guild)
         else:
             embed = build_company_role_select_embed(manageable)
-            view = CompanyRoleSelectView(self.bot, manageable, interaction.user.id)
+            view = CompanyRoleSelectView(self.bot, manageable, interaction.user.id, guild)
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 

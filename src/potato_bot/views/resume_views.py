@@ -492,8 +492,7 @@ def build_review_embed(
 def build_company_role_panel_embed(
     guild: discord.Guild, settings: ResumeCompanySettings
 ) -> discord.Embed:
-    manageable_role_ids = settings.get_manageable_role_ids()
-    manageable_roles = [guild.get_role(role_id) for role_id in manageable_role_ids]
+    manageable_roles = get_manageable_roles(guild, settings)
     manageable_mentions = [role.mention for role in manageable_roles if role]
     manageable_text = "、".join(manageable_mentions) if manageable_mentions else "未設定"
 
@@ -518,6 +517,16 @@ def build_company_role_panel_embed(
     return embed
 
 
+def get_manageable_roles(
+    guild: Optional[discord.Guild], settings: ResumeCompanySettings
+) -> list[discord.Role]:
+    if not guild:
+        return []
+    role_ids = settings.get_manageable_role_ids()
+    roles = [guild.get_role(role_id) for role_id in role_ids]
+    return [role for role in roles if role]
+
+
 def build_company_role_select_embed(companies: list[ResumeCompanySettings]) -> discord.Embed:
     embed = EmbedBuilder.create_info_embed(
         "🏷️ 公司身分組管理",
@@ -540,11 +549,13 @@ class CompanyRoleSelectView(discord.ui.View):
         bot: commands.Bot,
         companies: list[ResumeCompanySettings],
         user_id: int,
+        guild: discord.Guild,
     ):
         super().__init__(timeout=180)
         self.bot = bot
         self.companies = companies
         self.user_id = user_id
+        self.guild = guild
         self.add_item(CompanyRoleCompanySelect(self))
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -560,7 +571,7 @@ class CompanyRoleCompanySelect(discord.ui.Select):
     def __init__(self, parent_view: CompanyRoleSelectView):
         options = []
         for company in parent_view.companies[:25]:
-            role_count = len(company.get_manageable_role_ids())
+            role_count = len(get_manageable_roles(parent_view.guild, company))
             description = (
                 f"可管理 {role_count} 個身分組" if role_count else "尚未設定可管理身分組"
             )
@@ -591,7 +602,7 @@ class CompanyRoleCompanySelect(discord.ui.Select):
             await interaction.response.send_message("找不到公司設定。", ephemeral=True)
             return
 
-        if not settings.get_manageable_role_ids():
+        if not get_manageable_roles(interaction.guild, settings):
             await interaction.response.send_message(
                 "此公司尚未設定可管理的身分組，請通知管理員設定。", ephemeral=True
             )
@@ -602,6 +613,7 @@ class CompanyRoleCompanySelect(discord.ui.Select):
             self.parent_view.bot,
             settings,
             self.parent_view.user_id,
+            interaction.guild,
         )
         await interaction.response.edit_message(embed=embed, view=view)
 
@@ -614,14 +626,18 @@ class CompanyRolePanelView(discord.ui.View):
         bot: commands.Bot,
         settings: ResumeCompanySettings,
         user_id: int,
+        guild: discord.Guild,
     ):
         super().__init__(timeout=300)
         self.bot = bot
         self.settings = settings
         self.user_id = user_id
+        self.guild = guild
+        self.allowed_roles = get_manageable_roles(guild, settings)
+        self.allowed_role_ids = {role.id for role in self.allowed_roles}
 
         self.member_select = CompanyMemberSelect()
-        self.role_select = CompanyRoleSelect()
+        self.role_select = CompanyRoleSelect(self.allowed_roles)
         self.add_item(self.member_select)
         self.add_item(self.role_select)
 
@@ -650,12 +666,12 @@ class CompanyRolePanelView(discord.ui.View):
         await interaction.response.edit_message(view=self)
 
     async def _resolve_member_and_roles(self, interaction: discord.Interaction):
-        guild = interaction.guild
+        guild = self.guild
         if not guild:
             await interaction.followup.send("此功能只能在伺服器中使用。", ephemeral=True)
             return None
 
-        allowed_role_ids = set(self.settings.get_manageable_role_ids())
+        allowed_role_ids = self.allowed_role_ids
         if not allowed_role_ids:
             await interaction.followup.send(
                 "此公司尚未設定可管理的身分組，請通知管理員設定。", ephemeral=True
@@ -685,7 +701,18 @@ class CompanyRolePanelView(discord.ui.View):
             await interaction.followup.send("找不到成員，請重新選擇。", ephemeral=True)
             return None
 
-        roles = list(self.role_select.values)
+        try:
+            selected_role_ids = [int(value) for value in self.role_select.values]
+        except ValueError:
+            await interaction.followup.send("身分組選擇無效，請重新選擇。", ephemeral=True)
+            return None
+
+        roles = [guild.get_role(role_id) for role_id in selected_role_ids]
+        roles = [role for role in roles if role]
+        if not roles:
+            await interaction.followup.send("找不到身分組，請重新選擇。", ephemeral=True)
+            return None
+
         invalid_roles = [role for role in roles if role.id not in allowed_role_ids]
         if invalid_roles:
             allowed_roles = [
@@ -825,14 +852,29 @@ class CompanyMemberSelect(discord.ui.UserSelect):
             custom_id="company_role:member",
         )
 
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer()
 
-class CompanyRoleSelect(discord.ui.RoleSelect):
+
+class CompanyRoleSelect(discord.ui.Select):
     """身分組選擇器。"""
 
-    def __init__(self):
+    def __init__(self, roles: list[discord.Role]):
+        self.roles = sorted(roles, key=lambda role: role.position, reverse=True)
+        options = [
+            discord.SelectOption(label=role.name[:100], value=str(role.id))
+            for role in self.roles[:25]
+        ]
+        max_values = min(10, len(options)) if options else 1
         super().__init__(
-            placeholder="選擇身分組（僅允許公司可管理清單）",
+            placeholder="選擇身分組（僅顯示可管理清單）",
             min_values=1,
-            max_values=10,
+            max_values=max_values,
+            options=options or [discord.SelectOption(label="未設定可管理身分組", value="none")],
             custom_id="company_role:roles",
         )
+        if not options:
+            self.disabled = True
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer()
