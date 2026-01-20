@@ -226,11 +226,17 @@ class ReviewView(discord.ui.View):
 
     async def _check_staff(self, interaction: discord.Interaction) -> bool:
         """確認操作人是否具備審核權限"""
-        if not interaction.user.guild_permissions.manage_roles and self.settings.role_staff_id:
-            role = interaction.guild.get_role(self.settings.role_staff_id)
-            if role and role not in interaction.user.roles:
-                await interaction.response.send_message("❌ 你沒有審核權限", ephemeral=True)
-                return False
+        if interaction.user.guild_permissions.manage_roles:
+            return True
+
+        if not self.settings.role_staff_id:
+            await interaction.response.send_message("❌ 你沒有審核權限", ephemeral=True)
+            return False
+
+        role = interaction.guild.get_role(self.settings.role_staff_id)
+        if not role or role not in interaction.user.roles:
+            await interaction.response.send_message("❌ 你沒有審核權限", ephemeral=True)
+            return False
         return True
 
     async def _mark_done(

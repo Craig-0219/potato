@@ -13,7 +13,14 @@ from discord.ext import commands
 from potato_bot.db.resume_dao import ResumeDAO
 from potato_bot.services.resume_service import ResumePanelService, ResumeService
 from potato_bot.utils.managed_cog import ManagedCog
-from potato_bot.views.resume_views import ResumePanelView, ResumeReviewView
+from potato_bot.views.resume_views import (
+    CompanyRolePanelView,
+    CompanyRoleSelectView,
+    ResumePanelView,
+    ResumeReviewView,
+    build_company_role_panel_embed,
+    build_company_role_select_embed,
+)
 from potato_shared.logger import logger
 
 
@@ -266,6 +273,53 @@ class ResumeCore(ManagedCog):
             )
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="company_roles", description="公司身分組管理面板")
+    async def company_roles(self, interaction: discord.Interaction):
+        guild = interaction.guild
+        if not guild:
+            await interaction.response.send_message("此功能只能在伺服器中使用。", ephemeral=True)
+            return
+
+        companies = await self.service.list_companies(guild.id)
+        manageable = [
+            company
+            for company in companies
+            if company.is_enabled and self._can_manage_company(interaction.user, company)
+        ]
+
+        if not manageable:
+            await interaction.response.send_message(
+                "你沒有可管理的公司身分組權限。", ephemeral=True
+            )
+            return
+
+        if len(manageable) == 1:
+            settings = manageable[0]
+            if not settings.approved_role_ids:
+                await interaction.response.send_message(
+                    "此公司尚未設定可管理的身分組，請通知管理員設定。", ephemeral=True
+                )
+                return
+            embed = build_company_role_panel_embed(guild, settings)
+            view = CompanyRolePanelView(self.bot, settings, interaction.user.id)
+        else:
+            embed = build_company_role_select_embed(manageable)
+            view = CompanyRoleSelectView(self.bot, manageable, interaction.user.id)
+
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+    @staticmethod
+    def _can_manage_company(
+        member: discord.Member, settings
+    ) -> bool:
+        if member.guild_permissions.administrator or member.guild_permissions.manage_roles:
+            return True
+        role_ids = settings.review_role_ids or []
+        if not role_ids:
+            return False
+        member_role_ids = {role.id for role in member.roles}
+        return bool(member_role_ids & set(role_ids))
 
 
 async def setup(bot: commands.Bot):

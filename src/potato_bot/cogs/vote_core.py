@@ -167,7 +167,7 @@ class VoteCore(ManagedCog):
 
     # ============ 現代化 GUI 投票系統 ============
 
-    @app_commands.command(name="quick_vote", description="🗳️ 快速創建投票 (現代GUI)")
+    @app_commands.command(name="quick_vote", description="🗳️ 快速創建投票")
     async def quick_vote(self, interaction: discord.Interaction):
         """快速創建投票的現代GUI界面"""
         try:
@@ -189,7 +189,7 @@ class VoteCore(ManagedCog):
             logger.error(f"快速投票命令錯誤: {e}")
             await interaction.response.send_message("❌ 啟動快速投票時發生錯誤", ephemeral=True)
 
-    @app_commands.command(name="vote_panel", description="📊 投票管理面板 (現代GUI)")
+    @app_commands.command(name="vote_panel", description="📊 投票管理面板")
     @app_commands.default_permissions(manage_messages=True)
     async def vote_panel(self, interaction: discord.Interaction):
         """顯示投票管理面板"""
@@ -224,7 +224,14 @@ class VoteCore(ManagedCog):
     )
     async def votes(self, interaction: discord.Interaction):
         try:
-            votes = await vote_dao.get_active_votes()
+            guild = interaction.guild
+            if not guild:
+                await interaction.response.send_message(
+                    "❌ 僅能在伺服器中使用。", ephemeral=True
+                )
+                return
+
+            votes = await vote_dao.get_active_votes(guild.id)
             if not votes:
                 await interaction.response.send_message("目前沒有進行中的投票。", ephemeral=True)
                 return
@@ -250,13 +257,25 @@ class VoteCore(ManagedCog):
     @app_commands.describe(vote_id="投票編號")
     async def vote_result(self, interaction: discord.Interaction, vote_id: int):
         try:
+            guild = interaction.guild
+            if not guild:
+                await interaction.response.send_message(
+                    "❌ 僅能在伺服器中使用。", ephemeral=True
+                )
+                return
+
             data = await self._get_vote_full_data(vote_id)
             if not data:
                 await interaction.response.send_message("❌ 找不到該投票。", ephemeral=True)
                 return
 
+            vote = data["vote"]
+            if vote.get("guild_id") != guild.id:
+                await interaction.response.send_message("❌ 找不到該投票。", ephemeral=True)
+                return
+
             embed = build_result_embed(
-                data["vote"]["title"],
+                vote["title"],
                 data["stats"],
                 data["total"],
                 vote_id=vote_id,
@@ -272,12 +291,23 @@ class VoteCore(ManagedCog):
     @app_commands.checks.has_permissions(manage_guild=True)
     async def vote_open(self, interaction: discord.Interaction, vote_id: int):
         try:
+            guild = interaction.guild
+            if not guild:
+                await interaction.response.send_message(
+                    "❌ 僅能在伺服器中使用。", ephemeral=True
+                )
+                return
+
             data = await self._get_vote_full_data(vote_id)
             if not data:
                 await interaction.response.send_message("❌ 找不到該投票。", ephemeral=True)
                 return
 
             vote = data["vote"]
+            if vote.get("guild_id") != guild.id:
+                await interaction.response.send_message("❌ 找不到該投票。", ephemeral=True)
+                return
+
             options = data["options"]
             stats = data["stats"]
             total = data["total"]
@@ -313,8 +343,20 @@ class VoteCore(ManagedCog):
     async def vote_close(self, interaction: discord.Interaction, vote_id: int):
         """管理員提前結束投票並公告結果"""
         try:
+            guild = interaction.guild
+            if not guild:
+                await interaction.response.send_message(
+                    "❌ 僅能在伺服器中使用。", ephemeral=True
+                )
+                return
+
             data = await self._get_vote_full_data(vote_id)
             if not data:
+                await interaction.response.send_message("❌ 找不到該投票。", ephemeral=True)
+                return
+
+            vote = data["vote"]
+            if vote.get("guild_id") != guild.id:
                 await interaction.response.send_message("❌ 找不到該投票。", ephemeral=True)
                 return
 
@@ -348,6 +390,13 @@ class VoteCore(ManagedCog):
         status: str = "all",
     ):
         try:
+            guild = interaction.guild
+            if not guild:
+                await interaction.response.send_message(
+                    "❌ 僅能在伺服器中使用。", ephemeral=True
+                )
+                return
+
             await interaction.response.defer()
 
             # 參數驗證
@@ -356,8 +405,8 @@ class VoteCore(ManagedCog):
                 status = "all"
 
             # 查詢歷史記錄
-            votes = await vote_dao.get_vote_history(page, status)
-            total_count = await vote_dao.get_vote_count(status)
+            votes = await vote_dao.get_vote_history(page, status, guild_id=guild.id)
+            total_count = await vote_dao.get_vote_count(status, guild_id=guild.id)
 
             if not votes:
                 await interaction.followup.send("📭 沒有找到符合條件的投票記錄。")
@@ -418,6 +467,13 @@ class VoteCore(ManagedCog):
     @app_commands.describe(vote_id="投票編號")
     async def vote_detail(self, interaction: discord.Interaction, vote_id: int):
         try:
+            guild = interaction.guild
+            if not guild:
+                await interaction.response.send_message(
+                    "❌ 僅能在伺服器中使用。", ephemeral=True
+                )
+                return
+
             await interaction.response.defer()
 
             # 取得完整投票資料
@@ -427,6 +483,10 @@ class VoteCore(ManagedCog):
                 return
 
             vote = data["vote"]
+            if vote.get("guild_id") != guild.id:
+                await interaction.followup.send("❌ 找不到該投票。")
+                return
+
             options = data["options"]
             stats = data["stats"]
             total = data["total"]
@@ -552,13 +612,20 @@ class VoteCore(ManagedCog):
     @app_commands.describe(keyword="搜尋關鍵字（投票標題）")
     async def vote_search(self, interaction: discord.Interaction, keyword: str):
         try:
+            guild = interaction.guild
+            if not guild:
+                await interaction.response.send_message(
+                    "❌ 僅能在伺服器中使用。", ephemeral=True
+                )
+                return
+
             await interaction.response.defer()
 
             if len(keyword.strip()) < 2:
                 await interaction.followup.send("❌ 搜尋關鍵字至少需要2個字元。")
                 return
 
-            results = await vote_dao.search_votes(keyword.strip())
+            results = await vote_dao.search_votes(keyword.strip(), guild_id=guild.id)
             if not results:
                 await interaction.followup.send(f"🔍 沒有找到包含「{keyword}」的投票。")
                 return
@@ -792,10 +859,9 @@ class VoteCore(ManagedCog):
         selected_options: List[str],
     ):
         """✅ 優化版本：更好的錯誤處理和效能"""
+        lock_key = (vote_id, interaction.user.id)
+        lock = self._submit_locks.setdefault(lock_key, asyncio.Lock())
         try:
-            lock_key = (vote_id, interaction.user.id)
-            lock = self._submit_locks.setdefault(lock_key, asyncio.Lock())
-
             async with lock:
                 # ✅ 批次取得資料
                 data = await self._get_vote_full_data(vote_id)
@@ -877,6 +943,12 @@ class VoteCore(ManagedCog):
                 await interaction.response.send_message(
                     "❌ 投票時發生錯誤，請稍後再試。", ephemeral=True
                 )
+        finally:
+            if not lock.locked():
+                # asyncio.Lock 沒有公開 waiters；用私有欄位判斷是否可清理避免累積。
+                waiters = getattr(lock, "_waiters", None)
+                if not waiters:
+                    self._submit_locks.pop(lock_key, None)
 
     async def _update_vote_ui(self, interaction: discord.Interaction, vote_id: int):
         """✅ 非同步更新投票 UI"""

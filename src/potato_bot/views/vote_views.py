@@ -777,8 +777,13 @@ class VoteManagementView(ui.View):
     async def view_stats(self, interaction: discord.Interaction, button: ui.Button):
         """查看投票統計"""
         try:
+            guild = interaction.guild
+            if not guild:
+                await interaction.response.send_message("❌ 僅能在伺服器中使用。", ephemeral=True)
+                return
+
             # 獲取當前進行中的投票
-            votes = await vote_dao.get_active_votes()
+            votes = await vote_dao.get_active_votes(guild.id)
 
             if not votes:
                 await interaction.response.send_message("📭 目前沒有進行中的投票", ephemeral=True)
@@ -844,7 +849,7 @@ class ActiveVotesButton(ui.Button):
 
         try:
             # 獲取活動投票
-            active_votes = await vote_dao.get_active_votes()
+            active_votes = await vote_dao.get_active_votes(self.guild_id)
 
             if not active_votes:
                 embed = EmbedBuilder.create_info_embed("🗳️ 活動投票", "目前沒有進行中的投票")
@@ -890,7 +895,7 @@ class VoteHistoryButton(ui.Button):
 
         try:
             # 獲取最近的投票歷史
-            history = await vote_dao.get_vote_history(1, "all")
+            history = await vote_dao.get_vote_history(1, "all", guild_id=self.guild_id)
 
             if not history:
                 embed = EmbedBuilder.create_info_embed("📋 投票歷史", "沒有找到投票歷史記錄")

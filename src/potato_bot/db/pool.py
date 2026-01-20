@@ -121,7 +121,7 @@ class MariaDBPool:
         if self.pool and conn and not self._closing:
             try:
                 # 修復：正確的釋放方式
-                await self.pool.release(conn)
+                self.pool.release(conn)
             except Exception as e:
                 logger.error(f"釋放資料庫連接失敗：{e}")
                 # 強制關閉連接

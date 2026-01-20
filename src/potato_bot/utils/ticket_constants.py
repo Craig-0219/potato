@@ -86,6 +86,7 @@ class TicketConstants:
         "success": 0x2ECC71,  # 綠
         "warning": 0xF39C12,  # 橘
         "danger": 0xE74C3C,  # 紅
+        "error": 0xE74C3C,  # 紅（相容別名）
         "info": 0x9B59B6,  # 紫
     }
 

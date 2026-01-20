@@ -6,7 +6,7 @@
 
 import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import aiomysql
 
@@ -268,7 +268,7 @@ async def get_active_votes(guild_id: int = None):
     try:
         async with db_pool.connection() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
-                if guild_id:
+                if guild_id is not None:
                     await cur.execute(
                         """
                         SELECT id, title, is_multi, anonymous, allowed_roles,
@@ -378,18 +378,30 @@ async def mark_vote_announced(vote_id):
 # ===== 歷史查詢功能 =====
 
 
-async def get_vote_history(page: int = 1, status: str = "all", per_page: int = 10):
+async def get_vote_history(
+    page: int = 1,
+    status: str = "all",
+    per_page: int = 10,
+    guild_id: Optional[int] = None,
+):
     """分頁查詢投票歷史記錄"""
     try:
         offset = (page - 1) * per_page
 
+        conditions = []
+        params: List[Any] = []
+
+        if guild_id is not None:
+            conditions.append("guild_id = %s")
+            params.append(guild_id)
+
         # 根據狀態建立查詢條件
         if status == "active":
-            where_clause = "WHERE end_time > UTC_TIMESTAMP()"
+            conditions.append("end_time > UTC_TIMESTAMP()")
         elif status == "finished":
-            where_clause = "WHERE end_time <= UTC_TIMESTAMP()"
-        else:  # all
-            where_clause = ""
+            conditions.append("end_time <= UTC_TIMESTAMP()")
+
+        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
         async with db_pool.connection() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
@@ -401,7 +413,7 @@ async def get_vote_history(page: int = 1, status: str = "all", per_page: int = 1
                     ORDER BY start_time DESC
                     LIMIT %s OFFSET %s
                 """
-                await cur.execute(query, (per_page, offset))
+                await cur.execute(query, (*params, per_page, offset))
                 rows = await cur.fetchall()
 
                 # 處理資料格式
@@ -432,21 +444,28 @@ async def get_vote_history(page: int = 1, status: str = "all", per_page: int = 1
         return []
 
 
-async def get_vote_count(status: str = "all") -> int:
+async def get_vote_count(status: str = "all", guild_id: Optional[int] = None) -> int:
     """取得投票總數"""
     try:
+        conditions = []
+        params: List[Any] = []
+
+        if guild_id is not None:
+            conditions.append("guild_id = %s")
+            params.append(guild_id)
+
         # 根據狀態建立查詢條件
         if status == "active":
-            where_clause = "WHERE end_time > UTC_TIMESTAMP()"
+            conditions.append("end_time > UTC_TIMESTAMP()")
         elif status == "finished":
-            where_clause = "WHERE end_time <= UTC_TIMESTAMP()"
-        else:  # all
-            where_clause = ""
+            conditions.append("end_time <= UTC_TIMESTAMP()")
+
+        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
         async with db_pool.connection() as conn:
             async with conn.cursor() as cur:
                 query = f"SELECT COUNT(*) FROM votes {where_clause}"
-                await cur.execute(query)
+                await cur.execute(query, tuple(params))
                 result = await cur.fetchone()
                 return result[0] if result else 0
 
@@ -513,21 +532,32 @@ async def get_user_vote_history(user_id: int):
         return []
 
 
-async def search_votes(keyword: str, limit: int = 20):
+async def search_votes(
+    keyword: str, limit: int = 20, guild_id: Optional[int] = None
+):
     """根據關鍵字搜尋投票"""
     try:
+        conditions = ["title LIKE %s"]
+        params: List[Any] = [f"%{keyword}%"]
+
+        if guild_id is not None:
+            conditions.append("guild_id = %s")
+            params.append(guild_id)
+
+        where_clause = f"WHERE {' AND '.join(conditions)}"
+
         async with db_pool.connection() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cur:
                 await cur.execute(
-                    """
+                    f"""
                     SELECT id, title, start_time, end_time,
                            CASE WHEN end_time > UTC_TIMESTAMP() THEN 1 ELSE 0 END as is_active
                     FROM votes
-                    WHERE title LIKE %s
+                    {where_clause}
                     ORDER BY start_time DESC
                     LIMIT %s
                 """,
-                    (f"%{keyword}%", limit),
+                    (*params, limit),
                 )
 
                 results = []

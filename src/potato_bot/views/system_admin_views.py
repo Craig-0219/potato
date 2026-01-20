@@ -2186,7 +2186,7 @@ class VoteSettingsView(View):
 
     async def _create_active_votes_embed(self, guild: discord.Guild) -> discord.Embed:
         """創建活躍投票嵌入"""
-        active_votes = await vote_dao.get_active_votes()
+        active_votes = await vote_dao.get_active_votes(guild.id if guild else None)
 
         embed = discord.Embed(title="📋 活躍投票管理", color=0x3498DB)
 
@@ -3124,7 +3124,7 @@ class ActiveVoteManageView(View):
     async def select_vote_button(self, interaction: discord.Interaction, button: Button):
         """選擇要管理的投票"""
         try:
-            active_votes = await vote_dao.get_active_votes()
+            active_votes = await vote_dao.get_active_votes(interaction.guild.id)
 
             if not active_votes:
                 embed = discord.Embed(

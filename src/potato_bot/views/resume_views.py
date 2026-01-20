@@ -12,6 +12,7 @@ from discord.ext import commands
 
 from potato_bot.db.resume_dao import ResumeDAO
 from potato_bot.services.resume_service import ResumeCompanySettings
+from potato_bot.utils.embed_builder import EmbedBuilder
 from potato_shared.logger import logger
 
 
@@ -486,3 +487,285 @@ def build_review_embed(
     if note:
         embed.add_field(name="備註", value=note[:1024], inline=False)
     return embed
+
+
+def build_company_role_panel_embed(
+    guild: discord.Guild, settings: ResumeCompanySettings
+) -> discord.Embed:
+    allowed_role_ids = settings.approved_role_ids or []
+    allowed_roles = [guild.get_role(role_id) for role_id in allowed_role_ids]
+    allowed_mentions = [role.mention for role in allowed_roles if role]
+    allowed_text = "、".join(allowed_mentions) if allowed_mentions else "未設定"
+
+    manager_role_ids = settings.review_role_ids or []
+    manager_roles = [guild.get_role(role_id) for role_id in manager_role_ids]
+    manager_mentions = [role.mention for role in manager_roles if role]
+    manager_text = "、".join(manager_mentions) if manager_mentions else "未設定"
+
+    embed = EmbedBuilder.create_info_embed(
+        f"🏷️ {settings.company_name} 身分組管理",
+        "選擇成員與身分組後，使用下方按鈕進行新增或移除。",
+    )
+    embed.add_field(name="可管理身分組", value=allowed_text, inline=False)
+    embed.add_field(name="可操作身分組的高層", value=manager_text, inline=False)
+    return embed
+
+
+def build_company_role_select_embed(companies: list[ResumeCompanySettings]) -> discord.Embed:
+    embed = EmbedBuilder.create_info_embed(
+        "🏷️ 公司身分組管理",
+        "請選擇要管理的公司。",
+    )
+    lines = [f"• {company.company_name}" for company in companies[:25]]
+    embed.add_field(
+        name="可管理公司",
+        value="\n".join(lines) if lines else "未找到可管理的公司",
+        inline=False,
+    )
+    return embed
+
+
+class CompanyRoleSelectView(discord.ui.View):
+    """公司選擇面板。"""
+
+    def __init__(
+        self,
+        bot: commands.Bot,
+        companies: list[ResumeCompanySettings],
+        user_id: int,
+    ):
+        super().__init__(timeout=180)
+        self.bot = bot
+        self.companies = companies
+        self.user_id = user_id
+        self.add_item(CompanyRoleCompanySelect(self))
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 只有開啟面板者可以操作。", ephemeral=True)
+            return False
+        return True
+
+
+class CompanyRoleCompanySelect(discord.ui.Select):
+    """公司選擇下拉選單。"""
+
+    def __init__(self, parent_view: CompanyRoleSelectView):
+        options = []
+        for company in parent_view.companies[:25]:
+            role_count = len(company.approved_role_ids or [])
+            description = (
+                f"可管理 {role_count} 個身分組" if role_count else "尚未設定可管理身分組"
+            )
+            options.append(
+                discord.SelectOption(
+                    label=company.company_name[:100],
+                    value=str(company.company_id),
+                    description=description[:100],
+                )
+            )
+
+        super().__init__(
+            placeholder="選擇公司",
+            options=options,
+            min_values=1,
+            max_values=1,
+            custom_id="company_role:company",
+        )
+        self.parent_view = parent_view
+
+    async def callback(self, interaction: discord.Interaction):
+        company_id = int(self.values[0])
+        settings = next(
+            (company for company in self.parent_view.companies if company.company_id == company_id),
+            None,
+        )
+        if not settings:
+            await interaction.response.send_message("找不到公司設定。", ephemeral=True)
+            return
+
+        if not settings.approved_role_ids:
+            await interaction.response.send_message(
+                "此公司尚未設定可管理的身分組，請通知管理員設定。", ephemeral=True
+            )
+            return
+
+        embed = build_company_role_panel_embed(interaction.guild, settings)
+        view = CompanyRolePanelView(
+            self.parent_view.bot,
+            settings,
+            self.parent_view.user_id,
+        )
+        await interaction.response.edit_message(embed=embed, view=view)
+
+
+class CompanyRolePanelView(discord.ui.View):
+    """公司身分組管理面板。"""
+
+    def __init__(
+        self,
+        bot: commands.Bot,
+        settings: ResumeCompanySettings,
+        user_id: int,
+    ):
+        super().__init__(timeout=300)
+        self.bot = bot
+        self.settings = settings
+        self.user_id = user_id
+
+        self.member_select = CompanyMemberSelect()
+        self.role_select = CompanyRoleSelect()
+        self.add_item(self.member_select)
+        self.add_item(self.role_select)
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 只有開啟面板者可以操作。", ephemeral=True)
+            return False
+        return True
+
+    @discord.ui.button(label="➕ 新增身分組", style=discord.ButtonStyle.success, row=2)
+    async def add_roles(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._apply_roles(interaction, action="add")
+
+    @discord.ui.button(label="➖ 移除身分組", style=discord.ButtonStyle.danger, row=2)
+    async def remove_roles(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._apply_roles(interaction, action="remove")
+
+    @discord.ui.button(label="❌ 關閉面板", style=discord.ButtonStyle.secondary, row=2)
+    async def close_panel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        for item in self.children:
+            item.disabled = True
+        await interaction.response.edit_message(view=self)
+
+    async def _apply_roles(self, interaction: discord.Interaction, action: str) -> None:
+        await interaction.response.defer(ephemeral=True)
+
+        guild = interaction.guild
+        if not guild:
+            await interaction.followup.send("此功能只能在伺服器中使用。", ephemeral=True)
+            return
+
+        allowed_role_ids = set(self.settings.approved_role_ids or [])
+        if not allowed_role_ids:
+            await interaction.followup.send(
+                "此公司尚未設定可管理的身分組，請通知管理員設定。", ephemeral=True
+            )
+            return
+
+        if not self.member_select.values:
+            await interaction.followup.send("請先選擇成員。", ephemeral=True)
+            return
+
+        if not self.role_select.values:
+            await interaction.followup.send("請先選擇身分組。", ephemeral=True)
+            return
+
+        selected_user = self.member_select.values[0]
+        member = (
+            selected_user
+            if isinstance(selected_user, discord.Member)
+            else guild.get_member(selected_user.id)
+        )
+        if not member:
+            try:
+                member = await guild.fetch_member(selected_user.id)
+            except Exception:
+                member = None
+        if not member:
+            await interaction.followup.send("找不到成員，請重新選擇。", ephemeral=True)
+            return
+
+        roles = list(self.role_select.values)
+        invalid_roles = [role for role in roles if role.id not in allowed_role_ids]
+        if invalid_roles:
+            allowed_roles = [
+                guild.get_role(role_id) for role_id in allowed_role_ids if guild.get_role(role_id)
+            ]
+            allowed_text = (
+                "、".join(role.mention for role in allowed_roles) if allowed_roles else "未設定"
+            )
+            await interaction.followup.send(
+                f"選擇的身分組不在可管理清單內。\n可管理身分組：{allowed_text}",
+                ephemeral=True,
+            )
+            return
+
+        bot_member = guild.get_member(self.bot.user.id) if self.bot.user else None
+        if not bot_member or not bot_member.guild_permissions.manage_roles:
+            await interaction.followup.send("機器人缺少管理身分組權限。", ephemeral=True)
+            return
+
+        blocked = []
+        for role in roles:
+            if role.is_default() or role.managed:
+                blocked.append(f"{role.mention} (系統身分組)")
+                continue
+            if role >= bot_member.top_role:
+                blocked.append(f"{role.mention} (機器人權限不足)")
+                continue
+            if not (
+                interaction.user.guild_permissions.manage_roles
+                or interaction.user.guild_permissions.administrator
+            ):
+                if role >= interaction.user.top_role:
+                    blocked.append(f"{role.mention} (高於你的最高身分組)")
+
+        if blocked:
+            await interaction.followup.send(
+                "以下身分組無法操作：\n" + "\n".join(blocked),
+                ephemeral=True,
+            )
+            return
+
+        existing_ids = {role.id for role in member.roles}
+        if action == "add":
+            roles_to_apply = [role for role in roles if role.id not in existing_ids]
+        else:
+            roles_to_apply = [role for role in roles if role.id in existing_ids]
+
+        if not roles_to_apply:
+            await interaction.followup.send("沒有需要變更的身分組。", ephemeral=True)
+            return
+
+        try:
+            if action == "add":
+                await member.add_roles(*roles_to_apply, reason="Company role panel")
+                action_text = "新增"
+            else:
+                await member.remove_roles(*roles_to_apply, reason="Company role panel")
+                action_text = "移除"
+        except Exception as e:
+            logger.error(f"公司身分組操作失敗: {e}")
+            await interaction.followup.send("身分組變更失敗，請稍後再試。", ephemeral=True)
+            return
+
+        role_mentions = "、".join(role.mention for role in roles_to_apply)
+        await interaction.followup.send(
+            f"已為 {member.mention} {action_text}：{role_mentions}",
+            ephemeral=True,
+        )
+
+
+class CompanyMemberSelect(discord.ui.UserSelect):
+    """成員選擇器。"""
+
+    def __init__(self):
+        super().__init__(
+            placeholder="選擇成員",
+            min_values=1,
+            max_values=1,
+            custom_id="company_role:member",
+        )
+
+
+class CompanyRoleSelect(discord.ui.RoleSelect):
+    """身分組選擇器。"""
+
+    def __init__(self):
+        super().__init__(
+            placeholder="選擇身分組（僅允許公司可管理清單）",
+            min_values=1,
+            max_values=10,
+            custom_id="company_role:roles",
+        )
