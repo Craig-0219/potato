@@ -8,6 +8,7 @@ import discord
 from discord.ui import Button, ChannelSelect, Modal, RoleSelect, Select, TextInput, View, button
 
 from potato_bot.db import vote_dao
+from potato_bot.db.auto_reply_dao import AutoReplyDAO
 from potato_bot.db.resume_dao import ResumeDAO
 from potato_bot.db.pool import db_pool
 from potato_bot.db.ticket_dao import TicketDAO
@@ -551,6 +552,12 @@ class SystemAdminPanel(BaseView):
         embed.add_field(
             name="🗑️ 頻道清空",
             value="• 清空頻道訊息\n• 清空近期訊息\n• 按用戶清空",
+            inline=True,
+        )
+
+        embed.add_field(
+            name="💬 自動回覆",
+            value="• @ 指定成員自動回覆\n• 管理回覆內容",
             inline=True,
         )
 
@@ -1845,6 +1852,17 @@ class SystemToolsView(View):
         view = DataCleanupView(self.user_id)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
+    @button(label="💬 自動回覆", style=discord.ButtonStyle.primary, row=0)
+    async def auto_reply_button(self, interaction: discord.Interaction, button: Button):
+        """自動回覆設定"""
+        view = AutoReplySettingsView(self.user_id, interaction.guild)
+        embed = await view.build_embed()
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        try:
+            view.message = await interaction.original_response()
+        except Exception:
+            pass
+
     @button(label="🗑️ 清空頻道", style=discord.ButtonStyle.danger, row=1)
     async def clear_channel_button(self, interaction: discord.Interaction, button: Button):
         """清空頻道訊息"""
@@ -1883,6 +1901,187 @@ class SystemToolsView(View):
                     await interaction.followup.send("❌ 開啟清空頻道面板時發生錯誤", ephemeral=True)
             except:
                 pass
+
+
+# ========== 自動回覆設定 ==========
+
+
+class AutoReplySettingsView(View):
+    """自動回覆設定面板"""
+
+    def __init__(self, user_id: int, guild: discord.Guild, timeout=300):
+        super().__init__(timeout=timeout)
+        self.user_id = user_id
+        self.guild = guild
+        self.dao = AutoReplyDAO()
+        self.selected_user_id: int | None = None
+        self.message: discord.Message | None = None
+
+        self.add_item(AutoReplyUserSelect(self, row=0))
+        self.add_item(AutoReplyAddButton(self, row=1))
+        self.add_item(AutoReplyRemoveButton(self, row=1))
+        self.add_item(AutoReplyRefreshButton(self, row=1))
+        self.add_item(ResumeBackToSystemButton(user_id, guild, row=2))
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        return interaction.user.id == self.user_id
+
+    async def build_embed(self, notice: str | None = None) -> discord.Embed:
+        embed = discord.Embed(
+            title="💬 自動回覆設定",
+            description="當有人 @ 指定成員時，自動回覆指定內容。",
+            color=0x3498DB,
+        )
+
+        if self.selected_user_id:
+            embed.add_field(
+                name="目前選擇",
+                value=f"<@{self.selected_user_id}>",
+                inline=False,
+            )
+
+        rules = await self.dao.list_rules(self.guild.id)
+        if not rules:
+            embed.add_field(
+                name="⚠️ 尚未設定",
+                value="請選擇成員並新增回覆內容。",
+                inline=False,
+            )
+        else:
+            lines = []
+            for rule in rules[:20]:
+                mention = f"<@{rule['target_user_id']}>"
+                reply_text = str(rule.get("reply_text", "")).replace("\n", " ").strip()
+                if len(reply_text) > 60:
+                    reply_text = reply_text[:60] + "..."
+                lines.append(f"{mention} → {reply_text}")
+            embed.add_field(
+                name="已設定規則",
+                value="\n".join(lines),
+                inline=False,
+            )
+            if len(rules) > 20:
+                embed.set_footer(text=f"僅顯示前 20 筆，共 {len(rules)} 筆")
+
+        if notice:
+            embed.add_field(name="提示", value=notice, inline=False)
+
+        return embed
+
+    async def update_panel(
+        self, interaction: discord.Interaction | None = None, notice: str | None = None
+    ) -> None:
+        embed = await self.build_embed(notice=notice)
+        if interaction:
+            if interaction.response.is_done():
+                await interaction.edit_original_response(embed=embed, view=self)
+            else:
+                await interaction.response.edit_message(embed=embed, view=self)
+            if interaction.message:
+                self.message = interaction.message
+        elif self.message:
+            await self.message.edit(embed=embed, view=self)
+
+    async def save_rule(self, target_user_id: int, reply_text: str, actor_id: int) -> str | None:
+        text = str(reply_text or "").strip()
+        if not text:
+            return "回覆內容不可為空"
+        await self.dao.upsert_rule(self.guild.id, target_user_id, text, actor_id=actor_id)
+        return None
+
+
+class AutoReplyUserSelect(discord.ui.UserSelect):
+    """成員選擇下拉"""
+
+    def __init__(self, parent_view: AutoReplySettingsView, row: int | None = None):
+        self.parent_view = parent_view
+        super().__init__(
+            placeholder="選擇要設定的成員",
+            min_values=1,
+            max_values=1,
+            row=row,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        selected_user = self.values[0]
+        self.parent_view.selected_user_id = selected_user.id
+        await interaction.response.defer()
+
+
+class AutoReplyAddButton(Button):
+    """新增或更新回覆"""
+
+    def __init__(self, parent_view: AutoReplySettingsView, row: int | None = None):
+        super().__init__(label="➕ 新增/更新", style=discord.ButtonStyle.success, row=row)
+        self.parent_view = parent_view
+
+    async def callback(self, interaction: discord.Interaction):
+        target_user_id = self.parent_view.selected_user_id
+        if not target_user_id:
+            await interaction.response.send_message("❌ 請先選擇成員", ephemeral=True)
+            return
+        await interaction.response.send_modal(
+            AutoReplyResponseModal(self.parent_view, target_user_id)
+        )
+
+
+class AutoReplyRemoveButton(Button):
+    """移除回覆"""
+
+    def __init__(self, parent_view: AutoReplySettingsView, row: int | None = None):
+        super().__init__(label="🗑️ 移除", style=discord.ButtonStyle.danger, row=row)
+        self.parent_view = parent_view
+
+    async def callback(self, interaction: discord.Interaction):
+        target_user_id = self.parent_view.selected_user_id
+        if not target_user_id:
+            await interaction.response.send_message("❌ 請先選擇成員", ephemeral=True)
+            return
+        removed = await self.parent_view.dao.delete_rule(
+            self.parent_view.guild.id, target_user_id
+        )
+        notice = "✅ 已移除設定" if removed else "⚠️ 找不到該成員的設定"
+        await self.parent_view.update_panel(interaction, notice=notice)
+
+
+class AutoReplyRefreshButton(Button):
+    """重新整理"""
+
+    def __init__(self, parent_view: AutoReplySettingsView, row: int | None = None):
+        super().__init__(label="🔄 重新整理", style=discord.ButtonStyle.secondary, row=row)
+        self.parent_view = parent_view
+
+    async def callback(self, interaction: discord.Interaction):
+        await self.parent_view.update_panel(interaction)
+
+
+class AutoReplyResponseModal(Modal):
+    """自動回覆內容輸入"""
+
+    def __init__(self, parent_view: AutoReplySettingsView, target_user_id: int):
+        super().__init__(title="設定自動回覆")
+        self.parent_view = parent_view
+        self.target_user_id = target_user_id
+
+        self.reply_text = TextInput(
+            label="回覆內容",
+            placeholder="輸入要回覆的訊息",
+            style=discord.TextStyle.paragraph,
+            max_length=500,
+            required=True,
+        )
+        self.add_item(self.reply_text)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        error = await self.parent_view.save_rule(
+            self.target_user_id, self.reply_text.value, interaction.user.id
+        )
+        if error:
+            await interaction.response.send_message(f"❌ {error}", ephemeral=True)
+            return
+
+        await self.parent_view.update_panel(notice="✅ 已更新設定")
+        await interaction.response.send_message("✅ 已更新自動回覆設定", ephemeral=True)
 
 
 # ========== Modal 表單 ==========

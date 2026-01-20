@@ -738,6 +738,10 @@ class CompanyRolePanelView(discord.ui.View):
         return raw_name
 
     @staticmethod
+    def _normalize_role_name(name: str) -> str:
+        return "".join(name.split()).casefold()
+
+    @classmethod
     def _extract_nickname_role_names(member: discord.Member) -> list[str]:
         raw_name = (member.nick or "").strip()
         if not raw_name:
@@ -748,7 +752,7 @@ class CompanyRolePanelView(discord.ui.View):
         parts = [part.strip() for part in raw_name.split(separator) if part.strip()]
         if len(parts) < 3:
             return []
-        return parts[:2]
+        return [cls._normalize_role_name(part) for part in parts[:2]]
 
     async def _resolve_member(self, interaction: discord.Interaction):
         guild = self.guild
@@ -871,8 +875,9 @@ class CompanyRolePanelView(discord.ui.View):
 
         nickname_role_names = self._extract_nickname_role_names(member)
         if nickname_role_names:
+            nickname_role_keys = set(nickname_role_names)
             for role in member.roles:
-                if role.name in nickname_role_names:
+                if self._normalize_role_name(role.name) in nickname_role_keys:
                     role_ids_to_remove.add(role.id)
 
         blocked = []

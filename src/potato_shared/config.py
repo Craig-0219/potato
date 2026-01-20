@@ -4,6 +4,7 @@
 負責載入和驗證所有環境變數配置
 """
 
+import json
 import os
 import sys
 import tempfile
@@ -61,6 +62,32 @@ DB_NAME = os.getenv("DB_NAME")
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 ENVIRONMENT = os.getenv("ENVIRONMENT", "production")
+
+# ======================
+# 自動回覆配置
+# ======================
+DEFAULT_AUTO_REPLY_MENTIONS = {292993868092276736: "找我爸幹嘛???"}
+AUTO_REPLY_MENTIONS_RAW = os.getenv("AUTO_REPLY_MENTIONS")
+AUTO_REPLY_MENTIONS: dict[int, str] = {}
+if AUTO_REPLY_MENTIONS_RAW is None:
+    AUTO_REPLY_MENTIONS = DEFAULT_AUTO_REPLY_MENTIONS
+elif AUTO_REPLY_MENTIONS_RAW:
+    try:
+        parsed = json.loads(AUTO_REPLY_MENTIONS_RAW)
+    except json.JSONDecodeError:
+        print("⚠️ AUTO_REPLY_MENTIONS 格式錯誤，已忽略")
+    else:
+        if isinstance(parsed, dict):
+            for key, value in parsed.items():
+                try:
+                    user_id = int(key)
+                except (TypeError, ValueError):
+                    continue
+                if value is None:
+                    continue
+                AUTO_REPLY_MENTIONS[user_id] = str(value)
+        else:
+            print("⚠️ AUTO_REPLY_MENTIONS 必須是 JSON object")
 
 # ======================
 # 開發工具配置
@@ -159,6 +186,7 @@ def get_config_summary() -> dict:
         },
         "features": {
             "auto_replies": TICKET_AUTO_REPLIES,
+            "mention_auto_replies": len(AUTO_REPLY_MENTIONS),
         },
         "parameters": {
             "auto_close_hours": TICKET_DEFAULT_AUTO_CLOSE_HOURS,

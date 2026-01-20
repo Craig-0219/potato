@@ -43,6 +43,7 @@ class DatabaseManager:
             await self._create_resume_tables()
             await self._create_whitelist_tables()
             await self._create_lottery_tables()
+            await self._create_auto_reply_tables()
             await self._create_webhook_tables()
             await self._create_cleanup_tables()
 
@@ -619,6 +620,30 @@ class DatabaseManager:
                         raise
                 await conn.commit()
                 logger.info("✅ 抽獎系統表格創建完成")
+
+    async def _create_auto_reply_tables(self):
+        """創建自動回覆相關表格"""
+        logger.info("💬 創建自動回覆表格...")
+
+        tables = {
+            "mention_auto_replies": """
+                CREATE TABLE IF NOT EXISTS mention_auto_replies (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    guild_id BIGINT NOT NULL,
+                    target_user_id BIGINT NOT NULL,
+                    reply_text VARCHAR(500) NOT NULL,
+                    created_by BIGINT NULL,
+                    updated_by BIGINT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+                    UNIQUE KEY uniq_guild_target (guild_id, target_user_id),
+                    INDEX idx_guild (guild_id)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+        }
+
+        await self._create_tables_batch(tables, "自動回覆")
 
     async def _create_webhook_tables(self):
         """創建 Webhook 相關表格"""
