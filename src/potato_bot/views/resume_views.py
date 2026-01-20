@@ -508,8 +508,9 @@ def build_company_role_panel_embed(
 
     embed = EmbedBuilder.create_info_embed(
         f"🏷️ {settings.company_name} 身分組管理",
-        "選擇成員與身分組後，使用下方按鈕進行新增、移除或設定暱稱（取前兩個身分組名稱）。\n"
-        "僅可操作「可管理身分組」，通過身分組僅供參考。",
+        "選擇成員與身分組後，使用下方按鈕進行新增、移除、解雇或設定暱稱。\n"
+        "暱稱格式：身分組1｜身分組2｜名稱（請選 2 個身分組，名稱由輸入欄位提供）。\n"
+        "僅可操作擁有通過身分組的成員，且只能設定可管理身分組。",
     )
     embed.add_field(name="可管理身分組", value=manageable_text, inline=False)
     embed.add_field(name="通過身分組", value=approved_text, inline=False)
@@ -618,6 +619,37 @@ class CompanyRoleCompanySelect(discord.ui.Select):
         await interaction.response.edit_message(embed=embed, view=view)
 
 
+class CompanyNicknameModal(discord.ui.Modal):
+    """公司成員暱稱設定表單。"""
+
+    def __init__(
+        self,
+        parent_view: "CompanyRolePanelView",
+        member_id: int,
+        role_ids: list[int],
+    ):
+        super().__init__(title="設定暱稱")
+        self.parent_view = parent_view
+        self.member_id = member_id
+        self.role_ids = role_ids
+
+        self.member_name = discord.ui.TextInput(
+            label="成員名稱",
+            placeholder="輸入要設定的名稱",
+            max_length=32,
+            required=True,
+        )
+        self.add_item(self.member_name)
+
+    async def on_submit(self, interaction: discord.Interaction) -> None:
+        await self.parent_view.apply_nickname(
+            interaction,
+            member_id=self.member_id,
+            role_ids=self.role_ids,
+            member_name=self.member_name.value,
+        )
+
+
 class CompanyRolePanelView(discord.ui.View):
     """公司身分組管理面板。"""
 
@@ -657,7 +689,28 @@ class CompanyRolePanelView(discord.ui.View):
 
     @discord.ui.button(label="📝 設定暱稱", style=discord.ButtonStyle.primary, row=2)
     async def set_nickname(self, interaction: discord.Interaction, button: discord.ui.Button):
-        await self._apply_nickname(interaction)
+        resolved = await self._resolve_member_and_roles(interaction)
+        if not resolved:
+            return
+        _, member, roles = resolved
+
+        if len(roles) > 2:
+            await self._send_ephemeral(interaction, "暱稱最多只能選擇 2 個身分組。")
+            return
+        if len(roles) < 2:
+            await self._send_ephemeral(interaction, "請選擇 2 個身分組來設定暱稱。")
+            return
+
+        modal = CompanyNicknameModal(
+            self,
+            member_id=member.id,
+            role_ids=[role.id for role in roles],
+        )
+        await interaction.response.send_modal(modal)
+
+    @discord.ui.button(label="🧹 解雇", style=discord.ButtonStyle.danger, row=3)
+    async def dismiss_member(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self._dismiss_member(interaction)
 
     @discord.ui.button(label="❌ 關閉面板", style=discord.ButtonStyle.secondary, row=2)
     async def close_panel(self, interaction: discord.Interaction, button: discord.ui.Button):
@@ -665,25 +718,33 @@ class CompanyRolePanelView(discord.ui.View):
             item.disabled = True
         await interaction.response.edit_message(view=self)
 
-    async def _resolve_member_and_roles(self, interaction: discord.Interaction):
+    async def _send_ephemeral(self, interaction: discord.Interaction, message: str) -> None:
+        if interaction.response.is_done():
+            await interaction.followup.send(message, ephemeral=True)
+        else:
+            await interaction.response.send_message(message, ephemeral=True)
+
+    @staticmethod
+    def _extract_member_name(member: discord.Member) -> str:
+        raw_name = (member.nick or member.name or "").strip()
+        if not raw_name:
+            return member.name
+        if "｜" in raw_name:
+            candidate = raw_name.split("｜")[-1].strip()
+            return candidate or member.name
+        if "|" in raw_name:
+            candidate = raw_name.split("|")[-1].strip()
+            return candidate or member.name
+        return raw_name
+
+    async def _resolve_member(self, interaction: discord.Interaction):
         guild = self.guild
         if not guild:
-            await interaction.followup.send("此功能只能在伺服器中使用。", ephemeral=True)
-            return None
-
-        allowed_role_ids = self.allowed_role_ids
-        if not allowed_role_ids:
-            await interaction.followup.send(
-                "此公司尚未設定可管理的身分組，請通知管理員設定。", ephemeral=True
-            )
+            await self._send_ephemeral(interaction, "此功能只能在伺服器中使用。")
             return None
 
         if not self.member_select.values:
-            await interaction.followup.send("請先選擇成員。", ephemeral=True)
-            return None
-
-        if not self.role_select.values:
-            await interaction.followup.send("請先選擇身分組。", ephemeral=True)
+            await self._send_ephemeral(interaction, "請先選擇成員。")
             return None
 
         selected_user = self.member_select.values[0]
@@ -698,19 +759,64 @@ class CompanyRolePanelView(discord.ui.View):
             except Exception:
                 member = None
         if not member:
-            await interaction.followup.send("找不到成員，請重新選擇。", ephemeral=True)
+            await self._send_ephemeral(interaction, "找不到成員，請重新選擇。")
             return None
+
+        approved_role_ids = self.settings.approved_role_ids or []
+        if not approved_role_ids:
+            await self._send_ephemeral(
+                interaction, "此公司尚未設定通過身分組，無法使用身分組管理。"
+            )
+            return None
+
+        member_role_ids = {role.id for role in member.roles}
+        if not (member_role_ids & set(approved_role_ids)):
+            approved_roles = [
+                guild.get_role(role_id) for role_id in approved_role_ids if guild.get_role(role_id)
+            ]
+            approved_text = (
+                "、".join(role.mention for role in approved_roles) if approved_roles else "未設定"
+            )
+            await self._send_ephemeral(
+                interaction,
+                f"此成員未擁有通過身分組，無法操作。\n通過身分組：{approved_text}",
+            )
+            return None
+
+        return guild, member
+
+    async def _resolve_member_and_roles(self, interaction: discord.Interaction):
+        guild = self.guild
+        if not guild:
+            await self._send_ephemeral(interaction, "此功能只能在伺服器中使用。")
+            return None
+
+        allowed_role_ids = self.allowed_role_ids
+        if not allowed_role_ids:
+            await self._send_ephemeral(
+                interaction, "此公司尚未設定可管理的身分組，請通知管理員設定。"
+            )
+            return None
+
+        if not self.role_select.values:
+            await self._send_ephemeral(interaction, "請先選擇身分組。")
+            return None
+
+        resolved_member = await self._resolve_member(interaction)
+        if not resolved_member:
+            return None
+        guild, member = resolved_member
 
         try:
             selected_role_ids = [int(value) for value in self.role_select.values]
         except ValueError:
-            await interaction.followup.send("身分組選擇無效，請重新選擇。", ephemeral=True)
+            await self._send_ephemeral(interaction, "身分組選擇無效，請重新選擇。")
             return None
 
         roles = [guild.get_role(role_id) for role_id in selected_role_ids]
         roles = [role for role in roles if role]
         if not roles:
-            await interaction.followup.send("找不到身分組，請重新選擇。", ephemeral=True)
+            await self._send_ephemeral(interaction, "找不到身分組，請重新選擇。")
             return None
 
         invalid_roles = [role for role in roles if role.id not in allowed_role_ids]
@@ -721,13 +827,82 @@ class CompanyRolePanelView(discord.ui.View):
             allowed_text = (
                 "、".join(role.mention for role in allowed_roles) if allowed_roles else "未設定"
             )
-            await interaction.followup.send(
+            await self._send_ephemeral(
+                interaction,
                 f"選擇的身分組不在可管理清單內。\n可管理身分組：{allowed_text}",
-                ephemeral=True,
             )
             return None
 
         return guild, member, roles
+
+    async def _dismiss_member(self, interaction: discord.Interaction) -> None:
+        await interaction.response.defer(ephemeral=True)
+
+        resolved = await self._resolve_member(interaction)
+        if not resolved:
+            return
+        guild, member = resolved
+
+        bot_member = guild.get_member(self.bot.user.id) if self.bot.user else None
+        if not bot_member or not bot_member.guild_permissions.manage_roles:
+            await interaction.followup.send("機器人缺少管理身分組權限。", ephemeral=True)
+            return
+
+        approved_role_ids = set(self.settings.approved_role_ids or [])
+        manageable_role_ids = set(self.settings.manageable_role_ids or [])
+        role_ids_to_remove = approved_role_ids | manageable_role_ids
+
+        blocked = []
+        roles_to_remove = []
+        for role_id in role_ids_to_remove:
+            role = guild.get_role(role_id)
+            if not role or role not in member.roles:
+                continue
+            if role.is_default() or role.managed:
+                blocked.append(f"{role.mention} (系統身分組)")
+                continue
+            if role >= bot_member.top_role:
+                blocked.append(f"{role.mention} (機器人權限不足)")
+                continue
+            roles_to_remove.append(role)
+
+        if roles_to_remove:
+            try:
+                await member.remove_roles(*roles_to_remove, reason="Company dismissal")
+            except Exception as e:
+                logger.error(f"公司解雇移除身分組失敗: {e}")
+                await interaction.followup.send("解雇失敗，請稍後再試。", ephemeral=True)
+                return
+
+        nickname_result = None
+        if not bot_member or not bot_member.guild_permissions.manage_nicknames:
+            nickname_result = "機器人缺少管理暱稱權限"
+        elif member.id == guild.owner_id:
+            nickname_result = "無法修改伺服器擁有者暱稱"
+        elif member.top_role >= bot_member.top_role and guild.owner_id != bot_member.id:
+            nickname_result = "機器人權限不足，無法修改暱稱"
+        else:
+            base_name = self._extract_member_name(member)
+            new_nick = f"居民｜{base_name}"
+            if len(new_nick) > 32:
+                new_nick = new_nick[:32]
+            try:
+                await member.edit(nick=new_nick, reason="Company dismissal")
+            except Exception as e:
+                logger.error(f"公司解雇暱稱設定失敗: {e}")
+                nickname_result = "暱稱更新失敗"
+            else:
+                nickname_result = f"暱稱已更新為：{new_nick}"
+
+        role_mentions = "、".join(role.mention for role in roles_to_remove) if roles_to_remove else "無"
+        blocked_text = "、".join(blocked) if blocked else "無"
+        await interaction.followup.send(
+            f"已解雇 {member.mention}\n"
+            f"移除身分組：{role_mentions}\n"
+            f"無法移除：{blocked_text}\n"
+            f"{nickname_result}",
+            ephemeral=True,
+        )
 
     async def _apply_roles(self, interaction: discord.Interaction, action: str) -> None:
         await interaction.response.defer(ephemeral=True)
@@ -792,16 +967,63 @@ class CompanyRolePanelView(discord.ui.View):
             ephemeral=True,
         )
 
-    async def _apply_nickname(self, interaction: discord.Interaction) -> None:
+    async def apply_nickname(
+        self,
+        interaction: discord.Interaction,
+        member_id: int,
+        role_ids: list[int],
+        member_name: str,
+    ) -> None:
         await interaction.response.defer(ephemeral=True)
 
-        resolved = await self._resolve_member_and_roles(interaction)
-        if not resolved:
+        guild = interaction.guild or self.guild
+        if not guild:
+            await interaction.followup.send("此功能只能在伺服器中使用。", ephemeral=True)
             return
-        guild, member, roles = resolved
 
-        if len(roles) < 2:
-            await interaction.followup.send("請選擇至少兩個身分組來組合暱稱。", ephemeral=True)
+        member = guild.get_member(member_id)
+        if not member:
+            try:
+                member = await guild.fetch_member(member_id)
+            except Exception:
+                member = None
+        if not member:
+            await interaction.followup.send("找不到成員，請重新選擇。", ephemeral=True)
+            return
+
+        approved_role_ids = self.settings.approved_role_ids or []
+        if not approved_role_ids:
+            await interaction.followup.send(
+                "此公司尚未設定通過身分組，無法使用身分組管理。", ephemeral=True
+            )
+            return
+
+        member_role_ids = {role.id for role in member.roles}
+        if not (member_role_ids & set(approved_role_ids)):
+            await interaction.followup.send("此成員未擁有通過身分組，無法操作。", ephemeral=True)
+            return
+
+        if len(role_ids) > 2:
+            await interaction.followup.send("暱稱最多只能選擇 2 個身分組。", ephemeral=True)
+            return
+        if len(role_ids) < 2:
+            await interaction.followup.send("請選擇 2 個身分組來設定暱稱。", ephemeral=True)
+            return
+
+        allowed_role_ids = self.allowed_role_ids
+        if not set(role_ids).issubset(allowed_role_ids):
+            await interaction.followup.send("選擇的身分組不在可管理清單內。", ephemeral=True)
+            return
+
+        roles = [guild.get_role(role_id) for role_id in role_ids]
+        roles = [role for role in roles if role]
+        if len(roles) != len(role_ids):
+            await interaction.followup.send("找不到身分組，請重新選擇。", ephemeral=True)
+            return
+
+        name_text = str(member_name or "").strip()
+        if not name_text:
+            await interaction.followup.send("請輸入成員名稱。", ephemeral=True)
             return
 
         bot_member = guild.get_member(self.bot.user.id) if self.bot.user else None
@@ -817,15 +1039,7 @@ class CompanyRolePanelView(discord.ui.View):
             )
             return
 
-        base_name = (member.nick or member.name or "").strip()
-        if "｜" in base_name:
-            base_name = base_name.split("｜")[-1].strip()
-        elif "|" in base_name:
-            base_name = base_name.split("|")[-1].strip()
-        if not base_name:
-            base_name = member.name
-
-        new_nick = f"{roles[0].name}｜{roles[1].name}｜{base_name}"
+        new_nick = f"{roles[0].name}｜{roles[1].name}｜{name_text}"
         if len(new_nick) > 32:
             new_nick = new_nick[:32]
 
