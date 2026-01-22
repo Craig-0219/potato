@@ -12,6 +12,7 @@ from discord.ext import commands
 
 from potato_bot.db.whitelist_dao import WhitelistDAO
 from potato_bot.services.whitelist_service import AnnounceService, RoleService, WhitelistSettings
+from potato_bot.utils.interaction_helper import SafeInteractionHandler
 from potato_shared.logger import logger
 
 
@@ -80,8 +81,12 @@ class ApplyModal(discord.ui.Modal):
     async def on_submit(self, interaction: discord.Interaction):
         guild = interaction.guild
         if not guild:
-            await interaction.response.send_message("❌ 此功能僅能在伺服器中使用", ephemeral=True)
+            await SafeInteractionHandler.safe_respond(
+                interaction, content="❌ 此功能僅能在伺服器中使用", ephemeral=True
+            )
             return
+
+        await SafeInteractionHandler.safe_defer(interaction, ephemeral=True)
 
         review_channel = (
             guild.get_channel(self.settings.review_channel_id)
@@ -89,12 +94,20 @@ class ApplyModal(discord.ui.Modal):
             else None
         )
         if not review_channel:
-            await interaction.response.send_message("❌ 尚未設定審核頻道，請通知管理員", ephemeral=True)
+            await SafeInteractionHandler.safe_respond(
+                interaction,
+                content="❌ 尚未設定審核頻道，請通知管理員",
+                ephemeral=True,
+            )
             return
 
         # 檢查 pending（補件可繼續）
         if await self.dao.has_pending(guild.id, interaction.user.id):
-            await interaction.response.send_message("⚠️ 你已有待審核申請，請等待結果", ephemeral=True)
+            await SafeInteractionHandler.safe_respond(
+                interaction,
+                content="⚠️ 你已有待審核申請，請等待結果",
+                ephemeral=True,
+            )
             return
 
         answers: Dict[str, Any] = {
@@ -153,11 +166,17 @@ class ApplyModal(discord.ui.Modal):
                 pass
         except Exception as send_error:
             logger.error(f"❌ 發送審核卡失敗: {send_error}")
-            await interaction.response.send_message("❌ 發送審核卡失敗，請通知管理員檢查權限", ephemeral=True)
+            await SafeInteractionHandler.safe_respond(
+                interaction,
+                content="❌ 發送審核卡失敗，請通知管理員檢查權限",
+                ephemeral=True,
+            )
             return
 
-        await interaction.response.send_message(
-            f"✅ 已提交申請編號 #{app_id}，請等待審核結果", ephemeral=True
+        await SafeInteractionHandler.safe_respond(
+            interaction,
+            content=f"✅ 已提交申請編號 #{app_id}，請等待審核結果",
+            ephemeral=True,
         )
 
 

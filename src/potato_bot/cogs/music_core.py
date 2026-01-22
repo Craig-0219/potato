@@ -22,6 +22,33 @@ from potato_shared.logger import logger
 logging.getLogger("yt_dlp").setLevel(logging.ERROR)
 
 
+def _ensure_voice_ws_mode_fallback() -> None:
+    """Apply a small patch for empty voice gateway modes to avoid IndexError."""
+    try:
+        from discord import gateway as discord_gateway
+        if getattr(discord_gateway, "_potato_voice_modes_patch", False):
+            return
+        original_initial_connection = discord_gateway.DiscordVoiceWebSocket.initial_connection
+    except Exception as exc:
+        logger.warning("Voice WS patch skipped: %s", exc)
+        return
+
+    async def patched_initial_connection(self, data):
+        modes = data.get("modes")
+        if not modes:
+            fallback_mode = data.get("mode") or "xsalsa20_poly1305"
+            data = dict(data)
+            data["modes"] = [fallback_mode]
+            logger.warning(
+                "Voice gateway returned empty modes; falling back to %s",
+                fallback_mode,
+            )
+        return await original_initial_connection(self, data)
+
+    discord_gateway.DiscordVoiceWebSocket.initial_connection = patched_initial_connection
+    discord_gateway._potato_voice_modes_patch = True
+
+
 class LoopMode(Enum):
     """循環模式"""
 
@@ -103,6 +130,8 @@ class MusicPlayer:
     async def connect_to_voice(self, channel: discord.VoiceChannel):
         """連接到語音頻道"""
         try:
+            _ensure_voice_ws_mode_fallback()
+
             # 檢查是否已經連接到相同頻道
             if self.voice_client and self.voice_client.is_connected():
                 if self.voice_client.channel == channel:
