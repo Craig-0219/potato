@@ -1197,7 +1197,7 @@ class ResumeManageableRoleSelect(discord.ui.RoleSelect):
         super().__init__(
             placeholder="選擇可管理身分組（可多選）",
             min_values=1,
-            max_values=10,
+            max_values=20,
             row=row,
         )
 
