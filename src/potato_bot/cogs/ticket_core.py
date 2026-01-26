@@ -38,12 +38,23 @@ def build_ticket_settings_embed(guild: discord.Guild, settings: Dict[str, Any]) 
         else "未設定（無法建立票券）"
     )
     support_roles = settings.get("support_roles") or []
+    sponsor_roles = settings.get("sponsor_support_roles") or []
     role_mentions = []
     for rid in support_roles:
         role = guild.get_role(int(rid))
         if role:
             role_mentions.append(role.mention)
     roles_txt = ", ".join(role_mentions) if role_mentions else "未設定"
+    sponsor_role_mentions = []
+    for rid in sponsor_roles:
+        role = guild.get_role(int(rid))
+        if role:
+            sponsor_role_mentions.append(role.mention)
+    sponsor_roles_txt = (
+        ", ".join(sponsor_role_mentions)
+        if sponsor_role_mentions
+        else "未設定（將沿用客服角色）"
+    )
     embed = EmbedBuilder.build(
         title="🛠️ 票券系統設定",
         description="在此設定票券分類、客服角色與基本參數。",
@@ -53,6 +64,11 @@ def build_ticket_settings_embed(guild: discord.Guild, settings: Dict[str, Any]) 
     embed.add_field(
         name="客服角色",
         value=roles_txt,
+        inline=False,
+    )
+    embed.add_field(
+        name="贊助處理角色",
+        value=sponsor_roles_txt,
         inline=False,
     )
     embed.add_field(
@@ -300,7 +316,10 @@ class CachedTicketCore(commands.Cog):
             logger.error(f"❌ 用戶票券查詢失敗: {e}")
             await interaction.followup.send("❌ 查詢票券時發生錯誤。", ephemeral=True)
 
-    @app_commands.command(name="ticket_settings", description="管理票券系統設定（分類/限額/客服角色）")
+    @app_commands.command(
+        name="ticket_settings",
+        description="管理票券系統設定（分類/限額/客服角色/贊助角色）",
+    )
     @app_commands.default_permissions(manage_guild=True)
     async def ticket_settings(self, interaction: discord.Interaction):
         """票券設定面板（管理員）"""
@@ -323,7 +342,7 @@ class CachedTicketCore(commands.Cog):
         embed.add_field(name="建立面板", value="`!setup_ticket`", inline=False)
         embed.add_field(
             name="設定面板/分類/客服角色/限額",
-            value="`/ticket_settings`（管理員）",
+            value="`/ticket_settings`（管理員，含贊助處理角色）",
             inline=False,
         )
         embed.add_field(
@@ -544,6 +563,18 @@ class TicketSettingsView(discord.ui.View):
         view.add_item(select)
         await interaction.response.send_message("選擇客服角色（可多選）：", view=view, ephemeral=True)
 
+    @discord.ui.button(label="贊助處理角色", style=discord.ButtonStyle.secondary)
+    async def set_sponsor_support_roles(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        if not interaction.user.guild_permissions.manage_guild:
+            await interaction.response.send_message("❌ 需要管理伺服器權限", ephemeral=True)
+            return
+        select = SponsorRoleSelect(self.dao, self.guild, self.settings)
+        view = discord.ui.View(timeout=120)
+        view.add_item(select)
+        await interaction.response.send_message("選擇贊助處理角色（可多選）：", view=view, ephemeral=True)
+
     @discord.ui.button(label="調整限額", style=discord.ButtonStyle.success)
     async def set_limits(self, interaction: discord.Interaction, button: discord.ui.Button):
         if not interaction.user.guild_permissions.manage_guild:
@@ -595,6 +626,25 @@ class SupportRoleSelect(discord.ui.RoleSelect):
         self.settings["support_roles"] = role_ids
         mentions = ", ".join(role.mention for role in self.values)
         await interaction.response.send_message(f"✅ 已更新客服角色：{mentions}", ephemeral=True)
+
+
+class SponsorRoleSelect(discord.ui.RoleSelect):
+    """贊助處理角色選擇"""
+
+    def __init__(self, dao, guild: discord.Guild, settings: Dict[str, Any]):
+        super().__init__(placeholder="選擇贊助處理角色（可多選）", min_values=1, max_values=5)
+        self.dao = dao
+        self.guild = guild
+        self.settings = settings
+
+    async def callback(self, interaction: discord.Interaction):
+        role_ids: List[int] = [role.id for role in self.values]
+        await self.dao.update_settings(self.guild.id, {"sponsor_support_roles": role_ids})
+        self.settings["sponsor_support_roles"] = role_ids
+        mentions = ", ".join(role.mention for role in self.values)
+        await interaction.response.send_message(
+            f"✅ 已更新贊助處理角色：{mentions}", ephemeral=True
+        )
 
 
 class LimitsModal(discord.ui.Modal):

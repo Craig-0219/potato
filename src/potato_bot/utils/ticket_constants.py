@@ -65,6 +65,8 @@ def validate_numeric_input(value: int, field_type: str) -> tuple[bool, str]:
 class TicketConstants:
     """票券系統常數與全域選項"""
 
+    SPONSOR_TICKET_NAME = "贊助相關事宜"
+
     PRIORITIES = ["high", "medium", "low"]
     STATUSES = ["open", "closed", "archived"]
 
@@ -109,6 +111,12 @@ class TicketConstants:
             "emoji": "🤝",
             "style": discord.ButtonStyle.primary,
             "description": "商業合作、夥伴關係、聯名活動",
+        },
+        {
+            "name": SPONSOR_TICKET_NAME,
+            "emoji": "💖",
+            "style": discord.ButtonStyle.success,
+            "description": "贊助、捐款、支持相關詢問",
         },
         {
             "name": "檢舉回報",
@@ -212,6 +220,8 @@ def validate_setting_value(setting: str, value: Any) -> bool:
     elif setting == "welcome_message":
         return isinstance(value, str) and len(value) <= 2000
     elif setting == "support_roles":
+        return isinstance(value, list) and len(value) <= 10
+    elif setting == "sponsor_support_roles":
         return isinstance(value, list) and len(value) <= 10
     return True
 

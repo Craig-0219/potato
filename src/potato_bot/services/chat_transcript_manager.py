@@ -16,6 +16,7 @@ import aiomysql
 import discord
 
 from potato_bot.db.pool import db_pool
+from potato_bot.utils.ticket_constants import TicketConstants
 from potato_shared.logger import logger
 
 
@@ -190,7 +191,11 @@ class ChatTranscriptManager:
 
             # 生成檔案路徑
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"ticket_{ticket_id:04d}_{timestamp}.{file_extension}"
+            filename_parts = [f"ticket_{ticket_id:04d}"]
+            if ticket_info.get("type") == TicketConstants.SPONSOR_TICKET_NAME:
+                filename_parts.append("donate")
+            filename_parts.append(timestamp)
+            filename = f"{'_'.join(filename_parts)}.{file_extension}"
             file_path = self.transcript_dir / filename
 
             # 寫入檔案

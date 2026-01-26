@@ -214,6 +214,7 @@ class DatabaseManager:
                     guild_id BIGINT PRIMARY KEY COMMENT '伺服器 ID',
                     category_id BIGINT NULL COMMENT '分類頻道 ID',
                     support_roles JSON NULL COMMENT '客服身分組列表',
+                    sponsor_support_roles JSON NULL COMMENT '贊助處理身分組列表',
                     max_tickets_per_user INT DEFAULT 3 COMMENT '每人最大票券數',
                     auto_close_hours INT DEFAULT 24 COMMENT '自動關閉小時數',
                     welcome_message TEXT NULL COMMENT '歡迎訊息',

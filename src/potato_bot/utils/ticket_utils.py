@@ -1,9 +1,11 @@
 # bot/utils/ticket_utils.py - 票券系統工具函數
 
 import re
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import discord
+
+from potato_bot.utils.ticket_constants import TicketConstants
 
 
 class TicketPermissionChecker:
@@ -84,7 +86,22 @@ def is_ticket_channel(channel: discord.TextChannel) -> bool:
     return re.match(r"^[^A-Za-z0-9]*ticket-", name) is not None
 
 
+def get_support_roles_for_ticket(
+    settings: Dict[str, Any], ticket_type: Optional[str]
+) -> List[int]:
+    """依票券類型取得對應的處理角色列表"""
+    settings = settings or {}
+    support_roles = settings.get("support_roles") or []
+    sponsor_roles = settings.get("sponsor_support_roles") or []
+
+    if ticket_type == TicketConstants.SPONSOR_TICKET_NAME:
+        return sponsor_roles or support_roles
+
+    return support_roles
+
+
 __all__ = [
     "TicketPermissionChecker",
     "is_ticket_channel",
+    "get_support_roles_for_ticket",
 ]

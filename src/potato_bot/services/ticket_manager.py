@@ -17,6 +17,7 @@ from potato_bot.services.realtime_sync_manager import (
     realtime_sync,
 )
 from potato_bot.utils.ticket_constants import TicketConstants
+from potato_bot.utils.ticket_utils import get_support_roles_for_ticket
 from potato_bot.views.ticket_views import TicketControlView
 from potato_shared.logger import logger
 
@@ -111,7 +112,7 @@ class TicketManager:
             channel_name = f"{priority_prefix}ticket-{ticket_id:04d}-{user.display_name[:8]}"
 
             # 設定權限
-            overwrites = await self._create_channel_overwrites(user, settings)
+            overwrites = await self._create_channel_overwrites(user, settings, ticket_type)
 
             # 建立頻道
             channel = await user.guild.create_text_channel(
@@ -131,7 +132,10 @@ class TicketManager:
             return False, "建立頻道失敗", None
 
     async def _create_channel_overwrites(
-        self, user: discord.Member, settings: Dict
+        self,
+        user: discord.Member,
+        settings: Dict,
+        ticket_type: str,
     ) -> Dict[discord.abc.Snowflake, discord.PermissionOverwrite]:
         """建立頻道權限覆寫"""
         overwrites = {
@@ -157,7 +161,7 @@ class TicketManager:
         }
 
         # 客服身分組權限
-        support_roles = settings.get("support_roles", [])
+        support_roles = get_support_roles_for_ticket(settings, ticket_type)
         for role_id in support_roles:
             role = user.guild.get_role(role_id)
             if role:
@@ -282,7 +286,7 @@ class TicketManager:
 
             # 檢查權限
             settings = await self.repository.get_settings(interaction.guild.id)
-            support_roles = settings.get("support_roles", [])
+            support_roles = get_support_roles_for_ticket(settings, ticket.get("type"))
             user_roles = [r.id for r in getattr(interaction.user, "roles", [])]
             is_support = any(int(rid) in user_roles for rid in support_roles)
             is_owner = str(interaction.user.id) == str(ticket.get("discord_id"))

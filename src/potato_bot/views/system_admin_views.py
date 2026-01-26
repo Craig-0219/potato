@@ -191,6 +191,12 @@ class SystemAdminPanel(BaseView):
 
         embed.add_field(name="👥 客服角色", value=roles_text, inline=True)
 
+        sponsor_roles = settings.get("sponsor_support_roles", [])
+        sponsor_text = "✅ 已設定" if sponsor_roles else "❌ 未設定（沿用客服）"
+        if sponsor_roles:
+            sponsor_text += f"\n{len(sponsor_roles)} 個角色"
+        embed.add_field(name="💖 贊助處理角色", value=sponsor_text, inline=True)
+
         # 系統參數
         embed.add_field(
             name="⚙️ 系統參數",
@@ -1418,6 +1424,20 @@ class TicketSettingsView(View):
         view = RoleSelectView(self.user_id, "support_roles")
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
+    @button(label="💖 贊助處理角色", style=discord.ButtonStyle.secondary, row=0)
+    async def set_sponsor_support_roles_button(
+        self, interaction: discord.Interaction, button: Button
+    ):
+        """設定贊助處理角色"""
+        embed = discord.Embed(
+            title="💖 選擇贊助處理角色",
+            description="請選擇要設定為贊助處理的角色",
+            color=0x3498DB,
+        )
+
+        view = RoleSelectView(self.user_id, "sponsor_support_roles")
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
     @button(label="⚙️ 系統參數", style=discord.ButtonStyle.secondary, row=0)
     async def system_params_button(self, interaction: discord.Interaction, button: Button):
         """系統參數設定"""
@@ -1455,6 +1475,12 @@ class TicketSettingsView(View):
         support_roles = settings.get("support_roles", [])
         roles_text = f"✅ {len(support_roles)} 個角色" if support_roles else "❌ 未設定"
         embed.add_field(name="👥 客服角色", value=roles_text, inline=True)
+
+        sponsor_roles = settings.get("sponsor_support_roles", [])
+        sponsor_text = (
+            f"✅ {len(sponsor_roles)} 個角色" if sponsor_roles else "❌ 未設定（沿用客服）"
+        )
+        embed.add_field(name="💖 贊助處理角色", value=sponsor_text, inline=True)
 
         embed.add_field(
             name="⚙️ 系統參數",
@@ -1711,6 +1737,27 @@ class RoleSelect(discord.ui.RoleSelect):
                     embed = discord.Embed(
                         title="❌ 設定失敗",
                         description="設定客服角色時發生錯誤",
+                        color=0xE74C3C,
+                    )
+
+            elif self.setting_type == "sponsor_support_roles":
+                ticket_dao = TicketDAO()
+                success = await ticket_dao.update_settings(
+                    interaction.guild.id, {"sponsor_support_roles": selected_role_ids}
+                )
+
+                role_mentions = [f"<@&{role_id}>" for role_id in selected_role_ids]
+
+                if success:
+                    embed = discord.Embed(
+                        title="✅ 贊助處理角色已設定",
+                        description=f"贊助處理角色已設定為：\n{', '.join(role_mentions)}",
+                        color=0x2ECC71,
+                    )
+                else:
+                    embed = discord.Embed(
+                        title="❌ 設定失敗",
+                        description="設定贊助處理角色時發生錯誤",
                         color=0xE74C3C,
                     )
 

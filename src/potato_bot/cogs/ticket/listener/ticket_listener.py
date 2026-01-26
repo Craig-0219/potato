@@ -10,7 +10,11 @@ from discord.ext import commands, tasks
 from potato_bot.db.ticket_dao import TicketDAO
 from potato_bot.services.chat_transcript_manager import ChatTranscriptManager
 from potato_bot.utils.ticket_constants import get_priority_emoji
-from potato_bot.utils.ticket_utils import TicketPermissionChecker, is_ticket_channel
+from potato_bot.utils.ticket_utils import (
+    TicketPermissionChecker,
+    get_support_roles_for_ticket,
+    is_ticket_channel,
+)
 from potato_shared.logger import logger
 
 
@@ -116,8 +120,9 @@ class TicketListener(commands.Cog):
             settings = await self.dao.get_guild_settings(message.guild.id)
 
             # 檢查是否為客服人員
+            support_roles = get_support_roles_for_ticket(settings, ticket_info.get("type"))
             if not TicketPermissionChecker.is_support_staff(
-                message.author, settings.get("support_roles", [])
+                message.author, support_roles
             ):
                 return
 
@@ -345,16 +350,18 @@ class TicketListener(commands.Cog):
             # 取得設定
             settings = await self.dao.get_guild_settings(after.guild.id)
             support_roles = set(settings.get("support_roles", []))
+            sponsor_roles = set(settings.get("sponsor_support_roles", []))
+            staff_roles = support_roles | sponsor_roles
 
-            if not support_roles:
+            if not staff_roles:
                 return
 
             # 檢查客服權限變更
             before_roles = {role.id for role in before.roles}
             after_roles = {role.id for role in after.roles}
 
-            had_support_role = bool(before_roles & support_roles)
-            has_support_role = bool(after_roles & support_roles)
+            had_support_role = bool(before_roles & staff_roles)
+            has_support_role = bool(after_roles & staff_roles)
 
             # 如果獲得客服權限
             if not had_support_role and has_support_role:

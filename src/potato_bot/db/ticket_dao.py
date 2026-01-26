@@ -43,12 +43,45 @@ class TicketDAO:
                     db_manager = DatabaseManager()
                     await db_manager._create_ticket_tables()
 
+                await self._ensure_ticket_settings_columns()
+
                 self._initialized = True
                 logger.info("✅ 票券 DAO 初始化完成")
 
             except Exception as e:
                 logger.error(f"❌ 票券 DAO 初始化失敗：{e}")
                 raise
+
+    async def _ensure_ticket_settings_columns(self):
+        """確保票券設定表包含必要欄位"""
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    await cursor.execute(
+                        """
+                        SELECT COUNT(*)
+                        FROM information_schema.columns
+                        WHERE table_schema = DATABASE()
+                        AND table_name = 'ticket_settings'
+                        AND column_name = 'sponsor_support_roles'
+                    """
+                    )
+                    exists = (await cursor.fetchone())[0] > 0
+                    if exists:
+                        return
+
+                    await cursor.execute(
+                        """
+                        ALTER TABLE ticket_settings
+                        ADD COLUMN sponsor_support_roles JSON NULL COMMENT '贊助處理身分組列表'
+                        AFTER support_roles
+                    """
+                    )
+                    await conn.commit()
+                    logger.info("✅ 已新增 ticket_settings.sponsor_support_roles 欄位")
+
+        except Exception as e:
+            logger.error(f"❌ 新增 sponsor_support_roles 欄位失敗：{e}")
 
     # ===== 修復：添加缺失的屬性和方法 =====
 
@@ -708,6 +741,15 @@ class TicketDAO:
                                 settings["support_roles"] = []
                         else:
                             settings["support_roles"] = []
+                        if settings.get("sponsor_support_roles"):
+                            try:
+                                settings["sponsor_support_roles"] = json.loads(
+                                    settings["sponsor_support_roles"]
+                                )
+                            except:
+                                settings["sponsor_support_roles"] = []
+                        else:
+                            settings["sponsor_support_roles"] = []
                     return results
         except Exception as e:
             logger.error(f"取得所有設定錯誤：{e}")
@@ -742,6 +784,15 @@ class TicketDAO:
                             settings["support_roles"] = []
                     else:
                         settings["support_roles"] = []
+                    if settings.get("sponsor_support_roles"):
+                        try:
+                            settings["sponsor_support_roles"] = json.loads(
+                                settings["sponsor_support_roles"]
+                            )
+                        except:
+                            settings["sponsor_support_roles"] = []
+                    else:
+                        settings["sponsor_support_roles"] = []
 
                     return settings
 
@@ -758,6 +809,7 @@ class TicketDAO:
             "auto_close_hours": 24,
             "welcome_message": "歡迎使用客服系統！請選擇問題類型來建立支援票券。",
             "support_roles": [],
+            "sponsor_support_roles": [],
         }
 
         try:
@@ -766,8 +818,8 @@ class TicketDAO:
                     await cursor.execute(
                         """
                         INSERT INTO ticket_settings
-                        (guild_id, max_tickets_per_user, auto_close_hours, welcome_message, support_roles, created_at, updated_at)
-                        VALUES (%s, %s, %s, %s, %s, NOW(), NOW())
+                        (guild_id, max_tickets_per_user, auto_close_hours, welcome_message, support_roles, sponsor_support_roles, created_at, updated_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, NOW(), NOW())
                         ON DUPLICATE KEY UPDATE updated_at = NOW()
                     """,
                         (
@@ -776,6 +828,7 @@ class TicketDAO:
                             default_settings["auto_close_hours"],
                             default_settings["welcome_message"],
                             json.dumps(default_settings["support_roles"]),
+                            json.dumps(default_settings["sponsor_support_roles"]),
                         ),
                     )
 
@@ -795,6 +848,7 @@ class TicketDAO:
             setting_map = {
                 "category": "category_id",
                 "support_roles": "support_roles",
+                "sponsor_support_roles": "sponsor_support_roles",
                 "limits": "max_tickets_per_user",
                 "auto_close": "auto_close_hours",
                 "welcome": "welcome_message",
@@ -806,7 +860,7 @@ class TicketDAO:
             db_field = setting_map[setting]
 
             # 處理特殊類型
-            if setting == "support_roles" and isinstance(value, list):
+            if setting in ["support_roles", "sponsor_support_roles"] and isinstance(value, list):
                 value = json.dumps(value)
             elif setting in ["limits", "auto_close"]:
                 value = int(value)
@@ -839,6 +893,7 @@ class TicketDAO:
             allowed_fields = {
                 "category_id",
                 "support_roles",
+                "sponsor_support_roles",
                 "max_tickets_per_user",
                 "auto_close_hours",
                 "welcome_message",
@@ -849,7 +904,7 @@ class TicketDAO:
             for key, value in settings.items():
                 if key in allowed_fields:
                     # 處理特殊類型
-                    if key == "support_roles" and isinstance(value, list):
+                    if key in ["support_roles", "sponsor_support_roles"] and isinstance(value, list):
                         value = json.dumps(value)
                     elif key in [
                         "category_id",
