@@ -143,7 +143,7 @@ class PotatoBot(commands.Bot):
         await self._load_extensions()
 
         # 5) 指令翻譯器（本地化指令名稱/描述）
-        self._setup_translator()
+        await self._setup_translator()
 
         # 6) 驗證 Persistent Views（註冊在各 Cog，自這裡只檢查並記錄）
         await log_persistent_views(self)
@@ -225,10 +225,10 @@ class PotatoBot(commands.Bot):
         if failed:
             logger.warning(f"⚠️ 未載入的 Cogs：{', '.join(failed)}")
 
-    def _setup_translator(self) -> None:
+    async def _setup_translator(self) -> None:
         """設定指令翻譯器（支援中文指令名稱）"""
         try:
-            self.tree.set_translator(PotatoTranslator())
+            await self.tree.set_translator(PotatoTranslator())
             logger.info("✅ 指令翻譯器已設置")
         except Exception as e:
             logger.error(f"❌ 設置指令翻譯器失敗：{e}")
