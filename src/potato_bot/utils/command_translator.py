@@ -12,8 +12,8 @@ class PotatoTranslator(app_commands.Translator):
 
     _COMMAND_NAME_LOCALIZATIONS = {
         "company_roles": {
-            discord.Locale.chinese_taiwan: "公司身分組",
-            discord.Locale.chinese_china: "公司身份组",
+            discord.Locale.taiwan_chinese: "公司身分組",
+            discord.Locale.chinese: "公司身份组",
         }
     }
 
