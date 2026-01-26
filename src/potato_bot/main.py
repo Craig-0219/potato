@@ -37,6 +37,7 @@ CURRENT_FILE_DIR, PROJECT_ROOT = bootstrap_paths(__file__)
 
 from potato_bot.utils.cog_loader import COGS_PREFIX, discover_cog_modules
 from potato_bot.utils.persistent_views import log_persistent_views
+from potato_bot.utils.command_translator import PotatoTranslator
 
 # 提前載入 .env，讓 shared.config 能吃到
 load_dotenv()
@@ -141,10 +142,13 @@ class PotatoBot(commands.Bot):
         # 4) 載入所有 Cogs（Plugin Orchestrator）
         await self._load_extensions()
 
-        # 5) 驗證 Persistent Views（註冊在各 Cog，自這裡只檢查並記錄）
+        # 5) 指令翻譯器（本地化指令名稱/描述）
+        self._setup_translator()
+
+        # 6) 驗證 Persistent Views（註冊在各 Cog，自這裡只檢查並記錄）
         await log_persistent_views(self)
 
-        # 6) 同步斜線命令（依 SYNC_COMMANDS 控制）
+        # 7) 同步斜線命令（依 SYNC_COMMANDS 控制）
         await self._sync_commands()
 
         logger.info("✅ Bot setup_hook 完成")
@@ -220,6 +224,14 @@ class PotatoBot(commands.Bot):
 
         if failed:
             logger.warning(f"⚠️ 未載入的 Cogs：{', '.join(failed)}")
+
+    def _setup_translator(self) -> None:
+        """設定指令翻譯器（支援中文指令名稱）"""
+        try:
+            self.tree.set_translator(PotatoTranslator())
+            logger.info("✅ 指令翻譯器已設置")
+        except Exception as e:
+            logger.error(f"❌ 設置指令翻譯器失敗：{e}")
 
     # --------------------------
     # ✅ 指令同步（平台級）
