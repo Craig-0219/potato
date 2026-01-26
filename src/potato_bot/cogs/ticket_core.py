@@ -583,6 +583,37 @@ class TicketSettingsView(discord.ui.View):
         modal = LimitsModal(self.dao, self.guild, self.settings)
         await interaction.response.send_modal(modal)
 
+    @discord.ui.button(label="部署面板", style=discord.ButtonStyle.primary)
+    async def deploy_panel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not interaction.user.guild_permissions.manage_guild:
+            await interaction.response.send_message("❌ 需要管理伺服器權限", ephemeral=True)
+            return
+
+        if not interaction.channel or not isinstance(interaction.channel, discord.TextChannel):
+            await interaction.response.send_message("❌ 無法在此頻道部署面板", ephemeral=True)
+            return
+
+        try:
+            settings = await self.dao.get_settings(self.guild.id)
+            embed = EmbedBuilder.build(
+                title="🎫 客服中心",
+                description=settings.get("welcome_message", "請選擇問題類型來建立支援票券"),
+                color=TicketConstants.COLORS["primary"],
+            )
+            embed.add_field(
+                name="📋 系統資訊",
+                value=f"• 每人限制：{settings.get('max_tickets_per_user', 3)} 張\n"
+                f"• 自動關閉：{settings.get('auto_close_hours', 24)} 小時",
+                inline=False,
+            )
+
+            view = TicketPanelView(settings=settings)
+            await interaction.channel.send(embed=embed, view=view)
+            await interaction.response.send_message("✅ 票券面板已部署", ephemeral=True)
+        except Exception as e:
+            logger.error(f"部署票券面板失敗: {e}")
+            await interaction.response.send_message("❌ 部署票券面板時發生錯誤", ephemeral=True)
+
     @discord.ui.button(label="重新整理", style=discord.ButtonStyle.secondary)
     async def refresh(self, interaction: discord.Interaction, button: discord.ui.Button):
         settings = await self.dao.get_settings(self.guild.id)

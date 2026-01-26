@@ -316,7 +316,15 @@ class ResumeCore(ManagedCog):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="company_roles", description="公司身分組管理面板")
+    @app_commands.command(
+        name="company_roles",
+        description="公司身分組管理面板",
+        name_localizations={"zh-TW": "公司身分組", "zh-CN": "公司身份组"},
+        description_localizations={
+            "zh-TW": "公司身分組管理面板",
+            "zh-CN": "公司身份组管理面板",
+        },
+    )
     async def company_roles(self, interaction: discord.Interaction):
         guild = interaction.guild
         if not guild:
