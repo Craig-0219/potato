@@ -158,9 +158,17 @@ class ResumePanelService:
         if not guild:
             return None
 
-        channel = guild.get_channel(settings.panel_channel_id)
+        if hasattr(guild, "get_channel_or_thread"):
+            channel = guild.get_channel_or_thread(settings.panel_channel_id)
+        else:
+            channel = guild.get_channel(settings.panel_channel_id) or guild.get_thread(
+                settings.panel_channel_id
+            )
         if not channel:
             logger.warning("找不到履歷面板頻道。")
+            return None
+        if not isinstance(channel, (discord.TextChannel, discord.Thread)):
+            logger.warning("履歷面板頻道類型不支援。")
             return None
 
         embed = discord.Embed(

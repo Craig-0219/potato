@@ -269,6 +269,54 @@ class ResumeCore(ManagedCog):
 
         await interaction.response.send_message("履歷面板已佈署/刷新", ephemeral=True)
 
+    @app_commands.command(name="resume_panel_here", description="在當前頻道部屬或刷新履歷面板")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def resume_panel_here(
+        self,
+        interaction: discord.Interaction,
+        company_name: str,
+    ):
+        guild = interaction.guild
+        if not guild:
+            await interaction.response.send_message("此指令必須在指定頻道使用", ephemeral=True)
+            return
+
+        channel = interaction.channel
+        if channel is None:
+            await interaction.response.send_message("找不到當前頻道。", ephemeral=True)
+            return
+        if isinstance(channel, discord.ForumChannel):
+            await interaction.response.send_message(
+                "論壇頻道無法直接部屬面板，請在論壇貼文（討論串）內使用此指令。",
+                ephemeral=True,
+            )
+            return
+        if not isinstance(channel, (discord.TextChannel, discord.Thread)):
+            await interaction.response.send_message(
+                "此頻道類型不支援部屬履歷面板。", ephemeral=True
+            )
+            return
+
+        settings = await self.service.load_company_by_name(guild.id, company_name)
+        if not settings:
+            await interaction.response.send_message("不存在的企業名稱", ephemeral=True)
+            return
+
+        settings = await self.service.save_company(
+            guild.id, company_name, panel_channel_id=channel.id
+        )
+
+        panel_view = ResumePanelView(self.bot, self.dao, settings)
+        message = await self.panel_service.ensure_panel_message(settings, panel_view)
+        try:
+            message_id = message.id if message else settings.panel_message_id
+            if message_id:
+                self.bot.add_view(panel_view, message_id=message_id)
+        except Exception:
+            pass
+
+        await interaction.response.send_message("履歷面板已佈署/刷新", ephemeral=True)
+
     @app_commands.command(name="resume_companies", description="列出所有履歷公司履歷設定")
     @app_commands.checks.has_permissions(administrator=True)
     async def resume_companies(self, interaction: discord.Interaction):

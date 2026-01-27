@@ -895,7 +895,21 @@ class ResumeSettingsView(View):
             self.add_item(
                 ResumeCompanySelect(self, self.companies, self.selected_company_id, row=0)
             )
-            self.add_item(ResumeChannelSelect("panel_channel_id", "選擇填單頻道", self, row=1))
+            panel_channel_types = [
+                discord.ChannelType.text,
+                discord.ChannelType.public_thread,
+                discord.ChannelType.private_thread,
+                discord.ChannelType.news_thread,
+            ]
+            self.add_item(
+                ResumeChannelSelect(
+                    "panel_channel_id",
+                    "選擇填單頻道",
+                    self,
+                    row=1,
+                    channel_types=panel_channel_types,
+                )
+            )
             self.add_item(ResumeChannelSelect("review_channel_id", "選擇審核頻道", self, row=2))
             self.add_item(ResumeRoleSettingsButton(self, row=3))
             self.add_item(ResumeToggleCompanyButton(self, row=4))
@@ -1145,14 +1159,17 @@ class ResumeChannelSelect(ChannelSelect):
         placeholder: str,
         parent_view: ResumeSettingsView,
         row: int | None = None,
+        channel_types: list[discord.ChannelType] | None = None,
     ):
         self.field_key = field_key
         self.parent_view = parent_view
+        if not channel_types:
+            channel_types = [discord.ChannelType.text]
         super().__init__(
             placeholder=placeholder,
             min_values=1,
             max_values=1,
-            channel_types=[discord.ChannelType.text],
+            channel_types=channel_types,
             row=row,
         )
 
