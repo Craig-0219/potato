@@ -320,7 +320,7 @@ class PotatoBot(commands.Bot):
 
         activity = discord.Activity(
             type=discord.ActivityType.watching,
-            name="V3.0雞毛云：讀萬卷書，不如先把公告認真讀完。",
+            name="我爸不在，現在我最大!",
         )
         await self.change_presence(activity=activity)
 
