@@ -15,6 +15,28 @@ class SafeInteractionHandler:
     """安全互動處理器"""
 
     @staticmethod
+    def _is_unknown_interaction_error(error: Exception) -> bool:
+        """判斷是否為未知/過期互動錯誤"""
+        if isinstance(error, discord.NotFound) and getattr(error, "code", None) == 10062:
+            return True
+        message = str(error)
+        return "Unknown interaction" in message or "10062" in message
+
+    @staticmethod
+    def _is_interaction_expired(interaction: discord.Interaction) -> bool:
+        """檢查互動是否已過期"""
+        try:
+            is_expired = getattr(interaction, "is_expired", None)
+            if callable(is_expired):
+                return bool(is_expired())
+            expires_at = getattr(interaction, "expires_at", None)
+            if expires_at:
+                return discord.utils.utcnow() >= expires_at
+        except Exception:
+            return False
+        return False
+
+    @staticmethod
     async def safe_respond(
         interaction: discord.Interaction,
         content: Optional[str] = None,
@@ -27,6 +49,9 @@ class SafeInteractionHandler:
             # 檢查互動是否仍然有效
             if not interaction or not hasattr(interaction, "response"):
                 logger.warning("互動對象無效或缺少response屬性")
+                return False
+            if SafeInteractionHandler._is_interaction_expired(interaction):
+                logger.debug("互動已過期，略過回應")
                 return False
 
             # 如果互動已經完成，使用 followup
@@ -52,9 +77,15 @@ class SafeInteractionHandler:
                 await interaction.followup.send(**kwargs)
                 return True
             except Exception as followup_error:
+                if SafeInteractionHandler._is_unknown_interaction_error(followup_error):
+                    logger.debug("互動已過期或無效，忽略 followup 失敗")
+                    return False
                 logger.error(f"Followup 失敗: {followup_error}")
                 return False
         except Exception as e:
+            if SafeInteractionHandler._is_unknown_interaction_error(e):
+                logger.debug("互動已過期或無效，忽略回應失敗")
+                return False
             if "Interaction has already been acknowledged" in str(e) or "40060" in str(e):
                 logger.debug("互動已被確認，忽略錯誤")
                 return False
@@ -74,6 +105,9 @@ class SafeInteractionHandler:
             if not interaction or not hasattr(interaction, "followup"):
                 logger.warning("互動對象無效或缺少followup屬性")
                 return False
+            if SafeInteractionHandler._is_interaction_expired(interaction):
+                logger.debug("互動已過期，略過 followup")
+                return False
 
             kwargs = {"content": content, "embed": embed, "ephemeral": ephemeral}
             if view is not None:
@@ -82,6 +116,9 @@ class SafeInteractionHandler:
             return True
 
         except Exception as e:
+            if SafeInteractionHandler._is_unknown_interaction_error(e):
+                logger.debug("互動已過期或無效，忽略 followup 錯誤")
+                return False
             logger.error(f"安全 followup 失敗: {e}")
             return False
 
@@ -91,6 +128,9 @@ class SafeInteractionHandler:
         try:
             if not interaction or not hasattr(interaction, "response"):
                 logger.warning("互動對象無效")
+                return False
+            if SafeInteractionHandler._is_interaction_expired(interaction):
+                logger.debug("互動已過期，略過 defer")
                 return False
 
             if interaction.response.is_done():
@@ -104,6 +144,9 @@ class SafeInteractionHandler:
             logger.debug("互動已被回應，defer 被忽略")
             return True
         except Exception as e:
+            if SafeInteractionHandler._is_unknown_interaction_error(e):
+                logger.debug("互動已過期或無效，忽略 defer 錯誤")
+                return False
             if "already been acknowledged" in str(e) or "40060" in str(e):
                 logger.debug("互動已被確認，defer 被忽略")
                 return True

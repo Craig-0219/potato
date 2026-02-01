@@ -4,6 +4,7 @@
 提供圖形化的系統設定面板，包含票券系統、歡迎系統等各項設定
 """
 
+import asyncio
 import discord
 from discord.ui import Button, ChannelSelect, Modal, RoleSelect, Select, TextInput, View, button
 
@@ -2808,6 +2809,11 @@ class BackToClearSelectButton(Button):
 class FinalConfirmView(View):
     """最終確認視圖"""
 
+    _PURGE_BATCH_SIZE = 100
+    _BASE_DELAY_SECONDS = 2.0
+    _MAX_BACKOFF_SECONDS = 30.0
+    _DELETE_PAUSE_EVERY = 5
+
     def __init__(
         self,
         user_id: int,
@@ -2886,52 +2892,101 @@ class FinalConfirmView(View):
         embed = discord.Embed(title="✅ 已取消", description="頻道清空操作已取消", color=0x95A5A6)
         await interaction.response.edit_message(embed=embed, view=None)
 
-    async def _clear_all_messages(self) -> int:
-        """清空所有訊息"""
+    def _extract_retry_after(self, error: discord.HTTPException) -> float | None:
+        retry_after = getattr(error, "retry_after", None)
+        if retry_after is not None:
+            try:
+                return float(retry_after)
+            except (TypeError, ValueError):
+                pass
+
+        response = getattr(error, "response", None)
+        headers = getattr(response, "headers", None)
+        if headers:
+            value = headers.get("Retry-After") or headers.get("retry-after")
+            if value is not None:
+                try:
+                    return float(value)
+                except (TypeError, ValueError):
+                    return None
+        return None
+
+    async def _sleep_rate_limited(self, error: discord.HTTPException, backoff: float) -> float:
+        retry_after = self._extract_retry_after(error)
+        if retry_after is not None:
+            delay = max(retry_after, self._BASE_DELAY_SECONDS)
+            backoff = min(max(backoff, delay), self._MAX_BACKOFF_SECONDS)
+        else:
+            backoff = min(backoff * 2, self._MAX_BACKOFF_SECONDS)
+            delay = backoff
+
+        logger.warning(f"⚠️ 清理訊息觸發 rate limit，等待 {delay:.1f} 秒後重試")
+        await asyncio.sleep(delay)
+        return backoff
+
+    async def _purge_with_backoff(self, *, check=None, after=None) -> int:
         deleted_count = 0
+        backoff = self._BASE_DELAY_SECONDS
 
-        # 使用purge方法批次刪除訊息
-        try:
-            # Discord限制：purge一次最多刪除100條訊息，且訊息不能超過14天
+        while True:
+            try:
+                deleted = await self.channel.purge(
+                    limit=self._PURGE_BATCH_SIZE,
+                    check=check,
+                    after=after,
+                )
+            except discord.HTTPException as e:
+                if e.status == 429:
+                    backoff = await self._sleep_rate_limited(e, backoff)
+                    continue
+                raise
+
+            if not deleted:
+                break
+
+            deleted_count += len(deleted)
+            backoff = self._BASE_DELAY_SECONDS
+            await asyncio.sleep(self._BASE_DELAY_SECONDS)
+
+        return deleted_count
+
+    async def _delete_messages_slowly(self, messages, *, predicate=None) -> int:
+        deleted_count = 0
+        backoff = self._BASE_DELAY_SECONDS
+
+        async for message in messages:
+            if predicate is not None and not predicate(message):
+                continue
+
             while True:
-                deleted = await self.channel.purge(limit=100, check=lambda m: True)
-                if not deleted:
-                    break
-                deleted_count += len(deleted)
-
-                # 避免API限制 - 增加延遲時間
-                import asyncio
-
-                await asyncio.sleep(2.0)
-
-        except discord.HTTPException:
-            # 如果purge失敗，嘗試逐個刪除（較慢但更可靠）
-            async for message in self.channel.history(limit=None):
                 try:
                     await message.delete()
                     deleted_count += 1
-
-                    # 避免API限制 - 每刪除5條訊息就暫停
-                    if deleted_count % 5 == 0:
-                        import asyncio
-
-                        await asyncio.sleep(2.0)
-
-                except discord.NotFound:
-                    pass  # 訊息已被刪除
-                except discord.Forbidden:
-                    break  # 沒有權限
-                except discord.HTTPException as e:
-                    # 處理速率限制
-                    if e.status == 429:
-                        import asyncio
-
-                        retry_after = e.response.headers.get("Retry-After", "5")
-                        await asyncio.sleep(float(retry_after))
-                        continue
                     break
+                except discord.NotFound:
+                    break
+                except discord.Forbidden:
+                    return deleted_count
+                except discord.HTTPException as e:
+                    if e.status == 429:
+                        backoff = await self._sleep_rate_limited(e, backoff)
+                        continue
+                    return deleted_count
+
+            if deleted_count % self._DELETE_PAUSE_EVERY == 0:
+                await asyncio.sleep(self._BASE_DELAY_SECONDS)
+                backoff = self._BASE_DELAY_SECONDS
 
         return deleted_count
+
+    async def _clear_all_messages(self) -> int:
+        """清空所有訊息"""
+        try:
+            # Discord限制：purge一次最多刪除100條訊息，且訊息不能超過14天
+            return await self._purge_with_backoff(check=lambda m: True)
+        except discord.HTTPException:
+            # 如果purge失敗，嘗試逐個刪除（較慢但更可靠）
+            return await self._delete_messages_slowly(self.channel.history(limit=None))
 
     async def _clear_recent_messages(self, hours: int) -> int:
         """清空最近指定小時內的訊息"""
@@ -2945,95 +3000,30 @@ class FinalConfirmView(View):
             def check_time(message):
                 return message.created_at > cutoff_time
 
-            while True:
-                deleted = await self.channel.purge(limit=100, check=check_time)
-                if not deleted:
-                    break
-                deleted_count += len(deleted)
-
-                # 避免API限制 - 增加延遲時間
-                import asyncio
-
-                await asyncio.sleep(2.0)
+            deleted_count = await self._purge_with_backoff(check=check_time)
+            return deleted_count
 
         except discord.HTTPException:
             # 如果purge失敗，嘗試逐個刪除
-            async for message in self.channel.history(limit=None, after=cutoff_time):
-                try:
-                    await message.delete()
-                    deleted_count += 1
-
-                    # 避免API限制 - 每刪除5條訊息就暫停
-                    if deleted_count % 5 == 0:
-                        import asyncio
-
-                        await asyncio.sleep(2.0)
-
-                except discord.NotFound:
-                    pass
-                except discord.Forbidden:
-                    break
-                except discord.HTTPException as e:
-                    # 處理速率限制
-                    if e.status == 429:
-                        import asyncio
-
-                        retry_after = e.response.headers.get("Retry-After", "5")
-                        await asyncio.sleep(float(retry_after))
-                        continue
-                    break
-
-        return deleted_count
+            return await self._delete_messages_slowly(
+                self.channel.history(limit=None, after=cutoff_time)
+            )
 
     async def _clear_user_messages(self, user_id: int) -> int:
         """清空指定用戶的所有訊息"""
-        deleted_count = 0
-
         try:
             # 使用purge刪除指定用戶的訊息
             def check_user(message):
                 return message.author.id == user_id
 
-            while True:
-                deleted = await self.channel.purge(limit=100, check=check_user)
-                if not deleted:
-                    break
-                deleted_count += len(deleted)
-
-                # 避免API限制 - 增加延遲時間
-                import asyncio
-
-                await asyncio.sleep(2.0)
+            return await self._purge_with_backoff(check=check_user)
 
         except discord.HTTPException:
             # 如果purge失敗，嘗試逐個刪除
-            async for message in self.channel.history(limit=None):
-                if message.author.id == user_id:
-                    try:
-                        await message.delete()
-                        deleted_count += 1
-
-                        # 避免API限制 - 每刪除5條訊息就暫停
-                        if deleted_count % 5 == 0:
-                            import asyncio
-
-                            await asyncio.sleep(2.0)
-
-                    except discord.NotFound:
-                        pass  # 訊息已被刪除
-                    except discord.Forbidden:
-                        break  # 沒有權限
-                    except discord.HTTPException as e:
-                        # 處理速率限制
-                        if e.status == 429:
-                            import asyncio
-
-                            retry_after = e.response.headers.get("Retry-After", "5")
-                            await asyncio.sleep(float(retry_after))
-                            continue
-                        break
-
-        return deleted_count
+            return await self._delete_messages_slowly(
+                self.channel.history(limit=None),
+                predicate=lambda message: message.author.id == user_id,
+            )
 
 
 class ClearRecentModal(Modal):
