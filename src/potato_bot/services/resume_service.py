@@ -139,6 +139,41 @@ class ResumeService:
             raise RuntimeError("儲存履歷公司設定失敗。")
         return company
 
+    async def rename_company(
+        self,
+        guild_id: int,
+        company_id: int,
+        new_name: str,
+    ) -> ResumeCompanySettings:
+        current = await self.dao.get_company(company_id)
+        if not current or current.get("guild_id") != guild_id:
+            raise RuntimeError("找不到要更名的公司。")
+
+        if current.get("company_name") == new_name:
+            company = await self.load_company(company_id)
+            if not company:
+                raise RuntimeError("取得公司資料失敗。")
+            return company
+
+        existing = await self.dao.get_company_by_name(guild_id, new_name)
+        if existing and existing.get("id") != company_id:
+            raise ValueError("公司已存在。")
+
+        updated = await self.dao.rename_company(guild_id, company_id, new_name)
+        if not updated:
+            raise RuntimeError("公司更名失敗。")
+
+        company = await self.load_company(company_id)
+        if not company:
+            raise RuntimeError("取得公司資料失敗。")
+        return company
+
+    async def delete_company(self, guild_id: int, company_id: int) -> bool:
+        current = await self.dao.get_company(company_id)
+        if not current or current.get("guild_id") != guild_id:
+            return False
+        return await self.dao.delete_company(guild_id, company_id)
+
 
 class ResumePanelService:
     """處理履歷面板訊息。"""

@@ -124,6 +124,26 @@ class ResumeDAO(BaseDAO):
             ),
         )
 
+    async def rename_company(self, guild_id: int, company_id: int, new_name: str) -> bool:
+        await self._ensure_initialized()
+        query = "UPDATE resume_companies SET company_name=%s WHERE id=%s AND guild_id=%s"
+        rows = await self.execute_query(query, (new_name, company_id, guild_id))
+        return rows > 0
+
+    async def delete_company(self, guild_id: int, company_id: int) -> bool:
+        await self._ensure_initialized()
+        query = "DELETE FROM resume_companies WHERE id=%s AND guild_id=%s"
+        rows = await self.execute_query(query, (company_id, guild_id))
+        return rows > 0
+
+    async def count_applications_by_company(self, company_id: int) -> int:
+        await self._ensure_initialized()
+        query = "SELECT COUNT(*) FROM resume_applications WHERE company_id=%s"
+        result = await self.execute_query(query, (company_id,), fetch_one=True)
+        if not result:
+            return 0
+        return int(result[0])
+
     async def update_panel_message_id(self, company_id: int, message_id: int) -> None:
         await self._ensure_initialized()
         query = "UPDATE resume_companies SET panel_message_id=%s WHERE id=%s"

@@ -913,8 +913,10 @@ class ResumeSettingsView(View):
             )
             self.add_item(ResumeChannelSelect("review_channel_id", "選擇審核頻道", self, row=2))
             self.add_item(ResumeRoleSettingsButton(self, row=3))
+            self.add_item(ResumeRenameCompanyButton(self, row=3))
             self.add_item(ResumeToggleCompanyButton(self, row=4))
             self.add_item(ResumeRefreshPanelButton(self, row=4))
+            self.add_item(ResumeDeleteCompanyButton(self, row=4))
 
         self.add_item(ResumeCreateCompanyButton(self, row=4))
         self.add_item(ResumeBackToSystemButton(self.user_id, self.guild, row=4))
@@ -1009,6 +1011,88 @@ class ResumeSettingsView(View):
             await interaction.response.send_message("❌ 尚未選擇公司", ephemeral=True)
             return
         await self.save_and_refresh(interaction, is_enabled=not settings.is_enabled)
+
+    async def rename_company(self, interaction: discord.Interaction, new_name: str) -> None:
+        settings = await self._get_selected_company()
+        if not settings:
+            await interaction.response.send_message("❌ 尚未選擇公司", ephemeral=True)
+            return
+
+        trimmed = new_name.strip() if new_name else ""
+        if not trimmed:
+            await interaction.response.send_message("❌ 請輸入公司名稱", ephemeral=True)
+            return
+        if trimmed == settings.company_name:
+            await interaction.response.send_message("⚠️ 公司名稱未變更", ephemeral=True)
+            return
+
+        try:
+            updated = await self.service.rename_company(
+                self.guild.id, settings.company_id, trimmed
+            )
+        except ValueError:
+            await interaction.response.send_message("❌ 公司已存在", ephemeral=True)
+            return
+        except Exception as e:
+            logger.error(f"公司更名失敗: {e}")
+            await interaction.response.send_message("❌ 公司更名失敗", ephemeral=True)
+            return
+
+        if updated.panel_channel_id:
+            await self._deploy_panel(updated)
+
+        await self.refresh_message(
+            interaction,
+            selected_company_id=updated.company_id,
+            notice="✅ 已更名公司，請重新開啟面板查看",
+        )
+
+    async def _cleanup_panel_message(self, settings) -> None:
+        if not settings.panel_channel_id or not settings.panel_message_id:
+            return
+
+        guild = self.bot.get_guild(settings.guild_id)
+        if not guild:
+            return
+
+        if hasattr(guild, "get_channel_or_thread"):
+            channel = guild.get_channel_or_thread(settings.panel_channel_id)
+        else:
+            channel = guild.get_channel(settings.panel_channel_id) or guild.get_thread(
+                settings.panel_channel_id
+            )
+        if not channel or not isinstance(channel, (discord.TextChannel, discord.Thread)):
+            return
+
+        try:
+            message = await channel.fetch_message(settings.panel_message_id)
+        except Exception:
+            return
+
+        try:
+            await message.delete()
+        except Exception as e:
+            logger.warning(f"刪除履歷面板訊息失敗: {e}")
+
+    async def delete_company(self, interaction: discord.Interaction, *, settings=None) -> None:
+        target = settings or await self._get_selected_company()
+        if not target:
+            await interaction.response.send_message("❌ 尚未選擇公司", ephemeral=True)
+            return
+
+        await self._cleanup_panel_message(target)
+        removed = await self.service.delete_company(self.guild.id, target.company_id)
+        if not removed:
+            await interaction.response.send_message("❌ 移除公司失敗", ephemeral=True)
+            return
+
+        companies = await self.service.list_companies(self.guild.id)
+        next_selected = companies[0].company_id if companies else None
+        await self.refresh_message(
+            interaction,
+            selected_company_id=next_selected,
+            notice="✅ 已移除公司",
+        )
 
 
 class ResumeRoleSettingsView(View):
@@ -1268,6 +1352,25 @@ class ResumeCompanyCreateModal(Modal):
         )
 
 
+class ResumeCompanyRenameModal(Modal):
+    """更名履歷公司"""
+
+    def __init__(self, parent_view: ResumeSettingsView, current_name: str):
+        super().__init__(title="更名履歷公司")
+        self.parent_view = parent_view
+
+        self.company_name = TextInput(
+            label="新公司名稱",
+            placeholder=current_name,
+            max_length=100,
+            required=True,
+        )
+        self.add_item(self.company_name)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await self.parent_view.rename_company(interaction, self.company_name.value)
+
+
 class ResumeCreateCompanyButton(Button):
     """新增公司按鈕"""
 
@@ -1277,6 +1380,23 @@ class ResumeCreateCompanyButton(Button):
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.send_modal(ResumeCompanyCreateModal(self.parent_view))
+
+
+class ResumeRenameCompanyButton(Button):
+    """更名公司按鈕"""
+
+    def __init__(self, parent_view: ResumeSettingsView, row: int | None = None):
+        super().__init__(label="✏️ 更名公司", style=discord.ButtonStyle.secondary, row=row)
+        self.parent_view = parent_view
+
+    async def callback(self, interaction: discord.Interaction):
+        settings = await self.parent_view._get_selected_company()
+        if not settings:
+            await interaction.response.send_message("❌ 尚未選擇公司", ephemeral=True)
+            return
+        await interaction.response.send_modal(
+            ResumeCompanyRenameModal(self.parent_view, settings.company_name)
+        )
 
 
 class ResumeToggleCompanyButton(Button):
@@ -1299,6 +1419,74 @@ class ResumeRefreshPanelButton(Button):
 
     async def callback(self, interaction: discord.Interaction):
         await self.parent_view.refresh_panel(interaction)
+
+
+class ResumeCompanyDeleteConfirmView(View):
+    """履歷公司移除確認"""
+
+    def __init__(self, parent_view: ResumeSettingsView, settings, application_count: int):
+        super().__init__(timeout=60)
+        self.parent_view = parent_view
+        self.settings = settings
+        self.application_count = application_count
+        self.user_id = parent_view.user_id
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                "❌ 只有開啟此面板的管理員可設定", ephemeral=True
+            )
+            return False
+        return True
+
+    @button(label="🗑️ 確認移除", style=discord.ButtonStyle.danger)
+    async def confirm_button(self, interaction: discord.Interaction, button: Button):
+        await self.parent_view.delete_company(interaction, settings=self.settings)
+
+    @button(label="❌ 取消", style=discord.ButtonStyle.secondary)
+    async def cancel_button(self, interaction: discord.Interaction, button: Button):
+        await self.parent_view.refresh_message(
+            interaction, selected_company_id=self.settings.company_id
+        )
+
+
+class ResumeDeleteCompanyButton(Button):
+    """移除公司按鈕"""
+
+    def __init__(self, parent_view: ResumeSettingsView, row: int | None = None):
+        super().__init__(label="🗑️ 移除公司", style=discord.ButtonStyle.danger, row=row)
+        self.parent_view = parent_view
+
+    async def callback(self, interaction: discord.Interaction):
+        settings = await self.parent_view._get_selected_company()
+        if not settings:
+            await interaction.response.send_message("❌ 尚未選擇公司", ephemeral=True)
+            return
+
+        try:
+            application_count = await self.parent_view.dao.count_applications_by_company(
+                settings.company_id
+            )
+        except Exception as e:
+            logger.error(f"讀取履歷申請數量失敗: {e}")
+            application_count = 0
+
+        embed = discord.Embed(
+            title="⚠️ 確認移除公司",
+            description=(
+                f"公司：{settings.company_name}\n"
+                "此操作將刪除公司設定與所有履歷申請資料，無法復原。"
+            ),
+            color=0xE74C3C,
+        )
+        embed.add_field(
+            name="影響資料",
+            value=f"履歷申請：{application_count} 筆",
+            inline=False,
+        )
+
+        view = ResumeCompanyDeleteConfirmView(self.parent_view, settings, application_count)
+        await interaction.response.edit_message(embed=embed, view=view)
 
 
 class ResumeRoleSettingsButton(Button):
