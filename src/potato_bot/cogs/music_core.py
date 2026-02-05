@@ -119,6 +119,16 @@ class MusicPlayer:
             "no_warnings": True,
             "default_search": "auto",
             "source_address": "0.0.0.0",
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["web", "web_safari", "mweb"],
+                }
+            },
+            "user_agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/122.0.0.0 Safari/537.36"
+            ),
         }
 
         self.ffmpeg_options = {
@@ -128,33 +138,55 @@ class MusicPlayer:
 
         self.ytdl = yt_dlp.YoutubeDL(self.ytdl_format_options)
 
+    def _get_existing_voice_client(
+        self, guild: discord.Guild
+    ) -> Optional[discord.VoiceClient]:
+        """取得既有的語音連線，避免 Already connected 例外"""
+        if guild.voice_client:
+            return guild.voice_client
+        for voice_client in getattr(self.bot, "voice_clients", []):
+            if voice_client.guild == guild:
+                return voice_client
+        return None
+
     async def connect_to_voice(self, channel: discord.VoiceChannel):
         """連接到語音頻道"""
         try:
             _ensure_voice_ws_mode_fallback()
 
-            # 檢查是否已經連接到相同頻道
+            guild_voice_client = self._get_existing_voice_client(channel.guild)
+
+            if guild_voice_client and guild_voice_client.is_connected():
+                if guild_voice_client.channel == channel:
+                    self.voice_client = guild_voice_client
+                    logger.info(f"✅ 已在語音頻道: {channel.name}")
+                    return
+                try:
+                    await guild_voice_client.move_to(channel)
+                    self.voice_client = guild_voice_client
+                    logger.info(f"🔄 移動到語音頻道: {channel.name}")
+                    return
+                except Exception as move_error:
+                    logger.warning(f"移動失敗，嘗試重新連接: {move_error}")
+
             if self.voice_client and self.voice_client.is_connected():
                 if self.voice_client.channel == channel:
                     logger.info(f"✅ 已在語音頻道: {channel.name}")
                     return
-                else:
-                    # 移動到新頻道
-                    try:
-                        await self.voice_client.move_to(channel)
-                        logger.info(f"🔄 移動到語音頻道: {channel.name}")
-                        return
-                    except Exception as move_error:
-                        logger.warning(f"移動失敗，嘗試重新連接: {move_error}")
-                        await self.disconnect()
+                try:
+                    await self.voice_client.move_to(channel)
+                    logger.info(f"🔄 移動到語音頻道: {channel.name}")
+                    return
+                except Exception as move_error:
+                    logger.warning(f"移動失敗，嘗試重新連接: {move_error}")
+                    await self.disconnect()
 
             # 檢查是否有殘留的語音客戶端
-            guild_voice_client = channel.guild.voice_client
             if guild_voice_client:
                 try:
                     await guild_voice_client.disconnect()
                     logger.info("清理殘留的語音連接")
-                except:
+                except Exception:
                     pass
 
             # 建立新連接
@@ -164,22 +196,17 @@ class MusicPlayer:
         except discord.errors.ClientException as e:
             if "Already connected" in str(e):
                 logger.warning("語音客戶端已連接，嘗試使用現有連接")
-                guild_voice_client = channel.guild.voice_client
-                if guild_voice_client and guild_voice_client.is_connected():
+                guild_voice_client = self._get_existing_voice_client(channel.guild)
+                if guild_voice_client:
                     self.voice_client = guild_voice_client
+                    if guild_voice_client.channel != channel:
+                        try:
+                            await guild_voice_client.move_to(channel)
+                            logger.info(f"🔄 移動到語音頻道: {channel.name}")
+                        except Exception as move_error:
+                            logger.warning(f"移動失敗，沿用現有連接: {move_error}")
                     logger.info(f"✅ 使用現有語音連接: {channel.name}")
                     return
-                else:
-                    logger.warning("現有連接無效，重新嘗試連接")
-                    # 清理無效連接並重試
-                    try:
-                        if guild_voice_client:
-                            await guild_voice_client.disconnect()
-                        self.voice_client = await channel.connect()
-                        logger.info(f"🔗 重新連接成功: {channel.name}")
-                        return
-                    except Exception as retry_error:
-                        logger.error(f"重新連接失敗: {retry_error}")
             logger.error(f"❌ 語音連接失敗: {e}")
             raise
         except Exception as e:

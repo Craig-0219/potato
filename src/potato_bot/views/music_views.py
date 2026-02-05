@@ -655,7 +655,7 @@ class SearchInputModal(discord.ui.Modal, title="🔍 搜索音樂"):
 
                 embed.add_field(
                     name="使用方式",
-                    value="請使用 `/play` 指令 + 歌曲名稱來播放上述歌曲",
+                    value="請回到音樂面板點擊「播放音樂」，輸入歌曲名稱或網址播放",
                     inline=False,
                 )
 
@@ -698,6 +698,16 @@ class SearchInputModal(discord.ui.Modal, title="🔍 搜索音樂"):
                 "noplaylist": True,
                 "default_search": f"ytsearch{count}:",
                 "socket_timeout": 10,
+                "extractor_args": {
+                    "youtube": {
+                        "player_client": ["web", "web_safari", "mweb"],
+                    }
+                },
+                "user_agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/122.0.0.0 Safari/537.36"
+                ),
             }
 
             def search_videos(search_query):
