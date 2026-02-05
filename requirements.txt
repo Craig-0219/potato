@@ -16,8 +16,8 @@ aiofiles==24.1.0
 # HTTP 客戶端 (Discord.py 依賴)
 aiohttp==3.9.0
 
-# 影音下載（音樂系統）
-yt-dlp==2026.2.4
+# Lavalink 客戶端（音樂系統）
+wavelink==3.4.1
 
 # 時區處理
 pytz==2023.3

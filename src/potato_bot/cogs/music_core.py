@@ -5,22 +5,25 @@ Discord Bot 音樂系統 v2.3.0
 """
 
 import asyncio
-import logging
 import re
 from enum import Enum
 from typing import Dict, List, Optional
 
 import discord
-import yt_dlp
-from discord import FFmpegPCMAudio, app_commands
+import wavelink
+from discord import app_commands
 from discord.ext import commands
 
 from potato_bot.db.music_dao import MusicDAO
 from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_shared.config import (
+    LAVALINK_HOST,
+    LAVALINK_PASSWORD,
+    LAVALINK_PORT,
+    LAVALINK_SECURE,
+    LAVALINK_URI,
+)
 from potato_shared.logger import logger
-
-# 禁用yt-dlp日誌
-logging.getLogger("yt_dlp").setLevel(logging.ERROR)
 
 
 def _ensure_voice_ws_mode_fallback() -> None:
@@ -58,34 +61,6 @@ class LoopMode(Enum):
     QUEUE = "queue"
 
 
-class MusicSource:
-    """音樂來源"""
-
-    def __init__(self, data: dict, requester: discord.Member):
-        self.title = data.get("title", "Unknown")
-        self.url = data.get("url", "")
-        self.webpage_url = data.get("webpage_url", "")
-        self.duration = data.get("duration", 0)
-        self.thumbnail = data.get("thumbnail", "")
-        self.uploader = data.get("uploader", "Unknown")
-        self.requester = requester
-        self.stream_url = data.get("formats", [{}])[0].get("url", "") if data.get("formats") else ""
-
-    def __str__(self):
-        return f"**{self.title}** - {self.requester.mention}"
-
-    @property
-    def duration_str(self) -> str:
-        """格式化時長"""
-        if not self.duration:
-            return "未知"
-        hours, remainder = divmod(self.duration, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        if hours:
-            return f"{hours}:{minutes:02d}:{seconds:02d}"
-        return f"{minutes}:{seconds:02d}"
-
-
 class MusicPlayer:
     """音樂播放器"""
 
@@ -95,58 +70,71 @@ class MusicPlayer:
         self.channel = ctx.channel
         self.cog = ctx.cog
 
-        self.queue: List[MusicSource] = []
-        self.current: Optional[MusicSource] = None
-        self.voice_client: Optional[discord.VoiceClient] = None
+        self.voice_client: Optional[wavelink.Player] = None
         self.loop_mode = LoopMode.NONE
         self.volume = 0.5
-        self.is_playing = False
-        self.is_paused = False
-        self.skip_votes = set()
+        self.last_error: Optional[str] = None
 
-        # YT-DLP 配置
-        self.ytdl_format_options = {
-            "format": "bestaudio/best",
-            "extractaudio": True,
-            "audioformat": "mp3",
-            "outtmpl": "%(extractor)s-%(id)s-%(title)s.%(ext)s",
-            "restrictfilenames": True,
-            "noplaylist": True,
-            "nocheckcertificate": True,
-            "ignoreerrors": False,
-            "logtostderr": False,
-            "quiet": True,
-            "no_warnings": True,
-            "default_search": "auto",
-            "source_address": "0.0.0.0",
-            "extractor_args": {
-                "youtube": {
-                    "player_client": ["web", "web_safari", "mweb"],
-                }
-            },
-            "user_agent": (
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/122.0.0.0 Safari/537.36"
-            ),
-        }
+    @property
+    def current(self) -> Optional[wavelink.Playable]:
+        return self.voice_client.current if self.voice_client else None
 
-        self.ffmpeg_options = {
-            "before_options": "-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5",
-            "options": "-vn",
-        }
+    @property
+    def queue(self) -> List[wavelink.Playable]:
+        if self.voice_client:
+            return list(self.voice_client.queue)
+        return []
 
-        self.ytdl = yt_dlp.YoutubeDL(self.ytdl_format_options)
+    @property
+    def is_playing(self) -> bool:
+        return bool(self.voice_client and self.voice_client.playing)
+
+    @property
+    def is_paused(self) -> bool:
+        return bool(self.voice_client and self.voice_client.paused)
+
+    def is_connected(self) -> bool:
+        if not self.voice_client:
+            return False
+        if hasattr(self.voice_client, "connected"):
+            return bool(self.voice_client.connected)
+        if hasattr(self.voice_client, "is_connected"):
+            return self.voice_client.is_connected()
+        return False
 
     def _get_existing_voice_client(
         self, guild: discord.Guild
-    ) -> Optional[discord.VoiceClient]:
-        """取得既有的語音連線，避免 Already connected 例外"""
-        if guild.voice_client:
-            return guild.voice_client
-        for voice_client in getattr(self.bot, "voice_clients", []):
-            if voice_client.guild == guild:
-                return voice_client
+    ) -> Optional[wavelink.Player]:
+        """取得既有的語音連線"""
+        existing = guild.voice_client
+        if isinstance(existing, wavelink.Player):
+            return existing
+        return None
+
+    @staticmethod
+    def _format_duration_ms(length_ms: int) -> str:
+        """格式化毫秒長度"""
+        if not length_ms:
+            return "未知"
+        total_seconds = int(length_ms // 1000)
+        hours, remainder = divmod(total_seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        if hours:
+            return f"{hours}:{minutes:02d}:{seconds:02d}"
+        return f"{minutes}:{seconds:02d}"
+
+    @staticmethod
+    def _attach_requester(track: wavelink.Playable, requester: discord.Member) -> None:
+        extras = {}
+        if hasattr(track, "extras") and isinstance(track.extras, dict):
+            extras = dict(track.extras)
+        extras["requester"] = requester
+        track.extras = extras
+
+    @staticmethod
+    def _get_requester(track: wavelink.Playable) -> Optional[discord.Member]:
+        if hasattr(track, "extras") and isinstance(track.extras, dict):
+            return track.extras.get("requester")
         return None
 
     async def connect_to_voice(self, channel: discord.VoiceChannel):
@@ -156,7 +144,7 @@ class MusicPlayer:
 
             guild_voice_client = self._get_existing_voice_client(channel.guild)
 
-            if guild_voice_client and guild_voice_client.is_connected():
+            if guild_voice_client and self._is_connected(guild_voice_client):
                 if guild_voice_client.channel == channel:
                     self.voice_client = guild_voice_client
                     logger.info(f"✅ 已在語音頻道: {channel.name}")
@@ -169,7 +157,7 @@ class MusicPlayer:
                 except Exception as move_error:
                     logger.warning(f"移動失敗，嘗試重新連接: {move_error}")
 
-            if self.voice_client and self.voice_client.is_connected():
+            if self.voice_client and self._is_connected(self.voice_client):
                 if self.voice_client.channel == channel:
                     logger.info(f"✅ 已在語音頻道: {channel.name}")
                     return
@@ -181,38 +169,25 @@ class MusicPlayer:
                     logger.warning(f"移動失敗，嘗試重新連接: {move_error}")
                     await self.disconnect()
 
-            # 檢查是否有殘留的語音客戶端
-            if guild_voice_client:
-                try:
-                    await guild_voice_client.disconnect()
-                    logger.info("清理殘留的語音連接")
-                except Exception:
-                    pass
-
-            # 建立新連接
-            self.voice_client = await channel.connect()
+            self.voice_client = await channel.connect(cls=wavelink.Player)
+            await self.set_volume(self.volume)
+            self.set_loop_mode(self.loop_mode)
             logger.info(f"🔗 連接到語音頻道: {channel.name}")
 
-        except discord.errors.ClientException as e:
-            if "Already connected" in str(e):
-                logger.warning("語音客戶端已連接，嘗試使用現有連接")
-                guild_voice_client = self._get_existing_voice_client(channel.guild)
-                if guild_voice_client:
-                    self.voice_client = guild_voice_client
-                    if guild_voice_client.channel != channel:
-                        try:
-                            await guild_voice_client.move_to(channel)
-                            logger.info(f"🔄 移動到語音頻道: {channel.name}")
-                        except Exception as move_error:
-                            logger.warning(f"移動失敗，沿用現有連接: {move_error}")
-                    logger.info(f"✅ 使用現有語音連接: {channel.name}")
-                    return
-            logger.error(f"❌ 語音連接失敗: {e}")
-            raise
         except Exception as e:
             logger.error(f"❌ 語音連接失敗: {e}")
             await self.send_embed("❌ 連接失敗", f"無法連接到語音頻道: {str(e)}", "error")
             raise
+
+    @staticmethod
+    def _is_connected(client: Optional[wavelink.Player]) -> bool:
+        if not client:
+            return False
+        if hasattr(client, "connected"):
+            return bool(client.connected)
+        if hasattr(client, "is_connected"):
+            return client.is_connected()
+        return False
 
     async def disconnect(self):
         """斷開語音連接"""
@@ -222,152 +197,85 @@ class MusicPlayer:
 
     async def add_song(
         self, url_or_search: str, requester: discord.Member
-    ) -> Optional[MusicSource]:
+    ) -> Optional[wavelink.Playable]:
         """添加歌曲到播放列表"""
         try:
-            # 檢查是否為 YouTube URL
-            if not self.is_youtube_url(url_or_search):
-                # 如果不是URL，進行搜索
-                url_or_search = f"ytsearch:{url_or_search}"
-
-            # 提取音樂信息
-            data = await self.extract_info(url_or_search)
-            if not data:
+            self.last_error = None
+            if not self.voice_client:
                 return None
 
-            # 如果是播放列表，取第一首歌
-            if "entries" in data:
-                if not data["entries"]:
+            if not self._is_url(url_or_search):
+                url_or_search = f"ytsearch:{url_or_search}"
+
+            tracks = await wavelink.Pool.fetch_tracks(url_or_search)
+            if not tracks:
+                return None
+
+            if isinstance(tracks, wavelink.Playlist):
+                if not tracks.tracks:
                     return None
-                data = data["entries"][0]
+                for track in tracks.tracks:
+                    self._attach_requester(track, requester)
+                    self.voice_client.queue.put(track)
+                return tracks.tracks[0]
 
-            source = MusicSource(data, requester)
-            self.queue.append(source)
+            if isinstance(tracks, list):
+                track = tracks[0]
+            else:
+                track = tracks
 
-            return source
+            if not track:
+                return None
 
+            self._attach_requester(track, requester)
+            self.voice_client.queue.put(track)
+            return track
         except Exception as e:
+            self.last_error = str(e)
             logger.error(f"添加歌曲失敗: {e}")
             return None
 
-    async def extract_info(self, url: str) -> Optional[dict]:
-        """提取音樂信息"""
-        try:
-            loop = asyncio.get_event_loop()
-            data = await loop.run_in_executor(
-                None, lambda: self.ytdl.extract_info(url, download=False)
-            )
-            return data
-        except Exception as e:
-            logger.error(f"提取音樂信息失敗: {e}")
-            return None
-
-    def is_youtube_url(self, url: str) -> bool:
-        """檢查是否為有效的 YouTube URL"""
-        youtube_regex = re.compile(
-            r"(https?://)?(www\.)?(youtube|youtu|youtube-nocookie)\.(com|be)/"
-            r"(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})"
-        )
-        return bool(youtube_regex.match(url))
+    @staticmethod
+    def _is_url(url: str) -> bool:
+        return bool(re.match(r"https?://", url))
 
     async def play_next(self):
         """播放下一首歌曲"""
-        if self.loop_mode == LoopMode.SINGLE and self.current:
-            # 單曲循環
-            next_song = self.current
-        elif self.queue:
-            # 播放列表中的下一首
-            next_song = self.queue.pop(0)
-            if self.loop_mode == LoopMode.QUEUE and self.current:
-                # 隊列循環，將當前歌曲加回列表末尾
-                self.queue.append(self.current)
-        else:
-            # 沒有更多歌曲
-            self.current = None
-            self.is_playing = False
+        if not self.voice_client:
+            return
+
+        if len(self.voice_client.queue) == 0:
             await self.send_embed("🎵 播放列表已結束", "所有歌曲播放完畢", "info")
             return
 
-        self.current = next_song
-
         try:
-            # 獲取音頻流
-            data = await self.extract_info(self.current.webpage_url)
-            if not data:
-                await self.play_next()
-                return
-
-            # 找到最佳音頻格式
-            formats = data.get("formats", [])
-            audio_url = None
-
-            for fmt in formats:
-                if fmt.get("acodec") != "none":  # 確保有音頻
-                    audio_url = fmt.get("url")
-                    break
-
-            if not audio_url:
-                await self.play_next()
-                return
-
-            # 創建音頻源
-            try:
-                source = FFmpegPCMAudio(audio_url, **self.ffmpeg_options)
-                logger.info(f"🎵 創建音頻源成功: {self.current.title}")
-            except Exception as e:
-                logger.error(f"❌ 創建音頻源失敗: {e}")
-                await self.send_embed("❌ 播放錯誤", f"音頻源創建失敗: {str(e)}", "error")
-                await self.play_next()
-                return
-
-            # 播放音樂
-            try:
-                self.voice_client.play(
-                    source,
-                    after=lambda e: (
-                        asyncio.run_coroutine_threadsafe(self.play_next(), self.bot.loop).result()
-                        if not e
-                        else logger.error(f"播放錯誤: {e}")
-                    ),
-                )
-                logger.info(f"🎵 開始播放: {self.current.title}")
-            except Exception as e:
-                logger.error(f"❌ 播放失敗: {e}")
-                await self.send_embed("❌ 播放錯誤", f"無法播放音樂: {str(e)}", "error")
-                await self.play_next()
-                return
-
-            self.is_playing = True
-            self.is_paused = False
-
-            # 發送正在播放信息
+            track = self.voice_client.queue.get()
+            await self.voice_client.play(track, volume=int(self.volume * 100))
+            logger.info(f"🎵 開始播放: {track.title}")
             await self.send_now_playing()
-
         except Exception as e:
             logger.error(f"播放錯誤: {e}")
             await self.send_embed("❌ 播放錯誤", str(e), "error")
-            await self.play_next()
 
     async def pause(self):
         """暫停播放"""
-        if self.voice_client and self.voice_client.is_playing():
-            self.voice_client.pause()
-            self.is_paused = True
+        if self.voice_client and self.voice_client.playing:
+            await self.voice_client.pause(True)
 
     async def resume(self):
         """恢復播放"""
-        if self.voice_client and self.voice_client.is_paused():
-            self.voice_client.resume()
-            self.is_paused = False
+        if self.voice_client and self.voice_client.paused:
+            await self.voice_client.pause(False)
 
     async def stop(self):
         """停止播放"""
         if self.voice_client:
-            self.voice_client.stop()
-            self.queue.clear()
-            self.current = None
-            self.is_playing = False
-            self.is_paused = False
+            self.voice_client.queue.clear()
+            if self.voice_client.playing or self.voice_client.paused:
+                if hasattr(self.voice_client, "stop"):
+                    await self.voice_client.stop()
+                else:
+                    await self.voice_client.skip()
 
     async def skip(self, force: bool = False):
         """跳過當前歌曲"""
@@ -375,16 +283,26 @@ class MusicPlayer:
             # 需要投票跳過
             return False
 
-        if self.voice_client and self.voice_client.is_playing():
-            self.voice_client.stop()
+        if self.voice_client and (self.voice_client.playing or self.voice_client.paused):
+            await self.voice_client.skip()
 
         return True
 
     async def set_volume(self, volume: float):
         """設置音量"""
         self.volume = max(0.0, min(1.0, volume))
-        if self.voice_client and hasattr(self.voice_client.source, "volume"):
-            self.voice_client.source.volume = self.volume
+        if self.voice_client:
+            await self.voice_client.set_volume(int(self.volume * 100))
+
+    def set_loop_mode(self, mode: LoopMode) -> None:
+        self.loop_mode = mode
+        if self.voice_client:
+            mode_map = {
+                LoopMode.NONE: wavelink.QueueMode.normal,
+                LoopMode.SINGLE: wavelink.QueueMode.loop,
+                LoopMode.QUEUE: wavelink.QueueMode.loop_all,
+            }
+            self.voice_client.queue.mode = mode_map.get(mode, wavelink.QueueMode.normal)
 
     async def send_embed(self, title: str, description: str, color: str = "info"):
         """發送嵌入消息"""
@@ -405,12 +323,16 @@ class MusicPlayer:
             return
 
         embed = EmbedBuilder.create_info_embed("🎵 正在播放", f"**{self.current.title}**")
+        requester = self._get_requester(self.current)
+        requester_text = requester.mention if requester else "未知"
+        duration_str = self._format_duration_ms(getattr(self.current, "length", 0))
+        uploader = getattr(self.current, "author", "Unknown")
 
         embed.add_field(
             name="詳細信息",
-            value=f"👤 上傳者: {self.current.uploader}\n"
-            f"⏱️ 時長: {self.current.duration_str}\n"
-            f"🎧 點播者: {self.current.requester.mention}",
+            value=f"👤 上傳者: {uploader}\n"
+            f"⏱️ 時長: {duration_str}\n"
+            f"🎧 點播者: {requester_text}",
             inline=True,
         )
 
@@ -423,8 +345,13 @@ class MusicPlayer:
 
         embed.add_field(name="播放模式", value=f"🔁 {self.loop_mode.value}", inline=True)
 
-        if self.current.thumbnail:
-            embed.set_thumbnail(url=self.current.thumbnail)
+        thumbnail = (
+            getattr(self.current, "artwork", None)
+            or getattr(self.current, "thumbnail", None)
+            or getattr(self.current, "thumb", None)
+        )
+        if thumbnail:
+            embed.set_thumbnail(url=thumbnail)
 
         await self.channel.send(embed=embed)
 
@@ -436,6 +363,9 @@ class MusicCore(commands.Cog):
         self.bot = bot
         self.players: Dict[int, MusicPlayer] = {}
         self.settings_dao = MusicDAO()
+        self._lavalink_connected = False
+        self._lavalink_lock = asyncio.Lock()
+        self._lavalink_error: Optional[str] = None
         self.DISABLED_SLASH_COMMANDS = {
             "play",
             "music_control",
@@ -445,6 +375,47 @@ class MusicCore(commands.Cog):
             "connection_status",
         }
         logger.info("🎵 音樂系統核心初始化完成")
+
+    def _build_lavalink_uri(self) -> Optional[str]:
+        if LAVALINK_URI:
+            return LAVALINK_URI
+        if not LAVALINK_HOST:
+            return None
+        scheme = "https" if LAVALINK_SECURE else "http"
+        return f"{scheme}://{LAVALINK_HOST}:{LAVALINK_PORT}"
+
+    async def ensure_lavalink_ready(self) -> bool:
+        nodes = getattr(wavelink.Pool, "nodes", None)
+        if self._lavalink_connected and nodes:
+            return True
+
+        async with self._lavalink_lock:
+            nodes = getattr(wavelink.Pool, "nodes", None)
+            if self._lavalink_connected and nodes:
+                return True
+
+            uri = self._build_lavalink_uri()
+            if not uri or not LAVALINK_PASSWORD:
+                self._lavalink_error = "缺少 Lavalink 連線設定"
+                logger.error("❌ Lavalink 連線設定不足，請檢查環境變數")
+                return False
+
+            try:
+                node = wavelink.Node(
+                    uri=uri,
+                    password=LAVALINK_PASSWORD,
+                    identifier="main",
+                )
+                await wavelink.Pool.connect(nodes=[node], client=self.bot)
+                self._lavalink_connected = True
+                self._lavalink_error = None
+                logger.info("✅ Lavalink 連線成功")
+                return True
+            except Exception as exc:
+                self._lavalink_connected = False
+                self._lavalink_error = str(exc)
+                logger.error("❌ Lavalink 連線失敗: %s", exc)
+                return False
 
     @staticmethod
     def _can_use_music_menu(
@@ -464,6 +435,39 @@ class MusicCore(commands.Cog):
         member_role_ids = {role.id for role in member.roles}
         return bool(member_role_ids & set(allowed_role_ids))
 
+    @commands.Cog.listener()
+    async def on_ready(self):
+        await self.ensure_lavalink_ready()
+
+    @commands.Cog.listener()
+    async def on_wavelink_node_ready(self, node: wavelink.Node):
+        logger.info("✅ Lavalink Node 已就緒: %s", node.identifier)
+
+    @commands.Cog.listener()
+    async def on_wavelink_track_end(self, payload):
+        try:
+            player = getattr(payload, "player", None)
+            if not player:
+                return
+
+            queue = player.queue
+            queue_empty = len(queue) == 0
+
+            music_player = self.players.get(player.guild.id)
+            if queue_empty:
+                if music_player:
+                    await music_player.send_embed("🎵 播放列表已結束", "所有歌曲播放完畢", "info")
+                return
+
+            next_track = queue.get()
+            await player.play(next_track, volume=player.volume)
+
+            if music_player:
+                music_player.voice_client = player
+                await music_player.send_now_playing()
+        except Exception as exc:
+            logger.error("播放下一首時發生錯誤: %s", exc)
+
     def get_player(self, ctx: commands.Context) -> MusicPlayer:
         """獲取音樂播放器"""
         if ctx.guild.id not in self.players:
@@ -474,11 +478,14 @@ class MusicCore(commands.Cog):
         """增強的語音連接狀態檢測"""
         try:
             # 檢查 player 的 voice_client
-            player_connected = player.voice_client and player.voice_client.is_connected()
+            player_connected = player.is_connected()
 
             # 檢查 guild 的 voice_client (更可靠)
             guild_voice_client = guild.voice_client
-            guild_connected = guild_voice_client and guild_voice_client.is_connected()
+            if isinstance(guild_voice_client, wavelink.Player):
+                guild_connected = MusicPlayer._is_connected(guild_voice_client)
+            else:
+                guild_connected = False
 
             # 如果有不一致，同步 player 狀態
             if guild_connected and not player_connected:
@@ -526,6 +533,14 @@ class MusicCore(commands.Cog):
         try:
             await interaction.response.defer()
 
+            if not await self.ensure_lavalink_ready():
+                embed = EmbedBuilder.create_error_embed(
+                    "❌ 音樂服務未就緒",
+                    "Lavalink 尚未連線，請稍後再試或聯絡管理員檢查設定",
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
+
             # 檢查用戶是否在語音頻道
             if not interaction.user.voice or not interaction.user.voice.channel:
                 embed = EmbedBuilder.create_error_embed(
@@ -557,9 +572,12 @@ class MusicCore(commands.Cog):
             if not player.is_playing:
                 await player.play_next()
 
+            duration_str = player._format_duration_ms(getattr(source, "length", 0))
+            uploader = getattr(source, "author", "Unknown")
+
             embed = EmbedBuilder.create_success_embed(
                 "✅ 已添加到播放列表",
-                f"**{source.title}**\n👤 {source.uploader}\n⏱️ {source.duration_str}",
+                f"**{source.title}**\n👤 {uploader}\n⏱️ {duration_str}",
             )
 
             if player.queue or player.current != source:
@@ -569,8 +587,13 @@ class MusicCore(commands.Cog):
                     inline=True,
                 )
 
-            if source.thumbnail:
-                embed.set_thumbnail(url=source.thumbnail)
+            thumbnail = (
+                getattr(source, "artwork", None)
+                or getattr(source, "thumbnail", None)
+                or getattr(source, "thumb", None)
+            )
+            if thumbnail:
+                embed.set_thumbnail(url=thumbnail)
 
             await interaction.followup.send(embed=embed)
 
@@ -607,15 +630,18 @@ class MusicCore(commands.Cog):
             else:
                 embed = EmbedBuilder.create_warning_embed(
                     "🎛️ 音樂控制面板",
-                    "Bot 目前未連接語音頻道，請先使用 `/play` 播放音樂",
+                    "Bot 目前未連接語音頻道，請先使用音樂面板的播放功能",
                 )
 
             if player.current:
+                uploader = getattr(player.current, "author", "Unknown")
+                requester = MusicPlayer._get_requester(player.current)
+                requester_text = requester.mention if requester else "未知"
                 embed.add_field(
                     name="🎵 正在播放",
                     value=f"**{player.current.title}**\n"
-                    f"👤 {player.current.uploader}\n"
-                    f"🎧 {player.current.requester.mention}",
+                    f"👤 {uploader}\n"
+                    f"🎧 {requester_text}",
                     inline=False,
                 )
 
@@ -686,18 +712,24 @@ class MusicCore(commands.Cog):
             embed = EmbedBuilder.create_info_embed("📝 播放列表", "")
 
             if player.current:
+                current_duration = player._format_duration_ms(getattr(player.current, "length", 0))
+                current_requester = MusicPlayer._get_requester(player.current)
+                requester_text = current_requester.mention if current_requester else "未知"
                 embed.add_field(
                     name="🎵 正在播放",
                     value=f"**{player.current.title}**\n"
-                    f"⏱️ {player.current.duration_str} | 🎧 {player.current.requester.mention}",
+                    f"⏱️ {current_duration} | 🎧 {requester_text}",
                     inline=False,
                 )
 
             if player.queue:
                 queue_text = ""
                 for i, song in enumerate(player.queue[:10], 1):
+                    song_duration = player._format_duration_ms(getattr(song, "length", 0))
+                    song_requester = MusicPlayer._get_requester(song)
+                    song_requester_text = song_requester.mention if song_requester else "未知"
                     queue_text += f"{i}. **{song.title}**\n"
-                    queue_text += f"   ⏱️ {song.duration_str} | 🎧 {song.requester.mention}\n\n"
+                    queue_text += f"   ⏱️ {song_duration} | 🎧 {song_requester_text}\n\n"
 
                 if len(player.queue) > 10:
                     queue_text += f"... 還有 {len(player.queue) - 10} 首歌曲"
@@ -746,13 +778,17 @@ class MusicCore(commands.Cog):
             guild_connected = False
 
             if player_vc:
-                logger.info(f"🔍 player_vc.is_connected() = {player_vc.is_connected()}")
-                player_connected = player_vc.is_connected()
+                logger.info(
+                    f"🔍 player_vc.connected = {MusicPlayer._is_connected(player_vc)}"
+                )
+                player_connected = MusicPlayer._is_connected(player_vc)
 
             if guild_vc:
-                logger.info(f"🔍 guild_vc.is_connected() = {guild_vc.is_connected()}")
+                logger.info(
+                    f"🔍 guild_vc.connected = {MusicPlayer._is_connected(guild_vc)}"
+                )
                 logger.info(f"🔍 guild_vc.channel = {guild_vc.channel}")
-                guild_connected = guild_vc.is_connected()
+                guild_connected = MusicPlayer._is_connected(guild_vc)
 
             logger.info(
                 f"🔍 最終結果: player_connected={player_connected}, guild_connected={guild_connected}"
@@ -780,7 +816,8 @@ class MusicCore(commands.Cog):
             if guild_vc:
                 embed.add_field(
                     name="Guild Voice Client 詳情",
-                    value=f"頻道: {guild_vc.channel}\n" f"連接狀態: {guild_vc.is_connected()}",
+                    value=f"頻道: {guild_vc.channel}\n"
+                    f"連接狀態: {MusicPlayer._is_connected(guild_vc)}",
                     inline=False,
                 )
 
@@ -850,7 +887,7 @@ class MusicCore(commands.Cog):
 
                 # 驗證連接
                 guild_vc = interaction.guild.voice_client
-                if guild_vc and guild_vc.is_connected():
+                if guild_vc and MusicPlayer._is_connected(guild_vc):
                     # 同步 player 狀態
                     player.voice_client = guild_vc
 
@@ -858,11 +895,13 @@ class MusicCore(commands.Cog):
                         "✅ 語音連接成功", f"Bot 已連接到 **{channel.name}**"
                     )
 
+                    latency = getattr(guild_vc, "latency", None)
+                    latency_text = f"{latency:.2f}ms" if latency is not None else "未知"
                     embed.add_field(
                         name="連接詳情",
                         value=f"頻道: {guild_vc.channel}\n"
-                        f"延遲: {guild_vc.latency:.2f}ms\n"
-                        f"連接狀態: {guild_vc.is_connected()}",
+                        f"延遲: {latency_text}\n"
+                        f"連接狀態: {MusicPlayer._is_connected(guild_vc)}",
                         inline=False,
                     )
                 else:
@@ -998,6 +1037,13 @@ class MusicCore(commands.Cog):
             ):
                 await interaction.response.send_message(
                     "❌ 你沒有使用音樂面板的權限，請聯絡管理員設定可使用身分組。",
+                    ephemeral=True,
+                )
+                return
+
+            if not await self.ensure_lavalink_ready():
+                await interaction.response.send_message(
+                    "❌ 音樂服務尚未連線，請稍後再試或通知管理員檢查 Lavalink。",
                     ephemeral=True,
                 )
                 return

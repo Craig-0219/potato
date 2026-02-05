@@ -66,6 +66,17 @@ TICKET_MAX_PER_USER=3
 
 其他設定請參考 `src/potato_shared/config.py`。
 
+## 音樂系統（Lavalink）
+
+```bash
+LAVALINK_HOST=your_lavalink_host
+LAVALINK_PORT=2333
+LAVALINK_PASSWORD=your_lavalink_password
+LAVALINK_SECURE=false
+# 或直接使用完整 URI
+# LAVALINK_URI=https://your_lavalink_host:443
+```
+
 ## 票券系統常用指令
 
 - `!setup_ticket`：建立票券面板

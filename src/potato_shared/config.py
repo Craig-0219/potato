@@ -121,6 +121,13 @@ MUSIC_DAILY_FREE_QUOTA = int(os.getenv("MUSIC_DAILY_FREE_QUOTA", 20))
 MUSIC_MAX_QUEUE_SIZE = int(os.getenv("MUSIC_MAX_QUEUE_SIZE", 50))
 MUSIC_SEARCH_RESULTS_LIMIT = int(os.getenv("MUSIC_SEARCH_RESULTS_LIMIT", 10))
 
+# Lavalink 連線設定
+LAVALINK_HOST = os.getenv("LAVALINK_HOST")
+LAVALINK_PORT = int(os.getenv("LAVALINK_PORT", 2333))
+LAVALINK_PASSWORD = os.getenv("LAVALINK_PASSWORD")
+LAVALINK_SECURE = os.getenv("LAVALINK_SECURE", "false").lower() == "true"
+LAVALINK_URI = os.getenv("LAVALINK_URI")
+
 
 def validate_config_enhanced():
     """增強的配置驗證"""
@@ -196,6 +203,13 @@ def get_config_summary() -> dict:
             "debug": DEBUG,
             "log_level": LOG_LEVEL,
             "environment": ENVIRONMENT,
+        },
+        "lavalink": {
+            "host": LAVALINK_HOST,
+            "port": LAVALINK_PORT,
+            "secure": LAVALINK_SECURE,
+            "uri": LAVALINK_URI,
+            "password": "***" if LAVALINK_PASSWORD else None,
         },
     }
 

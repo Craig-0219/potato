@@ -7,9 +7,21 @@
 import traceback
 
 import discord
+import wavelink
 
 from potato_bot.utils.embed_builder import EmbedBuilder
 from potato_shared.logger import logger
+
+
+def _format_track_length(length_ms: int) -> str:
+    if not length_ms:
+        return "未知"
+    total_seconds = int(length_ms // 1000)
+    hours, remainder = divmod(total_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    if hours:
+        return f"{hours}:{minutes:02d}:{seconds:02d}"
+    return f"{minutes}:{seconds:02d}"
 
 
 class SafeInteractionMixin:
@@ -100,7 +112,7 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
         try:
             logger.info(f"播放/暫停按鈕被點擊 - 用戶: {interaction.user.name}")
 
-            if not self.player.voice_client or not self.player.voice_client.is_connected():
+            if not self.player.is_connected():
                 embed = EmbedBuilder.create_error_embed(
                     "❌ 未連接語音頻道", "Bot 目前未連接到任何語音頻道"
                 )
@@ -108,14 +120,12 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
                 return
 
             # 處理播放/暫停
-            if self.player.voice_client.is_playing():
-                self.player.voice_client.pause()
-                self.player.is_paused = True
+            if self.player.is_playing:
+                await self.player.voice_client.pause(True)
                 embed = EmbedBuilder.create_success_embed("⏸️ 已暫停", "音樂播放已暫停")
                 logger.info("音樂已暫停")
-            elif self.player.voice_client.is_paused():
-                self.player.voice_client.resume()
-                self.player.is_paused = False
+            elif self.player.is_paused:
+                await self.player.voice_client.pause(False)
                 embed = EmbedBuilder.create_success_embed("▶️ 已恢復", "音樂播放已恢復")
                 logger.info("音樂已恢復")
             else:
@@ -135,7 +145,7 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
         try:
             logger.info(f"跳過按鈕被點擊 - 用戶: {interaction.user.name}")
 
-            if not self.player.voice_client or not self.player.voice_client.is_connected():
+            if not self.player.is_connected():
                 embed = EmbedBuilder.create_error_embed(
                     "❌ 未連接語音頻道", "Bot 目前未連接到任何語音頻道"
                 )
@@ -151,8 +161,8 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
 
             # 跳過當前歌曲
             current_title = self.player.current.title
-            if self.player.voice_client.is_playing() or self.player.voice_client.is_paused():
-                self.player.voice_client.stop()
+            if self.player.is_playing or self.player.is_paused:
+                await self.player.skip(force=True)
 
             embed = EmbedBuilder.create_success_embed("⏭️ 已跳過", f"已跳過：**{current_title}**")
             await self.safe_respond(interaction, embed=embed)
@@ -174,13 +184,13 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
             from potato_bot.cogs.music_core import LoopMode
 
             if self.player.loop_mode == LoopMode.NONE:
-                self.player.loop_mode = LoopMode.SINGLE
+                self.player.set_loop_mode(LoopMode.SINGLE)
                 mode_text = "🔂 單曲循環"
             elif self.player.loop_mode == LoopMode.SINGLE:
-                self.player.loop_mode = LoopMode.QUEUE
+                self.player.set_loop_mode(LoopMode.QUEUE)
                 mode_text = "🔁 列表循環"
             else:
-                self.player.loop_mode = LoopMode.NONE
+                self.player.set_loop_mode(LoopMode.NONE)
                 mode_text = "➡️ 順序播放"
 
             embed = EmbedBuilder.create_success_embed("🔁 循環模式已變更", f"當前模式：{mode_text}")
@@ -225,7 +235,7 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
         try:
             logger.info(f"停止按鈕被點擊 - 用戶: {interaction.user.name}")
 
-            if not self.player.voice_client or not self.player.voice_client.is_connected():
+            if not self.player.is_connected():
                 embed = EmbedBuilder.create_error_embed(
                     "❌ 未連接語音頻道", "Bot 目前未連接到任何語音頻道"
                 )
@@ -233,13 +243,7 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
                 return
 
             # 停止播放並清空隊列
-            if self.player.voice_client.is_playing() or self.player.voice_client.is_paused():
-                self.player.voice_client.stop()
-
-            self.player.queue.clear()
-            self.player.current = None
-            self.player.is_playing = False
-            self.player.is_paused = False
+            await self.player.stop()
 
             embed = EmbedBuilder.create_success_embed(
                 "🛑 已停止播放", "音樂播放已停止，播放列表已清空"
@@ -314,11 +318,16 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
         """增強的語音連接狀態檢測"""
         try:
             # 檢查 player 的 voice_client
-            player_connected = player.voice_client and player.voice_client.is_connected()
+            player_connected = player.is_connected()
 
             # 檢查 guild 的 voice_client (更可靠)
             guild_voice_client = guild.voice_client
-            guild_connected = guild_voice_client and guild_voice_client.is_connected()
+            if guild_voice_client and hasattr(guild_voice_client, "connected"):
+                guild_connected = bool(guild_voice_client.connected)
+            elif guild_voice_client and hasattr(guild_voice_client, "is_connected"):
+                guild_connected = guild_voice_client.is_connected()
+            else:
+                guild_connected = False
 
             # 詳細日誌
             logger.info(
@@ -329,9 +338,15 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
 
             if guild_voice_client:
                 logger.info(f"🔍 Guild voice_client channel: {guild_voice_client.channel}")
-                logger.info(
-                    f"🔍 Guild voice_client is_connected: {guild_voice_client.is_connected()}"
-                )
+                if hasattr(guild_voice_client, "connected"):
+                    logger.info(
+                        f"🔍 Guild voice_client connected: {guild_voice_client.connected}"
+                    )
+                elif hasattr(guild_voice_client, "is_connected"):
+                    logger.info(
+                        "🔍 Guild voice_client connected: %s",
+                        guild_voice_client.is_connected(),
+                    )
 
             # 如果有不一致，同步 player 狀態
             if guild_connected and not player_connected:
@@ -428,11 +443,14 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
                 )
 
             if player.current:
+                uploader = getattr(player.current, "author", "Unknown")
+                requester = player._get_requester(player.current)
+                requester_text = requester.mention if requester else "未知"
                 embed.add_field(
                     name="🎵 正在播放",
                     value=f"**{player.current.title}**\n"
-                    f"👤 {player.current.uploader}\n"
-                    f"🎧 {player.current.requester.mention}",
+                    f"👤 {uploader}\n"
+                    f"🎧 {requester_text}",
                     inline=False,
                 )
 
@@ -539,6 +557,14 @@ class MusicInputModal(discord.ui.Modal, title="🎵 播放音樂"):
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
 
+            if not await self.music_cog.ensure_lavalink_ready():
+                embed = EmbedBuilder.create_error_embed(
+                    "❌ 音樂服務未就緒",
+                    "Lavalink 尚未連線，請稍後再試或通知管理員檢查設定。",
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
+
             # 創建臨時context用於播放器
             ctx = await self.music_cog._create_context_from_interaction(interaction)
             player = self.music_cog.get_player(ctx)
@@ -561,9 +587,11 @@ class MusicInputModal(discord.ui.Modal, title="🎵 播放音樂"):
             if not player.is_playing:
                 await player.play_next()
 
+            uploader = getattr(source, "author", "Unknown")
+            duration = _format_track_length(getattr(source, "length", 0))
             embed = EmbedBuilder.create_success_embed(
                 "✅ 已添加到播放列表",
-                f"**{source.title}**\n👤 {source.uploader}\n⏱️ {source.duration_str}",
+                f"**{source.title}**\n👤 {uploader}\n⏱️ {duration}",
             )
 
             if player.queue or player.current != source:
@@ -573,8 +601,13 @@ class MusicInputModal(discord.ui.Modal, title="🎵 播放音樂"):
                     inline=True,
                 )
 
-            if source.thumbnail:
-                embed.set_thumbnail(url=source.thumbnail)
+            thumbnail = (
+                getattr(source, "artwork", None)
+                or getattr(source, "thumbnail", None)
+                or getattr(source, "thumb", None)
+            )
+            if thumbnail:
+                embed.set_thumbnail(url=thumbnail)
 
             await interaction.followup.send(embed=embed)
             logger.info(f"成功添加歌曲: {source.title}")
@@ -598,6 +631,7 @@ class SearchInputModal(discord.ui.Modal, title="🔍 搜索音樂"):
     def __init__(self, music_cog):
         super().__init__()
         self.music_cog = music_cog
+        self.last_error: str | None = None
 
     search_input = discord.ui.TextInput(
         label="搜索關鍵字",
@@ -621,6 +655,14 @@ class SearchInputModal(discord.ui.Modal, title="🔍 搜索音樂"):
             # 立即延遲回應，避免超時
             await interaction.response.defer(ephemeral=True)
 
+            if not await self.music_cog.ensure_lavalink_ready():
+                embed = EmbedBuilder.create_error_embed(
+                    "❌ 音樂服務未就緒",
+                    "Lavalink 尚未連線，請稍後再試或通知管理員檢查設定。",
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
+
             # 先顯示搜索中的狀態
             embed = EmbedBuilder.create_info_embed(
                 "🔍 正在搜索",
@@ -643,10 +685,12 @@ class SearchInputModal(discord.ui.Modal, title="🔍 搜索音樂"):
                 # 創建搜索結果列表
                 result_text = ""
                 for i, result in enumerate(search_results[:5], 1):
+                    uploader = getattr(result, "author", "Unknown")
+                    duration = _format_track_length(getattr(result, "length", 0))
                     result_text += (
                         f"{i}. **{result.title[:50]}{'...' if len(result.title) > 50 else ''}**\n"
                     )
-                    result_text += f"   👤 {result.uploader} | ⏱️ {result.duration_str}\n\n"
+                    result_text += f"   👤 {uploader} | ⏱️ {duration}\n\n"
 
                 embed = EmbedBuilder.create_info_embed(
                     "🔍 搜索結果",
@@ -682,93 +726,27 @@ class SearchInputModal(discord.ui.Modal, title="🔍 搜索音樂"):
     async def _search_music(self, query: str, count: int = 5):
         """搜索音樂 - 簡化版本"""
         try:
-            import asyncio
-            import concurrent.futures
-
-            import yt_dlp
-
             logger.info(f"開始搜索音樂: {query}")
+            self.last_error = None
+            search_query = f"ytsearch{count}:{query}"
+            tracks = await wavelink.Pool.fetch_tracks(search_query)
 
-            # 簡化的 yt-dlp 配置
-            ytdl_options = {
-                "format": "bestaudio/best",
-                "quiet": True,
-                "no_warnings": True,
-                "extractaudio": False,
-                "noplaylist": True,
-                "default_search": f"ytsearch{count}:",
-                "socket_timeout": 10,
-                "extractor_args": {
-                    "youtube": {
-                        "player_client": ["web", "web_safari", "mweb"],
-                    }
-                },
-                "user_agent": (
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                    "AppleWebKit/537.36 (KHTML, like Gecko) "
-                    "Chrome/122.0.0.0 Safari/537.36"
-                ),
-            }
-
-            def search_videos(search_query):
-                """在執行器中運行的搜索函數"""
-                try:
-                    ytdl = yt_dlp.YoutubeDL(ytdl_options)
-                    search_url = f"ytsearch{count}:{search_query}"
-                    logger.info(f"正在執行 yt-dlp 搜索: {search_url}")
-
-                    result = ytdl.extract_info(search_url, download=False)
-                    logger.info(f"搜索完成，結果數量: {len(result.get('entries', []))}")
-                    return result
-                except Exception as e:
-                    logger.error(f"yt-dlp 搜索錯誤: {e}")
-                    return None
-
-            # 使用線程池執行搜索，設置超時
-            loop = asyncio.get_event_loop()
-            try:
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                    results = await asyncio.wait_for(
-                        loop.run_in_executor(executor, search_videos, query),
-                        timeout=10.0,  # 10秒超時
-                    )
-            except asyncio.TimeoutError:
-                logger.error(f"搜索超時: {query}")
-                return []
-            except Exception as e:
-                logger.error(f"搜索執行錯誤: {e}")
-                return []
-
-            if not results or "entries" not in results:
+            if not tracks:
                 logger.warning(f"無搜索結果: {query}")
                 return []
 
-            # 轉換為 MusicSource 物件
-            from potato_bot.cogs.music_core import MusicSource
+            if isinstance(tracks, wavelink.Playlist):
+                results = tracks.tracks
+            elif isinstance(tracks, list):
+                results = tracks
+            else:
+                results = [tracks]
 
-            # 創建假用戶作為請求者
-            class FakeUser:
-                def __init__(self):
-                    self.mention = "搜索結果"
-                    self.display_name = "搜索"
-
-            fake_user = FakeUser()
-
-            sources = []
-            for entry in results["entries"]:
-                if entry:  # 確保 entry 不為 None
-                    try:
-                        source = MusicSource(entry, fake_user)
-                        sources.append(source)
-                        logger.info(f"已轉換歌曲: {source.title}")
-                    except Exception as e:
-                        logger.warning(f"轉換歌曲失敗: {e}")
-                        continue
-
-            logger.info(f"搜索完成，返回 {len(sources)} 首歌曲")
-            return sources
+            logger.info(f"搜索完成，返回 {len(results)} 首歌曲")
+            return results[:count]
 
         except Exception as e:
+            self.last_error = str(e)
             logger.error(f"音樂搜索系統錯誤: {e}")
             logger.error(traceback.format_exc())
             return []
