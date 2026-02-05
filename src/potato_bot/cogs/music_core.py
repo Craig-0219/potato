@@ -128,14 +128,30 @@ class MusicPlayer:
         extras = {}
         if hasattr(track, "extras") and isinstance(track.extras, dict):
             extras = dict(track.extras)
-        extras["requester"] = requester
+        extras["requester_id"] = requester.id
+        extras["requester_name"] = requester.display_name
         track.extras = extras
 
     @staticmethod
-    def _get_requester(track: wavelink.Playable) -> Optional[discord.Member]:
+    def _get_requester_info(track: wavelink.Playable) -> tuple[Optional[int], Optional[str]]:
         if hasattr(track, "extras") and isinstance(track.extras, dict):
-            return track.extras.get("requester")
-        return None
+            requester_id = track.extras.get("requester_id")
+            requester_name = track.extras.get("requester_name")
+            return requester_id, requester_name
+        return None, None
+
+    def format_requester(self, track: wavelink.Playable, guild: Optional[discord.Guild] = None) -> str:
+        requester_id, requester_name = self._get_requester_info(track)
+        if requester_id:
+            guild = guild or self.guild
+            if guild:
+                member = guild.get_member(requester_id)
+                if member:
+                    return member.mention
+            return f"<@{requester_id}>"
+        if requester_name:
+            return requester_name
+        return "未知"
 
     async def connect_to_voice(self, channel: discord.VoiceChannel):
         """連接到語音頻道"""
@@ -323,8 +339,7 @@ class MusicPlayer:
             return
 
         embed = EmbedBuilder.create_info_embed("🎵 正在播放", f"**{self.current.title}**")
-        requester = self._get_requester(self.current)
-        requester_text = requester.mention if requester else "未知"
+        requester_text = self.format_requester(self.current)
         duration_str = self._format_duration_ms(getattr(self.current, "length", 0))
         uploader = getattr(self.current, "author", "Unknown")
 
@@ -642,8 +657,7 @@ class MusicCore(commands.Cog):
 
             if player.current:
                 uploader = getattr(player.current, "author", "Unknown")
-                requester = MusicPlayer._get_requester(player.current)
-                requester_text = requester.mention if requester else "未知"
+                requester_text = player.format_requester(player.current, interaction.guild)
                 embed.add_field(
                     name="🎵 正在播放",
                     value=f"**{player.current.title}**\n"
@@ -720,8 +734,7 @@ class MusicCore(commands.Cog):
 
             if player.current:
                 current_duration = player._format_duration_ms(getattr(player.current, "length", 0))
-                current_requester = MusicPlayer._get_requester(player.current)
-                requester_text = current_requester.mention if current_requester else "未知"
+                requester_text = player.format_requester(player.current, interaction.guild)
                 embed.add_field(
                     name="🎵 正在播放",
                     value=f"**{player.current.title}**\n"
@@ -733,8 +746,7 @@ class MusicCore(commands.Cog):
                 queue_text = ""
                 for i, song in enumerate(player.queue[:10], 1):
                     song_duration = player._format_duration_ms(getattr(song, "length", 0))
-                    song_requester = MusicPlayer._get_requester(song)
-                    song_requester_text = song_requester.mention if song_requester else "未知"
+                    song_requester_text = player.format_requester(song, interaction.guild)
                     queue_text += f"{i}. **{song.title}**\n"
                     queue_text += f"   ⏱️ {song_duration} | 🎧 {song_requester_text}\n\n"
 
@@ -1064,7 +1076,7 @@ class MusicCore(commands.Cog):
 
             embed.add_field(
                 name="🎯 主要功能",
-                value="🎵 播放音樂\n🎛️ 控制面板\n📝 播放列表\n🔍 搜索音樂",
+                value="🎵 播放音樂\n🎛️ 控制面板\n📝 播放列表\n🔍 搜索音樂\n🗂️ 列表管理（管理員）",
                 inline=True,
             )
 

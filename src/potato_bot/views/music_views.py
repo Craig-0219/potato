@@ -24,6 +24,47 @@ def _format_track_length(length_ms: int) -> str:
     return f"{minutes}:{seconds:02d}"
 
 
+def _truncate(text: str, limit: int) -> str:
+    if len(text) <= limit:
+        return text
+    return text[: max(0, limit - 3)] + "..."
+
+
+def _build_queue_manage_embed(player, guild: discord.Guild) -> discord.Embed:
+    embed = EmbedBuilder.create_info_embed("🗂️ 播放列表管理", "管理播放列表內容")
+
+    if player.current:
+        uploader = getattr(player.current, "author", "Unknown")
+        duration = _format_track_length(getattr(player.current, "length", 0))
+        requester_text = player.format_requester(player.current, guild)
+        embed.add_field(
+            name="🎵 正在播放",
+            value=f"**{player.current.title}**\n"
+            f"👤 {uploader}\n"
+            f"⏱️ {duration} | 🎧 {requester_text}",
+            inline=False,
+        )
+
+    queue_items = player.queue
+    if queue_items:
+        preview_lines = []
+        for i, track in enumerate(queue_items[:20], 1):
+            duration = _format_track_length(getattr(track, "length", 0))
+            preview_lines.append(f"{i}. {track.title} ({duration})")
+        if len(queue_items) > 20:
+            preview_lines.append(f"... 還有 {len(queue_items) - 20} 首")
+        embed.add_field(
+            name=f"📝 待播列表 ({len(queue_items)} 首)",
+            value="\n".join(preview_lines),
+            inline=False,
+        )
+    else:
+        embed.add_field(name="📝 待播列表", value="播放列表為空", inline=False)
+
+    embed.set_footer(text="此面板僅管理員可用")
+    return embed
+
+
 class SafeInteractionMixin:
     """安全互動處理混入類"""
 
@@ -251,6 +292,111 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
             await self.safe_respond(interaction, embed=embed)
             logger.info("音樂播放已停止")
 
+
+class QueueRemoveSelect(discord.ui.Select):
+    def __init__(self, player, guild: discord.Guild):
+        self.player = player
+        self.guild = guild
+
+        options = []
+        queue_items = player.queue
+        for i, track in enumerate(queue_items[:25], 1):
+            title = _truncate(track.title, 80)
+            duration = _format_track_length(getattr(track, "length", 0))
+            author = _truncate(getattr(track, "author", "Unknown"), 40)
+            description = _truncate(f"{author} | {duration}", 100)
+            options.append(
+                discord.SelectOption(
+                    label=f"{i}. {title}",
+                    value=str(i),
+                    description=description,
+                )
+            )
+
+        if not options:
+            options = [
+                discord.SelectOption(
+                    label="播放列表為空",
+                    value="0",
+                    description="沒有歌曲可以移除",
+                )
+            ]
+
+        super().__init__(
+            placeholder="選擇要移除的歌曲",
+            min_values=1,
+            max_values=1,
+            options=options,
+            disabled=len(queue_items) == 0,
+            custom_id="music_queue_remove",
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        if self.values[0] == "0":
+            await interaction.response.send_message("播放列表為空。", ephemeral=True)
+            return
+
+        if not self.player.voice_client:
+            await interaction.response.send_message("目前未連接語音頻道。", ephemeral=True)
+            return
+
+        index = int(self.values[0]) - 1
+        queue = self.player.voice_client.queue
+        if index < 0 or index >= len(queue):
+            await interaction.response.send_message("指定的序號不存在。", ephemeral=True)
+            return
+
+        removed = queue[index]
+        del queue[index]
+
+        embed = EmbedBuilder.create_success_embed(
+            "✅ 已移除歌曲",
+            f"已移除：**{removed.title}**",
+        )
+
+        view = MusicQueueManageView(self.player, self.guild)
+        panel_embed = _build_queue_manage_embed(self.player, self.guild)
+        await interaction.response.edit_message(embed=panel_embed, view=view)
+        await interaction.followup.send(embed=embed, ephemeral=True)
+
+
+class MusicQueueManageView(discord.ui.View, SafeInteractionMixin):
+    """播放列表管理面板（管理員）"""
+
+    def __init__(self, player, guild: discord.Guild):
+        super().__init__(timeout=300)
+        self.player = player
+        self.guild = guild
+        self.add_item(QueueRemoveSelect(player, guild))
+
+    @discord.ui.button(label="🔄 重新整理", style=discord.ButtonStyle.secondary)
+    async def refresh_queue(self, interaction: discord.Interaction, button: discord.ui.Button):
+        embed = _build_queue_manage_embed(self.player, self.guild)
+        view = MusicQueueManageView(self.player, self.guild)
+        await interaction.response.edit_message(embed=embed, view=view)
+
+    @discord.ui.button(label="🗑️ 清空列表", style=discord.ButtonStyle.danger)
+    async def clear_queue(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if not self.player.voice_client:
+            await interaction.response.send_message("目前未連接語音頻道。", ephemeral=True)
+            return
+
+        queue = self.player.voice_client.queue
+        count = len(queue)
+        if count == 0:
+            await interaction.response.send_message("播放列表已是空的。", ephemeral=True)
+            return
+
+        queue.clear()
+        embed = EmbedBuilder.create_success_embed(
+            "🗑️ 已清空播放列表",
+            f"已移除 {count} 首歌曲。",
+        )
+        panel_embed = _build_queue_manage_embed(self.player, self.guild)
+        view = MusicQueueManageView(self.player, self.guild)
+        await interaction.response.edit_message(embed=panel_embed, view=view)
+        await interaction.followup.send(embed=embed, ephemeral=True)
+
         except Exception as e:
             logger.error(f"停止按鈕錯誤: {e}")
             logger.error(traceback.format_exc())
@@ -370,6 +516,13 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
             logger.error(traceback.format_exc())
             return False
 
+    @staticmethod
+    def _can_manage_queue(member: discord.Member, is_owner: bool = False) -> bool:
+        if is_owner:
+            return True
+        perms = member.guild_permissions
+        return perms.administrator or perms.manage_guild
+
     @discord.ui.button(
         label="🎵 播放音樂",
         style=discord.ButtonStyle.primary,
@@ -444,8 +597,7 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
 
             if player.current:
                 uploader = getattr(player.current, "author", "Unknown")
-                requester = player._get_requester(player.current)
-                requester_text = requester.mention if requester else "未知"
+                requester_text = player.format_requester(player.current, interaction.guild)
                 embed.add_field(
                     name="🎵 正在播放",
                     value=f"**{player.current.title}**\n"
@@ -517,6 +669,46 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
             logger.error(f"搜索音樂按鈕錯誤: {e}")
             logger.error(traceback.format_exc())
             embed = EmbedBuilder.create_error_embed("❌ 系統錯誤", "無法打開搜索功能")
+            await self.safe_respond(interaction, embed=embed)
+
+    @discord.ui.button(
+        label="🗂️ 列表管理",
+        style=discord.ButtonStyle.secondary,
+        custom_id="menu_queue_manage",
+    )
+    async def manage_queue_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        """播放列表管理（管理員）"""
+        try:
+            if not interaction.guild:
+                await interaction.response.send_message("❌ 僅能在伺服器中使用。", ephemeral=True)
+                return
+
+            is_owner = await interaction.client.is_owner(interaction.user)
+            if not self._can_manage_queue(interaction.user, is_owner=is_owner):
+                await interaction.response.send_message(
+                    "❌ 此功能僅限管理員使用。", ephemeral=True
+                )
+                return
+
+            if not await self.music_cog.ensure_lavalink_ready():
+                await interaction.response.send_message(
+                    "❌ 音樂服務尚未連線，請稍後再試或通知管理員檢查 Lavalink。",
+                    ephemeral=True,
+                )
+                return
+
+            ctx = await self.music_cog._create_context_from_interaction(interaction)
+            player = self.music_cog.get_player(ctx)
+            embed = _build_queue_manage_embed(player, interaction.guild)
+            view = MusicQueueManageView(player, interaction.guild)
+            await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"播放列表管理按鈕錯誤: {e}")
+            logger.error(traceback.format_exc())
+            embed = EmbedBuilder.create_error_embed("❌ 系統錯誤", "無法打開播放列表管理面板")
             await self.safe_respond(interaction, embed=embed)
 
 
