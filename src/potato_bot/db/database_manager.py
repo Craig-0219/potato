@@ -15,7 +15,7 @@ class DatabaseManager:
 
     def __init__(self):
         self.db = db_pool
-        self.current_version = "1.0.0"
+        self.current_version = "1.0.1"
         self._initialized = False
 
     async def initialize_all_tables(self, force_recreate: bool = False):
@@ -30,7 +30,12 @@ class DatabaseManager:
             await self._create_version_table()
 
             # 檢查資料庫版本
-            await self._get_database_version()
+            db_version = await self._get_database_version()
+
+            if db_version == self.current_version and not force_recreate:
+                self._initialized = True
+                logger.info("✅ 資料庫版本一致，跳過資料表初始化")
+                return
 
             if force_recreate:
                 logger.warning("⚠️ 強制重建模式 - 將刪除所有現存表格")

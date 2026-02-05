@@ -35,5 +35,6 @@ def build_manager_overwrites(
         overwrites[role] = discord.PermissionOverwrite(
             view_channel=True,
             manage_channels=True,
+            manage_permissions=True,
         )
     return overwrites
