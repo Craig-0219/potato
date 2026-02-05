@@ -11,6 +11,7 @@ from discord.ui import Button, ChannelSelect, Modal, RoleSelect, Select, TextInp
 from potato_bot.db import vote_dao
 from potato_bot.db.category_auto_dao import CategoryAutoDAO
 from potato_bot.db.auto_reply_dao import AutoReplyDAO
+from potato_bot.db.music_dao import MusicDAO
 from potato_bot.db.lottery_dao import LotteryDAO
 from potato_bot.db.resume_dao import ResumeDAO
 from potato_bot.db.pool import db_pool
@@ -26,6 +27,7 @@ from potato_bot.services.welcome_manager import WelcomeManager
 from potato_bot.services.whitelist_service import WhitelistService
 from potato_bot.db.whitelist_dao import WhitelistDAO
 from potato_bot.utils.interaction_helper import BaseView, SafeInteractionHandler
+from potato_bot.utils.embed_builder import EmbedBuilder
 from potato_bot.views.resume_views import ResumePanelView
 from potato_shared.logger import logger
 
@@ -90,6 +92,15 @@ class SystemAdminPanel(BaseView):
         await interaction.response.send_message(
             embed=await self._create_lottery_settings_embed(interaction.guild),
             view=LotterySettingsView(self.user_id, interaction.guild),
+            ephemeral=True,
+        )
+
+    @button(label="🎵 音樂系統設定", style=discord.ButtonStyle.primary, row=0)
+    async def music_settings_button(self, interaction: discord.Interaction, button: Button):
+        """音樂系統設定按鈕"""
+        await interaction.response.send_message(
+            embed=await self._create_music_settings_embed(interaction.guild),
+            view=MusicSettingsView(self.user_id, interaction.guild),
             ephemeral=True,
         )
 
@@ -379,6 +390,36 @@ class SystemAdminPanel(BaseView):
 
         return embed
 
+    async def _create_music_settings_embed(self, guild: discord.Guild) -> discord.Embed:
+        """創建音樂系統設定嵌入"""
+        embed = discord.Embed(
+            title="🎵 音樂系統設定",
+            description="管理音樂面板權限",
+            color=0x3498DB,
+        )
+
+        settings = await MusicDAO().get_music_settings(guild.id)
+        allowed_roles = settings.get("allowed_role_ids", []) if settings else []
+        require_role = settings.get("require_role_to_use", False) if settings else False
+
+        if require_role and allowed_roles:
+            role_text = "、".join(
+                role.mention
+                for role in (guild.get_role(role_id) for role_id in allowed_roles)
+                if role
+            )
+            if not role_text:
+                role_text = "未設定（僅管理員可用）"
+        elif require_role and not allowed_roles:
+            role_text = "未設定（僅管理員可用）"
+        else:
+            role_text = "未限制（所有人可用）"
+
+        embed.add_field(name="👥 面板權限", value=role_text, inline=False)
+        embed.add_field(name="📋 管理選項", value="使用下方按鈕進行設定", inline=False)
+
+        return embed
+
     async def _create_whitelist_settings_embed(
         self, guild: discord.Guild, settings=None
     ) -> discord.Embed:
@@ -632,6 +673,12 @@ class SystemAdminPanel(BaseView):
         embed.add_field(
             name="🎲 抽獎管理面板",
             value="• 管理抽獎建立\n• 查看抽獎統計",
+            inline=True,
+        )
+
+        embed.add_field(
+            name="🎵 音樂管理面板",
+            value="• 播放與控制音樂\n• 搜索與播放列表",
             inline=True,
         )
 
@@ -2236,6 +2283,36 @@ class SystemToolsView(View):
         view = LotteryManagementView()
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
+    @button(label="🎵 音樂管理面板", style=discord.ButtonStyle.primary, row=0)
+    async def music_panel_button(self, interaction: discord.Interaction, button: Button):
+        """音樂管理面板"""
+        from potato_bot.views.music_views import MusicMenuView
+
+        music_cog = interaction.client.get_cog("MusicCore")
+        if not music_cog:
+            await interaction.response.send_message(
+                "❌ 音樂系統尚未載入，請稍後再試。", ephemeral=True
+            )
+            return
+
+        embed = EmbedBuilder.create_info_embed(
+            "🎵 音樂系統",
+            "歡迎使用 Potato Bot 音樂系統！\n支援 YouTube 直接播放",
+        )
+        embed.add_field(
+            name="🎯 主要功能",
+            value="🎵 播放音樂\n🎛️ 控制面板\n📝 播放列表\n🔍 搜索音樂",
+            inline=True,
+        )
+        embed.add_field(
+            name="💡 使用提示",
+            value="• 直接貼上 YouTube 網址\n• 輸入歌曲名稱搜索\n• 支援完整播放控制",
+            inline=True,
+        )
+
+        view = MusicMenuView(music_cog)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
     @button(label="🗂️ 類別自動建立", style=discord.ButtonStyle.primary, row=0)
     async def category_auto_button(self, interaction: discord.Interaction, button: Button):
         """類別自動建立設定"""
@@ -3396,6 +3473,135 @@ class BackToLotterySettingsButton(Button):
         admin_panel = SystemAdminPanel(self.user_id)
         embed = await admin_panel._create_lottery_settings_embed(self.guild)
         view = LotterySettingsView(self.user_id, self.guild)
+        await interaction.response.edit_message(embed=embed, view=view)
+
+
+class MusicSettingsView(View):
+    """音樂系統設定視圖"""
+
+    def __init__(self, user_id: int, guild: discord.Guild, timeout=300):
+        super().__init__(timeout=timeout)
+        self.user_id = user_id
+        self.guild = guild
+        self.dao = MusicDAO()
+
+    async def _build_music_settings_payload(self, **patch) -> dict:
+        current = await self.dao.get_music_settings(self.guild.id) or {}
+        payload = {
+            "allowed_role_ids": current.get("allowed_role_ids", []),
+            "require_role_to_use": current.get("require_role_to_use", False),
+        }
+        payload.update(patch)
+        return payload
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                "❌ 只有指令使用者可以操作此面板", ephemeral=True
+            )
+            return False
+        if not interaction.user.guild_permissions.manage_guild:
+            await interaction.response.send_message("❌ 需要管理伺服器權限", ephemeral=True)
+            return False
+        return True
+
+    @button(label="👥 設定面板身分組", style=discord.ButtonStyle.secondary, row=0)
+    async def set_music_panel_roles_button(
+        self, interaction: discord.Interaction, button: Button
+    ):
+        """設定音樂面板可使用身分組"""
+        self.clear_items()
+        self.add_item(MusicPanelRoleSelect(self, row=0))
+        self.add_item(BackToMusicSettingsButton(self.user_id, self.guild))
+
+        embed = discord.Embed(
+            title="👥 設定音樂面板可使用身分組",
+            description="選擇可以使用 /music_menu 的身分組（可多選）",
+            color=0x3498DB,
+        )
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @button(label="🧹 清除面板身分組", style=discord.ButtonStyle.secondary, row=0)
+    async def clear_music_panel_roles_button(
+        self, interaction: discord.Interaction, button: Button
+    ):
+        """清除音樂面板可使用身分組"""
+        payload = await self._build_music_settings_payload(
+            allowed_role_ids=[],
+            require_role_to_use=False,
+        )
+        success = await self.dao.update_music_settings(self.guild.id, payload)
+
+        if success:
+            embed = discord.Embed(
+                title="✅ 已清除音樂面板身分組",
+                description="現在所有人都可使用音樂面板",
+                color=0x2ECC71,
+            )
+        else:
+            embed = discord.Embed(
+                title="❌ 清除失敗",
+                description="更新設定時發生錯誤",
+                color=0xE74C3C,
+            )
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @button(label="🔄 重新整理", style=discord.ButtonStyle.secondary, row=1)
+    async def refresh_button(self, interaction: discord.Interaction, button: Button):
+        panel = SystemAdminPanel(self.user_id)
+        embed = await panel._create_music_settings_embed(self.guild)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @button(label="❌ 關閉", style=discord.ButtonStyle.danger, row=1)
+    async def close_button(self, interaction: discord.Interaction, button: Button):
+        embed = discord.Embed(title="✅ 音樂系統設定已關閉", color=0x95A5A6)
+        await interaction.response.edit_message(embed=embed, view=None)
+
+
+class MusicPanelRoleSelect(discord.ui.RoleSelect):
+    """音樂面板可使用身分組選擇"""
+
+    def __init__(self, parent_view: MusicSettingsView, row: int | None = None):
+        self.parent_view = parent_view
+        super().__init__(
+            placeholder="選擇可使用音樂面板的身分組（可多選）",
+            min_values=1,
+            max_values=10,
+            row=row,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        role_ids = [role.id for role in self.values]
+        payload = await self.parent_view._build_music_settings_payload(
+            allowed_role_ids=role_ids,
+            require_role_to_use=True,
+        )
+        success = await self.parent_view.dao.update_music_settings(
+            self.parent_view.guild.id, payload
+        )
+
+        if success:
+            admin_panel = SystemAdminPanel(self.parent_view.user_id)
+            embed = await admin_panel._create_music_settings_embed(self.parent_view.guild)
+            view = MusicSettingsView(self.parent_view.user_id, self.parent_view.guild)
+            await interaction.response.edit_message(embed=embed, view=view)
+        else:
+            await interaction.response.send_message("❌ 設定失敗，請稍後再試", ephemeral=True)
+
+
+class BackToMusicSettingsButton(Button):
+    """返回音樂設定按鈕"""
+
+    def __init__(self, user_id: int, guild: discord.Guild):
+        self.user_id = user_id
+        self.guild = guild
+        super().__init__(label="← 返回", style=discord.ButtonStyle.secondary)
+
+    async def callback(self, interaction: discord.Interaction):
+        admin_panel = SystemAdminPanel(self.user_id)
+        embed = await admin_panel._create_music_settings_embed(self.guild)
+        view = MusicSettingsView(self.user_id, self.guild)
         await interaction.response.edit_message(embed=embed, view=view)
 
 

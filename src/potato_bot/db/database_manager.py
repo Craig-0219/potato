@@ -15,7 +15,7 @@ class DatabaseManager:
 
     def __init__(self):
         self.db = db_pool
-        self.current_version = "1.0.2"
+        self.current_version = "1.0.3"
         self._initialized = False
 
     async def initialize_all_tables(self, force_recreate: bool = False):
@@ -51,6 +51,7 @@ class DatabaseManager:
             await self._create_resume_tables()
             await self._create_whitelist_tables()
             await self._create_lottery_tables()
+            await self._create_music_tables()
             await self._create_auto_reply_tables()
             await self._create_category_auto_tables()
             await self._create_webhook_tables()
@@ -180,6 +181,23 @@ class DatabaseManager:
                     await conn.commit()
         except Exception as e:
             logger.error(f"❌ 移除娛樂資料表失敗: {e}")
+
+    async def _create_music_tables(self):
+        """創建音樂系統相關表格"""
+        logger.info("🎵 創建音樂系統表格...")
+        tables = {
+            "music_settings": """
+                CREATE TABLE IF NOT EXISTS music_settings (
+                    guild_id BIGINT PRIMARY KEY COMMENT '伺服器ID',
+                    allowed_role_ids JSON NULL COMMENT '允許使用音樂系統的身分組',
+                    require_role_to_use BOOLEAN DEFAULT FALSE COMMENT '是否需要角色才能使用',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間'
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+        }
+
+        await self._create_tables_batch(tables, "音樂系統")
 
     async def get_system_status(self) -> Dict[str, Any]:
         """獲取系統狀態"""

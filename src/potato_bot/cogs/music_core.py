@@ -15,6 +15,7 @@ import yt_dlp
 from discord import FFmpegPCMAudio, app_commands
 from discord.ext import commands
 
+from potato_bot.db.music_dao import MusicDAO
 from potato_bot.utils.embed_builder import EmbedBuilder
 from potato_shared.logger import logger
 
@@ -407,7 +408,34 @@ class MusicCore(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.players: Dict[int, MusicPlayer] = {}
+        self.settings_dao = MusicDAO()
+        self.DISABLED_SLASH_COMMANDS = {
+            "play",
+            "music_control",
+            "queue",
+            "voice_debug",
+            "voice_connect",
+            "connection_status",
+        }
         logger.info("🎵 音樂系統核心初始化完成")
+
+    @staticmethod
+    def _can_use_music_menu(
+        member: discord.Member,
+        allowed_role_ids: list[int],
+        require_role: bool,
+        is_owner: bool = False,
+    ) -> bool:
+        if is_owner:
+            return True
+        if member.guild_permissions.administrator or member.guild_permissions.manage_guild:
+            return True
+        if not require_role:
+            return True
+        if not allowed_role_ids:
+            return False
+        member_role_ids = {role.id for role in member.roles}
+        return bool(member_role_ids & set(allowed_role_ids))
 
     def get_player(self, ctx: commands.Context) -> MusicPlayer:
         """獲取音樂播放器"""
@@ -929,6 +957,24 @@ class MusicCore(commands.Cog):
                 logger.warning("音樂菜單互動已被處理")
                 return
 
+            if not interaction.guild:
+                await interaction.response.send_message("❌ 僅能在伺服器中使用。", ephemeral=True)
+                return
+
+            settings = await self.settings_dao.get_music_settings(interaction.guild.id)
+            allowed_roles = settings.get("allowed_role_ids", []) if settings else []
+            require_role = settings.get("require_role_to_use", False) if settings else False
+            is_owner = await interaction.client.is_owner(interaction.user)
+
+            if not self._can_use_music_menu(
+                interaction.user, allowed_roles, require_role, is_owner=is_owner
+            ):
+                await interaction.response.send_message(
+                    "❌ 你沒有使用音樂面板的權限，請聯絡管理員設定可使用身分組。",
+                    ephemeral=True,
+                )
+                return
+
             from potato_bot.views.music_views import MusicMenuView
 
             embed = EmbedBuilder.create_info_embed(
@@ -966,5 +1012,13 @@ class MusicCore(commands.Cog):
 
 
 async def setup(bot):
-    await bot.add_cog(MusicCore(bot))
+    cog = MusicCore(bot)
+    await bot.add_cog(cog)
+
+    try:
+        for name in cog.DISABLED_SLASH_COMMANDS:
+            bot.tree.remove_command(name, type=discord.AppCommandType.chat_input)
+    except Exception:
+        pass
+
     logger.info("✅ 音樂系統核心已載入")
