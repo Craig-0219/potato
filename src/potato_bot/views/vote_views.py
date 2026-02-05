@@ -758,7 +758,7 @@ class VoteManagementView(ui.View):
     def __init__(self):
         super().__init__(timeout=300)
 
-    @ui.button(label="🗳️ 創建投票", style=discord.ButtonStyle.primary, emoji="🗳️", row=0)
+    @ui.button(label="創建投票", style=discord.ButtonStyle.primary, emoji="🗳️", row=0)
     async def create_vote(self, interaction: discord.Interaction, button: ui.Button):
         """創建新投票"""
         try:
@@ -769,7 +769,7 @@ class VoteManagementView(ui.View):
             await interaction.response.send_message("❌ 創建投票時發生錯誤", ephemeral=True)
 
     @ui.button(
-        label="📊 查看統計",
+        label="查看統計",
         style=discord.ButtonStyle.secondary,
         emoji="📊",
         row=0,
