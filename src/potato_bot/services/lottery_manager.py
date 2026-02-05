@@ -320,6 +320,49 @@ class LotteryManager:
             logger.error(f"結束抽獎失敗: {e}")
             return False, f"結束抽獎時發生錯誤: {str(e)}", []
 
+    async def redraw_lottery(
+        self, lottery_id: int, channel: Optional[discord.TextChannel] = None
+    ) -> Tuple[bool, str, List[Dict]]:
+        """重新開獎"""
+        try:
+            lottery = await self.dao.get_lottery(lottery_id)
+            if not lottery:
+                return False, "抽獎不存在", []
+
+            if lottery["status"] != "ended":
+                return False, f"抽獎狀態不正確: {lottery['status']}", []
+
+            entries = await self.dao.get_entries(lottery_id)
+            if not entries:
+                return False, "沒有參與者，無法重新開獎", []
+
+            # 取得頻道
+            if channel is None and self.bot:
+                channel = self.bot.get_channel(lottery["channel_id"])
+
+            # 清除舊中獎者
+            await self.dao.delete_winners(lottery_id)
+
+            winner_count = min(lottery["winner_count"], len(entries))
+            winners_data = []
+            selected_entries = random.sample(entries, winner_count)
+
+            for i, entry in enumerate(selected_entries, 1):
+                winners_data.append((entry["user_id"], entry["username"], i))
+
+            await self.dao.select_winners(lottery_id, winners_data)
+            winners = await self.dao.get_winners(lottery_id)
+
+            if channel:
+                embed = await self._create_results_embed(lottery, winners, len(entries))
+                await channel.send(embed=embed)
+
+            return True, f"重新開獎完成，共 {len(winners)} 位中獎者", winners
+
+        except Exception as e:
+            logger.error(f"重新開獎失敗: {e}")
+            return False, f"重新開獎時發生錯誤: {str(e)}", []
+
     async def get_lottery_info(self, lottery_id: int) -> Optional[Dict]:
         """獲取抽獎資訊"""
         try:

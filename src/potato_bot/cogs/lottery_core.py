@@ -15,6 +15,7 @@ from potato_bot.utils.embed_builder import EmbedBuilder
 from potato_bot.views.lottery_views import (
     LotteryCreationModal,
     LotteryManagementView,
+    build_lottery_panel_embed,
 )
 from potato_shared.logger import logger
 
@@ -70,18 +71,7 @@ class LotteryCore(commands.Cog):
                 return
 
             view = LotteryManagementView()
-
-            embed = EmbedBuilder.create_info_embed(
-                "🎲 抽獎系統管理面板",
-                "使用下方按鈕來管理抽獎活動\n\n"
-                "🎲 **創建新抽獎** - 創建新的抽獎活動\n"
-                "📋 **活動抽獎** - 查看目前進行中的抽獎\n"
-                "📊 **抽獎統計** - 查看抽獎系統統計資料\n"
-                "⚙️ **管理操作** - 進階管理功能",
-            )
-
-            embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/🎲.png")
-            embed.set_footer(text="點擊按鈕開始使用抽獎系統")
+            embed = build_lottery_panel_embed()
 
             await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 

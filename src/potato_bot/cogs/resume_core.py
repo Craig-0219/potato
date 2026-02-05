@@ -35,6 +35,12 @@ class ResumeCore(ManagedCog):
         self.service = ResumeService(self.dao)
         self.panel_service = ResumePanelService(bot, self.dao)
         self._ready = False
+        self.DISABLED_SLASH_COMMANDS = {
+            "resume_company",
+            "resume_panel",
+            "resume_panel_here",
+            "resume_companies",
+        }
 
     async def cog_load(self):
         await self.dao._ensure_tables()
@@ -413,4 +419,11 @@ class ResumeCore(ManagedCog):
 
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(ResumeCore(bot))
+    cog = ResumeCore(bot)
+    await bot.add_cog(cog)
+
+    try:
+        for name in cog.DISABLED_SLASH_COMMANDS:
+            bot.tree.remove_command(name, type=discord.AppCommandType.chat_input)
+    except Exception:
+        pass

@@ -15,7 +15,7 @@ class DatabaseManager:
 
     def __init__(self):
         self.db = db_pool
-        self.current_version = "1.0.1"
+        self.current_version = "1.0.2"
         self._initialized = False
 
     async def initialize_all_tables(self, force_recreate: bool = False):
@@ -40,6 +40,9 @@ class DatabaseManager:
             if force_recreate:
                 logger.warning("⚠️ 強制重建模式 - 將刪除所有現存表格")
                 await self._drop_all_tables()
+
+            # 移除已停用的娛樂系統資料表（若存在）
+            await self._drop_entertainment_tables()
 
             # 創建各系統的表格
             await self._create_ticket_tables()
@@ -147,6 +150,36 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"❌ 刪除表格失敗: {e}")
             raise
+
+    async def _drop_entertainment_tables(self):
+        """移除娛樂系統相關表格（若存在）"""
+        logger.info("🧹 檢查娛樂系統資料表...")
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    patterns = ["entertainment_%", "game_%"]
+                    tables_to_drop: list[str] = []
+
+                    for pattern in patterns:
+                        await cursor.execute(
+                            """
+                            SELECT table_name
+                            FROM information_schema.tables
+                            WHERE table_schema = DATABASE()
+                              AND table_name LIKE %s
+                            """,
+                            (pattern,),
+                        )
+                        rows = await cursor.fetchall()
+                        tables_to_drop.extend([row[0] for row in rows])
+
+                    for table_name in sorted(set(tables_to_drop)):
+                        await cursor.execute(f"DROP TABLE IF EXISTS `{table_name}`")
+                        logger.info(f"✅ 已移除娛樂資料表：{table_name}")
+
+                    await conn.commit()
+        except Exception as e:
+            logger.error(f"❌ 移除娛樂資料表失敗: {e}")
 
     async def get_system_status(self) -> Dict[str, Any]:
         """獲取系統狀態"""

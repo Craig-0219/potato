@@ -32,6 +32,20 @@ async def _can_manage_lottery(
     return bool(member_role_ids & set(allowed_roles))
 
 
+def build_lottery_panel_embed() -> discord.Embed:
+    """建立抽獎管理面板嵌入"""
+    embed = EmbedBuilder.create_info_embed(
+        "🎲 抽獎系統管理面板",
+        "使用下方按鈕來管理抽獎活動\n\n"
+        "🎲 **創建新抽獎** - 創建新的抽獎活動\n"
+        "📋 **活動抽獎** - 查看目前進行中的抽獎\n"
+        "📊 **抽獎統計** - 查看抽獎系統統計資料\n"
+        "⚙️ **管理操作** - 進階管理功能",
+    )
+    embed.set_thumbnail(url="https://cdn.discordapp.com/emojis/🎲.png")
+    embed.set_footer(text="點擊按鈕開始使用抽獎系統")
+    return embed
+
 class LotteryCreationModal(ui.Modal):
     """抽獎創建模態框"""
 
@@ -242,6 +256,197 @@ class LotteryParticipationView(ui.View):
             logger.error(f"參加抽獎失敗: {e}")
             await interaction.followup.send("❌ 參加抽獎時發生錯誤", ephemeral=True)
 
+
+class EndLotteryModal(ui.Modal):
+    """提前結束抽獎"""
+
+    def __init__(self, manager: LotteryManager):
+        super().__init__(title="🛑 提前結束抽獎", timeout=300)
+        self.manager = manager
+        self.lottery_id_input = ui.TextInput(
+            label="抽獎 ID",
+            placeholder="輸入抽獎 ID",
+            max_length=10,
+            required=True,
+        )
+        self.add_item(self.lottery_id_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if not await _can_manage_lottery(interaction, self.manager):
+            await interaction.response.send_message(
+                "❌ 您沒有權限使用管理功能，請聯絡管理員設定。", ephemeral=True
+            )
+            return
+
+        try:
+            lottery_id = int(self.lottery_id_input.value)
+        except ValueError:
+            await interaction.response.send_message("❌ 抽獎 ID 必須是數字", ephemeral=True)
+            return
+
+        lottery = await self.manager.dao.get_lottery(lottery_id)
+        if not lottery or lottery.get("guild_id") != interaction.guild.id:
+            await interaction.response.send_message("❌ 找不到該抽獎", ephemeral=True)
+            return
+
+        if lottery.get("status") != "active":
+            await interaction.response.send_message(
+                f"❌ 抽獎狀態不正確: {lottery.get('status')}", ephemeral=True
+            )
+            return
+
+        channel = interaction.guild.get_channel(lottery.get("channel_id")) or interaction.channel
+        success, message, _ = await self.manager.end_lottery(
+            lottery_id, channel, forced=True
+        )
+
+        if success:
+            await interaction.response.send_message(f"✅ {message}", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"❌ {message}", ephemeral=True)
+
+
+class RedrawLotteryModal(ui.Modal):
+    """重新開獎"""
+
+    def __init__(self, manager: LotteryManager):
+        super().__init__(title="🔄 重新開獎", timeout=300)
+        self.manager = manager
+        self.lottery_id_input = ui.TextInput(
+            label="抽獎 ID",
+            placeholder="輸入抽獎 ID",
+            max_length=10,
+            required=True,
+        )
+        self.add_item(self.lottery_id_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if not await _can_manage_lottery(interaction, self.manager):
+            await interaction.response.send_message(
+                "❌ 您沒有權限使用管理功能，請聯絡管理員設定。", ephemeral=True
+            )
+            return
+
+        try:
+            lottery_id = int(self.lottery_id_input.value)
+        except ValueError:
+            await interaction.response.send_message("❌ 抽獎 ID 必須是數字", ephemeral=True)
+            return
+
+        lottery = await self.manager.dao.get_lottery(lottery_id)
+        if not lottery or lottery.get("guild_id") != interaction.guild.id:
+            await interaction.response.send_message("❌ 找不到該抽獎", ephemeral=True)
+            return
+
+        if lottery.get("status") != "ended":
+            await interaction.response.send_message(
+                f"❌ 抽獎狀態不正確: {lottery.get('status')}", ephemeral=True
+            )
+            return
+
+        channel = interaction.guild.get_channel(lottery.get("channel_id")) or interaction.channel
+        success, message, _ = await self.manager.redraw_lottery(lottery_id, channel)
+
+        if success:
+            await interaction.response.send_message(f"✅ {message}", ephemeral=True)
+        else:
+            await interaction.response.send_message(f"❌ {message}", ephemeral=True)
+
+
+class ViewWinnersModal(ui.Modal):
+    """查看中獎者"""
+
+    def __init__(self, manager: LotteryManager):
+        super().__init__(title="🏆 查看中獎者", timeout=300)
+        self.manager = manager
+        self.lottery_id_input = ui.TextInput(
+            label="抽獎 ID",
+            placeholder="輸入抽獎 ID",
+            max_length=10,
+            required=True,
+        )
+        self.add_item(self.lottery_id_input)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if not await _can_manage_lottery(interaction, self.manager):
+            await interaction.response.send_message(
+                "❌ 您沒有權限使用管理功能，請聯絡管理員設定。", ephemeral=True
+            )
+            return
+
+        try:
+            lottery_id = int(self.lottery_id_input.value)
+        except ValueError:
+            await interaction.response.send_message("❌ 抽獎 ID 必須是數字", ephemeral=True)
+            return
+
+        lottery = await self.manager.dao.get_lottery(lottery_id)
+        if not lottery or lottery.get("guild_id") != interaction.guild.id:
+            await interaction.response.send_message("❌ 找不到該抽獎", ephemeral=True)
+            return
+
+        winners = await self.manager.dao.get_winners(lottery_id)
+        if not winners:
+            await interaction.response.send_message("📭 目前尚無中獎者", ephemeral=True)
+            return
+
+        embed = EmbedBuilder.create_info_embed(f"🏆 中獎者 - {lottery.get('name', '抽獎')}")
+        for winner in winners:
+            position = winner.get("win_position")
+            user_id = winner.get("user_id")
+            embed.add_field(
+                name=f"第 {position} 名",
+                value=f"<@{user_id}> ({winner.get('username')})",
+                inline=False,
+            )
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+
+class LotteryPanelDeployView(ui.View):
+    """抽獎面板部署視圖"""
+
+    def __init__(self, user_id: int, manager: LotteryManager):
+        super().__init__(timeout=120)
+        self.user_id = user_id
+        self.manager = manager
+        self.add_item(LotteryPanelChannelSelect(self))
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 只有開啟此面板的管理員可操作", ephemeral=True)
+            return False
+        return True
+
+
+class LotteryPanelChannelSelect(discord.ui.ChannelSelect):
+    """抽獎面板頻道選擇器"""
+
+    def __init__(self, parent_view: LotteryPanelDeployView):
+        self.parent_view = parent_view
+        super().__init__(
+            placeholder="選擇要部署的文字頻道...",
+            min_values=1,
+            max_values=1,
+            channel_types=[discord.ChannelType.text],
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        if not await _can_manage_lottery(interaction, self.parent_view.manager):
+            await interaction.response.send_message(
+                "❌ 您沒有權限部署抽獎面板，請聯絡管理員設定。", ephemeral=True
+            )
+            return
+
+        channel = self.values[0]
+        view = LotteryManagementView(timeout=None)
+        embed = build_lottery_panel_embed()
+
+        await channel.send(embed=embed, view=view)
+        await interaction.response.send_message(
+            f"✅ 抽獎面板已重新佈署至 {channel.mention}", ephemeral=True
+        )
+
     @ui.button(label="查看詳情", style=discord.ButtonStyle.secondary, emoji="📊")
     async def lottery_info(self, interaction: discord.Interaction, button: ui.Button):
         """查看抽獎詳情"""
@@ -372,8 +577,8 @@ class LotteryParticipationView(ui.View):
 class LotteryManagementView(ui.View):
     """抽獎管理面板視圖"""
 
-    def __init__(self):
-        super().__init__(timeout=300)
+    def __init__(self, timeout=300):
+        super().__init__(timeout=timeout)
         self.lottery_manager = LotteryManager()
 
     @ui.button(label="創建新抽獎", style=discord.ButtonStyle.primary, emoji="🎲")
@@ -468,6 +673,12 @@ class LotteryManagementView(ui.View):
                 value="end_lottery",
             ),
             discord.SelectOption(
+                label="重新佈署面板",
+                description="在指定頻道重新部署抽獎面板",
+                emoji="📌",
+                value="deploy_panel",
+            ),
+            discord.SelectOption(
                 label="重新開獎",
                 description="重新進行開獎",
                 emoji="🔄",
@@ -499,6 +710,8 @@ class LotteryManagementView(ui.View):
 
         if action == "end_lottery":
             await self._handle_end_lottery(interaction)
+        elif action == "deploy_panel":
+            await self._handle_deploy_panel(interaction)
         elif action == "redraw":
             await self._handle_redraw(interaction)
         elif action == "view_winners":
@@ -508,20 +721,43 @@ class LotteryManagementView(ui.View):
 
     async def _handle_end_lottery(self, interaction: discord.Interaction):
         """處理結束抽獎"""
-        # 這裡會實現結束抽獎的邏輯
-        await interaction.response.send_message("🛑 結束抽獎功能開發中...", ephemeral=True)
+        modal = EndLotteryModal(self.lottery_manager)
+        await interaction.response.send_modal(modal)
 
     async def _handle_redraw(self, interaction: discord.Interaction):
         """處理重新開獎"""
-        # 這裡會實現重新開獎的邏輯
-        await interaction.response.send_message("🔄 重新開獎功能開發中...", ephemeral=True)
+        modal = RedrawLotteryModal(self.lottery_manager)
+        await interaction.response.send_modal(modal)
 
     async def _handle_view_winners(self, interaction: discord.Interaction):
         """處理查看中獎者"""
-        # 這裡會實現查看中獎者的邏輯
-        await interaction.response.send_message("🏆 查看中獎者功能開發中...", ephemeral=True)
+        modal = ViewWinnersModal(self.lottery_manager)
+        await interaction.response.send_modal(modal)
 
     async def _handle_settings(self, interaction: discord.Interaction):
         """處理抽獎設定"""
-        # 這裡會實現抽獎設定的邏輯
-        await interaction.response.send_message("⚙️ 抽獎設定功能開發中...", ephemeral=True)
+        if not interaction.user.guild_permissions.manage_guild:
+            await interaction.response.send_message(
+                "❌ 需要管理伺服器權限才能設定抽獎系統", ephemeral=True
+            )
+            return
+
+        from potato_bot.views.system_admin_views import (
+            LotterySettingsView,
+            SystemAdminPanel,
+        )
+
+        panel = SystemAdminPanel(interaction.user.id)
+        embed = await panel._create_lottery_settings_embed(interaction.guild)
+        view = LotterySettingsView(interaction.user.id, interaction.guild)
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+    async def _handle_deploy_panel(self, interaction: discord.Interaction):
+        """處理重新佈署抽獎面板"""
+        view = LotteryPanelDeployView(interaction.user.id, self.lottery_manager)
+        embed = discord.Embed(
+            title="📌 重新佈署抽獎面板",
+            description="選擇要部署抽獎面板的文字頻道",
+            color=0x3498DB,
+        )
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)

@@ -290,6 +290,19 @@ class LotteryDAO(BaseDAO):
             logger.error(f"獲取中獎者失敗: {e}")
             return []
 
+    async def delete_winners(self, lottery_id: int) -> bool:
+        """刪除中獎者（用於重新開獎）"""
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    query = "DELETE FROM lottery_winners WHERE lottery_id = %s"
+                    await cursor.execute(query, (lottery_id,))
+                    await conn.commit()
+                    return True
+        except Exception as e:
+            logger.error(f"刪除中獎者失敗: {e}")
+            return False
+
     async def update_lottery_status(
         self, lottery_id: int, status: str, message_id: Optional[int] = None
     ) -> bool:
