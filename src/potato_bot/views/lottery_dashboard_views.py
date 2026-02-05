@@ -73,7 +73,7 @@ class LotteryStatsDashboardView(ui.View):
             logger.error(f"更新統計時間範圍失敗: {e}")
             await interaction.followup.send("❌ 更新統計資料時發生錯誤", ephemeral=True)
 
-    @ui.button(label="🔄 刷新數據", style=discord.ButtonStyle.secondary, emoji="🔄")
+    @ui.button(label="刷新數據", style=discord.ButtonStyle.secondary, emoji="🔄")
     async def refresh_stats(self, interaction: discord.Interaction, button: ui.Button):
         """刷新統計數據"""
         try:
@@ -94,7 +94,7 @@ class LotteryStatsDashboardView(ui.View):
             logger.error(f"刷新統計數據失敗: {e}")
             await interaction.followup.send("❌ 刷新統計數據時發生錯誤", ephemeral=True)
 
-    @ui.button(label="🏆 中獎排行榜", style=discord.ButtonStyle.primary, emoji="🏆")
+    @ui.button(label="中獎排行榜", style=discord.ButtonStyle.primary, emoji="🏆")
     async def winners_leaderboard(self, interaction: discord.Interaction, button: ui.Button):
         """顯示中獎排行榜"""
         try:
@@ -127,7 +127,7 @@ class LotteryStatsDashboardView(ui.View):
             logger.error(f"獲取中獎排行榜失敗: {e}")
             await interaction.followup.send("❌ 獲取排行榜時發生錯誤", ephemeral=True)
 
-    @ui.button(label="📋 詳細報告", style=discord.ButtonStyle.secondary, emoji="📋")
+    @ui.button(label="詳細報告", style=discord.ButtonStyle.secondary, emoji="📋")
     async def detailed_report(self, interaction: discord.Interaction, button: ui.Button):
         """生成詳細報告"""
         try:
@@ -352,7 +352,7 @@ class UserLotteryHistoryView(ui.View):
         self.current_page = 0
         self.page_size = 5
 
-    @ui.button(label="⬅️ 上一頁", style=discord.ButtonStyle.secondary, emoji="⬅️")
+    @ui.button(label="上一頁", style=discord.ButtonStyle.secondary, emoji="⬅️")
     async def previous_page(self, interaction: discord.Interaction, button: ui.Button):
         """上一頁"""
         if self.current_page > 0:
@@ -361,14 +361,14 @@ class UserLotteryHistoryView(ui.View):
         else:
             await interaction.response.send_message("已經是第一頁了", ephemeral=True)
 
-    @ui.button(label="➡️ 下一頁", style=discord.ButtonStyle.secondary, emoji="➡️")
+    @ui.button(label="下一頁", style=discord.ButtonStyle.secondary, emoji="➡️")
     async def next_page(self, interaction: discord.Interaction, button: ui.Button):
         """下一頁"""
         # 這裡應該檢查是否還有更多頁面
         self.current_page += 1
         await self._update_history(interaction)
 
-    @ui.button(label="🔄 刷新", style=discord.ButtonStyle.secondary, emoji="🔄")
+    @ui.button(label="刷新", style=discord.ButtonStyle.secondary, emoji="🔄")
     async def refresh_history(self, interaction: discord.Interaction, button: ui.Button):
         """刷新歷史"""
         await self._update_history(interaction)

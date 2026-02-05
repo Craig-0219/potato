@@ -15,6 +15,23 @@ from potato_bot.utils.embed_builder import EmbedBuilder
 from potato_shared.logger import logger
 
 
+async def _can_manage_lottery(
+    interaction: discord.Interaction, manager: LotteryManager
+) -> bool:
+    if not interaction.guild:
+        return False
+    if await interaction.client.is_owner(interaction.user):
+        return True
+    if interaction.user.guild_permissions.administrator or interaction.user.guild_permissions.manage_guild:
+        return True
+    settings = await manager.dao.get_lottery_settings(interaction.guild.id)
+    allowed_roles = settings.get("admin_roles", []) if settings else []
+    if not allowed_roles:
+        return False
+    member_role_ids = {role.id for role in interaction.user.roles}
+    return bool(member_role_ids & set(allowed_roles))
+
+
 class LotteryCreationModal(ui.Modal):
     """抽獎創建模態框"""
 
@@ -145,9 +162,9 @@ class LotteryCreationConfirmView(ui.View):
         """確認創建抽獎"""
         try:
             # 檢查權限
-            if not interaction.user.guild_permissions.manage_messages:
+            if not await _can_manage_lottery(interaction, self.lottery_manager):
                 await interaction.response.send_message(
-                    "❌ 您需要「管理訊息」權限才能創建抽獎", ephemeral=True
+                    "❌ 您沒有權限創建抽獎，請聯絡管理員設定。", ephemeral=True
                 )
                 return
 
@@ -206,7 +223,7 @@ class LotteryParticipationView(ui.View):
         self.lottery_id = lottery_id
         self.lottery_manager = LotteryManager()
 
-    @ui.button(label="🎲 參加抽獎", style=discord.ButtonStyle.primary, emoji="🎲")
+    @ui.button(label="參加抽獎", style=discord.ButtonStyle.primary, emoji="🎲")
     async def join_lottery(self, interaction: discord.Interaction, button: ui.Button):
         """參加抽獎"""
         try:
@@ -225,7 +242,7 @@ class LotteryParticipationView(ui.View):
             logger.error(f"參加抽獎失敗: {e}")
             await interaction.followup.send("❌ 參加抽獎時發生錯誤", ephemeral=True)
 
-    @ui.button(label="📊 查看詳情", style=discord.ButtonStyle.secondary, emoji="📊")
+    @ui.button(label="查看詳情", style=discord.ButtonStyle.secondary, emoji="📊")
     async def lottery_info(self, interaction: discord.Interaction, button: ui.Button):
         """查看抽獎詳情"""
         try:
@@ -249,7 +266,7 @@ class LotteryParticipationView(ui.View):
             logger.error(f"獲取抽獎詳情失敗: {e}")
             await interaction.followup.send("❌ 獲取抽獎詳情時發生錯誤", ephemeral=True)
 
-    @ui.button(label="🚪 退出抽獎", style=discord.ButtonStyle.danger, emoji="🚪")
+    @ui.button(label="退出抽獎", style=discord.ButtonStyle.danger, emoji="🚪")
     async def leave_lottery(self, interaction: discord.Interaction, button: ui.Button):
         """退出抽獎"""
         try:
@@ -362,9 +379,9 @@ class LotteryManagementView(ui.View):
     @ui.button(label="創建新抽獎", style=discord.ButtonStyle.primary, emoji="🎲")
     async def create_new_lottery(self, interaction: discord.Interaction, button: ui.Button):
         """創建新抽獎"""
-        if not interaction.user.guild_permissions.manage_messages:
+        if not await _can_manage_lottery(interaction, self.lottery_manager):
             await interaction.response.send_message(
-                "❌ 您需要「管理訊息」權限才能創建抽獎", ephemeral=True
+                "❌ 您沒有權限創建抽獎，請聯絡管理員設定。", ephemeral=True
             )
             return
 
@@ -472,9 +489,9 @@ class LotteryManagementView(ui.View):
     )
     async def management_select(self, interaction: discord.Interaction, select: ui.Select):
         """管理操作選擇"""
-        if not interaction.user.guild_permissions.manage_messages:
+        if not await _can_manage_lottery(interaction, self.lottery_manager):
             await interaction.response.send_message(
-                "❌ 您需要「管理訊息」權限才能使用管理功能", ephemeral=True
+                "❌ 您沒有權限使用管理功能，請聯絡管理員設定。", ephemeral=True
             )
             return
 

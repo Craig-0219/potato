@@ -51,7 +51,7 @@ class LotteryManager:
             settings = await self.dao.get_lottery_settings(guild.id)
 
             # 權限檢查：管理訊息或管理員角色
-            if not (user.guild_permissions.manage_messages or await self._check_lottery_permission(user, settings)):
+            if not await self._check_lottery_permission(user, settings):
                 return False, "❌ 您沒有權限建立抽獎", None
 
             # 同時進行中的抽獎數量限制
@@ -159,13 +159,6 @@ class LotteryManager:
                 view = LotteryParticipationView(lottery_id)
 
             message = await channel.send(embed=embed, view=view)
-
-            # 加入反應 (reaction/both)
-            if lottery.get("entry_method") in {"reaction", "both"}:
-                try:
-                    await message.add_reaction("🎉")
-                except Exception:
-                    pass
 
             # 更新狀態與訊息 ID
             await self.dao.update_lottery_status(lottery_id, "active", message_id=message.id)
@@ -394,7 +387,7 @@ class LotteryManager:
         """檢查抽獎創建權限"""
         try:
             # 檢查是否為管理員
-            if user.guild_permissions.administrator:
+            if user.guild_permissions.administrator or user.guild_permissions.manage_guild:
                 return True
 
             # 檢查抽獎管理角色

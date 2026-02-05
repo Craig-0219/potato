@@ -11,6 +11,7 @@ from discord.ui import Button, ChannelSelect, Modal, RoleSelect, Select, TextInp
 from potato_bot.db import vote_dao
 from potato_bot.db.category_auto_dao import CategoryAutoDAO
 from potato_bot.db.auto_reply_dao import AutoReplyDAO
+from potato_bot.db.lottery_dao import LotteryDAO
 from potato_bot.db.resume_dao import ResumeDAO
 from potato_bot.db.pool import db_pool
 from potato_bot.db.ticket_dao import TicketDAO
@@ -80,6 +81,15 @@ class SystemAdminPanel(BaseView):
         await interaction.response.send_message(
             embed=await self._create_vote_settings_embed(interaction.guild),
             view=VoteSettingsView(self.user_id),
+            ephemeral=True,
+        )
+
+    @button(label="🎲 抽獎系統設定", style=discord.ButtonStyle.primary, row=0)
+    async def lottery_settings_button(self, interaction: discord.Interaction, button: Button):
+        """抽獎系統設定按鈕"""
+        await interaction.response.send_message(
+            embed=await self._create_lottery_settings_embed(interaction.guild),
+            view=LotterySettingsView(self.user_id, interaction.guild),
             ephemeral=True,
         )
 
@@ -342,6 +352,33 @@ class SystemAdminPanel(BaseView):
 
         return embed
 
+    async def _create_lottery_settings_embed(self, guild: discord.Guild) -> discord.Embed:
+        """創建抽獎系統設定嵌入"""
+        embed = discord.Embed(
+            title="🎲 抽獎系統設定",
+            description="管理抽獎面板權限",
+            color=0x3498DB,
+        )
+
+        settings = await LotteryDAO().get_lottery_settings(guild.id)
+        allowed_roles = settings.get("admin_roles", []) if settings else []
+
+        if allowed_roles:
+            role_text = "、".join(
+                role.mention
+                for role in (guild.get_role(role_id) for role_id in allowed_roles)
+                if role
+            )
+            if not role_text:
+                role_text = "未設定（僅管理員可用）"
+        else:
+            role_text = "未設定（僅管理員可用）"
+
+        embed.add_field(name="👥 面板權限", value=role_text, inline=False)
+        embed.add_field(name="📋 管理選項", value="使用下方按鈕進行設定", inline=False)
+
+        return embed
+
     async def _create_whitelist_settings_embed(
         self, guild: discord.Guild, settings=None
     ) -> discord.Embed:
@@ -589,6 +626,12 @@ class SystemAdminPanel(BaseView):
         embed.add_field(
             name="🗳️ 投票管理面板",
             value="• 管理投票建立\n• 查看投票統計",
+            inline=True,
+        )
+
+        embed.add_field(
+            name="🎲 抽獎管理面板",
+            value="• 管理抽獎建立\n• 查看抽獎統計",
             inline=True,
         )
 
@@ -2169,6 +2212,30 @@ class SystemToolsView(View):
         view = VoteManagementView()
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
+    @button(label="🎲 抽獎管理面板", style=discord.ButtonStyle.primary, row=0)
+    async def lottery_panel_button(self, interaction: discord.Interaction, button: Button):
+        """抽獎管理面板"""
+        from potato_bot.views.lottery_views import LotteryManagementView
+
+        embed = discord.Embed(
+            title="🎲 抽獎系統管理面板",
+            description="使用圖形化界面管理抽獎系統",
+            color=0x3498DB,
+        )
+        embed.add_field(
+            name="🎯 主要功能",
+            value="• 🎲 創建新抽獎\n• 📋 管理活動抽獎\n• 📊 查看抽獎統計",
+            inline=False,
+        )
+        embed.add_field(
+            name="💡 使用說明",
+            value="點擊下方按鈕開始使用抽獎系統",
+            inline=False,
+        )
+
+        view = LotteryManagementView()
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
     @button(label="🗂️ 類別自動建立", style=discord.ButtonStyle.primary, row=0)
     async def category_auto_button(self, interaction: discord.Interaction, button: Button):
         """類別自動建立設定"""
@@ -3200,6 +3267,136 @@ class VotePanelRoleSelect(discord.ui.RoleSelect):
             await interaction.response.edit_message(embed=embed, view=view)
         else:
             await interaction.response.send_message("❌ 設定失敗，請稍後再試", ephemeral=True)
+
+
+class LotterySettingsView(View):
+    """抽獎系統設定視圖"""
+
+    def __init__(self, user_id: int, guild: discord.Guild, timeout=300):
+        super().__init__(timeout=timeout)
+        self.user_id = user_id
+        self.guild = guild
+        self.dao = LotteryDAO()
+
+    async def _build_lottery_settings_payload(self, **patch) -> dict:
+        current = await self.dao.get_lottery_settings(self.guild.id) or {}
+        payload = {
+            "default_duration_hours": current.get("default_duration_hours", 24),
+            "max_concurrent_lotteries": current.get("max_concurrent_lotteries", 3),
+            "allow_self_entry": current.get("allow_self_entry", True),
+            "require_boost": current.get("require_boost", False),
+            "log_channel_id": current.get("log_channel_id"),
+            "announcement_channel_id": current.get("announcement_channel_id"),
+            "admin_roles": current.get("admin_roles", []),
+        }
+        payload.update(patch)
+        return payload
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                "❌ 只有指令使用者可以操作此面板", ephemeral=True
+            )
+            return False
+        if not interaction.user.guild_permissions.manage_guild:
+            await interaction.response.send_message("❌ 需要管理伺服器權限", ephemeral=True)
+            return False
+        return True
+
+    @button(label="👥 設定面板身分組", style=discord.ButtonStyle.secondary, row=0)
+    async def set_lottery_panel_roles_button(
+        self, interaction: discord.Interaction, button: Button
+    ):
+        """設定抽獎面板可使用身分組"""
+        self.clear_items()
+        self.add_item(LotteryPanelRoleSelect(self, row=0))
+        self.add_item(BackToLotterySettingsButton(self.user_id, self.guild))
+
+        embed = discord.Embed(
+            title="👥 設定抽獎面板可使用身分組",
+            description="選擇可以使用 /lottery_panel 的身分組（可多選）",
+            color=0x3498DB,
+        )
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @button(label="🧹 清除面板身分組", style=discord.ButtonStyle.secondary, row=0)
+    async def clear_lottery_panel_roles_button(
+        self, interaction: discord.Interaction, button: Button
+    ):
+        """清除抽獎面板可使用身分組"""
+        payload = await self._build_lottery_settings_payload(admin_roles=[])
+        success = await self.dao.update_lottery_settings(self.guild.id, payload)
+
+        if success:
+            embed = discord.Embed(
+                title="✅ 已清除抽獎面板身分組",
+                description="現在僅管理員可使用抽獎面板",
+                color=0x2ECC71,
+            )
+        else:
+            embed = discord.Embed(
+                title="❌ 清除失敗",
+                description="更新設定時發生錯誤",
+                color=0xE74C3C,
+            )
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @button(label="🔄 重新整理", style=discord.ButtonStyle.secondary, row=1)
+    async def refresh_button(self, interaction: discord.Interaction, button: Button):
+        panel = SystemAdminPanel(self.user_id)
+        embed = await panel._create_lottery_settings_embed(self.guild)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @button(label="❌ 關閉", style=discord.ButtonStyle.danger, row=1)
+    async def close_button(self, interaction: discord.Interaction, button: Button):
+        embed = discord.Embed(title="✅ 抽獎系統設定已關閉", color=0x95A5A6)
+        await interaction.response.edit_message(embed=embed, view=None)
+
+
+class LotteryPanelRoleSelect(discord.ui.RoleSelect):
+    """抽獎面板可使用身分組選擇"""
+
+    def __init__(self, parent_view: LotterySettingsView, row: int | None = None):
+        self.parent_view = parent_view
+        super().__init__(
+            placeholder="選擇可使用抽獎面板的身分組（可多選）",
+            min_values=1,
+            max_values=10,
+            row=row,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        role_ids = [role.id for role in self.values]
+        payload = await self.parent_view._build_lottery_settings_payload(
+            admin_roles=role_ids
+        )
+        success = await self.parent_view.dao.update_lottery_settings(
+            self.parent_view.guild.id, payload
+        )
+
+        if success:
+            admin_panel = SystemAdminPanel(self.parent_view.user_id)
+            embed = await admin_panel._create_lottery_settings_embed(self.parent_view.guild)
+            view = LotterySettingsView(self.parent_view.user_id, self.parent_view.guild)
+            await interaction.response.edit_message(embed=embed, view=view)
+        else:
+            await interaction.response.send_message("❌ 設定失敗，請稍後再試", ephemeral=True)
+
+
+class BackToLotterySettingsButton(Button):
+    """返回抽獎設定按鈕"""
+
+    def __init__(self, user_id: int, guild: discord.Guild):
+        self.user_id = user_id
+        self.guild = guild
+        super().__init__(label="← 返回", style=discord.ButtonStyle.secondary)
+
+    async def callback(self, interaction: discord.Interaction):
+        admin_panel = SystemAdminPanel(self.user_id)
+        embed = await admin_panel._create_lottery_settings_embed(self.guild)
+        view = LotterySettingsView(self.user_id, self.guild)
+        await interaction.response.edit_message(embed=embed, view=view)
 
 
 class VoteChannelSelect(discord.ui.ChannelSelect):

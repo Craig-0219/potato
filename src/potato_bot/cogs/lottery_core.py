@@ -25,14 +25,48 @@ class LotteryCore(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.lottery_manager = LotteryManager(bot)
+        self.DISABLED_SLASH_COMMANDS = {
+            "create_lottery_quick",
+            "create_lottery",
+            "join_lottery",
+            "leave_lottery",
+            "lottery_info",
+            "end_lottery",
+            "lottery_list",
+            "lottery_stats",
+            "my_lottery_history",
+        }
+
+    @staticmethod
+    def _can_use_lottery_panel(
+        member: discord.Member, allowed_role_ids: list[int], is_owner: bool = False
+    ) -> bool:
+        if is_owner:
+            return True
+        if member.guild_permissions.administrator or member.guild_permissions.manage_guild:
+            return True
+        if not allowed_role_ids:
+            return False
+        member_role_ids = {role.id for role in member.roles}
+        return bool(member_role_ids & set(allowed_role_ids))
 
     @app_commands.command(name="lottery_panel", description="打開抽獎管理面板")
     async def lottery_panel(self, interaction: discord.Interaction):
         """打開抽獎管理面板"""
         try:
-            # 檢查基本權限 (查看需要)
-            if not interaction.user.guild_permissions.send_messages:
-                await interaction.response.send_message("❌ 您沒有權限使用此功能", ephemeral=True)
+            if not interaction.guild:
+                await interaction.response.send_message("❌ 僅能在伺服器中使用。", ephemeral=True)
+                return
+
+            settings = await self.lottery_manager.dao.get_lottery_settings(interaction.guild.id)
+            allowed_roles = settings.get("admin_roles", []) if settings else []
+            is_owner = await interaction.client.is_owner(interaction.user)
+
+            if not self._can_use_lottery_panel(interaction.user, allowed_roles, is_owner=is_owner):
+                await interaction.response.send_message(
+                    "❌ 你沒有使用抽獎面板的權限，請聯絡管理員設定可使用身分組。",
+                    ephemeral=True,
+                )
                 return
 
             view = LotteryManagementView()
@@ -560,4 +594,11 @@ class LotteryCore(commands.Cog):
 
 
 async def setup(bot):
-    await bot.add_cog(LotteryCore(bot))
+    cog = LotteryCore(bot)
+    await bot.add_cog(cog)
+
+    try:
+        for name in cog.DISABLED_SLASH_COMMANDS:
+            bot.tree.remove_command(name, type=discord.AppCommandType.chat_input)
+    except Exception:
+        pass

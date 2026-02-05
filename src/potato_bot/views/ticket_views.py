@@ -123,19 +123,19 @@ class PrioritySelect(Select):
 
         options = [
             discord.SelectOption(
-                label="🔴 高優先級 - 緊急問題",
+                label="高優先級 - 緊急問題",
                 value="high",
                 description="緊急問題、系統故障、安全問題",
                 emoji="🔴",
             ),
             discord.SelectOption(
-                label="🟡 中優先級 - 一般問題",
+                label="中優先級 - 一般問題",
                 value="medium",
                 description="一般問題、功能諮詢（推薦選項）",
                 emoji="🟡",
             ),
             discord.SelectOption(
-                label="🟢 低優先級 - 非緊急問題",
+                label="低優先級 - 非緊急問題",
                 value="low",
                 description="建議回饋、非緊急問題",
                 emoji="🟢",

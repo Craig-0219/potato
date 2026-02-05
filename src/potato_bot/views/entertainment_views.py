@@ -243,15 +243,15 @@ class RockPaperScissorsView(discord.ui.View):
             return False
         return True
 
-    @discord.ui.button(label="✂️ 剪刀", style=discord.ButtonStyle.primary, emoji="✂️")
+    @discord.ui.button(label="剪刀", style=discord.ButtonStyle.primary, emoji="✂️")
     async def scissors(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.play_round(interaction, "scissors", "✂️")
 
-    @discord.ui.button(label="🗿 石頭", style=discord.ButtonStyle.primary, emoji="🗿")
+    @discord.ui.button(label="石頭", style=discord.ButtonStyle.primary, emoji="🗿")
     async def rock(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.play_round(interaction, "rock", "🗿")
 
-    @discord.ui.button(label="📄 布", style=discord.ButtonStyle.primary, emoji="📄")
+    @discord.ui.button(label="布", style=discord.ButtonStyle.primary, emoji="📄")
     async def paper(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.play_round(interaction, "paper", "📄")
 

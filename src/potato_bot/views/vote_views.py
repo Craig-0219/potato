@@ -210,7 +210,7 @@ class VoteSubmitButton(discord.ui.Button):
     """投票提交按鈕 - 用於多選投票"""
 
     def __init__(self, vote_id: int, selected_options: List[str]):
-        super().__init__(label="✅ 提交投票", style=discord.ButtonStyle.success, emoji="✅")
+        super().__init__(label="提交投票", style=discord.ButtonStyle.success, emoji="✅")
         self.vote_id = vote_id
         self.selected_options = selected_options
 
@@ -558,7 +558,7 @@ class CreateVoteButton(ui.Button):
 
     def __init__(self):
         super().__init__(
-            label="✅ 創建投票",
+            label="創建投票",
             style=discord.ButtonStyle.success,
             emoji="✅",
             custom_id="create_vote",
@@ -645,7 +645,7 @@ class CancelConfigButton(ui.Button):
 
     def __init__(self):
         super().__init__(
-            label="❌ 取消",
+            label="取消",
             style=discord.ButtonStyle.danger,
             emoji="❌",
             custom_id="cancel_config",
@@ -666,7 +666,7 @@ class VoteCreationConfirmView(ui.View):
         super().__init__(timeout=120)
         self.vote_config = vote_config
 
-    @ui.button(label="✅ 創建投票", style=discord.ButtonStyle.green, emoji="✅")
+    @ui.button(label="創建投票", style=discord.ButtonStyle.green, emoji="✅")
     async def confirm_creation(self, interaction: discord.Interaction, button: ui.Button):
         """確認創建投票"""
         try:
@@ -740,7 +740,7 @@ class VoteCreationConfirmView(ui.View):
             logger.error(f"確認創建投票失敗: {e}")
             await interaction.followup.send("❌ 創建投票時發生錯誤", ephemeral=True)
 
-    @ui.button(label="❌ 取消", style=discord.ButtonStyle.grey, emoji="❌")
+    @ui.button(label="取消", style=discord.ButtonStyle.grey, emoji="❌")
     async def cancel_creation(self, interaction: discord.Interaction, button: ui.Button):
         """取消創建"""
         await interaction.response.send_message("❌ 已取消創建投票", ephemeral=True)
@@ -836,7 +836,7 @@ class ActiveVotesButton(ui.Button):
 
     def __init__(self, guild_id: int):
         super().__init__(
-            label="🗳️ 活動投票",
+            label="活動投票",
             style=discord.ButtonStyle.primary,
             emoji="🗳️",
             row=0,
@@ -882,7 +882,7 @@ class VoteHistoryButton(ui.Button):
 
     def __init__(self, guild_id: int):
         super().__init__(
-            label="📋 投票歷史",
+            label="投票歷史",
             style=discord.ButtonStyle.secondary,
             emoji="📋",
             row=0,
@@ -928,7 +928,7 @@ class VoteAnalyticsButton(ui.Button):
 
     def __init__(self, guild_id: int):
         super().__init__(
-            label="📈 數據分析",
+            label="數據分析",
             style=discord.ButtonStyle.secondary,
             emoji="📈",
             row=1,
@@ -945,7 +945,7 @@ class ExportDataButton(ui.Button):
 
     def __init__(self, guild_id: int):
         super().__init__(
-            label="📥 匯出資料",
+            label="匯出資料",
             style=discord.ButtonStyle.secondary,
             emoji="📥",
             row=1,
