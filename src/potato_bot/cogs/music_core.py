@@ -440,8 +440,8 @@ class MusicCore(commands.Cog):
         await self.ensure_lavalink_ready()
 
     @commands.Cog.listener()
-    async def on_wavelink_node_ready(self, node: wavelink.Node):
-        logger.info("✅ Lavalink Node 已就緒: %s", node.identifier)
+    async def on_wavelink_node_ready(self, payload: wavelink.NodeReadyEventPayload):
+        logger.info("✅ Lavalink Node 已就緒: %s", payload.node.identifier)
 
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, payload):
