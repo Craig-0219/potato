@@ -440,8 +440,15 @@ class MusicCore(commands.Cog):
         await self.ensure_lavalink_ready()
 
     @commands.Cog.listener()
-    async def on_wavelink_node_ready(self, payload: wavelink.NodeReadyEventPayload):
-        logger.info("✅ Lavalink Node 已就緒: %s", payload.node.identifier)
+    async def on_wavelink_node_ready(self, *args, **kwargs):
+        """支援不同版本的 NodeReady 事件 payload"""
+        try:
+            payload = args[0] if args else kwargs.get("payload") or kwargs.get("node")
+            node = getattr(payload, "node", None) or payload
+            identifier = getattr(node, "identifier", "unknown")
+            logger.info("✅ Lavalink Node 已就緒: %s", identifier)
+        except Exception as exc:
+            logger.error("處理 Lavalink NodeReady 事件失敗: %s", exc)
 
     @commands.Cog.listener()
     async def on_wavelink_track_end(self, payload):
