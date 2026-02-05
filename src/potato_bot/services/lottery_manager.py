@@ -6,13 +6,13 @@
 
 import asyncio
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Tuple
 
 import discord
 from discord.ext import tasks
 
-from potato_bot.db.lottery_dao import LotteryDAO
+from potato_bot.db.lottery_dao import LotteryDAO, LotteryData
 from potato_bot.utils.embed_builder import EmbedBuilder
 from potato_shared.logger import logger
 
@@ -39,6 +39,146 @@ class LotteryManager:
     def _is_cache_valid(self, timestamp: datetime) -> bool:
         """檢查快取是否有效"""
         return (datetime.now() - timestamp).total_seconds() < self._cache_timeout
+
+    async def create_lottery(
+        self, guild: discord.Guild, user: discord.Member, config: Dict[str, Any]
+    ) -> Tuple[bool, str, Optional[int]]:
+        """建立抽獎並回傳抽獎 ID"""
+        try:
+            if not guild or not user:
+                return False, "❌ 無效的伺服器或使用者資訊", None
+
+            settings = await self.dao.get_lottery_settings(guild.id)
+
+            # 權限檢查：管理訊息或管理員角色
+            if not (user.guild_permissions.manage_messages or await self._check_lottery_permission(user, settings)):
+                return False, "❌ 您沒有權限建立抽獎", None
+
+            # 同時進行中的抽獎數量限制
+            max_concurrent = settings.get("max_concurrent_lotteries", 3) or 3
+            active_lotteries = await self.dao.get_active_lotteries(guild.id)
+            if max_concurrent and len(active_lotteries) >= max_concurrent:
+                return (
+                    False,
+                    f"❌ 目前進行中的抽獎已達上限 ({max_concurrent})",
+                    None,
+                )
+
+            name = (config.get("name") or "").strip()
+            if not name:
+                return False, "❌ 抽獎名稱不得為空", None
+
+            channel_id = config.get("channel_id")
+            if not channel_id:
+                return False, "❌ 需要指定抽獎頻道", None
+
+            duration_hours = config.get("duration_hours")
+            if duration_hours is None:
+                duration_hours = settings.get("default_duration_hours", 24)
+
+            try:
+                duration_hours = int(duration_hours)
+            except (TypeError, ValueError):
+                return False, "❌ 抽獎時長必須為數字", None
+
+            if duration_hours < 1 or duration_hours > 168:
+                return False, "❌ 抽獎時長需在 1-168 小時之間", None
+
+            winner_count = config.get("winner_count", 1)
+            try:
+                winner_count = int(winner_count)
+            except (TypeError, ValueError):
+                return False, "❌ 中獎人數必須為數字", None
+
+            if winner_count < 1 or winner_count > 50:
+                return False, "❌ 中獎人數需在 1-50 之間", None
+
+            entry_method = config.get("entry_method", "reaction")
+            if entry_method not in {"reaction", "command", "both"}:
+                entry_method = "reaction"
+
+            prize_data = config.get("prize_data")
+            if prize_data is None and config.get("prize"):
+                prize_data = {"description": config.get("prize")}
+
+            start_time = datetime.now()
+            end_time = start_time + timedelta(hours=duration_hours)
+
+            lottery_data = LotteryData(
+                guild_id=guild.id,
+                name=name,
+                description=config.get("description"),
+                creator_id=user.id,
+                channel_id=channel_id,
+                prize_type=config.get("prize_type", "custom"),
+                prize_data=prize_data,
+                winner_count=winner_count,
+                entry_method=entry_method,
+                required_roles=config.get("required_roles"),
+                excluded_roles=config.get("excluded_roles"),
+                min_account_age_days=config.get("min_account_age_days", 0) or 0,
+                min_server_join_days=config.get("min_server_join_days", 0) or 0,
+                start_time=start_time,
+                end_time=end_time,
+                auto_end=config.get("auto_end", True),
+            )
+
+            lottery_id = await self.dao.create_lottery(lottery_data)
+            return True, "抽獎已建立", lottery_id
+
+        except Exception as e:
+            logger.error(f"建立抽獎失敗: {e}")
+            return False, f"❌ 建立抽獎失敗: {str(e)}", None
+
+    async def start_lottery(
+        self, lottery_id: int, channel: Optional[discord.TextChannel] = None
+    ) -> Tuple[bool, str, Optional[discord.Message]]:
+        """啟動抽獎並發佈訊息"""
+        try:
+            lottery = await self.dao.get_lottery(lottery_id)
+            if not lottery:
+                return False, "❌ 抽獎不存在", None
+
+            if lottery.get("status") == "active":
+                return False, "❌ 抽獎已在進行中", None
+            if lottery.get("status") in {"ended", "cancelled"}:
+                return False, f"❌ 抽獎狀態不允許啟動 ({lottery.get('status')})", None
+
+            # 取得頻道
+            if channel is None and self.bot:
+                channel = self.bot.get_channel(lottery["channel_id"])
+            if channel is None:
+                return False, "❌ 無法取得抽獎頻道", None
+
+            embed = await self._create_lottery_embed(lottery)
+
+            view = None
+            if lottery.get("entry_method") in {"command", "both"}:
+                from potato_bot.views.lottery_views import LotteryParticipationView
+
+                view = LotteryParticipationView(lottery_id)
+
+            message = await channel.send(embed=embed, view=view)
+
+            # 加入反應 (reaction/both)
+            if lottery.get("entry_method") in {"reaction", "both"}:
+                try:
+                    await message.add_reaction("🎉")
+                except Exception:
+                    pass
+
+            # 更新狀態與訊息 ID
+            await self.dao.update_lottery_status(lottery_id, "active", message_id=message.id)
+
+            # 排程自動結束
+            if lottery.get("auto_end", True):
+                await self._schedule_lottery_end(lottery_id, lottery["end_time"])
+
+            return True, "抽獎已開始", message
+
+        except Exception as e:
+            logger.error(f"啟動抽獎失敗: {e}")
+            return False, f"❌ 啟動抽獎失敗: {str(e)}", None
 
     async def _get_cached_or_fetch(self, cache_key: str, fetch_func, *args):
         """獲取快取或重新獲取"""

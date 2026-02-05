@@ -359,7 +359,7 @@ class LotteryManagementView(ui.View):
         super().__init__(timeout=300)
         self.lottery_manager = LotteryManager()
 
-    @ui.button(label="🎲 創建新抽獎", style=discord.ButtonStyle.primary, emoji="🎲")
+    @ui.button(label="創建新抽獎", style=discord.ButtonStyle.primary, emoji="🎲")
     async def create_new_lottery(self, interaction: discord.Interaction, button: ui.Button):
         """創建新抽獎"""
         if not interaction.user.guild_permissions.manage_messages:
@@ -371,7 +371,7 @@ class LotteryManagementView(ui.View):
         modal = LotteryCreationModal()
         await interaction.response.send_modal(modal)
 
-    @ui.button(label="📋 活動抽獎", style=discord.ButtonStyle.secondary, emoji="📋")
+    @ui.button(label="活動抽獎", style=discord.ButtonStyle.secondary, emoji="📋")
     async def active_lotteries(self, interaction: discord.Interaction, button: ui.Button):
         """查看活動抽獎"""
         try:
@@ -415,7 +415,7 @@ class LotteryManagementView(ui.View):
             logger.error(f"獲取活動抽獎失敗: {e}")
             await interaction.followup.send("❌ 獲取活動抽獎時發生錯誤", ephemeral=True)
 
-    @ui.button(label="📊 統計儀表板", style=discord.ButtonStyle.secondary, emoji="📊")
+    @ui.button(label="統計儀表板", style=discord.ButtonStyle.secondary, emoji="📊")
     async def lottery_statistics(self, interaction: discord.Interaction, button: ui.Button):
         """打開統計儀表板"""
         try:

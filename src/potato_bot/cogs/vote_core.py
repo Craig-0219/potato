@@ -30,6 +30,18 @@ from potato_shared.logger import logger
 class VoteCore(ManagedCog):
     _vote_cache: Dict[str, Dict[str, Any]] = {}  # 投票資料快取
     _cache_timeout = 300  # 快取 5 分鐘
+    DISABLED_SLASH_COMMANDS = {
+        "vote",
+        "quick_vote",
+        "votes",
+        "vote_result",
+        "vote_open",
+        "vote_close",
+        "vote_history",
+        "vote_detail",
+        "my_votes",
+        "vote_search",
+    }
 
     def __init__(self, bot):
         super().__init__(bot)
@@ -190,10 +202,19 @@ class VoteCore(ManagedCog):
             await interaction.response.send_message("❌ 啟動快速投票時發生錯誤", ephemeral=True)
 
     @app_commands.command(name="vote_panel", description="📊 投票管理面板")
-    @app_commands.default_permissions(manage_messages=True)
     async def vote_panel(self, interaction: discord.Interaction):
         """顯示投票管理面板"""
         try:
+            settings = await vote_dao.get_vote_settings(interaction.guild.id)
+            allowed_roles = settings.get("allowed_creator_roles", []) if settings else []
+
+            if not self._can_use_vote_panel(interaction.user, allowed_roles):
+                await interaction.response.send_message(
+                    "❌ 你沒有使用投票面板的權限，請聯絡管理員設定可使用身分組。",
+                    ephemeral=True,
+                )
+                return
+
             embed = discord.Embed(
                 title="🗳️ 投票系統管理面板",
                 description="使用現代化GUI界面管理投票系統",
@@ -217,6 +238,15 @@ class VoteCore(ManagedCog):
 
         except Exception as e:
             logger.error(f"投票面板命令錯誤: {e}")
+
+    @staticmethod
+    def _can_use_vote_panel(member: discord.Member, allowed_role_ids: List[int]) -> bool:
+        if member.guild_permissions.administrator or member.guild_permissions.manage_guild:
+            return True
+        if not allowed_role_ids:
+            return False
+        member_role_ids = {role.id for role in member.roles}
+        return bool(member_role_ids & set(allowed_role_ids))
 
     @app_commands.command(
         name="votes",
@@ -1121,4 +1151,11 @@ class NextPageButton(discord.ui.Button):
 
 
 async def setup(bot):
-    await bot.add_cog(VoteCore(bot))
+    cog = VoteCore(bot)
+    await bot.add_cog(cog)
+
+    try:
+        for name in cog.DISABLED_SLASH_COMMANDS:
+            bot.tree.remove_command(name, type=discord.AppCommandType.chat_input)
+    except Exception:
+        pass

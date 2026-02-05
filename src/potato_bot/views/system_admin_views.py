@@ -318,6 +318,19 @@ class SystemAdminPanel(BaseView):
             )
 
             embed.add_field(name="⚙️ 功能開關", value="\n".join(features), inline=True)
+
+            allowed_roles = vote_settings.get("allowed_creator_roles", []) or []
+            if allowed_roles:
+                role_text = "、".join(
+                    role.mention
+                    for role in (guild.get_role(role_id) for role_id in allowed_roles)
+                    if role
+                )
+                if not role_text:
+                    role_text = "未設定（僅管理員可用）"
+            else:
+                role_text = "未設定（僅管理員可用）"
+            embed.add_field(name="👥 面板權限", value=role_text, inline=False)
         else:
             embed.add_field(
                 name="⚠️ 系統狀態",
@@ -570,6 +583,12 @@ class SystemAdminPanel(BaseView):
         embed.add_field(
             name="💬 自動回覆",
             value="• @ 指定成員自動回覆\n• 管理回覆內容",
+            inline=True,
+        )
+
+        embed.add_field(
+            name="🗳️ 投票管理面板",
+            value="• 管理投票建立\n• 查看投票統計",
             inline=True,
         )
 
@@ -2127,6 +2146,29 @@ class SystemToolsView(View):
         except Exception:
             pass
 
+    @button(label="🗳️ 投票管理面板", style=discord.ButtonStyle.primary, row=0)
+    async def vote_panel_button(self, interaction: discord.Interaction, button: Button):
+        """投票管理面板"""
+        from potato_bot.views.vote_views import VoteManagementView
+
+        embed = discord.Embed(
+            title="🗳️ 投票系統管理面板",
+            description="使用現代化GUI界面管理投票系統",
+            color=0x3498DB,
+        )
+        embed.add_field(
+            name="🎯 主要功能",
+            value="• 🗳️ 創建新投票\n• ⚙️ 管理現有投票\n• 📊 查看投票統計",
+            inline=False,
+        )
+        embed.add_field(
+            name="💡 使用說明",
+            value="點擊下方按鈕開始使用投票系統",
+            inline=False,
+        )
+        view = VoteManagementView()
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
     @button(label="🗂️ 類別自動建立", style=discord.ButtonStyle.primary, row=0)
     async def category_auto_button(self, interaction: discord.Interaction, button: Button):
         """類別自動建立設定"""
@@ -2905,6 +2947,23 @@ class VoteSettingsView(View):
         super().__init__(timeout=timeout)
         self.user_id = user_id
 
+    async def _build_vote_settings_payload(self, guild_id: int, **patch) -> dict:
+        current = await vote_dao.get_vote_settings(guild_id) or {}
+        payload = {
+            "default_vote_channel_id": current.get("default_vote_channel_id"),
+            "announcement_channel_id": current.get("announcement_channel_id"),
+            "max_vote_duration_hours": current.get("max_vote_duration_hours", 72),
+            "min_vote_duration_minutes": current.get("min_vote_duration_minutes", 60),
+            "require_role_to_create": current.get("require_role_to_create", False),
+            "allowed_creator_roles": current.get("allowed_creator_roles", []),
+            "auto_announce_results": current.get("auto_announce_results", True),
+            "allow_anonymous_votes": current.get("allow_anonymous_votes", True),
+            "allow_multi_choice": current.get("allow_multi_choice", True),
+            "is_enabled": current.get("is_enabled", True),
+        }
+        payload.update(patch)
+        return payload
+
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         """檢查用戶權限"""
         if interaction.user.id != self.user_id:
@@ -3002,9 +3061,10 @@ class VoteSettingsView(View):
 
         # 切換狀態
         new_enabled = not current_enabled
-        success = await vote_dao.update_vote_settings(
-            interaction.guild.id, {"is_enabled": new_enabled}
+        payload = await self._build_vote_settings_payload(
+            interaction.guild.id, is_enabled=new_enabled
         )
+        success = await vote_dao.update_vote_settings(interaction.guild.id, payload)
 
         if success:
             status = "啟用" if new_enabled else "停用"
@@ -3018,6 +3078,50 @@ class VoteSettingsView(View):
             embed = discord.Embed(
                 title="❌ 操作失敗",
                 description="切換系統狀態時發生錯誤",
+                color=0xE74C3C,
+            )
+
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
+    @button(label="👥 設定面板身分組", style=discord.ButtonStyle.secondary, row=1)
+    async def set_vote_panel_roles_button(
+        self, interaction: discord.Interaction, button: Button
+    ):
+        """設定投票面板可使用身分組"""
+        self.clear_items()
+        self.add_item(VotePanelRoleSelect(self, row=0))
+        self.add_item(BackToVoteSettingsButton(self.user_id))
+
+        embed = discord.Embed(
+            title="👥 設定投票面板可使用身分組",
+            description="選擇可以使用 /vote_panel 的身分組（可多選）",
+            color=0x3498DB,
+        )
+
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @button(label="🧹 清除面板身分組", style=discord.ButtonStyle.secondary, row=1)
+    async def clear_vote_panel_roles_button(
+        self, interaction: discord.Interaction, button: Button
+    ):
+        """清除投票面板可使用身分組"""
+        payload = await self._build_vote_settings_payload(
+            interaction.guild.id,
+            allowed_creator_roles=[],
+            require_role_to_create=False,
+        )
+        success = await vote_dao.update_vote_settings(interaction.guild.id, payload)
+
+        if success:
+            embed = discord.Embed(
+                title="✅ 已清除投票面板身分組",
+                description="現在僅管理員可使用投票面板",
+                color=0x2ECC71,
+            )
+        else:
+            embed = discord.Embed(
+                title="❌ 清除失敗",
+                description="更新設定時發生錯誤",
                 color=0xE74C3C,
             )
 
@@ -3066,6 +3170,36 @@ class VoteSettingsView(View):
                 )
 
         return embed
+
+
+class VotePanelRoleSelect(discord.ui.RoleSelect):
+    """投票面板可使用身分組選擇"""
+
+    def __init__(self, parent_view: VoteSettingsView, row: int | None = None):
+        self.parent_view = parent_view
+        super().__init__(
+            placeholder="選擇可使用投票面板的身分組（可多選）",
+            min_values=1,
+            max_values=10,
+            row=row,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        role_ids = [role.id for role in self.values]
+        payload = await self.parent_view._build_vote_settings_payload(
+            interaction.guild.id,
+            allowed_creator_roles=role_ids,
+            require_role_to_create=True,
+        )
+        success = await vote_dao.update_vote_settings(interaction.guild.id, payload)
+
+        if success:
+            admin_panel = SystemAdminPanel(self.parent_view.user_id)
+            embed = await admin_panel._create_vote_settings_embed(interaction.guild)
+            view = VoteSettingsView(self.parent_view.user_id)
+            await interaction.response.edit_message(embed=embed, view=view)
+        else:
+            await interaction.response.send_message("❌ 設定失敗，請稍後再試", ephemeral=True)
 
 
 class VoteChannelSelect(discord.ui.ChannelSelect):
