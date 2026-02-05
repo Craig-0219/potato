@@ -9,11 +9,16 @@ import discord
 from discord.ui import Button, ChannelSelect, Modal, RoleSelect, Select, TextInput, View, button
 
 from potato_bot.db import vote_dao
+from potato_bot.db.category_auto_dao import CategoryAutoDAO
 from potato_bot.db.auto_reply_dao import AutoReplyDAO
 from potato_bot.db.resume_dao import ResumeDAO
 from potato_bot.db.pool import db_pool
 from potato_bot.db.ticket_dao import TicketDAO
 from potato_bot.db.welcome_dao import WelcomeDAO
+from potato_bot.services.category_auto_service import (
+    build_manager_overwrites,
+    can_use_category_auto,
+)
 from potato_bot.services.data_cleanup_manager import DataCleanupManager
 from potato_bot.services.resume_service import ResumePanelService, ResumeService
 from potato_bot.services.welcome_manager import WelcomeManager
@@ -565,6 +570,12 @@ class SystemAdminPanel(BaseView):
         embed.add_field(
             name="💬 自動回覆",
             value="• @ 指定成員自動回覆\n• 管理回覆內容",
+            inline=True,
+        )
+
+        embed.add_field(
+            name="🗂️ 類別自動建立",
+            value="• 批量建立類別\n• 設定可用身分組與管理身分組",
             inline=True,
         )
 
@@ -1582,7 +1593,7 @@ class ResumeBackToSystemButton(Button):
         )
         embed.add_field(
             name="📊 功能模組",
-            value="• 🎫 票券系統設定\n• 🎉 歡迎系統設定\n• 🗳️ 投票系統設定\n• 🛂 入境審核設定\n• 🧾 履歷系統設定\n• 📊 系統狀態\n• 🔧 系統工具",
+            value="• 🎫 票券系統設定\n• 🎉 歡迎系統設定\n• 🗳️ 投票系統設定\n• 🛂 入境審核設定\n• 🧾 履歷系統設定\n• 📊 系統狀態\n• 🔧 系統工具\n• 🗂️ 類別自動建立",
             inline=False,
         )
         embed.add_field(
@@ -2116,6 +2127,13 @@ class SystemToolsView(View):
         except Exception:
             pass
 
+    @button(label="🗂️ 類別自動建立", style=discord.ButtonStyle.primary, row=0)
+    async def category_auto_button(self, interaction: discord.Interaction, button: Button):
+        """類別自動建立設定"""
+        view = CategoryAutoSettingsView(self.user_id, interaction.guild)
+        embed = await view.build_embed()
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
     @button(label="🗑️ 清空頻道", style=discord.ButtonStyle.danger, row=1)
     async def clear_channel_button(self, interaction: discord.Interaction, button: Button):
         """清空頻道訊息"""
@@ -2154,6 +2172,344 @@ class SystemToolsView(View):
                     await interaction.followup.send("❌ 開啟清空頻道面板時發生錯誤", ephemeral=True)
             except:
                 pass
+
+
+# ========== 類別自動建立 ==========
+
+
+CATEGORY_BULK_LIMIT = 20
+
+
+def _format_name_list(names: list[str], limit: int = 10) -> str:
+    if not names:
+        return "無"
+    lines = [f"• {name}" for name in names[:limit]]
+    if len(names) > limit:
+        lines.append(f"... 其餘 {len(names) - limit} 個")
+    return "\n".join(lines)
+
+
+class CategoryAutoSettingsView(View):
+    """類別自動建立設定面板"""
+
+    def __init__(self, user_id: int, guild: discord.Guild, timeout=300):
+        super().__init__(timeout=timeout)
+        self.user_id = user_id
+        self.guild = guild
+        self.dao = CategoryAutoDAO()
+
+        self.add_item(CategoryAutoAllowedRoleSelect(self, row=0))
+        self.add_item(CategoryAutoManagerRoleSelect(self, row=1))
+        self.add_item(CategoryAutoBulkCreateButton(self, row=2))
+        self.add_item(CategoryAutoClearAllowedRolesButton(self, row=2))
+        self.add_item(CategoryAutoClearManagerRolesButton(self, row=2))
+        self.add_item(ResumeBackToSystemButton(user_id, guild, row=3))
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 只有開啟此面板的管理員可設定", ephemeral=True)
+            return False
+        return True
+
+    async def build_embed(self, notice: str | None = None) -> discord.Embed:
+        settings = await self.dao.get_settings(self.guild.id)
+        allowed_roles = settings.get("allowed_role_ids", [])
+        manager_roles = settings.get("manager_role_ids", [])
+
+        allowed_text = (
+            "未設定（僅管理員/擁有者可使用）"
+            if not allowed_roles
+            else "、".join(
+                role.mention
+                for role in (self.guild.get_role(rid) for rid in allowed_roles)
+                if role
+            )
+        )
+        if not allowed_text:
+            allowed_text = "未設定（僅管理員/擁有者可使用）"
+
+        manager_text = (
+            "未設定（不額外授權）"
+            if not manager_roles
+            else "、".join(
+                role.mention
+                for role in (self.guild.get_role(rid) for rid in manager_roles)
+                if role
+            )
+        )
+        if not manager_text:
+            manager_text = "未設定（不額外授權）"
+
+        embed = discord.Embed(
+            title="🗂️ 類別自動建立設定",
+            description="設定可使用者與預設管理身分組，並提供批量建立類別工具。",
+            color=0x3498DB,
+        )
+        embed.add_field(name="可使用身分組", value=allowed_text, inline=False)
+        embed.add_field(name="預設管理身分組", value=manager_text, inline=False)
+        embed.add_field(
+            name="批量建立",
+            value=f"點擊「批量建立類別」後，輸入每行一個類別名稱（每次最多 {CATEGORY_BULK_LIMIT} 個）。",
+            inline=False,
+        )
+        if notice:
+            embed.add_field(name="提示", value=notice, inline=False)
+        return embed
+
+    async def update_panel(
+        self, interaction: discord.Interaction | None = None, notice: str | None = None
+    ) -> None:
+        embed = await self.build_embed(notice=notice)
+        if interaction:
+            if interaction.response.is_done():
+                await interaction.edit_original_response(embed=embed, view=self)
+            else:
+                await interaction.response.edit_message(embed=embed, view=self)
+            return
+
+    async def save_settings(self, interaction: discord.Interaction, **patch) -> None:
+        await self.dao.save_settings(self.guild.id, **patch)
+        await self.update_panel(interaction, notice="✅ 設定已更新")
+
+    async def open_bulk_create_modal(self, interaction: discord.Interaction) -> None:
+        modal = CategoryAutoBulkCreateModal(self, self.guild, self.dao, self.user_id)
+        await interaction.response.send_modal(modal)
+
+
+class CategoryAutoCreateView(View):
+    """類別批量建立面板（一般使用者）"""
+
+    def __init__(self, user_id: int, guild: discord.Guild, timeout=300):
+        super().__init__(timeout=timeout)
+        self.user_id = user_id
+        self.guild = guild
+        self.dao = CategoryAutoDAO()
+
+        self.add_item(CategoryAutoBulkCreateButton(self, row=0))
+        self.add_item(CategoryAutoCloseButton(row=1))
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 只有開啟此面板者可以操作", ephemeral=True)
+            return False
+        return True
+
+    async def open_bulk_create_modal(self, interaction: discord.Interaction) -> None:
+        modal = CategoryAutoBulkCreateModal(self, self.guild, self.dao, self.user_id)
+        await interaction.response.send_modal(modal)
+
+
+class CategoryAutoAllowedRoleSelect(discord.ui.RoleSelect):
+    """可使用身分組選擇"""
+
+    def __init__(self, parent_view: CategoryAutoSettingsView, row: int | None = None):
+        self.parent_view = parent_view
+        super().__init__(
+            placeholder="選擇可使用身分組（可多選）",
+            min_values=1,
+            max_values=10,
+            row=row,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        role_ids = [role.id for role in self.values]
+        await self.parent_view.save_settings(interaction, allowed_role_ids=role_ids)
+
+
+class CategoryAutoManagerRoleSelect(discord.ui.RoleSelect):
+    """預設管理身分組選擇"""
+
+    def __init__(self, parent_view: CategoryAutoSettingsView, row: int | None = None):
+        self.parent_view = parent_view
+        super().__init__(
+            placeholder="選擇預設管理身分組（可多選）",
+            min_values=1,
+            max_values=10,
+            row=row,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        role_ids = [role.id for role in self.values]
+        await self.parent_view.save_settings(interaction, manager_role_ids=role_ids)
+
+
+class CategoryAutoClearAllowedRolesButton(Button):
+    """清除可使用身分組"""
+
+    def __init__(self, parent_view: CategoryAutoSettingsView, row: int | None = None):
+        super().__init__(label="🧹 清除可使用身分組", style=discord.ButtonStyle.secondary, row=row)
+        self.parent_view = parent_view
+
+    async def callback(self, interaction: discord.Interaction):
+        await self.parent_view.save_settings(interaction, allowed_role_ids=[])
+
+
+class CategoryAutoClearManagerRolesButton(Button):
+    """清除預設管理身分組"""
+
+    def __init__(self, parent_view: CategoryAutoSettingsView, row: int | None = None):
+        super().__init__(label="🧹 清除管理身分組", style=discord.ButtonStyle.secondary, row=row)
+        self.parent_view = parent_view
+
+    async def callback(self, interaction: discord.Interaction):
+        await self.parent_view.save_settings(interaction, manager_role_ids=[])
+
+
+class CategoryAutoBulkCreateButton(Button):
+    """批量建立類別按鈕"""
+
+    def __init__(self, parent_view, row: int | None = None):
+        super().__init__(label="➕ 批量建立類別", style=discord.ButtonStyle.success, row=row)
+        self.parent_view = parent_view
+
+    async def callback(self, interaction: discord.Interaction):
+        await self.parent_view.open_bulk_create_modal(interaction)
+
+
+class CategoryAutoCloseButton(Button):
+    """關閉類別批量建立面板"""
+
+    def __init__(self, row: int | None = None):
+        super().__init__(label="❌ 關閉面板", style=discord.ButtonStyle.danger, row=row)
+
+    async def callback(self, interaction: discord.Interaction):
+        embed = discord.Embed(
+            title="✅ 面板已關閉",
+            description="類別批量建立面板已關閉",
+            color=0x95A5A6,
+        )
+        await interaction.response.edit_message(embed=embed, view=None)
+
+
+class CategoryAutoBulkCreateModal(Modal):
+    """批量建立類別表單"""
+
+    def __init__(
+        self,
+        parent_view,
+        guild: discord.Guild,
+        dao: CategoryAutoDAO,
+        user_id: int,
+    ):
+        super().__init__(title="批量建立類別", timeout=300)
+        self.parent_view = parent_view
+        self.guild = guild
+        self.dao = dao
+        self.user_id = user_id
+
+        self.names_input = TextInput(
+            label="類別名稱（每行一個）",
+            style=discord.TextStyle.paragraph,
+            max_length=1000,
+            required=True,
+            placeholder="範例：\n行政部\n財務部\n市場部",
+        )
+        self.add_item(self.names_input)
+
+    @staticmethod
+    def _parse_names(raw_text: str) -> list[str]:
+        if not raw_text:
+            return []
+        lines: list[str] = []
+        for line in raw_text.replace(",", "\n").splitlines():
+            cleaned = line.strip()
+            if cleaned:
+                lines.append(cleaned)
+        # 去重（保留順序）
+        seen = set()
+        unique: list[str] = []
+        for name in lines:
+            key = name.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            unique.append(name)
+        return unique
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if not interaction.guild:
+            await interaction.response.send_message("❌ 此功能僅能在伺服器中使用", ephemeral=True)
+            return
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 只有開啟面板者可操作", ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=True)
+
+        settings = await self.dao.get_settings(self.guild.id)
+        allowed_roles = settings.get("allowed_role_ids", [])
+        is_owner = False
+        try:
+            is_owner = await interaction.client.is_owner(interaction.user)
+        except Exception:
+            is_owner = False
+
+        if not can_use_category_auto(interaction.user, allowed_roles, is_owner=is_owner):
+            await interaction.followup.send("❌ 你沒有使用此功能的權限", ephemeral=True)
+            return
+
+        bot_member = interaction.guild.get_member(interaction.client.user.id)
+        if not bot_member or not bot_member.guild_permissions.manage_channels:
+            await interaction.followup.send("❌ 機器人缺少管理頻道權限", ephemeral=True)
+            return
+
+        manager_roles = settings.get("manager_role_ids", [])
+        overwrites = build_manager_overwrites(self.guild, manager_roles)
+
+        names = self._parse_names(self.names_input.value)
+        if not names:
+            await interaction.followup.send("❌ 沒有有效的類別名稱", ephemeral=True)
+            return
+
+        extras = 0
+        if len(names) > CATEGORY_BULK_LIMIT:
+            extras = len(names) - CATEGORY_BULK_LIMIT
+            names = names[:CATEGORY_BULK_LIMIT]
+
+        existing = {category.name.casefold() for category in self.guild.categories}
+        created: list[str] = []
+        skipped: list[str] = []
+        failed: list[str] = []
+
+        for name in names:
+            if len(name) > 100:
+                skipped.append(f"{name[:100]}（名稱過長）")
+                continue
+            key = name.casefold()
+            if key in existing:
+                skipped.append(f"{name}（已存在）")
+                continue
+            try:
+                await self.guild.create_category(
+                    name=name,
+                    overwrites=overwrites or None,
+                    reason=f"Category auto-create by {interaction.user}",
+                )
+                created.append(name)
+                existing.add(key)
+            except discord.Forbidden:
+                failed.append(f"{name}（權限不足）")
+            except Exception as e:
+                failed.append(f"{name}（{e}）")
+
+        summary_lines = [
+            f"✅ 已建立 {len(created)} 個類別",
+            f"⚠️ 略過 {len(skipped)} 個類別",
+            f"❌ 失敗 {len(failed)} 個類別",
+        ]
+        if extras:
+            summary_lines.append(f"ℹ️ 超過上限略過 {extras} 個類別")
+
+        embed = discord.Embed(
+            title="🗂️ 批量建立結果",
+            description="\n".join(summary_lines),
+            color=0x2ECC71 if created else 0xE67E22,
+        )
+        embed.add_field(name="已建立", value=_format_name_list(created), inline=False)
+        embed.add_field(name="略過", value=_format_name_list(skipped), inline=False)
+        embed.add_field(name="失敗", value=_format_name_list(failed), inline=False)
+
+        await interaction.followup.send(embed=embed, ephemeral=True)
 
 
 # ========== 自動回覆設定 ==========

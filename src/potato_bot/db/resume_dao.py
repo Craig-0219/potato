@@ -160,6 +160,24 @@ class ResumeDAO(BaseDAO):
         result = await self.execute_query(query, (guild_id, company_id, user_id), fetch_one=True)
         return bool(result)
 
+    async def list_active_applications(
+        self,
+        guild_id: int,
+        user_id: int,
+        statuses: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        await self._ensure_initialized()
+        statuses = statuses or ["PENDING", "NEED_MORE"]
+        placeholders = ", ".join(["%s"] * len(statuses))
+        query = f"""
+            SELECT * FROM resume_applications
+            WHERE guild_id=%s AND user_id=%s AND status IN ({placeholders})
+            ORDER BY created_at DESC
+        """
+        params = (guild_id, user_id, *statuses)
+        rows = await self.execute_query(query, params, fetch_all=True, dictionary=True)
+        return rows or []
+
     async def get_latest_application(
         self, guild_id: int, company_id: int, user_id: int, statuses: Optional[List[str]] = None
     ) -> Optional[Dict[str, Any]]:
@@ -241,6 +259,18 @@ class ResumeDAO(BaseDAO):
         await self._ensure_initialized()
         query = "UPDATE resume_applications SET review_message_id=%s WHERE id=%s"
         await self.execute_query(query, (message_id, app_id))
+
+    async def withdraw_application(
+        self, app_id: int, user_id: int, note: Optional[str] = None
+    ) -> bool:
+        await self._ensure_initialized()
+        query = """
+            UPDATE resume_applications
+            SET status='WITHDRAWN', reviewer_id=NULL, reviewer_note=%s, reviewed_at=CURRENT_TIMESTAMP
+            WHERE id=%s AND user_id=%s AND status IN ('PENDING','NEED_MORE')
+        """
+        rows = await self.execute_query(query, (note, app_id, user_id))
+        return rows > 0
 
     async def list_pending_with_message(self) -> List[Dict[str, Any]]:
         await self._ensure_initialized()

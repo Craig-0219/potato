@@ -208,7 +208,10 @@ class ResumePanelService:
 
         embed = discord.Embed(
             title=f"履歷提交櫃台- {settings.company_name}",
-            description="點擊下方按鈕以提交您的履歷。提交後，相關負責人員將會收到通知並進行審核。",
+            description=(
+                "點擊下方按鈕以提交您的履歷。提交後，相關負責人員將會收到通知並進行審核。\n"
+                "一次只能投一份履歷，若需撤回請使用下方撤回按鈕。"
+            ),
             color=0x3498DB,
         )
 

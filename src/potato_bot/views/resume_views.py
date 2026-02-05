@@ -16,6 +16,24 @@ from potato_bot.utils.embed_builder import EmbedBuilder
 from potato_shared.logger import logger
 
 
+def _parse_answers_json(raw: Any) -> Dict[str, Any]:
+    if isinstance(raw, str):
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+    if isinstance(raw, dict):
+        return raw
+    return {}
+
+
+async def _get_company_name(dao: ResumeDAO, company_id: int) -> str:
+    company = await dao.get_company(company_id)
+    if company and company.get("company_name"):
+        return str(company["company_name"])
+    return f"公司#{company_id}"
+
+
 class ResumeApplyModal(discord.ui.Modal):
     """履歷提交表單。"""
 
@@ -105,12 +123,49 @@ class ResumeApplyModal(discord.ui.Modal):
             )
             return
 
-        if await self.dao.has_pending(guild.id, self.settings.company_id, interaction.user.id):
-            await interaction.response.send_message(
-                "你已經有此公司的待審履歷，請等待審核。",
-                ephemeral=True,
-            )
-            return
+        active_apps = await self.dao.list_active_applications(guild.id, interaction.user.id)
+        if active_apps:
+            if self.existing_app_id:
+                other_active = [
+                    app for app in active_apps if app.get("id") != self.existing_app_id
+                ]
+                if other_active:
+                    active = other_active[0]
+                    company_name = await _get_company_name(
+                        self.dao, active.get("company_id")
+                    )
+                    await interaction.response.send_message(
+                        f"你目前已有 {company_name} 的待審/補件履歷（#{active.get('id')}）。"
+                        "一次只能投一份履歷，請先撤回後再申請。",
+                        ephemeral=True,
+                    )
+                    return
+            else:
+                active = active_apps[0]
+                company_name = await _get_company_name(self.dao, active.get("company_id"))
+                if (
+                    active.get("company_id") == self.settings.company_id
+                    and active.get("status") == "PENDING"
+                ):
+                    await interaction.response.send_message(
+                        "你已經有此公司的待審履歷，請等待審核或先撤回。",
+                        ephemeral=True,
+                    )
+                elif (
+                    active.get("company_id") == self.settings.company_id
+                    and active.get("status") == "NEED_MORE"
+                ):
+                    await interaction.response.send_message(
+                        "你已有此公司的補件履歷，請從面板重新開啟補件表單。",
+                        ephemeral=True,
+                    )
+                else:
+                    await interaction.response.send_message(
+                        f"你目前已有 {company_name} 的待審/補件履歷（#{active.get('id')}）。"
+                        "一次只能投一份履歷，請先撤回後再申請。",
+                        ephemeral=True,
+                    )
+                return
 
         answers: Dict[str, Any] = {
             "full_name": str(self.full_name),
@@ -207,6 +262,13 @@ class ResumePanelView(discord.ui.View):
         )
         button.callback = self.apply_button
         self.add_item(button)
+        withdraw_button = discord.ui.Button(
+            label="撤回履歷",
+            style=discord.ButtonStyle.danger,
+            custom_id=f"resume:withdraw:{settings.company_id}",
+        )
+        withdraw_button.callback = self.withdraw_button
+        self.add_item(withdraw_button)
 
     async def apply_button(self, interaction: discord.Interaction):
         if not interaction.guild:
@@ -214,6 +276,33 @@ class ResumePanelView(discord.ui.View):
                 "此功能只能在伺服器中使用。", ephemeral=True
             )
             return
+        active_apps = await self.dao.list_active_applications(
+            interaction.guild.id, interaction.user.id
+        )
+        if active_apps:
+            allow_resume = (
+                len(active_apps) == 1
+                and active_apps[0].get("company_id") == self.settings.company_id
+                and active_apps[0].get("status") == "NEED_MORE"
+            )
+            if not allow_resume:
+                active = active_apps[0]
+                if (
+                    active.get("company_id") == self.settings.company_id
+                    and active.get("status") == "PENDING"
+                ):
+                    await interaction.response.send_message(
+                        "你已經有此公司的待審履歷，請等待審核或先撤回。",
+                        ephemeral=True,
+                    )
+                    return
+                company_name = await _get_company_name(self.dao, active.get("company_id"))
+                await interaction.response.send_message(
+                    f"你目前已有 {company_name} 的待審/補件履歷（#{active.get('id')}）。"
+                    "一次只能投一份履歷，請先撤回後再申請。",
+                    ephemeral=True,
+                )
+                return
         latest = await self.dao.get_latest_application(
             interaction.guild.id,
             self.settings.company_id,
@@ -244,6 +333,76 @@ class ResumePanelView(discord.ui.View):
             app_id=app_id,
         )
         await interaction.response.send_modal(modal)
+
+    async def withdraw_button(self, interaction: discord.Interaction):
+        if not interaction.guild:
+            await interaction.response.send_message(
+                "此功能只能在伺服器中使用。", ephemeral=True
+            )
+            return
+
+        await interaction.response.defer(ephemeral=True)
+
+        active_apps = await self.dao.list_active_applications(
+            interaction.guild.id, interaction.user.id
+        )
+        if not active_apps:
+            await interaction.followup.send("目前沒有可撤回的履歷。", ephemeral=True)
+            return
+
+        active = active_apps[0]
+        app_id = active.get("id")
+        company_id = active.get("company_id")
+        company_name = await _get_company_name(self.dao, company_id)
+
+        if not app_id:
+            await interaction.followup.send("找不到可撤回的履歷資料。", ephemeral=True)
+            return
+
+        updated = await self.dao.withdraw_application(
+            app_id, interaction.user.id, note="申請者撤回"
+        )
+        if not updated:
+            await interaction.followup.send("此履歷已被處理或無法撤回。", ephemeral=True)
+            return
+
+        review_message_id = active.get("review_message_id")
+        if review_message_id and interaction.guild:
+            company = await self.dao.get_company(company_id) if company_id else None
+            review_channel_id = company.get("review_channel_id") if company else None
+            channel = None
+            if review_channel_id:
+                if hasattr(interaction.guild, "get_channel_or_thread"):
+                    channel = interaction.guild.get_channel_or_thread(review_channel_id)
+                else:
+                    channel = interaction.guild.get_channel(
+                        review_channel_id
+                    ) or interaction.guild.get_thread(review_channel_id)
+            if channel:
+                try:
+                    message = await channel.fetch_message(review_message_id)
+                except Exception:
+                    message = None
+                if message:
+                    answers = _parse_answers_json(active.get("answers_json"))
+                    embed = build_review_embed(
+                        app_id,
+                        company_name,
+                        interaction.user.id,
+                        interaction.user,
+                        answers,
+                        status="WITHDRAWN",
+                        note="申請者撤回",
+                    )
+                    try:
+                        await message.edit(embed=embed, view=None)
+                    except Exception:
+                        pass
+
+        message = f"已撤回履歷申請 #{app_id}（{company_name}）。"
+        if len(active_apps) > 1:
+            message += "\n目前仍有其他待審履歷，若需要請再撤回。"
+        await interaction.followup.send(message, ephemeral=True)
 
 
 class ResumeReviewView(discord.ui.View):
@@ -293,6 +452,7 @@ class ResumeReviewView(discord.ui.View):
             "APPROVED": "通過",
             "DENIED": "拒絕",
             "NEED_MORE": "需補件",
+            "WITHDRAWN": "已撤回",
         }.get(status, status)
         embed = discord.Embed(
             title="履歷審核結果",
@@ -301,6 +461,7 @@ class ResumeReviewView(discord.ui.View):
                 "APPROVED": 0x2ECC71,
                 "DENIED": 0xE74C3C,
                 "NEED_MORE": 0xF1C40F,
+                "WITHDRAWN": 0x95A5A6,
             }.get(status, 0x3498DB),
         )
         if note:
@@ -451,12 +612,14 @@ def build_review_embed(
         "APPROVED": "通過",
         "DENIED": "拒絕",
         "NEED_MORE": "需補件",
+        "WITHDRAWN": "已撤回",
     }.get(status_code, status_code)
     color_map = {
         "PENDING": 0x3498DB,
         "APPROVED": 0x2ECC71,
         "DENIED": 0xE74C3C,
         "NEED_MORE": 0xF1C40F,
+        "WITHDRAWN": 0x95A5A6,
     }
     mention = applicant.mention if applicant else f"<@{applicant_id}>"
     display_id = applicant.id if applicant else applicant_id

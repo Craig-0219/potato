@@ -44,6 +44,7 @@ class DatabaseManager:
             await self._create_whitelist_tables()
             await self._create_lottery_tables()
             await self._create_auto_reply_tables()
+            await self._create_category_auto_tables()
             await self._create_webhook_tables()
             await self._create_cleanup_tables()
 
@@ -645,6 +646,24 @@ class DatabaseManager:
         }
 
         await self._create_tables_batch(tables, "自動回覆")
+
+    async def _create_category_auto_tables(self):
+        """創建類別自動建立相關表格"""
+        logger.info("🗂️ 創建類別自動建立表格...")
+
+        tables = {
+            "category_auto_settings": """
+                CREATE TABLE IF NOT EXISTS category_auto_settings (
+                    guild_id BIGINT PRIMARY KEY COMMENT '伺服器 ID',
+                    allowed_role_ids JSON NULL COMMENT '可使用身分組',
+                    manager_role_ids JSON NULL COMMENT '預設管理身分組',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+        }
+
+        await self._create_tables_batch(tables, "類別自動建立")
 
     async def _create_webhook_tables(self):
         """創建 Webhook 相關表格"""
