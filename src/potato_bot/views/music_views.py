@@ -291,6 +291,11 @@ class MusicControlView(discord.ui.View, SafeInteractionMixin):
             )
             await self.safe_respond(interaction, embed=embed)
             logger.info("音樂播放已停止")
+        except Exception as e:
+            logger.error(f"停止按鈕錯誤: {e}")
+            logger.error(traceback.format_exc())
+            embed = EmbedBuilder.create_error_embed("❌ 操作失敗", "停止播放出現錯誤")
+            await self.safe_respond(interaction, embed=embed)
 
 
 class QueueRemoveSelect(discord.ui.Select):
