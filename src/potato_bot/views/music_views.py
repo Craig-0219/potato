@@ -402,12 +402,6 @@ class MusicQueueManageView(discord.ui.View, SafeInteractionMixin):
         await interaction.response.edit_message(embed=panel_embed, view=view)
         await interaction.followup.send(embed=embed, ephemeral=True)
 
-        except Exception as e:
-            logger.error(f"停止按鈕錯誤: {e}")
-            logger.error(traceback.format_exc())
-            embed = EmbedBuilder.create_error_embed("❌ 操作失敗", "停止操作出現錯誤")
-            await self.safe_respond(interaction, embed=embed)
-
 
 class VolumeControlView(discord.ui.View, SafeInteractionMixin):
     """音量控制視圖 - 重寫版"""
@@ -459,7 +453,7 @@ class VolumeControlView(discord.ui.View, SafeInteractionMixin):
 
 
 class MusicMenuView(discord.ui.View, SafeInteractionMixin):
-    """音樂系統主菜單視圖 - 重寫版"""
+    """音樂系統主選單視圖 - 重寫版"""
 
     def __init__(self, music_cog):
         super().__init__(timeout=300)

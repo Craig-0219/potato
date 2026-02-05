@@ -252,8 +252,7 @@ class GlobalErrorHandler:
                 name="🎫 常用票券指令",
                 value="`!setup_ticket` - 建立票券面板\n"
                 "`!ticket_help` - 查看票券使用說明\n"
-                "`/ticket_settings` - 設定分類/客服角色/限額\n"
-                "`/my_tickets` - 查看自己的票券",
+                "`/ticket_settings` - 設定分類/客服角色/限額",
                 inline=False,
             )
 

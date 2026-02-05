@@ -347,7 +347,7 @@ class CachedTicketCore(commands.Cog):
         )
         embed.add_field(
             name="查個人票券",
-            value="`/my_tickets`",
+            value="已移除（統一由管理面板查看）",
             inline=False,
         )
         await ctx.send(embed=embed)
@@ -719,4 +719,9 @@ class LimitsModal(discord.ui.Modal):
 
 async def setup(bot):
     """設置 Cog"""
-    await bot.add_cog(CachedTicketCore(bot))
+    cog = CachedTicketCore(bot)
+    await bot.add_cog(cog)
+    try:
+        bot.tree.remove_command("my_tickets", type=discord.AppCommandType.chat_input)
+    except Exception:
+        pass

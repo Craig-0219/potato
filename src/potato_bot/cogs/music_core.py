@@ -1033,13 +1033,13 @@ class MusicCore(commands.Cog):
             except:
                 pass
 
-    @app_commands.command(name="music_menu", description="🎵 音樂系統主菜單")
+    @app_commands.command(name="music_menu", description="🎵 音樂系統主選單")
     async def music_menu(self, interaction: discord.Interaction):
-        """音樂系統主菜單"""
+        """音樂系統主選單"""
         try:
             # 檢查互動是否已被處理
             if interaction.response.is_done():
-                logger.warning("音樂菜單互動已被處理")
+                logger.warning("音樂選單互動已被處理")
                 return
 
             if not interaction.guild:
@@ -1090,11 +1090,11 @@ class MusicCore(commands.Cog):
             await interaction.response.send_message(embed=embed, view=view)
 
         except discord.InteractionResponded:
-            logger.warning("音樂菜單互動已被回應")
+            logger.warning("音樂選單互動已被回應")
         except Exception as e:
-            logger.error(f"音樂菜單錯誤: {e}")
+            logger.error(f"音樂選單錯誤: {e}")
             try:
-                embed = EmbedBuilder.create_error_embed("❌ 系統錯誤", "無法顯示音樂菜單")
+                embed = EmbedBuilder.create_error_embed("❌ 系統錯誤", "無法顯示音樂選單")
                 if not interaction.response.is_done():
                     await interaction.response.send_message(embed=embed, ephemeral=True)
                 else:

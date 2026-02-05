@@ -205,4 +205,9 @@ class SystemAdmin(commands.Cog):
 
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(SystemAdmin(bot))
+    cog = SystemAdmin(bot)
+    await bot.add_cog(cog)
+    try:
+        bot.tree.remove_command("cache_control", type=discord.AppCommandType.chat_input)
+    except Exception:
+        pass
