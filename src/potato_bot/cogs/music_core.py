@@ -292,6 +292,8 @@ class MusicPlayer:
                     await self.voice_client.stop()
                 else:
                     await self.voice_client.skip()
+            await self.voice_client.disconnect()
+            self.voice_client = None
 
     async def skip(self, force: bool = False):
         """跳過當前歌曲"""
