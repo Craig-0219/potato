@@ -31,6 +31,15 @@ class FiveMDAO(BaseDAO):
                         )
                         await conn.commit()
                         logger.info("✅ 已補齊 fivem_settings.alert_role_ids 欄位")
+
+                    await cursor.execute("SHOW COLUMNS FROM fivem_settings LIKE 'panel_message_id'")
+                    exists = await cursor.fetchone()
+                    if not exists:
+                        await cursor.execute(
+                            "ALTER TABLE fivem_settings ADD COLUMN panel_message_id BIGINT NULL COMMENT '狀態面板訊息ID' AFTER alert_role_ids"
+                        )
+                        await conn.commit()
+                        logger.info("✅ 已補齊 fivem_settings.panel_message_id 欄位")
         except Exception as exc:
             logger.warning("FiveMDAO 初始化檢查欄位失敗: %s", exc)
 
@@ -55,6 +64,7 @@ class FiveMDAO(BaseDAO):
                             result["alert_role_ids"] = raw_alert_roles
                         else:
                             result["alert_role_ids"] = []
+                        result["panel_message_id"] = int(result.get("panel_message_id") or 0)
                         result["exists"] = True
                         return result
 
@@ -64,6 +74,7 @@ class FiveMDAO(BaseDAO):
                         "players_url": None,
                         "status_channel_id": 0,
                         "alert_role_ids": [],
+                        "panel_message_id": 0,
                         "exists": False,
                     }
         except Exception as e:
@@ -74,6 +85,7 @@ class FiveMDAO(BaseDAO):
                 "players_url": None,
                 "status_channel_id": 0,
                 "alert_role_ids": [],
+                "panel_message_id": 0,
                 "exists": False,
             }
 
@@ -85,13 +97,14 @@ class FiveMDAO(BaseDAO):
                 async with conn.cursor() as cursor:
                     query = """
                     INSERT INTO fivem_settings (
-                        guild_id, info_url, players_url, status_channel_id, alert_role_ids
-                    ) VALUES (%s, %s, %s, %s, %s)
+                        guild_id, info_url, players_url, status_channel_id, alert_role_ids, panel_message_id
+                    ) VALUES (%s, %s, %s, %s, %s, %s)
                     ON DUPLICATE KEY UPDATE
                         info_url = VALUES(info_url),
                         players_url = VALUES(players_url),
                         status_channel_id = VALUES(status_channel_id),
                         alert_role_ids = VALUES(alert_role_ids),
+                        panel_message_id = VALUES(panel_message_id),
                         updated_at = CURRENT_TIMESTAMP
                     """
                     await cursor.execute(
@@ -102,10 +115,31 @@ class FiveMDAO(BaseDAO):
                             settings.get("players_url"),
                             settings.get("status_channel_id") or 0,
                             json.dumps(settings.get("alert_role_ids", [])),
+                            settings.get("panel_message_id") or 0,
                         ),
                     )
                     await conn.commit()
                     return True
         except Exception as e:
             logger.error(f"更新 FiveM 設定失敗: {e}")
+            return False
+
+    async def update_panel_message_id(self, guild_id: int, message_id: int) -> bool:
+        """更新狀態面板訊息ID"""
+        await self._ensure_initialized()
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    query = """
+                    INSERT INTO fivem_settings (guild_id, panel_message_id)
+                    VALUES (%s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        panel_message_id = VALUES(panel_message_id),
+                        updated_at = CURRENT_TIMESTAMP
+                    """
+                    await cursor.execute(query, (guild_id, message_id))
+                    await conn.commit()
+                    return True
+        except Exception as e:
+            logger.error(f"更新 FiveM 面板訊息ID失敗: {e}")
             return False

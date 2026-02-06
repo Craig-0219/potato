@@ -468,7 +468,11 @@ class SystemAdminPanel(BaseView):
         embed.add_field(name="info.json", value=info_url, inline=False)
         embed.add_field(name="players.json", value=players_url, inline=False)
         embed.add_field(name="播報頻道", value=channel_text, inline=False)
-        embed.add_field(name="異常通知身分組", value=role_text, inline=False)
+        embed.add_field(name="狀態通知身分組", value=role_text, inline=False)
+
+        panel_message_id = settings.get("panel_message_id") or 0
+        panel_status_text = "✅ 已部署" if panel_message_id else "❌ 未部署"
+        embed.add_field(name="狀態面板", value=panel_status_text, inline=False)
 
         ftp_configured = bool(FIVEM_TXADMIN_FTP_HOST and FIVEM_TXADMIN_FTP_PATH)
         txadmin_source_configured = ftp_configured or bool(FIVEM_TXADMIN_STATUS_FILE)
@@ -3719,6 +3723,7 @@ class FiveMSettingsView(View):
             "players_url": current.get("players_url"),
             "status_channel_id": current.get("status_channel_id", 0),
             "alert_role_ids": current.get("alert_role_ids", []),
+            "panel_message_id": current.get("panel_message_id", 0),
         }
         payload.update(patch)
         return payload
@@ -3754,15 +3759,15 @@ class FiveMSettingsView(View):
         )
         await interaction.response.edit_message(embed=embed, view=self)
 
-    @button(label="🔔 設定異常通知身分組", style=discord.ButtonStyle.secondary, row=0)
+    @button(label="🔔 設定狀態通知身分組", style=discord.ButtonStyle.secondary, row=0)
     async def set_alert_roles(self, interaction: discord.Interaction, button: Button):
         self.clear_items()
         self.add_item(FiveMAlertRoleSelect(self, row=0))
         self.add_item(BackToFiveMSettingsButton(self.user_id, self.guild))
 
         embed = discord.Embed(
-            title="🔔 設定異常通知身分組",
-            description="當無法讀取狀態檔時要通知的身分組（可多選）",
+            title="🔔 設定狀態通知身分組",
+            description="狀態更新與異常時要通知的身分組（可多選）",
             color=0x3498DB,
         )
         await interaction.response.edit_message(embed=embed, view=self)
@@ -3773,6 +3778,7 @@ class FiveMSettingsView(View):
             info_url=None,
             players_url=None,
             status_channel_id=0,
+            panel_message_id=0,
         )
         success = await self.dao.update_fivem_settings(self.guild.id, payload)
         if success:
@@ -3785,9 +3791,24 @@ class FiveMSettingsView(View):
         payload = await self._build_payload(alert_role_ids=[])
         success = await self.dao.update_fivem_settings(self.guild.id, payload)
         if success:
-            await interaction.response.send_message("✅ 已清除異常通知身分組", ephemeral=True)
+            await interaction.response.send_message("✅ 已清除狀態通知身分組", ephemeral=True)
         else:
             await interaction.response.send_message("❌ 清除失敗", ephemeral=True)
+
+    @button(label="📌 部署/更新狀態面板", style=discord.ButtonStyle.secondary, row=2)
+    async def deploy_status_panel(self, interaction: discord.Interaction, button: Button):
+        fivem_cog = interaction.client.get_cog("FiveMStatusCore")
+        if not fivem_cog or not hasattr(fivem_cog, "deploy_status_panel"):
+            await interaction.response.send_message("❌ FiveM 狀態系統未啟用", ephemeral=True)
+            return
+
+        success = await fivem_cog.deploy_status_panel(interaction.guild)
+        if success:
+            panel = SystemAdminPanel(self.user_id)
+            embed = await panel._create_fivem_settings_embed(self.guild, interaction.client)
+            await interaction.response.edit_message(embed=embed, view=self)
+        else:
+            await interaction.response.send_message("❌ 部署失敗，請檢查播報頻道設定", ephemeral=True)
 
     @button(label="🔄 重新整理", style=discord.ButtonStyle.secondary, row=1)
     async def refresh_button(self, interaction: discord.Interaction, button: Button):
@@ -3871,12 +3892,12 @@ class FiveMStatusChannelSelect(discord.ui.ChannelSelect):
 
 
 class FiveMAlertRoleSelect(discord.ui.RoleSelect):
-    """FiveM 異常通知身分組選擇器"""
+    """FiveM 狀態通知身分組選擇器"""
 
     def __init__(self, parent_view: FiveMSettingsView, row: int | None = None):
         self.parent_view = parent_view
         super().__init__(
-            placeholder="選擇異常通知身分組（可多選）",
+            placeholder="選擇狀態通知身分組（可多選）",
             min_values=1,
             max_values=10,
             row=row,

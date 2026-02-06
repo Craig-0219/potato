@@ -7,7 +7,7 @@ import discord
 from discord.ext import commands, tasks
 
 from potato_bot.db.fivem_dao import FiveMDAO
-from potato_bot.services.fivem_status_service import FiveMStatusService
+from potato_bot.services.fivem_status_service import FiveMStatusService, FiveMStatusResult
 from potato_bot.utils.embed_builder import EmbedBuilder
 from potato_shared.config import (
     FIVEM_OFFLINE_THRESHOLD,
@@ -44,7 +44,9 @@ class _FiveMGuildState:
     channel_id: int
     has_http: bool = True
     alert_role_ids: list[int] = field(default_factory=list)
+    panel_message_id: int = 0
     last_status: Optional[str] = None
+    last_panel_signature: Optional[str] = None
     ftp_fail_count: int = 0
     ftp_last_alert: float = 0.0
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
@@ -88,7 +90,13 @@ class FiveMStatusCore(commands.Cog):
         return channel
 
     async def _send_embed(
-        self, channel_id: int, title: str, description: str, color: str = "info"
+        self,
+        channel_id: int,
+        title: str,
+        description: str,
+        color: str = "info",
+        content: Optional[str] = None,
+        allowed_mentions: Optional[discord.AllowedMentions] = None,
     ):
         channel = await self._get_channel(channel_id)
         if not channel:
@@ -102,7 +110,11 @@ class FiveMStatusCore(commands.Cog):
         else:
             embed = EmbedBuilder.create_info_embed(title, description)
         try:
-            await channel.send(embed=embed)
+            await channel.send(
+                content=content,
+                embed=embed,
+                allowed_mentions=allowed_mentions,
+            )
         except Exception as exc:
             logger.warning("FiveM 播報發送失敗: %s", exc)
 
@@ -127,6 +139,131 @@ class FiveMStatusCore(commands.Cog):
             role.mention for role in (guild.get_role(role_id) for role_id in role_ids) if role
         ]
         return " ".join(mentions)
+
+    @staticmethod
+    def _get_status_label(result: Optional[FiveMStatusResult], event_type: Optional[str]) -> str:
+        event_map = {
+            "serverStarting": "🟡 啟動中",
+            "serverStarted": "✅ 已啟動",
+            "serverStopping": "🟠 準備停止",
+            "serverStopped": "🔴 已停止",
+            "serverCrashed": "🚨 崩潰",
+        }
+        if event_type in event_map:
+            return event_map[event_type]
+        if not result:
+            return "❓ 未知"
+        if result.status == "online":
+            return "🟢 在線"
+        if result.status == "offline":
+            return "🔴 離線"
+        return "❓ 未知"
+
+    @staticmethod
+    def _build_panel_signature(
+        result: Optional[FiveMStatusResult],
+        event_type: Optional[str],
+        event_updated_at: Optional[str],
+    ) -> str:
+        players = result.players if result else None
+        max_players = result.max_players if result else None
+        hostname = result.hostname if result else None
+        return "|".join(
+            [
+                str(event_type or ""),
+                str(event_updated_at or ""),
+                str(players or ""),
+                str(max_players or ""),
+                str(hostname or ""),
+                str(result.status if result else ""),
+            ]
+        )
+
+    @staticmethod
+    def _build_status_panel_embed(
+        guild: discord.Guild,
+        result: Optional[FiveMStatusResult],
+        event_type: Optional[str],
+        event_updated_at: Optional[str],
+    ) -> discord.Embed:
+        embed = discord.Embed(
+            title="🛰️ FiveM 狀態面板",
+            description="FiveM 伺服器最新狀態",
+            color=0x3498DB,
+        )
+        status_label = FiveMStatusCore._get_status_label(result, event_type)
+        embed.add_field(name="狀態", value=status_label, inline=True)
+
+        if result and getattr(result, "players_ok", True):
+            if result.max_players:
+                player_text = f"{result.players}/{result.max_players}"
+            else:
+                player_text = f"{result.players}"
+            embed.add_field(name="玩家", value=player_text, inline=True)
+        else:
+            embed.add_field(name="玩家", value="未知", inline=True)
+
+        if event_type:
+            embed.add_field(name="事件", value=event_type, inline=True)
+        else:
+            embed.add_field(name="事件", value="無", inline=True)
+
+        if result and result.hostname:
+            embed.add_field(name="伺服器", value=result.hostname, inline=False)
+        else:
+            embed.add_field(name="伺服器", value=guild.name, inline=False)
+
+        now_ts = int(discord.utils.utcnow().timestamp())
+        embed.set_footer(text=f"最後更新 <t:{now_ts}:R>")
+        return embed
+
+    async def _update_status_panel(
+        self,
+        guild: discord.Guild,
+        state: _FiveMGuildState,
+        result: Optional[FiveMStatusResult],
+        tx_status: Optional[dict],
+        force: bool = False,
+    ) -> None:
+        channel = await self._get_channel(state.channel_id)
+        if not channel:
+            return
+
+        event_type = None
+        event_updated_at = None
+        if isinstance(tx_status, dict):
+            event = tx_status.get("event") or {}
+            event_type = event.get("type")
+            event_updated_at = tx_status.get("updated_at")
+
+        signature = self._build_panel_signature(result, event_type, str(event_updated_at or ""))
+        if not force and state.last_panel_signature == signature:
+            return
+
+        embed = self._build_status_panel_embed(guild, result, event_type, str(event_updated_at or ""))
+
+        message = None
+        if state.panel_message_id:
+            try:
+                message = await channel.fetch_message(state.panel_message_id)
+            except Exception:
+                message = None
+
+        if message:
+            try:
+                await message.edit(embed=embed, view=None)
+            except Exception as exc:
+                logger.warning("更新 FiveM 狀態面板失敗: %s", exc)
+        else:
+            try:
+                message = await channel.send(embed=embed)
+                state.panel_message_id = message.id
+                await self.dao.update_panel_message_id(guild.id, message.id)
+            except Exception as exc:
+                logger.warning("建立 FiveM 狀態面板失敗: %s", exc)
+                return
+
+        state.last_panel_signature = signature
 
     async def _dm_alert_roles(
         self,
@@ -261,6 +398,13 @@ class FiveMStatusCore(commands.Cog):
 
         sent: list[str] = []
         event_sent = False
+        guild = self.bot.get_guild(guild_id)
+        mention_text = (
+            self._format_role_mentions(guild, settings.get("alert_role_ids", []))
+            if guild
+            else ""
+        )
+        allowed_mentions = discord.AllowedMentions(roles=True) if mention_text else None
 
         async with self._get_push_lock(guild_id):
             if event_id:
@@ -281,7 +425,14 @@ class FiveMStatusCore(commands.Cog):
                 if event_type in title_map:
                     title, color = title_map[event_type]
                     desc = self._build_event_description(event_type, hostname)
-                    await self._send_embed(channel_id, title, desc, color)
+                    await self._send_embed(
+                        channel_id,
+                        title,
+                        desc,
+                        color,
+                        content=mention_text if mention_text else None,
+                        allowed_mentions=allowed_mentions,
+                    )
                     sent.append(event_type)
                     event_sent = True
 
@@ -299,11 +450,46 @@ class FiveMStatusCore(commands.Cog):
                 if status != last_status and not event_sent:
                     desc = self._build_status_description(status, players, max_players, hostname)
                     if status == "online":
-                        await self._send_embed(channel_id, "✅ FiveM 伺服器已上線", desc, "success")
+                        await self._send_embed(
+                            channel_id,
+                            "✅ FiveM 伺服器已上線",
+                            desc,
+                            "success",
+                            content=mention_text if mention_text else None,
+                            allowed_mentions=allowed_mentions,
+                        )
                     else:
-                        await self._send_embed(channel_id, "🔴 FiveM 伺服器離線", desc, "error")
+                        await self._send_embed(
+                            channel_id,
+                            "🔴 FiveM 伺服器離線",
+                            desc,
+                            "error",
+                            content=mention_text if mention_text else None,
+                            allowed_mentions=allowed_mentions,
+                        )
                     sent.append(status)
                 self._push_last_status[guild_id] = status
+
+        if guild:
+            state = await self._get_state(guild)
+            if state:
+                panel_result = None
+                if status or players is not None or max_players is not None or hostname:
+                    panel_result = FiveMStatusResult(
+                        status=status or "unknown",
+                        players=players or 0,
+                        max_players=max_players,
+                        hostname=hostname,
+                        info_ok=bool(hostname),
+                        players_ok=players is not None,
+                    )
+                tx_status = None
+                if event_type:
+                    tx_status = {
+                        "event": {"type": event_type},
+                        "updated_at": payload.get("updated_at") or payload.get("timestamp"),
+                    }
+                await self._update_status_panel(guild, state, panel_result, tx_status, force=True)
 
         return {"ok": True, "sent": sent}
 
@@ -347,12 +533,27 @@ class FiveMStatusCore(commands.Cog):
         except Exception:
             return None
 
+    async def deploy_status_panel(self, guild: discord.Guild) -> bool:
+        """手動部署或更新狀態面板"""
+        state = await self._get_state(guild)
+        if not state:
+            return False
+
+        result = None
+        if state.has_http:
+            result = await state.service.poll_status()
+        tx_status = await state.service.read_txadmin_status()
+
+        await self._update_status_panel(guild, state, result, tx_status, force=True)
+        return True
+
     async def _get_state(self, guild: discord.Guild) -> Optional[_FiveMGuildState]:
         settings = await self.dao.get_fivem_settings(guild.id)
         info_url = settings.get("info_url")
         players_url = settings.get("players_url")
         channel_id = int(settings.get("status_channel_id") or 0)
         alert_role_ids = settings.get("alert_role_ids", []) or []
+        panel_message_id = int(settings.get("panel_message_id") or 0)
         has_http = bool(info_url and players_url)
         txadmin_enabled = self._txadmin_enabled()
         cache_key = (info_url, players_url, channel_id)
@@ -375,15 +576,13 @@ class FiveMStatusCore(commands.Cog):
             if guild.id not in self._warned_missing:
                 self._warned_missing.add(guild.id)
                 logger.warning(
-                    "⚠️ FiveM 狀態播報尚未設定（缺少 API 或 txAdmin 狀態來源）：%s (%s)",
+                    "⚠️ FiveM 狀態播報尚未設定（等待外部推送）：%s (%s)",
                     guild.name,
                     guild.id,
                 )
-            if guild.id in self._guild_states:
-                state = self._guild_states.pop(guild.id)
-                await state.service.close()
-            self._settings_cache.pop(guild.id, None)
-            return None
+
+        info_url = info_url or ""
+        players_url = players_url or ""
 
         self._warned_missing.discard(guild.id)
 
@@ -410,6 +609,7 @@ class FiveMStatusCore(commands.Cog):
                 channel_id=channel_id,
                 has_http=has_http,
                 alert_role_ids=alert_role_ids,
+                panel_message_id=panel_message_id,
             )
 
         state = self._guild_states.get(guild.id)
@@ -417,6 +617,7 @@ class FiveMStatusCore(commands.Cog):
             state.channel_id = channel_id
             state.has_http = has_http
             state.alert_role_ids = alert_role_ids
+            state.panel_message_id = panel_message_id
         return state
 
     @tasks.loop(seconds=FIVEM_POLL_INTERVAL)
@@ -431,8 +632,15 @@ class FiveMStatusCore(commands.Cog):
                     continue
 
                 async with state.lock:
+                    mention_text = self._format_role_mentions(guild, state.alert_role_ids)
+                    allowed_mentions = (
+                        discord.AllowedMentions(roles=True) if mention_text else None
+                    )
+                    panel_result: Optional[FiveMStatusResult] = None
+
                     if state.has_http:
                         result = await state.service.poll_status()
+                        panel_result = result
                         if result.status != state.last_status:
                             state.last_status = result.status
                             if result.status == "online":
@@ -441,6 +649,8 @@ class FiveMStatusCore(commands.Cog):
                                     "✅ FiveM 伺服器已上線",
                                     state.service.format_status_message(result),
                                     "success",
+                                    content=mention_text if mention_text else None,
+                                    allowed_mentions=allowed_mentions,
                                 )
                             elif result.status == "offline":
                                 await self._send_embed(
@@ -448,6 +658,8 @@ class FiveMStatusCore(commands.Cog):
                                     "🔴 FiveM 伺服器離線",
                                     state.service.format_status_message(result),
                                     "error",
+                                    content=mention_text if mention_text else None,
+                                    allowed_mentions=allowed_mentions,
                                 )
 
                     tx_status = await state.service.read_txadmin_status()
@@ -462,6 +674,8 @@ class FiveMStatusCore(commands.Cog):
                                 "🟡 FiveM 伺服器啟動中",
                                 "伺服器正在啟動中，請稍候。",
                                 "warning",
+                                content=mention_text if mention_text else None,
+                                allowed_mentions=allowed_mentions,
                             )
                         elif event_type == "serverStarted":
                             await self._send_embed(
@@ -469,6 +683,8 @@ class FiveMStatusCore(commands.Cog):
                                 "✅ FiveM 伺服器已啟動",
                                 "伺服器啟動完成，現在可以加入。",
                                 "success",
+                                content=mention_text if mention_text else None,
+                                allowed_mentions=allowed_mentions,
                             )
                         elif event_type == "serverStopping":
                             await self._send_embed(
@@ -476,6 +692,8 @@ class FiveMStatusCore(commands.Cog):
                                 "🟠 FiveM 伺服器準備停止",
                                 "伺服器即將停止，請注意保存進度。",
                                 "warning",
+                                content=mention_text if mention_text else None,
+                                allowed_mentions=allowed_mentions,
                             )
                         elif event_type == "serverStopped":
                             await self._send_embed(
@@ -483,6 +701,8 @@ class FiveMStatusCore(commands.Cog):
                                 "🔴 FiveM 伺服器已停止",
                                 "伺服器已停止，請稍後再試。",
                                 "error",
+                                content=mention_text if mention_text else None,
+                                allowed_mentions=allowed_mentions,
                             )
                         elif event_type == "serverCrashed":
                             await self._send_embed(
@@ -490,31 +710,39 @@ class FiveMStatusCore(commands.Cog):
                                 "🚨 FiveM 伺服器崩潰",
                                 "偵測到伺服器異常崩潰，請等待修復。",
                                 "error",
+                                content=mention_text if mention_text else None,
+                                allowed_mentions=allowed_mentions,
                             )
                     elif not tx_status and not state.has_http:
-                        state.ftp_fail_count += 1
-                        now = time.time()
-                        if now - state.ftp_last_alert >= 600:
-                            mention_text = self._format_role_mentions(
-                                guild, state.alert_role_ids
-                            )
-                            if mention_text:
-                                mention_text = f"\n{mention_text}"
-                            await self._send_embed(
-                                state.channel_id,
-                                "⚠️ FiveM 狀態異常",
-                                "無法讀取 txAdmin 狀態檔（FTP/檔案）。請檢查連線或路徑設定。"
-                                + mention_text,
-                                "warning",
-                            )
-                            await self._dm_alert_roles(
-                                guild,
-                                state.alert_role_ids,
-                                "⚠️ FiveM 狀態異常",
-                                "無法讀取 txAdmin 狀態檔（FTP/檔案）。請檢查連線或路徑設定。",
-                                "warning",
-                            )
-                            state.ftp_last_alert = now
+                        read_status = state.service.get_txadmin_read_status()
+                        if read_status is not None:
+                            state.ftp_fail_count += 1
+                            now = time.time()
+                            if now - state.ftp_last_alert >= 600:
+                                await self._send_embed(
+                                    state.channel_id,
+                                    "⚠️ Server 狀態異常",
+                                    "偵測到系統異常，已通知相關人員排查，請耐心等候，謝謝!!!",
+                                    "warning",
+                                    content=mention_text if mention_text else None,
+                                    allowed_mentions=allowed_mentions,
+                                )
+                                await self._dm_alert_roles(
+                                    guild,
+                                    state.alert_role_ids,
+                                    "⚠️ FiveM 狀態異常",
+                                    "無法讀取 txAdmin 狀態檔（FTP/檔案）。請檢查連線或路徑設定。",
+                                    "warning",
+                                )
+                                state.ftp_last_alert = now
+
+                    await self._update_status_panel(
+                        guild,
+                        state,
+                        panel_result,
+                        tx_status,
+                        force=state.panel_message_id == 0,
+                    )
             except Exception as exc:
                 logger.error("FiveM 狀態輪詢失敗: %s", exc)
 
