@@ -230,8 +230,8 @@ class FiveMStatusCore(commands.Cog):
         tx_state: Optional[str],
     ) -> discord.Embed:
         embed = discord.Embed(
-            title="🛰️ FiveM 狀態面板",
-            description="Server最新狀態",
+            title="🛰️ Server 狀態面板",
+            description="城市最新狀態",
             color=0x3498DB,
         )
         status_label = FiveMStatusCore._get_status_label(result, event_type, tx_state)
@@ -249,8 +249,8 @@ class FiveMStatusCore(commands.Cog):
         else:
             embed.add_field(name="伺服器", value=guild.name, inline=False)
 
-        now_ts = int(discord.utils.utcnow().timestamp())
-        embed.set_footer(text=f"最後更新 <t:{now_ts}:R>")
+        now_dt = discord.utils.utcnow()
+        embed.add_field(name="最後更新", value=discord.utils.format_dt(now_dt, "R"), inline=True)
         return embed
 
     @staticmethod
@@ -597,6 +597,24 @@ class FiveMStatusCore(commands.Cog):
             return state.service.get_last_txadmin_payload_at()
         except Exception:
             return None
+
+    async def reload_guild(self, guild: discord.Guild) -> bool:
+        """重新讀取指定伺服器的 FiveM 設定並重建連線"""
+        try:
+            state = self._guild_states.pop(guild.id, None)
+            if state:
+                async with state.lock:
+                    await state.service.close()
+            self._settings_cache.pop(guild.id, None)
+            self._warned_missing.discard(guild.id)
+            self._push_last_status.pop(guild.id, None)
+            self._push_last_event_id.pop(guild.id, None)
+            self._push_locks.pop(guild.id, None)
+            new_state = await self._get_state(guild)
+            return new_state is not None
+        except Exception as exc:
+            logger.warning("重讀 FiveM Core 失敗: %s", exc)
+            return False
 
     async def deploy_status_panel(self, guild: discord.Guild) -> bool:
         """手動部署或更新狀態面板"""

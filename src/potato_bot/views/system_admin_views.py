@@ -3859,6 +3859,21 @@ class FiveMSettingsView(View):
         else:
             await interaction.response.send_message("❌ 部署失敗，請檢查播報頻道設定", ephemeral=True)
 
+    @button(label="🔄 重讀 FiveM Core", style=discord.ButtonStyle.secondary, row=2)
+    async def reload_fivem_core(self, interaction: discord.Interaction, button: Button):
+        fivem_cog = interaction.client.get_cog("FiveMStatusCore")
+        if not fivem_cog or not hasattr(fivem_cog, "reload_guild"):
+            await interaction.response.send_message("❌ FiveM 狀態系統未啟用", ephemeral=True)
+            return
+
+        success = await fivem_cog.reload_guild(interaction.guild)
+        if success:
+            panel = SystemAdminPanel(self.user_id)
+            embed = await panel._create_fivem_settings_embed(self.guild, interaction.client)
+            await interaction.response.edit_message(embed=embed, view=self)
+        else:
+            await interaction.response.send_message("❌ 重讀失敗，請稍後再試", ephemeral=True)
+
     @button(label="🔄 重新整理", style=discord.ButtonStyle.secondary, row=1)
     async def refresh_button(self, interaction: discord.Interaction, button: Button):
         panel = SystemAdminPanel(self.user_id)

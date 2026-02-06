@@ -79,14 +79,19 @@ LAVALINK_SECURE=false
 
 ## FiveM 狀態播報
 
-目前建議透過 **/admin → FiveM 狀態設定** 設定 `info.json / players.json / 播報頻道`。
+請使用 **/admin → FiveM 狀態設定** 完成以下設定：
 
-如需保留環境變數方式（可選）：
+- `info.json / players.json`
+- `播報頻道`
+- `狀態通知身分組 / DM 通知身分組`
+- `伺服器連結`（狀態面板會顯示「🔗 連線伺服器」按鈕）
+- `部署/更新狀態面板`
+
+⚠️ `FIVEM_INFO_URL / FIVEM_PLAYERS_URL / FIVEM_STATUS_CHANNEL_ID` 已改為後台設定，不再使用環境變數。
+
+輪詢與狀態檔設定（仍使用環境變數）：
 
 ```bash
-FIVEM_INFO_URL=http://your-server:30120/info.json
-FIVEM_PLAYERS_URL=http://your-server:30120/players.json
-FIVEM_STATUS_CHANNEL_ID=123456789012345678
 FIVEM_POLL_INTERVAL=3
 FIVEM_OFFLINE_THRESHOLD=3
 FIVEM_TXADMIN_STATUS_FILE=D:\\server\\txData\\QBBOX\\resources\\[01-核心系統]\\Potato_Discord_API\\data\\txadmin_status.json
@@ -128,7 +133,6 @@ curl -X POST http://your-bot-host:2484/fivem/push \
 
 - `!setup_ticket`：建立票券面板
 - `/ticket_settings`：管理票券設定（分類/客服角色/限額）
-- `/my_tickets`：查看自己的票券
 - `!ticket_help`：票券指令說明
 
 ## 專案結構
