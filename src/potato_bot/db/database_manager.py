@@ -15,7 +15,7 @@ class DatabaseManager:
 
     def __init__(self):
         self.db = db_pool
-        self.current_version = "1.0.3"
+        self.current_version = "1.0.4"
         self._initialized = False
 
     async def initialize_all_tables(self, force_recreate: bool = False):
@@ -52,6 +52,7 @@ class DatabaseManager:
             await self._create_whitelist_tables()
             await self._create_lottery_tables()
             await self._create_music_tables()
+            await self._create_fivem_tables()
             await self._create_auto_reply_tables()
             await self._create_category_auto_tables()
             await self._create_webhook_tables()
@@ -198,6 +199,24 @@ class DatabaseManager:
         }
 
         await self._create_tables_batch(tables, "音樂系統")
+
+    async def _create_fivem_tables(self):
+        """創建 FiveM 狀態設定表格"""
+        logger.info("🛰️ 創建 FiveM 狀態設定表格...")
+        tables = {
+            "fivem_settings": """
+                CREATE TABLE IF NOT EXISTS fivem_settings (
+                    guild_id BIGINT PRIMARY KEY COMMENT '伺服器ID',
+                    info_url TEXT NULL COMMENT 'info.json URL',
+                    players_url TEXT NULL COMMENT 'players.json URL',
+                    status_channel_id BIGINT NULL COMMENT '播報頻道ID',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間'
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+        }
+
+        await self._create_tables_batch(tables, "FiveM 狀態")
 
     async def get_system_status(self) -> Dict[str, Any]:
         """獲取系統狀態"""

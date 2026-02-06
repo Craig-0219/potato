@@ -13,6 +13,7 @@ from potato_bot.db.category_auto_dao import CategoryAutoDAO
 from potato_bot.db.auto_reply_dao import AutoReplyDAO
 from potato_bot.db.music_dao import MusicDAO
 from potato_bot.db.lottery_dao import LotteryDAO
+from potato_bot.db.fivem_dao import FiveMDAO
 from potato_bot.db.resume_dao import ResumeDAO
 from potato_bot.db.pool import db_pool
 from potato_bot.db.ticket_dao import TicketDAO
@@ -40,6 +41,7 @@ class SystemAdminPanel(BaseView):
         self.ticket_dao = TicketDAO()
         self.welcome_dao = WelcomeDAO()
         self.welcome_manager = WelcomeManager(self.welcome_dao)
+        self.fivem_dao = FiveMDAO()
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         """檢查用戶權限"""
@@ -156,6 +158,15 @@ class SystemAdminPanel(BaseView):
             await SafeInteractionHandler.handle_interaction_error(
                 interaction, e, operation_name="履歷系統設定"
             )
+
+    @button(label="🛰️ FiveM 狀態設定", style=discord.ButtonStyle.secondary, row=1)
+    async def fivem_settings_button(self, interaction: discord.Interaction, button: Button):
+        """FiveM 狀態設定"""
+        await interaction.response.send_message(
+            embed=await self._create_fivem_settings_embed(interaction.guild),
+            view=FiveMSettingsView(self.user_id, interaction.guild),
+            ephemeral=True,
+        )
 
     @button(label="📊 系統狀態", style=discord.ButtonStyle.secondary, row=2)
     async def system_status_button(self, interaction: discord.Interaction, button: Button):
@@ -416,6 +427,28 @@ class SystemAdminPanel(BaseView):
             role_text = "未限制（所有人可用）"
 
         embed.add_field(name="👥 面板權限", value=role_text, inline=False)
+        embed.add_field(name="📋 管理選項", value="使用下方按鈕進行設定", inline=False)
+
+        return embed
+
+    async def _create_fivem_settings_embed(self, guild: discord.Guild) -> discord.Embed:
+        """創建 FiveM 狀態設定嵌入"""
+        settings = await self.fivem_dao.get_fivem_settings(guild.id)
+
+        info_url = settings.get("info_url") or "未設定"
+        players_url = settings.get("players_url") or "未設定"
+        channel_id = settings.get("status_channel_id") or 0
+        channel_text = f"<#{channel_id}>" if channel_id else "未設定"
+
+        embed = discord.Embed(
+            title="🛰️ FiveM 狀態設定",
+            description="設定伺服器狀態 API 與播報頻道",
+            color=0x3498DB,
+        )
+
+        embed.add_field(name="info.json", value=info_url, inline=False)
+        embed.add_field(name="players.json", value=players_url, inline=False)
+        embed.add_field(name="播報頻道", value=channel_text, inline=False)
         embed.add_field(name="📋 管理選項", value="使用下方按鈕進行設定", inline=False)
 
         return embed
@@ -3602,6 +3635,163 @@ class BackToMusicSettingsButton(Button):
         admin_panel = SystemAdminPanel(self.user_id)
         embed = await admin_panel._create_music_settings_embed(self.guild)
         view = MusicSettingsView(self.user_id, self.guild)
+        await interaction.response.edit_message(embed=embed, view=view)
+
+
+class FiveMSettingsView(View):
+    """FiveM 狀態設定視圖"""
+
+    def __init__(self, user_id: int, guild: discord.Guild, timeout=300):
+        super().__init__(timeout=timeout)
+        self.user_id = user_id
+        self.guild = guild
+        self.dao = FiveMDAO()
+
+    async def _build_payload(self, **patch) -> dict:
+        current = await self.dao.get_fivem_settings(self.guild.id)
+        payload = {
+            "info_url": current.get("info_url"),
+            "players_url": current.get("players_url"),
+            "status_channel_id": current.get("status_channel_id", 0),
+        }
+        payload.update(patch)
+        return payload
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message(
+                "❌ 只有指令使用者可以操作此面板", ephemeral=True
+            )
+            return False
+        if not interaction.user.guild_permissions.manage_guild:
+            await interaction.response.send_message("❌ 需要管理伺服器權限", ephemeral=True)
+            return False
+        return True
+
+    @button(label="🌐 設定 API URL", style=discord.ButtonStyle.secondary, row=0)
+    async def set_api_url(self, interaction: discord.Interaction, button: Button):
+        settings = await self.dao.get_fivem_settings(self.guild.id)
+        await interaction.response.send_modal(
+            FiveMUrlModal(self, settings.get("info_url"), settings.get("players_url"))
+        )
+
+    @button(label="📣 設定播報頻道", style=discord.ButtonStyle.secondary, row=0)
+    async def set_status_channel(self, interaction: discord.Interaction, button: Button):
+        self.clear_items()
+        self.add_item(FiveMStatusChannelSelect(self, row=0))
+        self.add_item(BackToFiveMSettingsButton(self.user_id, self.guild))
+
+        embed = discord.Embed(
+            title="📣 選擇 FiveM 播報頻道",
+            description="選擇一個文字頻道作為狀態播報用。",
+            color=0x3498DB,
+        )
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @button(label="🧹 清除設定", style=discord.ButtonStyle.secondary, row=1)
+    async def clear_settings(self, interaction: discord.Interaction, button: Button):
+        payload = await self._build_payload(
+            info_url=None,
+            players_url=None,
+            status_channel_id=0,
+        )
+        success = await self.dao.update_fivem_settings(self.guild.id, payload)
+        if success:
+            await interaction.response.send_message("✅ 已清除 FiveM 設定", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ 清除設定失敗", ephemeral=True)
+
+    @button(label="🔄 重新整理", style=discord.ButtonStyle.secondary, row=1)
+    async def refresh_button(self, interaction: discord.Interaction, button: Button):
+        panel = SystemAdminPanel(self.user_id)
+        embed = await panel._create_fivem_settings_embed(self.guild)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @button(label="❌ 關閉", style=discord.ButtonStyle.danger, row=1)
+    async def close_button(self, interaction: discord.Interaction, button: Button):
+        embed = discord.Embed(title="✅ FiveM 狀態設定已關閉", color=0x95A5A6)
+        await interaction.response.edit_message(embed=embed, view=None)
+
+
+class FiveMUrlModal(Modal):
+    """設定 FiveM API URL"""
+
+    def __init__(self, parent_view: FiveMSettingsView, info_url: str | None, players_url: str | None):
+        super().__init__(title="設定 FiveM API URL")
+        self.parent_view = parent_view
+        self.info_url = TextInput(
+            label="info.json URL",
+            placeholder="http://your-server:30120/info.json",
+            default=info_url or "",
+            required=True,
+            max_length=200,
+        )
+        self.players_url = TextInput(
+            label="players.json URL",
+            placeholder="http://your-server:30120/players.json",
+            default=players_url or "",
+            required=True,
+            max_length=200,
+        )
+        self.add_item(self.info_url)
+        self.add_item(self.players_url)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        info_url = self.info_url.value.strip()
+        players_url = self.players_url.value.strip()
+        payload = await self.parent_view._build_payload(
+            info_url=info_url,
+            players_url=players_url,
+        )
+        success = await self.parent_view.dao.update_fivem_settings(
+            self.parent_view.guild.id, payload
+        )
+        if success:
+            await interaction.response.send_message("✅ 已更新 FiveM API URL", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ 更新失敗，請稍後再試", ephemeral=True)
+
+
+class FiveMStatusChannelSelect(discord.ui.ChannelSelect):
+    """FiveM 狀態播報頻道選擇器"""
+
+    def __init__(self, parent_view: FiveMSettingsView, row: int | None = None):
+        self.parent_view = parent_view
+        super().__init__(
+            placeholder="選擇播報頻道...",
+            min_values=1,
+            max_values=1,
+            channel_types=[discord.ChannelType.text],
+            row=row,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        channel = self.values[0]
+        payload = await self.parent_view._build_payload(status_channel_id=channel.id)
+        success = await self.parent_view.dao.update_fivem_settings(
+            self.parent_view.guild.id, payload
+        )
+        if success:
+            admin_panel = SystemAdminPanel(self.parent_view.user_id)
+            embed = await admin_panel._create_fivem_settings_embed(self.parent_view.guild)
+            view = FiveMSettingsView(self.parent_view.user_id, self.parent_view.guild)
+            await interaction.response.edit_message(embed=embed, view=view)
+        else:
+            await interaction.response.send_message("❌ 設定失敗，請稍後再試", ephemeral=True)
+
+
+class BackToFiveMSettingsButton(Button):
+    """返回 FiveM 設定按鈕"""
+
+    def __init__(self, user_id: int, guild: discord.Guild):
+        self.user_id = user_id
+        self.guild = guild
+        super().__init__(label="← 返回", style=discord.ButtonStyle.secondary)
+
+    async def callback(self, interaction: discord.Interaction):
+        admin_panel = SystemAdminPanel(self.user_id)
+        embed = await admin_panel._create_fivem_settings_embed(self.guild)
+        view = FiveMSettingsView(self.user_id, self.guild)
         await interaction.response.edit_message(embed=embed, view=view)
 
 

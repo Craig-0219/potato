@@ -77,6 +77,18 @@ LAVALINK_SECURE=false
 # LAVALINK_URI=https://your_lavalink_host:443
 ```
 
+## FiveM 狀態播報
+
+```bash
+FIVEM_INFO_URL=http://your-server:30120/info.json
+FIVEM_PLAYERS_URL=http://your-server:30120/players.json
+FIVEM_STATUS_CHANNEL_ID=123456789012345678
+FIVEM_POLL_INTERVAL=20
+FIVEM_OFFLINE_THRESHOLD=3
+FIVEM_TXADMIN_STATUS_FILE=D:\\server\\txData\\QBBOX\\resources\\[01-核心系統]\\Potato_Discord_API\\data\\txadmin_status.json
+FIVEM_RESTART_NOTIFY_SECONDS=600,300,180,120,60,10
+```
+
 ## 票券系統常用指令
 
 - `!setup_ticket`：建立票券面板
