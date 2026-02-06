@@ -46,6 +46,7 @@ class _FiveMGuildState:
     alert_role_ids: list[int] = field(default_factory=list)
     dm_role_ids: list[int] = field(default_factory=list)
     panel_message_id: int = 0
+    server_link: Optional[str] = None
     last_status: Optional[str] = None
     last_panel_signature: Optional[str] = None
     ftp_fail_count: int = 0
@@ -202,6 +203,7 @@ class FiveMStatusCore(commands.Cog):
         event_type: Optional[str],
         event_updated_at: Optional[str],
         tx_state: Optional[str],
+        server_link: Optional[str],
     ) -> str:
         players = result.players if result else None
         max_players = result.max_players if result else None
@@ -211,6 +213,7 @@ class FiveMStatusCore(commands.Cog):
                 str(event_type or ""),
                 str(event_updated_at or ""),
                 str(tx_state or ""),
+                str(server_link or ""),
                 str(players or ""),
                 str(max_players or ""),
                 str(hostname or ""),
@@ -241,11 +244,6 @@ class FiveMStatusCore(commands.Cog):
                 player_text = f"{result.players}"
             embed.add_field(name="玩家", value=player_text, inline=True)
 
-        if event_type:
-            embed.add_field(name="事件", value=event_type, inline=True)
-        else:
-            embed.add_field(name="事件", value="無", inline=True)
-
         if result and result.hostname:
             embed.add_field(name="伺服器", value=result.hostname, inline=False)
         else:
@@ -254,6 +252,26 @@ class FiveMStatusCore(commands.Cog):
         now_ts = int(discord.utils.utcnow().timestamp())
         embed.set_footer(text=f"最後更新 <t:{now_ts}:R>")
         return embed
+
+    @staticmethod
+    def _build_status_panel_view(server_link: Optional[str]) -> Optional[discord.ui.View]:
+        if not server_link:
+            return None
+        link = server_link.strip()
+        if not link:
+            return None
+        if not (link.startswith("http://") or link.startswith("https://")):
+            return None
+
+        view = discord.ui.View(timeout=None)
+        view.add_item(
+            discord.ui.Button(
+                label="🔗 連線伺服器",
+                style=discord.ButtonStyle.link,
+                url=link,
+            )
+        )
+        return view
 
     async def _update_status_panel(
         self,
@@ -277,7 +295,7 @@ class FiveMStatusCore(commands.Cog):
             tx_state = self._normalize_status(tx_status.get("state"))
 
         signature = self._build_panel_signature(
-            result, event_type, str(event_updated_at or ""), tx_state
+            result, event_type, str(event_updated_at or ""), tx_state, state.server_link
         )
         if not force and state.last_panel_signature == signature:
             return
@@ -285,6 +303,7 @@ class FiveMStatusCore(commands.Cog):
         embed = self._build_status_panel_embed(
             guild, result, event_type, str(event_updated_at or ""), tx_state
         )
+        view = self._build_status_panel_view(state.server_link)
 
         message = None
         if state.panel_message_id:
@@ -295,12 +314,12 @@ class FiveMStatusCore(commands.Cog):
 
         if message:
             try:
-                await message.edit(embed=embed, view=None)
+                await message.edit(embed=embed, view=view)
             except Exception as exc:
                 logger.warning("更新 FiveM 狀態面板失敗: %s", exc)
         else:
             try:
-                message = await channel.send(embed=embed)
+                message = await channel.send(embed=embed, view=view)
                 state.panel_message_id = message.id
                 await self.dao.update_panel_message_id(guild.id, message.id)
             except Exception as exc:
@@ -601,6 +620,7 @@ class FiveMStatusCore(commands.Cog):
         alert_role_ids = settings.get("alert_role_ids", []) or []
         dm_role_ids = settings.get("dm_role_ids", []) or []
         panel_message_id = int(settings.get("panel_message_id") or 0)
+        server_link = settings.get("server_link")
         has_http = bool(info_url and players_url)
         txadmin_enabled = self._txadmin_enabled()
         cache_key = (info_url, players_url, channel_id)
@@ -658,6 +678,7 @@ class FiveMStatusCore(commands.Cog):
                 alert_role_ids=alert_role_ids,
                 dm_role_ids=dm_role_ids,
                 panel_message_id=panel_message_id,
+                server_link=server_link,
             )
 
         state = self._guild_states.get(guild.id)
@@ -667,6 +688,7 @@ class FiveMStatusCore(commands.Cog):
             state.alert_role_ids = alert_role_ids
             state.dm_role_ids = dm_role_ids
             state.panel_message_id = panel_message_id
+            state.server_link = server_link
         return state
 
     @tasks.loop(seconds=FIVEM_POLL_INTERVAL)

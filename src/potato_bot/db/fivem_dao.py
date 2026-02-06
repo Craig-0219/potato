@@ -49,6 +49,15 @@ class FiveMDAO(BaseDAO):
                         )
                         await conn.commit()
                         logger.info("✅ 已補齊 fivem_settings.panel_message_id 欄位")
+
+                    await cursor.execute("SHOW COLUMNS FROM fivem_settings LIKE 'server_link'")
+                    exists = await cursor.fetchone()
+                    if not exists:
+                        await cursor.execute(
+                            "ALTER TABLE fivem_settings ADD COLUMN server_link TEXT NULL COMMENT '伺服器連結' AFTER panel_message_id"
+                        )
+                        await conn.commit()
+                        logger.info("✅ 已補齊 fivem_settings.server_link 欄位")
         except Exception as exc:
             logger.warning("FiveMDAO 初始化檢查欄位失敗: %s", exc)
 
@@ -81,6 +90,7 @@ class FiveMDAO(BaseDAO):
                         else:
                             result["dm_role_ids"] = []
                         result["panel_message_id"] = int(result.get("panel_message_id") or 0)
+                        result["server_link"] = result.get("server_link")
                         result["exists"] = True
                         return result
 
@@ -92,6 +102,7 @@ class FiveMDAO(BaseDAO):
                         "alert_role_ids": [],
                         "dm_role_ids": [],
                         "panel_message_id": 0,
+                        "server_link": None,
                         "exists": False,
                     }
         except Exception as e:
@@ -104,6 +115,7 @@ class FiveMDAO(BaseDAO):
                 "alert_role_ids": [],
                 "dm_role_ids": [],
                 "panel_message_id": 0,
+                "server_link": None,
                 "exists": False,
             }
 
@@ -115,8 +127,8 @@ class FiveMDAO(BaseDAO):
                 async with conn.cursor() as cursor:
                     query = """
                     INSERT INTO fivem_settings (
-                        guild_id, info_url, players_url, status_channel_id, alert_role_ids, dm_role_ids, panel_message_id
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        guild_id, info_url, players_url, status_channel_id, alert_role_ids, dm_role_ids, panel_message_id, server_link
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     ON DUPLICATE KEY UPDATE
                         info_url = VALUES(info_url),
                         players_url = VALUES(players_url),
@@ -124,6 +136,7 @@ class FiveMDAO(BaseDAO):
                         alert_role_ids = VALUES(alert_role_ids),
                         dm_role_ids = VALUES(dm_role_ids),
                         panel_message_id = VALUES(panel_message_id),
+                        server_link = VALUES(server_link),
                         updated_at = CURRENT_TIMESTAMP
                     """
                     await cursor.execute(
@@ -136,6 +149,7 @@ class FiveMDAO(BaseDAO):
                             json.dumps(settings.get("alert_role_ids", [])),
                             json.dumps(settings.get("dm_role_ids", [])),
                             settings.get("panel_message_id") or 0,
+                            settings.get("server_link"),
                         ),
                     )
                     await conn.commit()

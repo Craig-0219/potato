@@ -213,6 +213,7 @@ class DatabaseManager:
                     alert_role_ids JSON NULL COMMENT '異常通知身分組',
                     dm_role_ids JSON NULL COMMENT 'DM 通知身分組',
                     panel_message_id BIGINT NULL COMMENT '狀態面板訊息ID',
+                    server_link TEXT NULL COMMENT '伺服器連結',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間'
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
