@@ -185,40 +185,46 @@ class FiveMStatusService:
         if not self._ftp_enabled():
             self._mark_txadmin_read(None)
             return None
-        try:
-            ftp = self._ensure_ftp_connection()
-            if not ftp:
-                self._mark_txadmin_read(False, "ftp_connect_failed")
-                return None
 
-            # 若連線過久未使用，先發 NOOP 保持連線
-            now = time.time()
-            if self._ftp_last_used and now - self._ftp_last_used > 30:
-                try:
-                    ftp.voidcmd("NOOP")
-                except Exception:
-                    self._disconnect_ftp()
-                    ftp = self._ensure_ftp_connection()
-                    if not ftp:
-                        self._mark_txadmin_read(False, "ftp_reconnect_failed")
-                        return None
+        last_error: Optional[str] = None
+        for attempt in range(3):  # 1 次 + 2 次重試
+            try:
+                ftp = self._ensure_ftp_connection()
+                if not ftp:
+                    raise RuntimeError("ftp_connect_failed")
 
-            buffer = io.BytesIO()
-            ftp.retrbinary(f"RETR {self.ftp_path}", buffer.write)
-            self._ftp_last_used = time.time()
-            data = buffer.getvalue().decode("utf-8")
-            parsed = json.loads(data)
-            self._mark_txadmin_read(True, payload=parsed)
-            return parsed
-        except error_perm as exc:
-            logger.warning("FTP 取檔失敗（權限/路徑）：%s", exc)
-            self._mark_txadmin_read(False, str(exc))
-            return None
-        except Exception as exc:
-            logger.error("FTP 讀取 txAdmin 狀態檔失敗: %s", exc)
-            self._disconnect_ftp()
-            self._mark_txadmin_read(False, str(exc))
-            return None
+                # 若連線過久未使用，先發 NOOP 保持連線
+                now = time.time()
+                if self._ftp_last_used and now - self._ftp_last_used > 30:
+                    try:
+                        ftp.voidcmd("NOOP")
+                    except Exception:
+                        self._disconnect_ftp()
+                        ftp = self._ensure_ftp_connection()
+                        if not ftp:
+                            raise RuntimeError("ftp_reconnect_failed")
+
+                buffer = io.BytesIO()
+                ftp.retrbinary(f"RETR {self.ftp_path}", buffer.write)
+                self._ftp_last_used = time.time()
+                data = buffer.getvalue().decode("utf-8")
+                parsed = json.loads(data)
+                self._mark_txadmin_read(True, payload=parsed)
+                return parsed
+            except error_perm as exc:
+                last_error = str(exc)
+                logger.warning("FTP 取檔失敗（權限/路徑）：%s", exc)
+                self._disconnect_ftp()
+            except Exception as exc:
+                last_error = str(exc)
+                logger.error("FTP 讀取 txAdmin 狀態檔失敗: %s", exc)
+                self._disconnect_ftp()
+
+            if attempt < 2:
+                time.sleep(0.2 * (attempt + 1))
+
+        self._mark_txadmin_read(False, f"ftp_retries_exhausted:{last_error}")
+        return None
 
     def _ensure_ftp_connection(self) -> Optional[FTP]:
         if self._ftp:
