@@ -439,6 +439,17 @@ class SystemAdminPanel(BaseView):
         players_url = settings.get("players_url") or "未設定"
         channel_id = settings.get("status_channel_id") or 0
         channel_text = f"<#{channel_id}>" if channel_id else "未設定"
+        alert_roles = settings.get("alert_role_ids", []) or []
+        if alert_roles:
+            role_text = "、".join(
+                role.mention
+                for role in (guild.get_role(role_id) for role_id in alert_roles)
+                if role
+            )
+            if not role_text:
+                role_text = "未設定"
+        else:
+            role_text = "未設定"
 
         embed = discord.Embed(
             title="🛰️ FiveM 狀態設定",
@@ -449,6 +460,7 @@ class SystemAdminPanel(BaseView):
         embed.add_field(name="info.json", value=info_url, inline=False)
         embed.add_field(name="players.json", value=players_url, inline=False)
         embed.add_field(name="播報頻道", value=channel_text, inline=False)
+        embed.add_field(name="異常通知身分組", value=role_text, inline=False)
         embed.add_field(name="📋 管理選項", value="使用下方按鈕進行設定", inline=False)
 
         return embed
@@ -3653,6 +3665,7 @@ class FiveMSettingsView(View):
             "info_url": current.get("info_url"),
             "players_url": current.get("players_url"),
             "status_channel_id": current.get("status_channel_id", 0),
+            "alert_role_ids": current.get("alert_role_ids", []),
         }
         payload.update(patch)
         return payload
@@ -3688,6 +3701,19 @@ class FiveMSettingsView(View):
         )
         await interaction.response.edit_message(embed=embed, view=self)
 
+    @button(label="🔔 設定異常通知身分組", style=discord.ButtonStyle.secondary, row=0)
+    async def set_alert_roles(self, interaction: discord.Interaction, button: Button):
+        self.clear_items()
+        self.add_item(FiveMAlertRoleSelect(self, row=0))
+        self.add_item(BackToFiveMSettingsButton(self.user_id, self.guild))
+
+        embed = discord.Embed(
+            title="🔔 設定異常通知身分組",
+            description="當無法讀取狀態檔時要通知的身分組（可多選）",
+            color=0x3498DB,
+        )
+        await interaction.response.edit_message(embed=embed, view=self)
+
     @button(label="🧹 清除設定", style=discord.ButtonStyle.secondary, row=1)
     async def clear_settings(self, interaction: discord.Interaction, button: Button):
         payload = await self._build_payload(
@@ -3700,6 +3726,15 @@ class FiveMSettingsView(View):
             await interaction.response.send_message("✅ 已清除 FiveM 設定", ephemeral=True)
         else:
             await interaction.response.send_message("❌ 清除設定失敗", ephemeral=True)
+
+    @button(label="🧹 清除通知身分組", style=discord.ButtonStyle.secondary, row=1)
+    async def clear_alert_roles(self, interaction: discord.Interaction, button: Button):
+        payload = await self._build_payload(alert_role_ids=[])
+        success = await self.dao.update_fivem_settings(self.guild.id, payload)
+        if success:
+            await interaction.response.send_message("✅ 已清除異常通知身分組", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ 清除失敗", ephemeral=True)
 
     @button(label="🔄 重新整理", style=discord.ButtonStyle.secondary, row=1)
     async def refresh_button(self, interaction: discord.Interaction, button: Button):
@@ -3768,6 +3803,33 @@ class FiveMStatusChannelSelect(discord.ui.ChannelSelect):
     async def callback(self, interaction: discord.Interaction):
         channel = self.values[0]
         payload = await self.parent_view._build_payload(status_channel_id=channel.id)
+        success = await self.parent_view.dao.update_fivem_settings(
+            self.parent_view.guild.id, payload
+        )
+        if success:
+            admin_panel = SystemAdminPanel(self.parent_view.user_id)
+            embed = await admin_panel._create_fivem_settings_embed(self.parent_view.guild)
+            view = FiveMSettingsView(self.parent_view.user_id, self.parent_view.guild)
+            await interaction.response.edit_message(embed=embed, view=view)
+        else:
+            await interaction.response.send_message("❌ 設定失敗，請稍後再試", ephemeral=True)
+
+
+class FiveMAlertRoleSelect(discord.ui.RoleSelect):
+    """FiveM 異常通知身分組選擇器"""
+
+    def __init__(self, parent_view: FiveMSettingsView, row: int | None = None):
+        self.parent_view = parent_view
+        super().__init__(
+            placeholder="選擇異常通知身分組（可多選）",
+            min_values=1,
+            max_values=10,
+            row=row,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        role_ids = [role.id for role in self.values]
+        payload = await self.parent_view._build_payload(alert_role_ids=role_ids)
         success = await self.parent_view.dao.update_fivem_settings(
             self.parent_view.guild.id, payload
         )

@@ -126,13 +126,25 @@ MUSIC_SEARCH_RESULTS_LIMIT = int(os.getenv("MUSIC_SEARCH_RESULTS_LIMIT", 10))
 # ======================
 FIVEM_INFO_URL = os.getenv("FIVEM_INFO_URL")
 FIVEM_PLAYERS_URL = os.getenv("FIVEM_PLAYERS_URL")
-FIVEM_POLL_INTERVAL = int(os.getenv("FIVEM_POLL_INTERVAL", 20))
+FIVEM_POLL_INTERVAL = int(os.getenv("FIVEM_POLL_INTERVAL", 3))
 FIVEM_OFFLINE_THRESHOLD = int(os.getenv("FIVEM_OFFLINE_THRESHOLD", 3))
 FIVEM_STATUS_CHANNEL_ID = int(os.getenv("FIVEM_STATUS_CHANNEL_ID", "0") or 0)
 FIVEM_TXADMIN_STATUS_FILE = os.getenv("FIVEM_TXADMIN_STATUS_FILE")
 FIVEM_RESTART_NOTIFY_SECONDS = os.getenv(
     "FIVEM_RESTART_NOTIFY_SECONDS", "600,300,180,120,60,10"
 )
+# txAdmin 狀態檔（FTP 讀取）
+FIVEM_TXADMIN_FTP_HOST = os.getenv("FIVEM_TXADMIN_FTP_HOST")
+FIVEM_TXADMIN_FTP_PORT = int(os.getenv("FIVEM_TXADMIN_FTP_PORT", "21") or 21)
+FIVEM_TXADMIN_FTP_USER = os.getenv("FIVEM_TXADMIN_FTP_USER")
+FIVEM_TXADMIN_FTP_PASSWORD = os.getenv("FIVEM_TXADMIN_FTP_PASSWORD")
+FIVEM_TXADMIN_FTP_PATH = os.getenv("FIVEM_TXADMIN_FTP_PATH")
+FIVEM_TXADMIN_FTP_PASSIVE = os.getenv("FIVEM_TXADMIN_FTP_PASSIVE", "true").lower() == "true"
+FIVEM_TXADMIN_FTP_TIMEOUT = int(os.getenv("FIVEM_TXADMIN_FTP_TIMEOUT", "10") or 10)
+# FiveM 推送 API（跨機上報）
+FIVEM_PUSH_API_PORT = int(os.getenv("FIVEM_PUSH_API_PORT", "0") or 0)
+FIVEM_PUSH_API_BIND = os.getenv("FIVEM_PUSH_API_BIND", "0.0.0.0")
+FIVEM_PUSH_API_KEY = os.getenv("FIVEM_PUSH_API_KEY")
 # Lavalink 連線設定
 LAVALINK_HOST = os.getenv("LAVALINK_HOST")
 LAVALINK_PORT = int(os.getenv("LAVALINK_PORT", 2333))
@@ -222,6 +234,19 @@ def get_config_summary() -> dict:
             "secure": LAVALINK_SECURE,
             "uri": LAVALINK_URI,
             "password": "***" if LAVALINK_PASSWORD else None,
+        },
+        "fivem_push": {
+            "bind": FIVEM_PUSH_API_BIND,
+            "port": FIVEM_PUSH_API_PORT,
+            "api_key": "***" if FIVEM_PUSH_API_KEY else None,
+        },
+        "fivem_txadmin_ftp": {
+            "host": FIVEM_TXADMIN_FTP_HOST,
+            "port": FIVEM_TXADMIN_FTP_PORT,
+            "user": "***" if FIVEM_TXADMIN_FTP_USER else None,
+            "password": "***" if FIVEM_TXADMIN_FTP_PASSWORD else None,
+            "path": FIVEM_TXADMIN_FTP_PATH,
+            "passive": FIVEM_TXADMIN_FTP_PASSIVE,
         },
     }
 

@@ -3,6 +3,7 @@
 FiveM 狀態設定資料存取
 """
 
+import json
 from typing import Any, Dict
 
 import aiomysql
@@ -19,6 +20,20 @@ class FiveMDAO(BaseDAO):
         super().__init__(table_name="fivem_settings")
 
     async def _initialize(self):
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    await cursor.execute("SHOW COLUMNS FROM fivem_settings LIKE 'alert_role_ids'")
+                    exists = await cursor.fetchone()
+                    if not exists:
+                        await cursor.execute(
+                            "ALTER TABLE fivem_settings ADD COLUMN alert_role_ids JSON NULL COMMENT '異常通知身分組' AFTER status_channel_id"
+                        )
+                        await conn.commit()
+                        logger.info("✅ 已補齊 fivem_settings.alert_role_ids 欄位")
+        except Exception as exc:
+            logger.warning("FiveMDAO 初始化檢查欄位失敗: %s", exc)
+
         logger.info("✅ FiveMDAO 初始化完成")
 
     async def get_fivem_settings(self, guild_id: int) -> Dict[str, Any]:
@@ -32,6 +47,13 @@ class FiveMDAO(BaseDAO):
 
                     if result:
                         result["status_channel_id"] = int(result.get("status_channel_id") or 0)
+                        raw_alert_roles = result.get("alert_role_ids")
+                        if isinstance(raw_alert_roles, str) and raw_alert_roles:
+                            result["alert_role_ids"] = json.loads(raw_alert_roles)
+                        elif isinstance(raw_alert_roles, list):
+                            result["alert_role_ids"] = raw_alert_roles
+                        else:
+                            result["alert_role_ids"] = []
                         result["exists"] = True
                         return result
 
@@ -40,6 +62,7 @@ class FiveMDAO(BaseDAO):
                         "info_url": None,
                         "players_url": None,
                         "status_channel_id": 0,
+                        "alert_role_ids": [],
                         "exists": False,
                     }
         except Exception as e:
@@ -49,6 +72,7 @@ class FiveMDAO(BaseDAO):
                 "info_url": None,
                 "players_url": None,
                 "status_channel_id": 0,
+                "alert_role_ids": [],
                 "exists": False,
             }
 
@@ -59,12 +83,13 @@ class FiveMDAO(BaseDAO):
                 async with conn.cursor() as cursor:
                     query = """
                     INSERT INTO fivem_settings (
-                        guild_id, info_url, players_url, status_channel_id
-                    ) VALUES (%s, %s, %s, %s)
+                        guild_id, info_url, players_url, status_channel_id, alert_role_ids
+                    ) VALUES (%s, %s, %s, %s, %s)
                     ON DUPLICATE KEY UPDATE
                         info_url = VALUES(info_url),
                         players_url = VALUES(players_url),
                         status_channel_id = VALUES(status_channel_id),
+                        alert_role_ids = VALUES(alert_role_ids),
                         updated_at = CURRENT_TIMESTAMP
                     """
                     await cursor.execute(
@@ -74,6 +99,7 @@ class FiveMDAO(BaseDAO):
                             settings.get("info_url"),
                             settings.get("players_url"),
                             settings.get("status_channel_id") or 0,
+                            json.dumps(settings.get("alert_role_ids", [])),
                         ),
                     )
                     await conn.commit()

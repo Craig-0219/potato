@@ -1,4 +1,5 @@
 import asyncio
+import io
 import json
 import os
 import time
@@ -6,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 import aiohttp
+from ftplib import FTP, error_perm
 
 from potato_shared.logger import logger
 
@@ -28,12 +30,30 @@ class FiveMStatusService:
         offline_threshold: int = 3,
         txadmin_status_file: Optional[str] = None,
         restart_notify_seconds: Optional[list[int]] = None,
+        ftp_host: Optional[str] = None,
+        ftp_port: int = 21,
+        ftp_user: Optional[str] = None,
+        ftp_password: Optional[str] = None,
+        ftp_path: Optional[str] = None,
+        ftp_passive: bool = True,
+        ftp_timeout: int = 10,
     ):
         self.info_url = info_url
         self.players_url = players_url
         self.offline_threshold = max(1, offline_threshold)
         self.txadmin_status_file = txadmin_status_file
         self.restart_notify_seconds = restart_notify_seconds or []
+        self.ftp_host = ftp_host
+        self.ftp_port = ftp_port
+        self.ftp_user = ftp_user
+        self.ftp_password = ftp_password
+        self.ftp_path = ftp_path
+        self.ftp_passive = ftp_passive
+        self.ftp_timeout = max(3, int(ftp_timeout or 10))
+
+        self._ftp: Optional[FTP] = None
+        self._ftp_last_used = 0.0
+        self._ftp_lock = asyncio.Lock()
 
         self._fail_count = 0
         self._last_status: Optional[str] = None
@@ -46,6 +66,9 @@ class FiveMStatusService:
     async def close(self):
         if not self._session.closed:
             await self._session.close()
+        if self._ftp_enabled() and self._ftp:
+            async with self._ftp_lock:
+                await asyncio.to_thread(self._disconnect_ftp)
 
     async def fetch_json(self, url: str) -> Optional[Any]:
         try:
@@ -107,7 +130,16 @@ class FiveMStatusService:
         self._last_status = status
         return result
 
-    def read_txadmin_status(self) -> Optional[dict]:
+    async def read_txadmin_status(self) -> Optional[dict]:
+        if self._ftp_enabled():
+            async with self._ftp_lock:
+                return await asyncio.to_thread(self._read_txadmin_status_ftp)
+        return self._read_txadmin_status_local()
+
+    def _ftp_enabled(self) -> bool:
+        return bool(self.ftp_host and self.ftp_path)
+
+    def _read_txadmin_status_local(self) -> Optional[dict]:
         if not self.txadmin_status_file:
             return None
         path = os.path.expandvars(os.path.expanduser(self.txadmin_status_file))
@@ -119,6 +151,67 @@ class FiveMStatusService:
         except Exception as exc:
             logger.error("讀取 txAdmin 狀態檔失敗: %s", exc)
             return None
+
+    def _read_txadmin_status_ftp(self) -> Optional[dict]:
+        if not self._ftp_enabled():
+            return None
+        try:
+            ftp = self._ensure_ftp_connection()
+            if not ftp:
+                return None
+
+            # 若連線過久未使用，先發 NOOP 保持連線
+            now = time.time()
+            if self._ftp_last_used and now - self._ftp_last_used > 30:
+                try:
+                    ftp.voidcmd("NOOP")
+                except Exception:
+                    self._disconnect_ftp()
+                    ftp = self._ensure_ftp_connection()
+                    if not ftp:
+                        return None
+
+            buffer = io.BytesIO()
+            ftp.retrbinary(f"RETR {self.ftp_path}", buffer.write)
+            self._ftp_last_used = time.time()
+            data = buffer.getvalue().decode("utf-8")
+            return json.loads(data)
+        except error_perm as exc:
+            logger.warning("FTP 取檔失敗（權限/路徑）：%s", exc)
+            return None
+        except Exception as exc:
+            logger.error("FTP 讀取 txAdmin 狀態檔失敗: %s", exc)
+            self._disconnect_ftp()
+            return None
+
+    def _ensure_ftp_connection(self) -> Optional[FTP]:
+        if self._ftp:
+            return self._ftp
+        try:
+            ftp = FTP()
+            ftp.connect(self.ftp_host, self.ftp_port, timeout=self.ftp_timeout)
+            ftp.login(self.ftp_user, self.ftp_password)
+            ftp.set_pasv(self.ftp_passive)
+            self._ftp = ftp
+            self._ftp_last_used = time.time()
+            return ftp
+        except Exception as exc:
+            logger.error("FTP 連線失敗: %s", exc)
+            self._ftp = None
+            return None
+
+    def _disconnect_ftp(self) -> None:
+        if not self._ftp:
+            return
+        try:
+            self._ftp.quit()
+        except Exception:
+            try:
+                self._ftp.close()
+            except Exception:
+                pass
+        self._ftp = None
+        self._ftp_last_used = 0.0
 
     def should_announce_txadmin(self, tx_status: dict) -> bool:
         if not tx_status:

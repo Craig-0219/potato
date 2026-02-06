@@ -210,6 +210,7 @@ class DatabaseManager:
                     info_url TEXT NULL COMMENT 'info.json URL',
                     players_url TEXT NULL COMMENT 'players.json URL',
                     status_channel_id BIGINT NULL COMMENT '播報頻道ID',
+                    alert_role_ids JSON NULL COMMENT '異常通知身分組',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間'
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci

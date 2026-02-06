@@ -65,6 +65,9 @@ try:
         DB_PORT,
         DB_USER,
         DISCORD_TOKEN,
+        FIVEM_PUSH_API_BIND,
+        FIVEM_PUSH_API_KEY,
+        FIVEM_PUSH_API_PORT,
         SYNC_COMMANDS,
     )
 except ImportError:
@@ -122,6 +125,9 @@ class PotatoBot(commands.Bot):
         # Service Registry：給 Cogs 拿共用服務用
         self.services: dict[str, Any] = {}
 
+        # FiveM Push API server
+        self._fivem_push_server = None
+
         # Guild 多租戶入口（已停用）
         self.guild_manager: None = None
 
@@ -141,6 +147,9 @@ class PotatoBot(commands.Bot):
 
         # 4) 載入所有 Cogs（Plugin Orchestrator）
         await self._load_extensions()
+
+        # 4.5) FiveM Push API（跨機上報）
+        await self._setup_fivem_push_server()
 
         # 5) 指令翻譯器（本地化指令名稱/描述）
         await self._setup_translator()
@@ -225,6 +234,29 @@ class PotatoBot(commands.Bot):
         if failed:
             logger.warning(f"⚠️ 未載入的 Cogs：{', '.join(failed)}")
 
+    async def _setup_fivem_push_server(self) -> None:
+        """啟動 FiveM 狀態推送 API（跨機腳本上報）"""
+        try:
+            if not FIVEM_PUSH_API_PORT:
+                logger.info("ℹ️ FiveM Push API 未啟用（FIVEM_PUSH_API_PORT 未設定）")
+                return
+            if not FIVEM_PUSH_API_KEY:
+                logger.warning("⚠️ FiveM Push API 未啟用（缺少 FIVEM_PUSH_API_KEY）")
+                return
+
+            from potato_bot.services.fivem_push_server import FiveMPushServer
+
+            self._fivem_push_server = FiveMPushServer(
+                self,
+                host=FIVEM_PUSH_API_BIND,
+                port=FIVEM_PUSH_API_PORT,
+                api_key=FIVEM_PUSH_API_KEY,
+            )
+            await self._fivem_push_server.start()
+            self.services["fivem_push_server"] = self._fivem_push_server
+        except Exception as exc:
+            logger.error("❌ FiveM Push API 啟動失敗: %s", exc)
+
     async def _setup_translator(self) -> None:
         """設定指令翻譯器（支援中文指令名稱）"""
         try:
@@ -301,6 +333,13 @@ class PotatoBot(commands.Bot):
             logger.info("✅ DB 連線已關閉")
         except Exception as e:
             logger.error(f"❌ 關閉 DB 時發生錯誤：{e}")
+
+        # 關閉 FiveM Push API
+        try:
+            if self._fivem_push_server:
+                await self._fivem_push_server.stop()
+        except Exception as e:
+            logger.error(f"❌ 關閉 FiveM Push API 失敗：{e}")
 
         await super().close()
         logger.info("✅ Discord 連線已關閉")
