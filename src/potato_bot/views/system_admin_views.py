@@ -5,6 +5,7 @@
 """
 
 import asyncio
+import time
 import discord
 from discord.ui import Button, ChannelSelect, Modal, RoleSelect, Select, TextInput, View, button
 
@@ -31,6 +32,11 @@ from potato_bot.utils.interaction_helper import BaseView, SafeInteractionHandler
 from potato_bot.utils.embed_builder import EmbedBuilder
 from potato_bot.views.resume_views import ResumePanelView
 from potato_shared.logger import logger
+from potato_shared.config import (
+    FIVEM_TXADMIN_FTP_HOST,
+    FIVEM_TXADMIN_FTP_PATH,
+    FIVEM_TXADMIN_STATUS_FILE,
+)
 
 
 class SystemAdminPanel(BaseView):
@@ -163,7 +169,7 @@ class SystemAdminPanel(BaseView):
     async def fivem_settings_button(self, interaction: discord.Interaction, button: Button):
         """FiveM 狀態設定"""
         await interaction.response.send_message(
-            embed=await self._create_fivem_settings_embed(interaction.guild),
+            embed=await self._create_fivem_settings_embed(interaction.guild, interaction.client),
             view=FiveMSettingsView(self.user_id, interaction.guild),
             ephemeral=True,
         )
@@ -431,7 +437,9 @@ class SystemAdminPanel(BaseView):
 
         return embed
 
-    async def _create_fivem_settings_embed(self, guild: discord.Guild) -> discord.Embed:
+    async def _create_fivem_settings_embed(
+        self, guild: discord.Guild, bot: discord.Client | None = None
+    ) -> discord.Embed:
         """創建 FiveM 狀態設定嵌入"""
         settings = await self.fivem_dao.get_fivem_settings(guild.id)
 
@@ -461,6 +469,51 @@ class SystemAdminPanel(BaseView):
         embed.add_field(name="players.json", value=players_url, inline=False)
         embed.add_field(name="播報頻道", value=channel_text, inline=False)
         embed.add_field(name="異常通知身分組", value=role_text, inline=False)
+
+        ftp_configured = bool(FIVEM_TXADMIN_FTP_HOST and FIVEM_TXADMIN_FTP_PATH)
+        txadmin_source_configured = ftp_configured or bool(FIVEM_TXADMIN_STATUS_FILE)
+        ftp_status_text = "未啟用"
+        if ftp_configured:
+            ftp_status_text = "⏳ 尚未取得"
+            if bot:
+                fivem_cog = bot.get_cog("FiveMStatusCore")
+                if fivem_cog and hasattr(fivem_cog, "get_ftp_connection_status"):
+                    status = await fivem_cog.get_ftp_connection_status(guild)
+                    if status is True:
+                        ftp_status_text = "✅ 已連線"
+                    elif status is False:
+                        ftp_status_text = "❌ 未連線"
+                    else:
+                        ftp_status_text = "未啟用"
+
+        embed.add_field(name="FTP 連線狀態", value=ftp_status_text, inline=False)
+
+        txadmin_read_text = "未啟用"
+        if txadmin_source_configured:
+            txadmin_read_text = "⏳ 尚未讀取"
+            if bot:
+                fivem_cog = bot.get_cog("FiveMStatusCore")
+                if fivem_cog and hasattr(fivem_cog, "get_txadmin_read_status"):
+                    status = await fivem_cog.get_txadmin_read_status(guild)
+                    if status is None:
+                        txadmin_read_text = "未啟用"
+                    else:
+                        ok = status.get("ok")
+                        last_at = status.get("last_read_at")
+                        if last_at:
+                            seconds_ago = max(0, int(time.time() - last_at))
+                            time_text = f"{seconds_ago} 秒前"
+                        else:
+                            time_text = "尚未"
+                        if ok is True:
+                            txadmin_read_text = f"✅ 已讀取（{time_text}）"
+                        elif ok is False:
+                            txadmin_read_text = f"❌ 讀取失敗（{time_text}）"
+                        else:
+                            txadmin_read_text = "⏳ 尚未讀取"
+
+        embed.add_field(name="狀態檔讀取", value=txadmin_read_text, inline=False)
+
         embed.add_field(name="📋 管理選項", value="使用下方按鈕進行設定", inline=False)
 
         return embed
@@ -3739,7 +3792,7 @@ class FiveMSettingsView(View):
     @button(label="🔄 重新整理", style=discord.ButtonStyle.secondary, row=1)
     async def refresh_button(self, interaction: discord.Interaction, button: Button):
         panel = SystemAdminPanel(self.user_id)
-        embed = await panel._create_fivem_settings_embed(self.guild)
+        embed = await panel._create_fivem_settings_embed(self.guild, interaction.client)
         await interaction.response.edit_message(embed=embed, view=self)
 
     @button(label="❌ 關閉", style=discord.ButtonStyle.danger, row=1)
@@ -3808,7 +3861,9 @@ class FiveMStatusChannelSelect(discord.ui.ChannelSelect):
         )
         if success:
             admin_panel = SystemAdminPanel(self.parent_view.user_id)
-            embed = await admin_panel._create_fivem_settings_embed(self.parent_view.guild)
+            embed = await admin_panel._create_fivem_settings_embed(
+                self.parent_view.guild, interaction.client
+            )
             view = FiveMSettingsView(self.parent_view.user_id, self.parent_view.guild)
             await interaction.response.edit_message(embed=embed, view=view)
         else:
@@ -3835,7 +3890,9 @@ class FiveMAlertRoleSelect(discord.ui.RoleSelect):
         )
         if success:
             admin_panel = SystemAdminPanel(self.parent_view.user_id)
-            embed = await admin_panel._create_fivem_settings_embed(self.parent_view.guild)
+            embed = await admin_panel._create_fivem_settings_embed(
+                self.parent_view.guild, interaction.client
+            )
             view = FiveMSettingsView(self.parent_view.user_id, self.parent_view.guild)
             await interaction.response.edit_message(embed=embed, view=view)
         else:
@@ -3852,7 +3909,7 @@ class BackToFiveMSettingsButton(Button):
 
     async def callback(self, interaction: discord.Interaction):
         admin_panel = SystemAdminPanel(self.user_id)
-        embed = await admin_panel._create_fivem_settings_embed(self.guild)
+        embed = await admin_panel._create_fivem_settings_embed(self.guild, interaction.client)
         view = FiveMSettingsView(self.user_id, self.guild)
         await interaction.response.edit_message(embed=embed, view=view)
 

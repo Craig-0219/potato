@@ -55,6 +55,12 @@ class FiveMStatusService:
         self._ftp_last_used = 0.0
         self._ftp_lock = asyncio.Lock()
 
+        self._last_txadmin_read_ok: Optional[bool] = None
+        self._last_txadmin_read_at: Optional[float] = None
+        self._last_txadmin_read_error: Optional[str] = None
+        self._last_txadmin_payload: Optional[dict] = None
+        self._last_txadmin_payload_at: Optional[float] = None
+
         self._fail_count = 0
         self._last_status: Optional[str] = None
         self._last_txadmin_updated_at: Optional[int] = None
@@ -136,28 +142,53 @@ class FiveMStatusService:
                 return await asyncio.to_thread(self._read_txadmin_status_ftp)
         return self._read_txadmin_status_local()
 
+    def get_txadmin_read_status(self) -> Optional[dict]:
+        """取得 txAdmin 狀態檔讀取狀態（None 表示未啟用）"""
+        if not self._ftp_enabled() and not self.txadmin_status_file:
+            return None
+        return {
+            "ok": self._last_txadmin_read_ok,
+            "last_read_at": self._last_txadmin_read_at,
+            "error": self._last_txadmin_read_error,
+        }
+
+    def get_last_txadmin_payload(self) -> Optional[dict]:
+        """取得最後一次成功讀取的 txAdmin JSON"""
+        return self._last_txadmin_payload
+
+    def get_last_txadmin_payload_at(self) -> Optional[float]:
+        """取得最後一次成功讀取 txAdmin JSON 的時間戳"""
+        return self._last_txadmin_payload_at
+
     def _ftp_enabled(self) -> bool:
         return bool(self.ftp_host and self.ftp_path)
 
     def _read_txadmin_status_local(self) -> Optional[dict]:
         if not self.txadmin_status_file:
+            self._mark_txadmin_read(None)
             return None
         path = os.path.expandvars(os.path.expanduser(self.txadmin_status_file))
         if not os.path.isfile(path):
+            self._mark_txadmin_read(False, "file_not_found")
             return None
         try:
             with open(path, "r", encoding="utf-8") as handle:
-                return json.load(handle)
+                data = json.load(handle)
+                self._mark_txadmin_read(True, payload=data)
+                return data
         except Exception as exc:
             logger.error("讀取 txAdmin 狀態檔失敗: %s", exc)
+            self._mark_txadmin_read(False, str(exc))
             return None
 
     def _read_txadmin_status_ftp(self) -> Optional[dict]:
         if not self._ftp_enabled():
+            self._mark_txadmin_read(None)
             return None
         try:
             ftp = self._ensure_ftp_connection()
             if not ftp:
+                self._mark_txadmin_read(False, "ftp_connect_failed")
                 return None
 
             # 若連線過久未使用，先發 NOOP 保持連線
@@ -169,19 +200,24 @@ class FiveMStatusService:
                     self._disconnect_ftp()
                     ftp = self._ensure_ftp_connection()
                     if not ftp:
+                        self._mark_txadmin_read(False, "ftp_reconnect_failed")
                         return None
 
             buffer = io.BytesIO()
             ftp.retrbinary(f"RETR {self.ftp_path}", buffer.write)
             self._ftp_last_used = time.time()
             data = buffer.getvalue().decode("utf-8")
-            return json.loads(data)
+            parsed = json.loads(data)
+            self._mark_txadmin_read(True, payload=parsed)
+            return parsed
         except error_perm as exc:
             logger.warning("FTP 取檔失敗（權限/路徑）：%s", exc)
+            self._mark_txadmin_read(False, str(exc))
             return None
         except Exception as exc:
             logger.error("FTP 讀取 txAdmin 狀態檔失敗: %s", exc)
             self._disconnect_ftp()
+            self._mark_txadmin_read(False, str(exc))
             return None
 
     def _ensure_ftp_connection(self) -> Optional[FTP]:
@@ -212,6 +248,27 @@ class FiveMStatusService:
                 pass
         self._ftp = None
         self._ftp_last_used = 0.0
+
+    def is_ftp_connected(self) -> Optional[bool]:
+        """回報 FTP 連線狀態（None 表示未啟用）"""
+        if not self._ftp_enabled():
+            return None
+        return self._ftp is not None
+
+    def _mark_txadmin_read(
+        self, ok: Optional[bool], error: Optional[str] = None, payload: Optional[dict] = None
+    ) -> None:
+        if ok is None:
+            self._last_txadmin_read_ok = None
+            self._last_txadmin_read_at = None
+            self._last_txadmin_read_error = None
+            return
+        self._last_txadmin_read_ok = ok
+        self._last_txadmin_read_at = time.time()
+        self._last_txadmin_read_error = error
+        if ok and payload is not None:
+            self._last_txadmin_payload = payload
+            self._last_txadmin_payload_at = self._last_txadmin_read_at
 
     def should_announce_txadmin(self, tx_status: dict) -> bool:
         if not tx_status:

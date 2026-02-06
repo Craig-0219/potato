@@ -307,6 +307,46 @@ class FiveMStatusCore(commands.Cog):
 
         return {"ok": True, "sent": sent}
 
+    async def get_ftp_connection_status(self, guild: discord.Guild) -> Optional[bool]:
+        """取得 FTP 連線狀態（None 表示未啟用或不可用）"""
+        try:
+            state = await self._get_state(guild)
+            if not state:
+                return None
+            return state.service.is_ftp_connected()
+        except Exception:
+            return None
+
+    async def get_txadmin_read_status(self, guild: discord.Guild) -> Optional[dict]:
+        """取得 txAdmin 狀態檔讀取狀態"""
+        try:
+            state = await self._get_state(guild)
+            if not state:
+                return None
+            return state.service.get_txadmin_read_status()
+        except Exception:
+            return None
+
+    async def get_txadmin_payload(self, guild: discord.Guild) -> Optional[dict]:
+        """取得最後一次成功讀取的 txAdmin JSON"""
+        try:
+            state = await self._get_state(guild)
+            if not state:
+                return None
+            return state.service.get_last_txadmin_payload()
+        except Exception:
+            return None
+
+    async def get_txadmin_payload_at(self, guild: discord.Guild) -> Optional[float]:
+        """取得最後一次成功讀取 txAdmin JSON 的時間戳"""
+        try:
+            state = await self._get_state(guild)
+            if not state:
+                return None
+            return state.service.get_last_txadmin_payload_at()
+        except Exception:
+            return None
+
     async def _get_state(self, guild: discord.Guild) -> Optional[_FiveMGuildState]:
         settings = await self.dao.get_fivem_settings(guild.id)
         info_url = settings.get("info_url")

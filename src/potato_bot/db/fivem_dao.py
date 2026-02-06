@@ -38,6 +38,7 @@ class FiveMDAO(BaseDAO):
 
     async def get_fivem_settings(self, guild_id: int) -> Dict[str, Any]:
         """取得 FiveM 狀態設定"""
+        await self._ensure_initialized()
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor(aiomysql.DictCursor) as cursor:
@@ -78,6 +79,7 @@ class FiveMDAO(BaseDAO):
 
     async def update_fivem_settings(self, guild_id: int, settings: Dict[str, Any]) -> bool:
         """更新 FiveM 狀態設定"""
+        await self._ensure_initialized()
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
