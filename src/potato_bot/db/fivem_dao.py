@@ -32,11 +32,20 @@ class FiveMDAO(BaseDAO):
                         await conn.commit()
                         logger.info("✅ 已補齊 fivem_settings.alert_role_ids 欄位")
 
+                    await cursor.execute("SHOW COLUMNS FROM fivem_settings LIKE 'dm_role_ids'")
+                    exists = await cursor.fetchone()
+                    if not exists:
+                        await cursor.execute(
+                            "ALTER TABLE fivem_settings ADD COLUMN dm_role_ids JSON NULL COMMENT 'DM 通知身分組' AFTER alert_role_ids"
+                        )
+                        await conn.commit()
+                        logger.info("✅ 已補齊 fivem_settings.dm_role_ids 欄位")
+
                     await cursor.execute("SHOW COLUMNS FROM fivem_settings LIKE 'panel_message_id'")
                     exists = await cursor.fetchone()
                     if not exists:
                         await cursor.execute(
-                            "ALTER TABLE fivem_settings ADD COLUMN panel_message_id BIGINT NULL COMMENT '狀態面板訊息ID' AFTER alert_role_ids"
+                            "ALTER TABLE fivem_settings ADD COLUMN panel_message_id BIGINT NULL COMMENT '狀態面板訊息ID' AFTER dm_role_ids"
                         )
                         await conn.commit()
                         logger.info("✅ 已補齊 fivem_settings.panel_message_id 欄位")
@@ -64,6 +73,13 @@ class FiveMDAO(BaseDAO):
                             result["alert_role_ids"] = raw_alert_roles
                         else:
                             result["alert_role_ids"] = []
+                        raw_dm_roles = result.get("dm_role_ids")
+                        if isinstance(raw_dm_roles, str) and raw_dm_roles:
+                            result["dm_role_ids"] = json.loads(raw_dm_roles)
+                        elif isinstance(raw_dm_roles, list):
+                            result["dm_role_ids"] = raw_dm_roles
+                        else:
+                            result["dm_role_ids"] = []
                         result["panel_message_id"] = int(result.get("panel_message_id") or 0)
                         result["exists"] = True
                         return result
@@ -74,6 +90,7 @@ class FiveMDAO(BaseDAO):
                         "players_url": None,
                         "status_channel_id": 0,
                         "alert_role_ids": [],
+                        "dm_role_ids": [],
                         "panel_message_id": 0,
                         "exists": False,
                     }
@@ -85,6 +102,7 @@ class FiveMDAO(BaseDAO):
                 "players_url": None,
                 "status_channel_id": 0,
                 "alert_role_ids": [],
+                "dm_role_ids": [],
                 "panel_message_id": 0,
                 "exists": False,
             }
@@ -97,13 +115,14 @@ class FiveMDAO(BaseDAO):
                 async with conn.cursor() as cursor:
                     query = """
                     INSERT INTO fivem_settings (
-                        guild_id, info_url, players_url, status_channel_id, alert_role_ids, panel_message_id
-                    ) VALUES (%s, %s, %s, %s, %s, %s)
+                        guild_id, info_url, players_url, status_channel_id, alert_role_ids, dm_role_ids, panel_message_id
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
                     ON DUPLICATE KEY UPDATE
                         info_url = VALUES(info_url),
                         players_url = VALUES(players_url),
                         status_channel_id = VALUES(status_channel_id),
                         alert_role_ids = VALUES(alert_role_ids),
+                        dm_role_ids = VALUES(dm_role_ids),
                         panel_message_id = VALUES(panel_message_id),
                         updated_at = CURRENT_TIMESTAMP
                     """
@@ -115,6 +134,7 @@ class FiveMDAO(BaseDAO):
                             settings.get("players_url"),
                             settings.get("status_channel_id") or 0,
                             json.dumps(settings.get("alert_role_ids", [])),
+                            json.dumps(settings.get("dm_role_ids", [])),
                             settings.get("panel_message_id") or 0,
                         ),
                     )

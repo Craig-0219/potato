@@ -44,6 +44,7 @@ class _FiveMGuildState:
     channel_id: int
     has_http: bool = True
     alert_role_ids: list[int] = field(default_factory=list)
+    dm_role_ids: list[int] = field(default_factory=list)
     panel_message_id: int = 0
     last_status: Optional[str] = None
     last_panel_signature: Optional[str] = None
@@ -97,6 +98,7 @@ class FiveMStatusCore(commands.Cog):
         color: str = "info",
         content: Optional[str] = None,
         allowed_mentions: Optional[discord.AllowedMentions] = None,
+        delete_after: Optional[float] = None,
     ):
         channel = await self._get_channel(channel_id)
         if not channel:
@@ -109,11 +111,15 @@ class FiveMStatusCore(commands.Cog):
             embed = EmbedBuilder.create_error_embed(title, description)
         else:
             embed = EmbedBuilder.create_info_embed(title, description)
+        if delete_after is None and content:
+            delete_after = 30
+
         try:
             await channel.send(
                 content=content,
                 embed=embed,
                 allowed_mentions=allowed_mentions,
+                delete_after=delete_after,
             )
         except Exception as exc:
             logger.warning("FiveM 播報發送失敗: %s", exc)
@@ -593,6 +599,7 @@ class FiveMStatusCore(commands.Cog):
         players_url = settings.get("players_url")
         channel_id = int(settings.get("status_channel_id") or 0)
         alert_role_ids = settings.get("alert_role_ids", []) or []
+        dm_role_ids = settings.get("dm_role_ids", []) or []
         panel_message_id = int(settings.get("panel_message_id") or 0)
         has_http = bool(info_url and players_url)
         txadmin_enabled = self._txadmin_enabled()
@@ -649,6 +656,7 @@ class FiveMStatusCore(commands.Cog):
                 channel_id=channel_id,
                 has_http=has_http,
                 alert_role_ids=alert_role_ids,
+                dm_role_ids=dm_role_ids,
                 panel_message_id=panel_message_id,
             )
 
@@ -657,6 +665,7 @@ class FiveMStatusCore(commands.Cog):
             state.channel_id = channel_id
             state.has_http = has_http
             state.alert_role_ids = alert_role_ids
+            state.dm_role_ids = dm_role_ids
             state.panel_message_id = panel_message_id
         return state
 
@@ -775,14 +784,14 @@ class FiveMStatusCore(commands.Cog):
                                     await self._send_embed(
                                         state.channel_id,
                                         "🚨 Server崩潰",
-                                        "FTP 連線重試兩次仍失敗，判定伺服器異常崩潰。",
+                                        "伺服器異常，已通知相關單位處理，請耐心等候，謝謝。",
                                         "error",
                                         content=mention_text if mention_text else None,
                                         allowed_mentions=allowed_mentions,
                                     )
                                     await self._dm_alert_roles(
                                         guild,
-                                        state.alert_role_ids,
+                                        state.dm_role_ids,
                                         "🚨 Server崩潰",
                                         "FTP 連線重試兩次仍失敗，判定伺服器異常崩潰。",
                                         "error",
@@ -798,7 +807,7 @@ class FiveMStatusCore(commands.Cog):
                                     )
                                     await self._dm_alert_roles(
                                         guild,
-                                        state.alert_role_ids,
+                                        state.dm_role_ids,
                                         "⚠️ Server 狀態異常",
                                         "無法讀取 txAdmin 狀態檔（FTP/檔案）。請檢查連線或路徑設定。",
                                         "warning",
