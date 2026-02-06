@@ -81,7 +81,7 @@ class FiveMStatusService:
             async with self._session.get(url) as response:
                 if response.status != 200:
                     return None
-                return await response.json()
+                return await response.json(content_type=None)
         except asyncio.TimeoutError:
             return None
         except Exception as exc:
