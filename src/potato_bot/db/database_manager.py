@@ -48,6 +48,7 @@ class DatabaseManager:
             await self._create_ticket_tables()
             await self._create_vote_tables()
             await self._create_welcome_tables()
+            await self._create_system_settings_table()
             await self._create_resume_tables()
             await self._create_whitelist_tables()
             await self._create_lottery_tables()
@@ -513,6 +514,26 @@ class DatabaseManager:
         }
 
         await self._create_tables_batch(tables, "歡迎系統")
+
+    async def _create_system_settings_table(self):
+        """創建 system_settings 表格"""
+        logger.info("🛠️ 創建 system_settings 表格...")
+        tables = {
+            "system_settings": """
+                CREATE TABLE IF NOT EXISTS system_settings (
+                    guild_id BIGINT PRIMARY KEY COMMENT '伺服器ID',
+                    general_settings JSON NULL COMMENT '一般設定',
+                    channel_settings JSON NULL COMMENT '頻道設定',
+                    role_settings JSON NULL COMMENT '角色設定',
+                    notification_settings JSON NULL COMMENT '通知設定',
+                    feature_toggles JSON NULL COMMENT '功能開關',
+                    custom_settings JSON NULL COMMENT '自定義設定',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間'
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+        }
+        await self._create_tables_batch(tables, "system_settings")
 
     async def _create_resume_tables(self):
         """創建履歷系統相關表格"""

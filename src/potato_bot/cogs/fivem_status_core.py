@@ -56,6 +56,8 @@ class _FiveMGuildState:
     last_presence_state: Optional[str] = None
     last_panel_signature: Optional[str] = None
     starting_until: float = 0.0
+    stop_override_until: float = 0.0
+    stop_override_type: Optional[str] = None
     ftp_fail_count: int = 0
     ftp_last_alert: float = 0.0
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
@@ -63,6 +65,8 @@ class _FiveMGuildState:
 
 class FiveMStatusCore(commands.Cog):
     """Server狀態播報"""
+
+    STOP_DISPLAY_SECONDS = 15
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -166,16 +170,14 @@ class FiveMStatusCore(commands.Cog):
         }
         if event_type == "serverCrashed":
             return event_map[event_type]
+        if event_type in ("serverStarting", "serverStopping", "serverStopped", "scheduledRestart"):
+            return event_map[event_type]
 
         if result:
-            if result.status == "online":
-                return "🟢 在線"
             if result.status == "offline":
                 return "🔴 離線"
-            if event_type in ("serverStopping", "scheduledRestart"):
-                return event_map[event_type]
-            if event_type == "serverStarting":
-                return event_map[event_type]
+            if result.status == "online":
+                return "🟢 在線"
 
         if tx_state == "online":
             return "🟢 在線"
@@ -205,7 +207,7 @@ class FiveMStatusCore(commands.Cog):
             "resourceCrashed": "serverCrashed",
             "serverShuttingDown": "serverStopping",
             "serverStarted": "serverStarting",
-            "serverStarting": None,
+            "serverStarting": "serverStarting",
         }
         return mapping.get(event_type, event_type)
 
@@ -668,9 +670,19 @@ class FiveMStatusCore(commands.Cog):
                                 state.starting_until, now + FIVEM_STARTING_GRACE_SECONDS
                             )
                             state.last_status = "starting"
+
+                        if event_type in ("serverStopping", "serverStopped"):
+                            now = time.time()
+                            state.stop_override_until = max(
+                                state.stop_override_until, now + self.STOP_DISPLAY_SECONDS
+                            )
+                            state.stop_override_type = event_type
                     else:
                         state.last_event_type = None
                         state.last_tx_state = None
+                        if state.stop_override_until and time.time() >= state.stop_override_until:
+                            state.stop_override_until = 0.0
+                            state.stop_override_type = None
 
                     starting_active = bool(state.starting_until and time.time() < state.starting_until)
 
@@ -709,6 +721,14 @@ class FiveMStatusCore(commands.Cog):
                                 state.last_status = "offline"
                     else:
                         state.last_result = None
+
+                    if state.stop_override_until and time.time() < state.stop_override_until:
+                        if state.stop_override_type:
+                            override = dict(panel_tx_status) if isinstance(panel_tx_status, dict) else {}
+                            override_event = override.get("event") or {}
+                            override["event"] = {**override_event, "type": state.stop_override_type}
+                            override.setdefault("updated_at", int(time.time()))
+                            panel_tx_status = override
 
                     presence_state = self._get_presence_state(state)
                     if presence_state and presence_state != state.last_presence_state:
