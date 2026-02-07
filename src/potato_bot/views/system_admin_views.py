@@ -500,6 +500,7 @@ class SystemAdminPanel(BaseView):
         channel_id = settings.get("status_channel_id") or 0
         channel_text = f"<#{channel_id}>" if channel_id else "未設定"
         server_link = settings.get("server_link") or "未設定"
+        status_image_url = settings.get("status_image_url") or "未設定"
         status_roles = settings.get("alert_role_ids", []) or []
         if status_roles:
             role_text = "、".join(
@@ -534,6 +535,7 @@ class SystemAdminPanel(BaseView):
         embed.add_field(name="players.json", value=players_url, inline=False)
         embed.add_field(name="播報頻道", value=channel_text, inline=False)
         embed.add_field(name="伺服器連結", value=server_link, inline=False)
+        embed.add_field(name="狀態圖片", value=status_image_url, inline=False)
         embed.add_field(name="狀態通知身分組", value=role_text, inline=False)
         embed.add_field(name="DM 通知身分組", value=dm_role_text, inline=False)
 
@@ -3963,6 +3965,7 @@ class FiveMSettingsView(View):
             "dm_role_ids": current.get("dm_role_ids", []),
             "panel_message_id": current.get("panel_message_id", 0),
             "server_link": current.get("server_link"),
+            "status_image_url": current.get("status_image_url"),
         }
         payload.update(patch)
         return payload
@@ -4031,6 +4034,13 @@ class FiveMSettingsView(View):
         )
         await interaction.response.edit_message(embed=embed, view=self)
 
+    @button(label="🖼️ 設定狀態圖片", style=discord.ButtonStyle.secondary, row=2)
+    async def set_status_image(self, interaction: discord.Interaction, button: Button):
+        settings = await self.dao.get_fivem_settings(self.guild.id)
+        await interaction.response.send_modal(
+            FiveMStatusImageModal(self, settings.get("status_image_url"))
+        )
+
     @button(label="🧹 清除設定", style=discord.ButtonStyle.secondary, row=1)
     async def clear_settings(self, interaction: discord.Interaction, button: Button):
         payload = await self._build_payload(
@@ -4041,6 +4051,7 @@ class FiveMSettingsView(View):
             alert_role_ids=[],
             dm_role_ids=[],
             server_link=None,
+            status_image_url=None,
         )
         success = await self.dao.update_fivem_settings(self.guild.id, payload)
         if success:
@@ -4176,6 +4187,39 @@ class FiveMServerLinkModal(Modal):
         )
         if success:
             await interaction.response.send_message("✅ 已更新伺服器連結", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ 更新失敗，請稍後再試", ephemeral=True)
+
+
+class FiveMStatusImageModal(Modal):
+    """設定 FiveM 狀態圖片"""
+
+    def __init__(self, parent_view: FiveMSettingsView, image_url: str | None):
+        super().__init__(title="設定狀態圖片")
+        self.parent_view = parent_view
+        self.image_url = TextInput(
+            label="圖片 URL (http/https)",
+            placeholder="https://example.com/status.png",
+            default=image_url or "",
+            required=False,
+            max_length=300,
+        )
+        self.add_item(self.image_url)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        raw_url = self.image_url.value.strip()
+        if raw_url and not (raw_url.startswith("http://") or raw_url.startswith("https://")):
+            await interaction.response.send_message("❌ 請輸入有效的 http/https 圖片連結", ephemeral=True)
+            return
+
+        payload = await self.parent_view._build_payload(
+            status_image_url=raw_url or None,
+        )
+        success = await self.parent_view.dao.update_fivem_settings(
+            self.parent_view.guild.id, payload
+        )
+        if success:
+            await interaction.response.send_message("✅ 已更新狀態圖片", ephemeral=True)
         else:
             await interaction.response.send_message("❌ 更新失敗，請稍後再試", ephemeral=True)
 

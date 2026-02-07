@@ -47,6 +47,7 @@ class _FiveMGuildState:
     dm_role_ids: list[int] = field(default_factory=list)
     panel_message_id: int = 0
     server_link: Optional[str] = None
+    status_image_url: Optional[str] = None
     last_status: Optional[str] = None
     last_panel_signature: Optional[str] = None
     ftp_fail_count: int = 0
@@ -162,14 +163,16 @@ class FiveMStatusCore(commands.Cog):
             "serverCrashed": "🚨 崩潰",
             "scheduledRestart": "🔁 重啟中",
         }
-        if event_type in ("serverStarting", "serverStopping", "serverCrashed", "scheduledRestart"):
+        if event_type == "serverCrashed":
             return event_map[event_type]
 
         if result:
-            if result.status == "online":
-                return "🟢 在線"
             if result.status == "offline":
                 return "🔴 離線"
+            if event_type in ("serverStarting", "serverStopping", "scheduledRestart"):
+                return event_map[event_type]
+            if result.status == "online":
+                return "🟢 在線"
 
         if tx_state == "online":
             return "🟢 在線"
@@ -208,6 +211,8 @@ class FiveMStatusCore(commands.Cog):
         event_updated_at: Optional[str],
         tx_state: Optional[str],
         server_link: Optional[str],
+        status_label: Optional[str],
+        status_image_url: Optional[str],
     ) -> str:
         players = result.players if result else None
         max_players = result.max_players if result else None
@@ -218,6 +223,8 @@ class FiveMStatusCore(commands.Cog):
                 str(event_updated_at or ""),
                 str(tx_state or ""),
                 str(server_link or ""),
+                str(status_label or ""),
+                str(status_image_url or ""),
                 str(players or ""),
                 str(max_players or ""),
                 str(hostname or ""),
@@ -232,13 +239,16 @@ class FiveMStatusCore(commands.Cog):
         event_type: Optional[str],
         event_updated_at: Optional[str],
         tx_state: Optional[str],
+        status_label: Optional[str] = None,
+        status_image_url: Optional[str] = None,
     ) -> discord.Embed:
         embed = discord.Embed(
             title="🛰️ Server 狀態面板",
             description="城市最新狀態",
             color=0x3498DB,
         )
-        status_label = FiveMStatusCore._get_status_label(result, event_type, tx_state)
+        if not status_label:
+            status_label = FiveMStatusCore._get_status_label(result, event_type, tx_state)
         embed.add_field(name="狀態", value=status_label, inline=True)
 
         if result and getattr(result, "players_ok", True):
@@ -252,6 +262,11 @@ class FiveMStatusCore(commands.Cog):
             embed.add_field(name="伺服器", value=result.hostname, inline=False)
         else:
             embed.add_field(name="伺服器", value=guild.name, inline=False)
+
+        if status_image_url:
+            url = status_image_url.strip()
+            if url.startswith("http://") or url.startswith("https://"):
+                embed.set_image(url=url)
 
         now_dt = discord.utils.utcnow()
         embed.add_field(name="最後更新", value=discord.utils.format_dt(now_dt, "R"), inline=True)
@@ -298,14 +313,27 @@ class FiveMStatusCore(commands.Cog):
             event_updated_at = tx_status.get("updated_at")
             tx_state = self._normalize_status(tx_status.get("state"))
 
+        status_label = self._get_status_label(result, event_type, tx_state)
         signature = self._build_panel_signature(
-            result, event_type, str(event_updated_at or ""), tx_state, state.server_link
+            result,
+            event_type,
+            str(event_updated_at or ""),
+            tx_state,
+            state.server_link,
+            status_label,
+            state.status_image_url,
         )
         if not force and state.last_panel_signature == signature:
             return
 
         embed = self._build_status_panel_embed(
-            guild, result, event_type, str(event_updated_at or ""), tx_state
+            guild,
+            result,
+            event_type,
+            str(event_updated_at or ""),
+            tx_state,
+            status_label,
+            state.status_image_url,
         )
         view = self._build_status_panel_view(state.server_link)
 
@@ -643,6 +671,7 @@ class FiveMStatusCore(commands.Cog):
         dm_role_ids = settings.get("dm_role_ids", []) or []
         panel_message_id = int(settings.get("panel_message_id") or 0)
         server_link = settings.get("server_link")
+        status_image_url = settings.get("status_image_url")
         has_http = bool(info_url and players_url)
         txadmin_enabled = self._txadmin_enabled()
         cache_key = (info_url, players_url, channel_id)
@@ -701,6 +730,7 @@ class FiveMStatusCore(commands.Cog):
                 dm_role_ids=dm_role_ids,
                 panel_message_id=panel_message_id,
                 server_link=server_link,
+                status_image_url=status_image_url,
             )
 
         state = self._guild_states.get(guild.id)
@@ -711,6 +741,7 @@ class FiveMStatusCore(commands.Cog):
             state.dm_role_ids = dm_role_ids
             state.panel_message_id = panel_message_id
             state.server_link = server_link
+            state.status_image_url = status_image_url
         return state
 
     @tasks.loop(seconds=FIVEM_POLL_INTERVAL)
