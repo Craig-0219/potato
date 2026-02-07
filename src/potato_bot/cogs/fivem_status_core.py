@@ -163,12 +163,12 @@ class FiveMStatusCore(commands.Cog):
             return event_map[event_type]
 
         if result:
+            if result.status == "online":
+                return "🟢 在線"
             if result.status == "offline":
                 return "🔴 離線"
             if event_type in ("serverStopping", "scheduledRestart"):
                 return event_map[event_type]
-            if result.status == "online":
-                return "🟢 在線"
             if event_type == "serverStarting":
                 return event_map[event_type]
 
@@ -713,12 +713,15 @@ class FiveMStatusCore(commands.Cog):
                                     )
                                 state.ftp_last_alert = now
 
+                    force_panel = state.panel_message_id == 0 or (
+                        state.has_http and panel_result is not None
+                    )
                     await self._update_status_panel(
                         guild,
                         state,
                         panel_result,
                         panel_tx_status,
-                        force=state.panel_message_id == 0,
+                        force=force_panel,
                     )
             except Exception as exc:
                 logger.error("FiveM 狀態輪詢失敗: %s", exc)
