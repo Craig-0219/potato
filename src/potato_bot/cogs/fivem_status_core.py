@@ -173,6 +173,8 @@ class FiveMStatusCore(commands.Cog):
         if event_type == "serverCrashed":
             return event_map[event_type]
         if event_type in ("serverStarting", "serverStopping", "serverStopped", "scheduledRestart"):
+            if event_type == "serverStarting" and result and result.status == "online":
+                return "🟢 在線"
             return event_map[event_type]
 
         if result:
