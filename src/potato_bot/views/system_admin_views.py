@@ -495,10 +495,10 @@ class SystemAdminPanel(BaseView):
         """創建 FiveM 狀態設定嵌入"""
         settings = await self.fivem_dao.get_fivem_settings(guild.id)
 
-        info_url = settings.get("info_url") or "未設定"
-        players_url = settings.get("players_url") or "未設定"
         channel_id = settings.get("status_channel_id") or 0
         channel_text = f"<#{channel_id}>" if channel_id else "未設定"
+        info_url = settings.get("info_url") or "未設定"
+        players_url = settings.get("players_url") or "未設定"
         server_link = settings.get("server_link") or "未設定"
         status_image_url = settings.get("status_image_url") or "未設定"
         status_roles = settings.get("alert_role_ids", []) or []
@@ -527,13 +527,13 @@ class SystemAdminPanel(BaseView):
 
         embed = discord.Embed(
             title="🛰️ FiveM 狀態設定",
-            description="設定伺服器狀態 API 與播報頻道",
+            description="設定播報頻道與通知選項",
             color=0x3498DB,
         )
 
-        embed.add_field(name="info.json", value=info_url, inline=False)
-        embed.add_field(name="players.json", value=players_url, inline=False)
         embed.add_field(name="播報頻道", value=channel_text, inline=False)
+        embed.add_field(name="info.json URL", value=info_url, inline=False)
+        embed.add_field(name="players.json URL", value=players_url, inline=False)
         embed.add_field(name="伺服器連結", value=server_link, inline=False)
         embed.add_field(name="狀態圖片", value=status_image_url, inline=False)
         embed.add_field(name="狀態通知身分組", value=role_text, inline=False)
@@ -3981,13 +3981,6 @@ class FiveMSettingsView(View):
             return False
         return True
 
-    @button(label="🌐 設定 API URL", style=discord.ButtonStyle.secondary, row=0)
-    async def set_api_url(self, interaction: discord.Interaction, button: Button):
-        settings = await self.dao.get_fivem_settings(self.guild.id)
-        await interaction.response.send_modal(
-            FiveMUrlModal(self, settings.get("info_url"), settings.get("players_url"))
-        )
-
     @button(label="📣 設定播報頻道", style=discord.ButtonStyle.secondary, row=0)
     async def set_status_channel(self, interaction: discord.Interaction, button: Button):
         self.clear_items()
@@ -4000,6 +3993,17 @@ class FiveMSettingsView(View):
             color=0x3498DB,
         )
         await interaction.response.edit_message(embed=embed, view=self)
+
+    @button(label="🌐 設定 API URL", style=discord.ButtonStyle.secondary, row=0)
+    async def set_api_url(self, interaction: discord.Interaction, button: Button):
+        settings = await self.dao.get_fivem_settings(self.guild.id)
+        await interaction.response.send_modal(
+            FiveMApiUrlModal(
+                self,
+                settings.get("info_url"),
+                settings.get("players_url"),
+            )
+        )
 
     @button(label="🔗 設定伺服器連結", style=discord.ButtonStyle.secondary, row=0)
     async def set_server_link(self, interaction: discord.Interaction, button: Button):
@@ -4044,12 +4048,12 @@ class FiveMSettingsView(View):
     @button(label="🧹 清除設定", style=discord.ButtonStyle.secondary, row=1)
     async def clear_settings(self, interaction: discord.Interaction, button: Button):
         payload = await self._build_payload(
-            info_url=None,
-            players_url=None,
             status_channel_id=0,
             panel_message_id=0,
             alert_role_ids=[],
             dm_role_ids=[],
+            info_url=None,
+            players_url=None,
             server_link=None,
             status_image_url=None,
         )
@@ -4119,45 +4123,6 @@ class FiveMSettingsView(View):
         await interaction.response.edit_message(embed=embed, view=None)
 
 
-class FiveMUrlModal(Modal):
-    """設定 FiveM API URL"""
-
-    def __init__(self, parent_view: FiveMSettingsView, info_url: str | None, players_url: str | None):
-        super().__init__(title="設定 FiveM API URL")
-        self.parent_view = parent_view
-        self.info_url = TextInput(
-            label="info.json URL",
-            placeholder="http://your-server:30120/info.json",
-            default=info_url or "",
-            required=True,
-            max_length=200,
-        )
-        self.players_url = TextInput(
-            label="players.json URL",
-            placeholder="http://your-server:30120/players.json",
-            default=players_url or "",
-            required=True,
-            max_length=200,
-        )
-        self.add_item(self.info_url)
-        self.add_item(self.players_url)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        info_url = self.info_url.value.strip()
-        players_url = self.players_url.value.strip()
-        payload = await self.parent_view._build_payload(
-            info_url=info_url,
-            players_url=players_url,
-        )
-        success = await self.parent_view.dao.update_fivem_settings(
-            self.parent_view.guild.id, payload
-        )
-        if success:
-            await interaction.response.send_message("✅ 已更新 FiveM API URL", ephemeral=True)
-        else:
-            await interaction.response.send_message("❌ 更新失敗，請稍後再試", ephemeral=True)
-
-
 class FiveMServerLinkModal(Modal):
     """設定 FiveM 伺服器連結"""
 
@@ -4187,6 +4152,58 @@ class FiveMServerLinkModal(Modal):
         )
         if success:
             await interaction.response.send_message("✅ 已更新伺服器連結", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ 更新失敗，請稍後再試", ephemeral=True)
+
+
+class FiveMApiUrlModal(Modal):
+    """設定 FiveM API URL"""
+
+    def __init__(
+        self,
+        parent_view: FiveMSettingsView,
+        info_url: str | None,
+        players_url: str | None,
+    ):
+        super().__init__(title="設定 FiveM API URL")
+        self.parent_view = parent_view
+        self.info_url = TextInput(
+            label="info.json URL",
+            placeholder="http://your-server:30120/info.json",
+            default=info_url or "",
+            required=False,
+            max_length=200,
+        )
+        self.players_url = TextInput(
+            label="players.json URL",
+            placeholder="http://your-server:30120/players.json",
+            default=players_url or "",
+            required=False,
+            max_length=200,
+        )
+        self.add_item(self.info_url)
+        self.add_item(self.players_url)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        info_url = self.info_url.value.strip()
+        players_url = self.players_url.value.strip()
+        for url in (info_url, players_url):
+            if url and not (url.startswith("http://") or url.startswith("https://")):
+                await interaction.response.send_message("❌ 請輸入有效的 http/https 連結", ephemeral=True)
+                return
+
+        payload = await self.parent_view._build_payload(
+            info_url=info_url or None,
+            players_url=players_url or None,
+        )
+        success = await self.parent_view.dao.update_fivem_settings(
+            self.parent_view.guild.id, payload
+        )
+        if success:
+            note = ""
+            if bool(info_url) ^ bool(players_url):
+                note = "（需同時設定 info.json 與 players.json 才會啟用輪詢）"
+            await interaction.response.send_message(f"✅ 已更新 API URL{note}", ephemeral=True)
         else:
             await interaction.response.send_message("❌ 更新失敗，請稍後再試", ephemeral=True)
 

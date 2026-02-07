@@ -64,7 +64,7 @@ class FiveMStatusCore(commands.Cog):
         self.bot = bot
         self.dao = FiveMDAO()
         self._guild_states: dict[int, _FiveMGuildState] = {}
-        self._settings_cache: dict[int, tuple[int]] = {}
+        self._settings_cache: dict[int, tuple[Optional[str], Optional[str], int]] = {}
         self._warned_missing: set[int] = set()
         self.monitor_task.start()
         logger.info("✅ FiveM 狀態播報已啟動（使用資料庫設定）")
@@ -124,8 +124,8 @@ class FiveMStatusCore(commands.Cog):
 
     async def _resolve_settings(self, guild_id: int) -> tuple[Optional[str], Optional[str], int]:
         settings = await self.dao.get_fivem_settings(guild_id)
-        info_url = settings.get("info_url")
-        players_url = settings.get("players_url")
+        info_url = ""
+        players_url = ""
         channel_id = int(settings.get("status_channel_id") or 0)
 
         return info_url, players_url, channel_id
@@ -497,8 +497,8 @@ class FiveMStatusCore(commands.Cog):
 
     async def _get_state(self, guild: discord.Guild) -> Optional[_FiveMGuildState]:
         settings = await self.dao.get_fivem_settings(guild.id)
-        info_url = settings.get("info_url")
-        players_url = settings.get("players_url")
+        info_url = (settings.get("info_url") or "").strip() or None
+        players_url = (settings.get("players_url") or "").strip() or None
         channel_id = int(settings.get("status_channel_id") or 0)
         alert_role_ids = settings.get("alert_role_ids", []) or []
         dm_role_ids = settings.get("dm_role_ids", []) or []
@@ -523,17 +523,14 @@ class FiveMStatusCore(commands.Cog):
             self._settings_cache.pop(guild.id, None)
             return None
 
-        if not has_http and not txadmin_enabled:
+        if not txadmin_enabled and not has_http:
             if guild.id not in self._warned_missing:
                 self._warned_missing.add(guild.id)
                 logger.warning(
-                    "⚠️ FiveM 狀態播報尚未設定（等待外部推送）：%s (%s)",
+                    "⚠️ FiveM 狀態播報尚未設定（等待 txAdmin / API 設定）：%s (%s)",
                     guild.name,
                     guild.id,
                 )
-
-        info_url = info_url or ""
-        players_url = players_url or ""
 
         self._warned_missing.discard(guild.id)
 
@@ -542,8 +539,8 @@ class FiveMStatusCore(commands.Cog):
             if guild.id in self._guild_states:
                 await self._guild_states[guild.id].service.close()
             service = FiveMStatusService(
-                info_url=info_url,
-                players_url=players_url,
+                info_url=info_url or "",
+                players_url=players_url or "",
                 offline_threshold=FIVEM_OFFLINE_THRESHOLD,
                 txadmin_status_file=FIVEM_TXADMIN_STATUS_FILE,
                 restart_notify_seconds=_parse_seconds_list(FIVEM_RESTART_NOTIFY_SECONDS),
@@ -620,30 +617,10 @@ class FiveMStatusCore(commands.Cog):
                         if result.status == "online":
                             if starting_active:
                                 state.starting_until = 0.0
-                                starting_active = False
-                            if result.status != state.last_status:
-                                state.last_status = result.status
-                                await self._send_embed(
-                                    state.channel_id,
-                                    "✅ Server已上線",
-                                    state.service.format_status_message(result),
-                                    "success",
-                                    content=mention_text if mention_text else None,
-                                    allowed_mentions=allowed_mentions,
-                                )
+                            state.last_status = "online"
                         elif result.status == "offline":
-                            if starting_active:
-                                pass
-                            elif result.status != state.last_status:
-                                state.last_status = result.status
-                                await self._send_embed(
-                                    state.channel_id,
-                                    "🔴 Server離線",
-                                    state.service.format_status_message(result),
-                                    "error",
-                                    content=mention_text if mention_text else None,
-                                    allowed_mentions=allowed_mentions,
-                                )
+                            if not starting_active:
+                                state.last_status = "offline"
 
                     if tx_status and state.service.should_announce_txadmin(tx_status):
                         if event_type == "serverStarting":
