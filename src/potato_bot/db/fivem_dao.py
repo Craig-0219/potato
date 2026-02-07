@@ -50,11 +50,20 @@ class FiveMDAO(BaseDAO):
                         await conn.commit()
                         logger.info("✅ 已補齊 fivem_settings.panel_message_id 欄位")
 
+                    await cursor.execute("SHOW COLUMNS FROM fivem_settings LIKE 'poll_interval'")
+                    exists = await cursor.fetchone()
+                    if not exists:
+                        await cursor.execute(
+                            "ALTER TABLE fivem_settings ADD COLUMN poll_interval INT NULL COMMENT '輪詢間隔(秒)' AFTER panel_message_id"
+                        )
+                        await conn.commit()
+                        logger.info("✅ 已補齊 fivem_settings.poll_interval 欄位")
+
                     await cursor.execute("SHOW COLUMNS FROM fivem_settings LIKE 'server_link'")
                     exists = await cursor.fetchone()
                     if not exists:
                         await cursor.execute(
-                            "ALTER TABLE fivem_settings ADD COLUMN server_link TEXT NULL COMMENT '伺服器連結' AFTER panel_message_id"
+                            "ALTER TABLE fivem_settings ADD COLUMN server_link TEXT NULL COMMENT '伺服器連結' AFTER poll_interval"
                         )
                         await conn.commit()
                         logger.info("✅ 已補齊 fivem_settings.server_link 欄位")
@@ -99,6 +108,9 @@ class FiveMDAO(BaseDAO):
                         else:
                             result["dm_role_ids"] = []
                         result["panel_message_id"] = int(result.get("panel_message_id") or 0)
+                        result["poll_interval"] = (
+                            int(result.get("poll_interval")) if result.get("poll_interval") else None
+                        )
                         result["server_link"] = result.get("server_link")
                         result["status_image_url"] = result.get("status_image_url")
                         result["exists"] = True
@@ -112,6 +124,7 @@ class FiveMDAO(BaseDAO):
                         "alert_role_ids": [],
                         "dm_role_ids": [],
                         "panel_message_id": 0,
+                        "poll_interval": None,
                         "server_link": None,
                         "status_image_url": None,
                         "exists": False,
@@ -126,6 +139,7 @@ class FiveMDAO(BaseDAO):
                 "alert_role_ids": [],
                 "dm_role_ids": [],
                 "panel_message_id": 0,
+                "poll_interval": None,
                 "server_link": None,
                 "status_image_url": None,
                 "exists": False,
@@ -139,8 +153,8 @@ class FiveMDAO(BaseDAO):
                 async with conn.cursor() as cursor:
                     query = """
                     INSERT INTO fivem_settings (
-                        guild_id, info_url, players_url, status_channel_id, alert_role_ids, dm_role_ids, panel_message_id, server_link, status_image_url
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        guild_id, info_url, players_url, status_channel_id, alert_role_ids, dm_role_ids, panel_message_id, poll_interval, server_link, status_image_url
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON DUPLICATE KEY UPDATE
                         info_url = VALUES(info_url),
                         players_url = VALUES(players_url),
@@ -148,6 +162,7 @@ class FiveMDAO(BaseDAO):
                         alert_role_ids = VALUES(alert_role_ids),
                         dm_role_ids = VALUES(dm_role_ids),
                         panel_message_id = VALUES(panel_message_id),
+                        poll_interval = VALUES(poll_interval),
                         server_link = VALUES(server_link),
                         status_image_url = VALUES(status_image_url),
                         updated_at = CURRENT_TIMESTAMP
@@ -162,6 +177,7 @@ class FiveMDAO(BaseDAO):
                             json.dumps(settings.get("alert_role_ids", [])),
                             json.dumps(settings.get("dm_role_ids", [])),
                             settings.get("panel_message_id") or 0,
+                            settings.get("poll_interval"),
                             settings.get("server_link"),
                             settings.get("status_image_url"),
                         ),

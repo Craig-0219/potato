@@ -218,6 +218,7 @@ class DatabaseManager:
                     alert_role_ids JSON NULL COMMENT '異常通知身分組',
                     dm_role_ids JSON NULL COMMENT 'DM 通知身分組',
                     panel_message_id BIGINT NULL COMMENT '狀態面板訊息ID',
+                    poll_interval INT NULL COMMENT '輪詢間隔(秒)',
                     server_link TEXT NULL COMMENT '伺服器連結',
                     status_image_url TEXT NULL COMMENT '狀態面板圖片',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',

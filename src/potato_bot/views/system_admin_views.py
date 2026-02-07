@@ -499,6 +499,8 @@ class SystemAdminPanel(BaseView):
         channel_text = f"<#{channel_id}>" if channel_id else "未設定"
         info_url = settings.get("info_url") or "未設定"
         players_url = settings.get("players_url") or "未設定"
+        poll_interval = settings.get("poll_interval")
+        poll_text = f"{poll_interval} 秒" if poll_interval else "預設"
         server_link = settings.get("server_link") or "未設定"
         status_image_url = settings.get("status_image_url") or "未設定"
         status_roles = settings.get("alert_role_ids", []) or []
@@ -534,6 +536,7 @@ class SystemAdminPanel(BaseView):
         embed.add_field(name="播報頻道", value=channel_text, inline=False)
         embed.add_field(name="info.json URL", value=info_url, inline=False)
         embed.add_field(name="players.json URL", value=players_url, inline=False)
+        embed.add_field(name="輪詢間隔", value=poll_text, inline=False)
         embed.add_field(name="伺服器連結", value=server_link, inline=False)
         embed.add_field(name="狀態圖片", value=status_image_url, inline=False)
         embed.add_field(name="狀態通知身分組", value=role_text, inline=False)
@@ -3964,6 +3967,7 @@ class FiveMSettingsView(View):
             "alert_role_ids": current.get("alert_role_ids", []),
             "dm_role_ids": current.get("dm_role_ids", []),
             "panel_message_id": current.get("panel_message_id", 0),
+            "poll_interval": current.get("poll_interval"),
             "server_link": current.get("server_link"),
             "status_image_url": current.get("status_image_url"),
         }
@@ -4003,6 +4007,13 @@ class FiveMSettingsView(View):
                 settings.get("info_url"),
                 settings.get("players_url"),
             )
+        )
+
+    @button(label="⏱️ 設定輪詢間隔", style=discord.ButtonStyle.secondary, row=0)
+    async def set_poll_interval(self, interaction: discord.Interaction, button: Button):
+        settings = await self.dao.get_fivem_settings(self.guild.id)
+        await interaction.response.send_modal(
+            FiveMPollIntervalModal(self, settings.get("poll_interval"))
         )
 
     @button(label="🔗 設定伺服器連結", style=discord.ButtonStyle.secondary, row=0)
@@ -4054,6 +4065,7 @@ class FiveMSettingsView(View):
             dm_role_ids=[],
             info_url=None,
             players_url=None,
+            poll_interval=None,
             server_link=None,
             status_image_url=None,
         )
@@ -4204,6 +4216,46 @@ class FiveMApiUrlModal(Modal):
             if bool(info_url) ^ bool(players_url):
                 note = "（需同時設定 info.json 與 players.json 才會啟用輪詢）"
             await interaction.response.send_message(f"✅ 已更新 API URL{note}", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ 更新失敗，請稍後再試", ephemeral=True)
+
+
+class FiveMPollIntervalModal(Modal):
+    """設定 FiveM 輪詢間隔"""
+
+    def __init__(self, parent_view: FiveMSettingsView, poll_interval: int | None):
+        super().__init__(title="設定輪詢間隔")
+        self.parent_view = parent_view
+        default_value = str(poll_interval) if poll_interval else ""
+        self.poll_interval = TextInput(
+            label="輪詢間隔（秒）",
+            placeholder="留空使用預設值",
+            default=default_value,
+            required=False,
+            max_length=5,
+        )
+        self.add_item(self.poll_interval)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        raw_value = self.poll_interval.value.strip()
+        if raw_value:
+            try:
+                interval = int(raw_value)
+            except ValueError:
+                await interaction.response.send_message("❌ 請輸入有效的整數秒數", ephemeral=True)
+                return
+            if interval < 3:
+                await interaction.response.send_message("❌ 輪詢間隔最小為 3 秒", ephemeral=True)
+                return
+        else:
+            interval = None
+
+        payload = await self.parent_view._build_payload(poll_interval=interval)
+        success = await self.parent_view.dao.update_fivem_settings(
+            self.parent_view.guild.id, payload
+        )
+        if success:
+            await interaction.response.send_message("✅ 已更新輪詢間隔", ephemeral=True)
         else:
             await interaction.response.send_message("❌ 更新失敗，請稍後再試", ephemeral=True)
 

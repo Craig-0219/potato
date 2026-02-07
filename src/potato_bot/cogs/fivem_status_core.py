@@ -66,6 +66,7 @@ class FiveMStatusCore(commands.Cog):
         self._guild_states: dict[int, _FiveMGuildState] = {}
         self._settings_cache: dict[int, tuple[Optional[str], Optional[str], int]] = {}
         self._warned_missing: set[int] = set()
+        self._poll_interval = max(1, int(FIVEM_POLL_INTERVAL or 1))
         self.monitor_task.start()
         logger.info("✅ FiveM 狀態播報已啟動（使用資料庫設定）")
 
@@ -503,11 +504,23 @@ class FiveMStatusCore(commands.Cog):
         alert_role_ids = settings.get("alert_role_ids", []) or []
         dm_role_ids = settings.get("dm_role_ids", []) or []
         panel_message_id = int(settings.get("panel_message_id") or 0)
+        poll_interval = settings.get("poll_interval")
         server_link = settings.get("server_link")
         status_image_url = settings.get("status_image_url")
         has_http = bool(info_url and players_url)
         txadmin_enabled = self._txadmin_enabled()
         cache_key = (info_url, players_url, channel_id)
+
+        try:
+            poll_interval_value = int(poll_interval) if poll_interval else 0
+        except (TypeError, ValueError):
+            poll_interval_value = 0
+        if poll_interval_value < 3:
+            poll_interval_value = int(FIVEM_POLL_INTERVAL or 3)
+
+        if poll_interval_value != self._poll_interval and self.monitor_task.is_running():
+            self._poll_interval = poll_interval_value
+            self.monitor_task.change_interval(seconds=self._poll_interval)
 
         if not channel_id:
             if guild.id not in self._warned_missing:
@@ -630,6 +643,19 @@ class FiveMStatusCore(commands.Cog):
                             state.last_status = "online"
                         elif result.status == "offline":
                             if not starting_active:
+                                should_skip = False
+                                if tx_status and state.service.should_announce_txadmin(tx_status):
+                                    if event_type in ("serverStopping", "serverStopped", "serverCrashed"):
+                                        should_skip = True
+                                if not should_skip and previous_status != "offline":
+                                    await self._send_embed(
+                                        state.channel_id,
+                                        "🔴 Server已關閉",
+                                        "伺服器已關閉或無法連線。",
+                                        "error",
+                                        content=mention_text if mention_text else None,
+                                        allowed_mentions=allowed_mentions,
+                                    )
                                 state.last_status = "offline"
 
                     if tx_status and state.service.should_announce_txadmin(tx_status):
