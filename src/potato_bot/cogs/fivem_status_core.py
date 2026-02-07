@@ -162,24 +162,28 @@ class FiveMStatusCore(commands.Cog):
             "serverCrashed": "🚨 崩潰",
             "scheduledRestart": "🔁 重啟中",
         }
+        if event_type in ("serverStarting", "serverStopping", "serverCrashed", "scheduledRestart"):
+            return event_map[event_type]
+
+        if result:
+            if result.status == "online":
+                return "🟢 在線"
+            if result.status == "offline":
+                return "🔴 離線"
+
+        if tx_state == "online":
+            return "🟢 在線"
+        if tx_state == "offline":
+            return "🔴 離線"
+        if tx_state == "starting":
+            return "🟡 啟動中"
+        if tx_state == "stopping":
+            return "🟠 準備停止"
+        if tx_state == "restarting":
+            return "🔁 重啟中"
+
         if event_type in event_map:
             return event_map[event_type]
-        if not result:
-            if tx_state == "online":
-                return "🟢 在線"
-            if tx_state == "offline":
-                return "🔴 離線"
-            if tx_state == "starting":
-                return "🟡 啟動中"
-            if tx_state == "stopping":
-                return "🟠 準備停止"
-            if tx_state == "restarting":
-                return "🔁 重啟中"
-            return "❓ 未知"
-        if result.status == "online":
-            return "🟢 在線"
-        if result.status == "offline":
-            return "🔴 離線"
         return "❓ 未知"
 
     @staticmethod
