@@ -111,6 +111,8 @@ FIVEM_TXADMIN_STATUS_FILE=D:\\server\\txData\\QBBOX\\resources\\[01-核心系統
 FIVEM_RESTART_NOTIFY_SECONDS=600,300,180,120,60,10
 ```
 
+備註：txAdmin 狀態檔讀取目前固定每 3 秒輪詢；API（info.json / players.json）則依上方輪詢間隔。
+
 ### txAdmin 狀態檔（FTP 讀取）
 
 若 bot 無法直接存取檔案，可改用 FTP 讀取：

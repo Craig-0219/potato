@@ -57,6 +57,7 @@ class _FiveMGuildState:
     last_panel_signature: Optional[str] = None
     last_announced_event_type: Optional[str] = None
     last_announced_tx_state: Optional[str] = None
+    last_api_poll_at: float = 0.0
     starting_until: float = 0.0
     stop_override_until: float = 0.0
     stop_override_type: Optional[str] = None
@@ -76,7 +77,7 @@ class FiveMStatusCore(commands.Cog):
         self._guild_states: dict[int, _FiveMGuildState] = {}
         self._settings_cache: dict[int, tuple[Optional[str], Optional[str], int]] = {}
         self._warned_missing: set[int] = set()
-        self._poll_interval = max(1, int(FIVEM_POLL_INTERVAL or 1))
+        self._api_poll_interval = max(3, int(FIVEM_POLL_INTERVAL or 3))
         self.monitor_task.start()
         logger.info("✅ FiveM 狀態播報已啟動（使用資料庫設定）")
 
@@ -568,9 +569,8 @@ class FiveMStatusCore(commands.Cog):
         if poll_interval_value < 3:
             poll_interval_value = int(FIVEM_POLL_INTERVAL or 3)
 
-        if poll_interval_value != self._poll_interval and self.monitor_task.is_running():
-            self._poll_interval = poll_interval_value
-            self.monitor_task.change_interval(seconds=self._poll_interval)
+        if poll_interval_value != self._api_poll_interval:
+            self._api_poll_interval = poll_interval_value
 
         if not channel_id:
             if guild.id not in self._warned_missing:
@@ -637,13 +637,14 @@ class FiveMStatusCore(commands.Cog):
             state.status_image_url = status_image_url
         return state
 
-    @tasks.loop(seconds=FIVEM_POLL_INTERVAL)
+    @tasks.loop(seconds=3)
     async def monitor_task(self):
         if not self.bot.guilds:
             return
 
         for guild in list(self.bot.guilds):
             try:
+                now = time.time()
                 state = await self._get_state(guild)
                 if not state:
                     continue
@@ -653,7 +654,7 @@ class FiveMStatusCore(commands.Cog):
                     allowed_mentions = (
                         discord.AllowedMentions(roles=True) if mention_text else None
                     )
-                    panel_result: Optional[FiveMStatusResult] = None
+                    panel_result: Optional[FiveMStatusResult] = state.last_result
                     event_type = None
                     tx_state = None
                     previous_status = state.last_status
@@ -697,38 +698,40 @@ class FiveMStatusCore(commands.Cog):
                     starting_active = bool(state.starting_until and time.time() < state.starting_until)
 
                     if state.has_http:
-                        result = await state.service.poll_status()
-                        panel_result = result
-                        state.last_result = result
-                        if result.status == "online":
-                            if (starting_active or previous_status == "starting") and previous_status != "online":
-                                await self._send_embed(
-                                    state.channel_id,
-                                    "✅ Server已啟動",
-                                    "伺服器已成功啟動。",
-                                    "success",
-                                    content=mention_text if mention_text else None,
-                                    allowed_mentions=allowed_mentions,
-                                )
-                            if starting_active:
-                                state.starting_until = 0.0
-                            state.last_status = "online"
-                        elif result.status == "offline":
-                            if not starting_active:
-                                should_skip = False
-                                if tx_status and state.service.should_announce_txadmin(tx_status):
-                                    if event_type in ("serverStopping", "serverStopped", "serverCrashed"):
-                                        should_skip = True
-                                if not should_skip and previous_status != "offline":
+                        if not state.last_api_poll_at or (now - state.last_api_poll_at) >= self._api_poll_interval:
+                            result = await state.service.poll_status()
+                            state.last_api_poll_at = now
+                            panel_result = result
+                            state.last_result = result
+                            if result.status == "online":
+                                if (starting_active or previous_status == "starting") and previous_status != "online":
                                     await self._send_embed(
                                         state.channel_id,
-                                        "🔴 Server已關閉",
-                                        "伺服器已關閉或無法連線。",
-                                        "error",
+                                        "✅ Server已啟動",
+                                        "伺服器已成功啟動。",
+                                        "success",
                                         content=mention_text if mention_text else None,
                                         allowed_mentions=allowed_mentions,
                                     )
-                                state.last_status = "offline"
+                                if starting_active:
+                                    state.starting_until = 0.0
+                                state.last_status = "online"
+                            elif result.status == "offline":
+                                if not starting_active:
+                                    should_skip = False
+                                    if tx_status and state.service.should_announce_txadmin(tx_status):
+                                        if event_type in ("serverStopping", "serverStopped", "serverCrashed"):
+                                            should_skip = True
+                                    if not should_skip and previous_status != "offline":
+                                        await self._send_embed(
+                                            state.channel_id,
+                                            "🔴 Server已關閉",
+                                            "伺服器已關閉或無法連線。",
+                                            "error",
+                                            content=mention_text if mention_text else None,
+                                            allowed_mentions=allowed_mentions,
+                                        )
+                                    state.last_status = "offline"
                     else:
                         state.last_result = None
 
