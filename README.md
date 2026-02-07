@@ -94,6 +94,7 @@ LAVALINK_SECURE=false
 ```bash
 FIVEM_POLL_INTERVAL=3
 FIVEM_OFFLINE_THRESHOLD=3
+FIVEM_STARTING_GRACE_SECONDS=60
 FIVEM_TXADMIN_STATUS_FILE=D:\\server\\txData\\QBBOX\\resources\\[01-核心系統]\\Potato_Discord_API\\data\\txadmin_status.json
 FIVEM_RESTART_NOTIFY_SECONDS=600,300,180,120,60,10
 ```
@@ -110,23 +111,6 @@ FIVEM_TXADMIN_FTP_PASSWORD=your-ftp-password
 FIVEM_TXADMIN_FTP_PATH=/txData/QBBOX/resources/[01-核心系統]/Potato_Discord_API/data/txadmin_status.json
 FIVEM_TXADMIN_FTP_PASSIVE=true
 FIVEM_TXADMIN_FTP_TIMEOUT=10
-```
-
-### FiveM 推送 API（info.json 被鎖住時）
-
-```bash
-FIVEM_PUSH_API_PORT=2484
-FIVEM_PUSH_API_BIND=0.0.0.0
-FIVEM_PUSH_API_KEY=your_secret_key
-```
-
-推送範例：
-
-```bash
-curl -X POST http://your-bot-host:2484/fivem/push \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: your_secret_key" \
-  -d "{\"guild_id\":1234567890,\"status\":\"online\",\"players\":12,\"max_players\":128,\"hostname\":\"QBBOX\",\"event\":\"serverStarted\"}"
 ```
 
 ## 票券系統常用指令

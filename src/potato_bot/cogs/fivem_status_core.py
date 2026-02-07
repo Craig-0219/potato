@@ -13,6 +13,7 @@ from potato_shared.config import (
     FIVEM_OFFLINE_THRESHOLD,
     FIVEM_POLL_INTERVAL,
     FIVEM_RESTART_NOTIFY_SECONDS,
+    FIVEM_STARTING_GRACE_SECONDS,
     FIVEM_TXADMIN_STATUS_FILE,
     FIVEM_TXADMIN_FTP_HOST,
     FIVEM_TXADMIN_FTP_PASSWORD,
@@ -50,6 +51,7 @@ class _FiveMGuildState:
     status_image_url: Optional[str] = None
     last_status: Optional[str] = None
     last_panel_signature: Optional[str] = None
+    starting_until: float = 0.0
     ftp_fail_count: int = 0
     ftp_last_alert: float = 0.0
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
@@ -62,11 +64,8 @@ class FiveMStatusCore(commands.Cog):
         self.bot = bot
         self.dao = FiveMDAO()
         self._guild_states: dict[int, _FiveMGuildState] = {}
-        self._settings_cache: dict[int, tuple[Optional[str], Optional[str], int]] = {}
+        self._settings_cache: dict[int, tuple[int]] = {}
         self._warned_missing: set[int] = set()
-        self._push_last_status: dict[int, Optional[str]] = {}
-        self._push_locks: dict[int, asyncio.Lock] = {}
-        self._push_last_event_id: dict[int, str] = {}
         self.monitor_task.start()
         logger.info("✅ FiveM 狀態播報已啟動（使用資料庫設定）")
 
@@ -77,9 +76,6 @@ class FiveMStatusCore(commands.Cog):
             asyncio.create_task(state.service.close())
         self._guild_states.clear()
         self._settings_cache.clear()
-        self._push_last_status.clear()
-        self._push_locks.clear()
-        self._push_last_event_id.clear()
 
     async def _get_channel(self, channel_id: int) -> Optional[discord.abc.Messageable]:
         if not channel_id:
@@ -158,7 +154,7 @@ class FiveMStatusCore(commands.Cog):
         event_map = {
             "serverStarting": "🟡 啟動中",
             "serverStarted": "✅ 已啟動",
-            "serverStopping": "🟠 準備停止",
+            "serverStopping": "🟠 關閉中",
             "serverStopped": "🔴 已停止",
             "serverCrashed": "🚨 崩潰",
             "scheduledRestart": "🔁 重啟中",
@@ -169,10 +165,12 @@ class FiveMStatusCore(commands.Cog):
         if result:
             if result.status == "offline":
                 return "🔴 離線"
-            if event_type in ("serverStarting", "serverStopping", "scheduledRestart"):
+            if event_type in ("serverStopping", "scheduledRestart"):
                 return event_map[event_type]
             if result.status == "online":
                 return "🟢 在線"
+            if event_type == "serverStarting":
+                return event_map[event_type]
 
         if tx_state == "online":
             return "🟢 在線"
@@ -181,7 +179,7 @@ class FiveMStatusCore(commands.Cog):
         if tx_state == "starting":
             return "🟡 啟動中"
         if tx_state == "stopping":
-            return "🟠 準備停止"
+            return "🟠 關閉中"
         if tx_state == "restarting":
             return "🔁 重啟中"
 
@@ -194,13 +192,15 @@ class FiveMStatusCore(commands.Cog):
         if not event_type:
             return None
         mapping = {
-            "resourceStart": "serverStarted",
-            "resourceStarted": "serverStarted",
+            "resourceStart": "serverStarting",
+            "resourceStarted": "serverStarting",
             "resourceStop": "serverStopped",
             "resourceStopped": "serverStopped",
             "resourceStopping": "serverStopping",
             "resourceCrashed": "serverCrashed",
             "serverShuttingDown": "serverStopping",
+            "serverStarted": "serverStarting",
+            "serverStarting": None,
         }
         return mapping.get(event_type, event_type)
 
@@ -314,6 +314,9 @@ class FiveMStatusCore(commands.Cog):
             tx_state = self._normalize_status(tx_status.get("state"))
 
         status_label = self._get_status_label(result, event_type, tx_state)
+        if state.starting_until and time.time() < state.starting_until:
+            if not result or result.status != "online":
+                status_label = "🟡 啟動中"
         signature = self._build_panel_signature(
             result,
             event_type,
@@ -403,13 +406,6 @@ class FiveMStatusCore(commands.Cog):
 
         await asyncio.gather(*[_send_dm(member) for member in members], return_exceptions=True)
 
-    def _get_push_lock(self, guild_id: int) -> asyncio.Lock:
-        lock = self._push_locks.get(guild_id)
-        if not lock:
-            lock = asyncio.Lock()
-            self._push_locks[guild_id] = lock
-        return lock
-
     @staticmethod
     def _normalize_status(raw: Optional[str]) -> Optional[str]:
         if not raw:
@@ -429,166 +425,6 @@ class FiveMStatusCore(commands.Cog):
             "restarting": "restarting",
         }
         return mapping.get(status, None)
-
-    @staticmethod
-    def _parse_int(value: Optional[object]) -> Optional[int]:
-        if value is None:
-            return None
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return None
-
-    @staticmethod
-    def _build_status_description(
-        status: str,
-        players: Optional[int],
-        max_players: Optional[int],
-        hostname: Optional[str],
-    ) -> str:
-        lines: list[str] = []
-        if hostname:
-            lines.append(f"伺服器：{hostname}")
-        if status == "online":
-            if players is not None and max_players:
-                lines.append(f"線上玩家：{players}/{max_players}")
-            elif players is not None:
-                lines.append(f"線上玩家：{players}")
-            else:
-                lines.append("伺服器已上線。")
-        elif status == "offline":
-            lines.append("目前無法連線到伺服器。")
-        return "\n".join(lines) if lines else "伺服器狀態更新。"
-
-    @staticmethod
-    def _build_event_description(event_type: str, hostname: Optional[str]) -> str:
-        messages = {
-            "serverStarting": "伺服器正在啟動中，請稍候。",
-            "serverStarted": "伺服器啟動完成，現在可以加入。",
-            "serverStopping": "伺服器即將停止，請注意保存進度。",
-            "serverStopped": "伺服器已停止，請稍後再試。",
-            "serverCrashed": "偵測到伺服器異常崩潰，請等待修復。",
-        }
-        base = messages.get(event_type, "伺服器狀態更新。")
-        if hostname:
-            return f"伺服器：{hostname}\n{base}"
-        return base
-
-    async def handle_push(self, payload: dict) -> dict:
-        """接收跨機腳本推送的 FiveM 狀態"""
-        guild_id = self._parse_int(payload.get("guild_id") if payload else None)
-        if not guild_id:
-            return {"ok": False, "error": "guild_id_required"}
-
-        settings = await self.dao.get_fivem_settings(guild_id)
-        channel_id = int(settings.get("status_channel_id") or 0)
-        if not channel_id:
-            return {"ok": False, "error": "status_channel_not_set"}
-
-        event_type = payload.get("event") or payload.get("txadmin_event")
-        event_type = self._normalize_event_type(event_type)
-        event_id = payload.get("event_id")
-        status = self._normalize_status(payload.get("status"))
-        players = self._parse_int(payload.get("players"))
-        max_players = self._parse_int(payload.get("max_players"))
-        hostname = payload.get("hostname")
-
-        sent: list[str] = []
-        event_sent = False
-        guild = self.bot.get_guild(guild_id)
-        mention_text = (
-            self._format_role_mentions(guild, settings.get("alert_role_ids", []))
-            if guild
-            else ""
-        )
-        allowed_mentions = discord.AllowedMentions(roles=True) if mention_text else None
-
-        async with self._get_push_lock(guild_id):
-            if event_id:
-                last_event_id = self._push_last_event_id.get(guild_id)
-                if last_event_id == str(event_id):
-                    event_type = None
-                else:
-                    self._push_last_event_id[guild_id] = str(event_id)
-
-            if event_type:
-                title_map = {
-                    "serverStarting": ("🟡 Server啟動中", "warning"),
-                    "serverStarted": ("✅ Server已啟動", "success"),
-                    "serverStopping": ("🟠 Server準備停止", "warning"),
-                    "serverStopped": ("🔴 Server已停止", "error"),
-                    "serverCrashed": ("🚨 Server崩潰", "error"),
-                }
-                if event_type in title_map:
-                    title, color = title_map[event_type]
-                    desc = self._build_event_description(event_type, hostname)
-                    await self._send_embed(
-                        channel_id,
-                        title,
-                        desc,
-                        color,
-                        content=mention_text if mention_text else None,
-                        allowed_mentions=allowed_mentions,
-                    )
-                    sent.append(event_type)
-                    event_sent = True
-
-                    if event_type == "serverStarted":
-                        self._push_last_status[guild_id] = "online"
-                    elif event_type in ("serverStopped", "serverCrashed"):
-                        self._push_last_status[guild_id] = "offline"
-                    elif event_type == "serverStarting":
-                        self._push_last_status[guild_id] = "starting"
-                    elif event_type == "serverStopping":
-                        self._push_last_status[guild_id] = "stopping"
-
-            if status and status in ("online", "offline"):
-                last_status = self._push_last_status.get(guild_id)
-                if status != last_status and not event_sent:
-                    desc = self._build_status_description(status, players, max_players, hostname)
-                    if status == "online":
-                        await self._send_embed(
-                            channel_id,
-                            "✅ Server已上線",
-                            desc,
-                            "success",
-                            content=mention_text if mention_text else None,
-                            allowed_mentions=allowed_mentions,
-                        )
-                    else:
-                        await self._send_embed(
-                            channel_id,
-                            "🔴 Server離線",
-                            desc,
-                            "error",
-                            content=mention_text if mention_text else None,
-                            allowed_mentions=allowed_mentions,
-                        )
-                    sent.append(status)
-                self._push_last_status[guild_id] = status
-
-        if guild:
-            state = await self._get_state(guild)
-            if state:
-                panel_result = None
-                if status or players is not None or max_players is not None or hostname:
-                    panel_result = FiveMStatusResult(
-                        status=status or "unknown",
-                        players=players or 0,
-                        max_players=max_players,
-                        hostname=hostname,
-                        info_ok=bool(hostname),
-                        players_ok=players is not None,
-                    )
-                tx_status = None
-                if event_type:
-                    tx_status = {
-                        "event": {"type": event_type},
-                        "updated_at": payload.get("updated_at") or payload.get("timestamp"),
-                    }
-                await self._update_status_panel(guild, state, panel_result, tx_status, force=True)
-
-        return {"ok": True, "sent": sent}
 
     async def get_ftp_connection_status(self, guild: discord.Guild) -> Optional[bool]:
         """取得 FTP 連線狀態（None 表示未啟用或不可用）"""
@@ -639,9 +475,6 @@ class FiveMStatusCore(commands.Cog):
                     await state.service.close()
             self._settings_cache.pop(guild.id, None)
             self._warned_missing.discard(guild.id)
-            self._push_last_status.pop(guild.id, None)
-            self._push_last_event_id.pop(guild.id, None)
-            self._push_locks.pop(guild.id, None)
             new_state = await self._get_state(guild)
             return new_state is not None
         except Exception as exc:
@@ -761,13 +594,35 @@ class FiveMStatusCore(commands.Cog):
                         discord.AllowedMentions(roles=True) if mention_text else None
                     )
                     panel_result: Optional[FiveMStatusResult] = None
+                    event_type = None
+                    tx_state = None
+
+                    tx_status = await state.service.read_txadmin_status()
+                    panel_tx_status = tx_status
+                    if tx_status:
+                        state.ftp_fail_count = 0
+                        event_type = self._normalize_event_type(
+                            state.service.get_txadmin_event_type(tx_status)
+                        )
+                        tx_state = self._normalize_status(tx_status.get("state"))
+                        if event_type == "serverStarting" or tx_state == "starting":
+                            now = time.time()
+                            state.starting_until = max(
+                                state.starting_until, now + FIVEM_STARTING_GRACE_SECONDS
+                            )
+                            state.last_status = "starting"
+
+                    starting_active = bool(state.starting_until and time.time() < state.starting_until)
 
                     if state.has_http:
                         result = await state.service.poll_status()
                         panel_result = result
-                        if result.status != state.last_status:
-                            state.last_status = result.status
-                            if result.status == "online":
+                        if result.status == "online":
+                            if starting_active:
+                                state.starting_until = 0.0
+                                starting_active = False
+                            if result.status != state.last_status:
+                                state.last_status = result.status
                                 await self._send_embed(
                                     state.channel_id,
                                     "✅ Server已上線",
@@ -776,7 +631,11 @@ class FiveMStatusCore(commands.Cog):
                                     content=mention_text if mention_text else None,
                                     allowed_mentions=allowed_mentions,
                                 )
-                            elif result.status == "offline":
+                        elif result.status == "offline":
+                            if starting_active:
+                                pass
+                            elif result.status != state.last_status:
+                                state.last_status = result.status
                                 await self._send_embed(
                                     state.channel_id,
                                     "🔴 Server離線",
@@ -786,30 +645,18 @@ class FiveMStatusCore(commands.Cog):
                                     allowed_mentions=allowed_mentions,
                                 )
 
-                    tx_status = await state.service.read_txadmin_status()
-                    panel_tx_status = tx_status
-                    if tx_status:
-                        state.ftp_fail_count = 0
-
                     if tx_status and state.service.should_announce_txadmin(tx_status):
-                        event_type = self._normalize_event_type(
-                            state.service.get_txadmin_event_type(tx_status)
-                        )
                         if event_type == "serverStarting":
+                            now = time.time()
+                            state.starting_until = max(
+                                state.starting_until, now + FIVEM_STARTING_GRACE_SECONDS
+                            )
+                            state.last_status = "starting"
                             await self._send_embed(
                                 state.channel_id,
                                 "🟡 Server啟動中",
                                 "伺服器正在啟動中，請稍候。",
                                 "warning",
-                                content=mention_text if mention_text else None,
-                                allowed_mentions=allowed_mentions,
-                            )
-                        elif event_type == "serverStarted":
-                            await self._send_embed(
-                                state.channel_id,
-                                "✅ Server已啟動",
-                                "伺服器啟動完成，現在可以加入。",
-                                "success",
                                 content=mention_text if mention_text else None,
                                 allowed_mentions=allowed_mentions,
                             )
