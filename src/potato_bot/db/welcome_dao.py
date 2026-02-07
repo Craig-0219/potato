@@ -400,6 +400,7 @@ class WelcomeDAO(BaseDAO):
 
     async def get_system_settings(self, guild_id: int) -> Optional[Dict[str, Any]]:
         """取得系統設定"""
+        await self._ensure_initialized()
         try:
             async with self.db.connection() as conn:
                 async with conn.cursor() as cursor:
@@ -435,6 +436,7 @@ class WelcomeDAO(BaseDAO):
         self, guild_id: int, settings_type: str, settings: Dict[str, Any]
     ) -> bool:
         """更新系統設定"""
+        await self._ensure_initialized()
         try:
             valid_types = [
                 "general_settings",
