@@ -36,6 +36,11 @@ from potato_shared.config import (
     FIVEM_TXADMIN_FTP_HOST,
     FIVEM_TXADMIN_FTP_PATH,
     FIVEM_TXADMIN_STATUS_FILE,
+    LAVALINK_HOST,
+    LAVALINK_PASSWORD,
+    LAVALINK_PORT,
+    LAVALINK_SECURE,
+    LAVALINK_URI,
 )
 
 
@@ -107,7 +112,7 @@ class SystemAdminPanel(BaseView):
     async def music_settings_button(self, interaction: discord.Interaction, button: Button):
         """音樂系統設定按鈕"""
         await interaction.response.send_message(
-            embed=await self._create_music_settings_embed(interaction.guild),
+            embed=await self._create_music_settings_embed(interaction.guild, interaction.client),
             view=MusicSettingsView(self.user_id, interaction.guild),
             ephemeral=True,
         )
@@ -407,7 +412,9 @@ class SystemAdminPanel(BaseView):
 
         return embed
 
-    async def _create_music_settings_embed(self, guild: discord.Guild) -> discord.Embed:
+    async def _create_music_settings_embed(
+        self, guild: discord.Guild, bot: discord.Client | None = None
+    ) -> discord.Embed:
         """創建音樂系統設定嵌入"""
         embed = discord.Embed(
             title="🎵 音樂系統設定",
@@ -433,6 +440,51 @@ class SystemAdminPanel(BaseView):
             role_text = "未限制（所有人可用）"
 
         embed.add_field(name="👥 面板權限", value=role_text, inline=False)
+
+        admin_override = any(
+            settings.get(key)
+            for key in (
+                "lavalink_host",
+                "lavalink_port",
+                "lavalink_password",
+                "lavalink_uri",
+            )
+        ) or settings.get("lavalink_secure") is not None
+
+        lavalink_host = settings.get("lavalink_host") or LAVALINK_HOST or "未設定"
+        lavalink_port = settings.get("lavalink_port") or LAVALINK_PORT or "未設定"
+        if settings.get("lavalink_secure") is None:
+            lavalink_secure = LAVALINK_SECURE
+        else:
+            lavalink_secure = bool(settings.get("lavalink_secure"))
+        lavalink_uri = settings.get("lavalink_uri") or LAVALINK_URI or "未設定"
+        lavalink_password = settings.get("lavalink_password") or LAVALINK_PASSWORD
+
+        status_text = "⏳ 尚未取得"
+        if bot:
+            music_cog = bot.get_cog("MusicCore")
+            if music_cog and hasattr(music_cog, "get_lavalink_status"):
+                status = await music_cog.get_lavalink_status(guild.id)
+                if status.get("connected"):
+                    status_text = "✅ 已連線"
+                else:
+                    status_text = "❌ 未連線"
+                if status.get("error"):
+                    status_text = f"{status_text}\n{status.get('error')}"
+
+        config_text = "\n".join(
+            [
+                f"來源: {'Admin' if admin_override else '.env'}",
+                f"URI: {lavalink_uri}",
+                f"Host: {lavalink_host}",
+                f"Port: {lavalink_port}",
+                f"Secure: {'true' if lavalink_secure else 'false'}",
+                f"Password: {'已設定' if lavalink_password else '未設定'}",
+            ]
+        )
+
+        embed.add_field(name="🎛️ Lavalink 設定", value=config_text, inline=False)
+        embed.add_field(name="📡 Lavalink 狀態", value=status_text, inline=False)
         embed.add_field(name="📋 管理選項", value="使用下方按鈕進行設定", inline=False)
 
         return embed
@@ -3607,6 +3659,11 @@ class MusicSettingsView(View):
         payload = {
             "allowed_role_ids": current.get("allowed_role_ids", []),
             "require_role_to_use": current.get("require_role_to_use", False),
+            "lavalink_host": current.get("lavalink_host"),
+            "lavalink_port": current.get("lavalink_port"),
+            "lavalink_password": current.get("lavalink_password"),
+            "lavalink_secure": current.get("lavalink_secure"),
+            "lavalink_uri": current.get("lavalink_uri"),
         }
         payload.update(patch)
         return payload
@@ -3619,6 +3676,14 @@ class MusicSettingsView(View):
             return False
         if not interaction.user.guild_permissions.manage_guild:
             await interaction.response.send_message("❌ 需要管理伺服器權限", ephemeral=True)
+            return False
+        return True
+
+    @staticmethod
+    async def _require_owner(interaction: discord.Interaction) -> bool:
+        is_owner = await interaction.client.is_owner(interaction.user)
+        if not is_owner:
+            await interaction.response.send_message("❌ 僅限 Bot Owner 設定 Lavalink", ephemeral=True)
             return False
         return True
 
@@ -3664,10 +3729,52 @@ class MusicSettingsView(View):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+    @button(label="🔧 設定 Lavalink", style=discord.ButtonStyle.secondary, row=0)
+    async def set_lavalink_button(self, interaction: discord.Interaction, button: Button):
+        if not await self._require_owner(interaction):
+            return
+        settings = await self.dao.get_music_settings(self.guild.id)
+        await interaction.response.send_modal(LavalinkSettingsModal(self, settings))
+
+    @button(label="🔄 重新連線", style=discord.ButtonStyle.secondary, row=1)
+    async def reconnect_lavalink_button(self, interaction: discord.Interaction, button: Button):
+        if not await self._require_owner(interaction):
+            return
+        music_cog = interaction.client.get_cog("MusicCore")
+        if not music_cog or not hasattr(music_cog, "reload_lavalink"):
+            await interaction.response.send_message("❌ 音樂系統尚未載入", ephemeral=True)
+            return
+
+        success = await music_cog.reload_lavalink(interaction.guild.id)
+        if success:
+            await interaction.response.send_message("✅ 已重新連線 Lavalink", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ 重新連線失敗，請檢查設定", ephemeral=True)
+
+    @button(label="🧹 清除 Lavalink", style=discord.ButtonStyle.secondary, row=1)
+    async def clear_lavalink_button(self, interaction: discord.Interaction, button: Button):
+        if not await self._require_owner(interaction):
+            return
+        payload = await self._build_music_settings_payload(
+            lavalink_host=None,
+            lavalink_port=None,
+            lavalink_password=None,
+            lavalink_secure=None,
+            lavalink_uri=None,
+        )
+        success = await self.dao.update_music_settings(self.guild.id, payload)
+        if success:
+            music_cog = interaction.client.get_cog("MusicCore")
+            if music_cog and hasattr(music_cog, "reload_lavalink"):
+                await music_cog.reload_lavalink(interaction.guild.id)
+            await interaction.response.send_message("✅ 已清除 Lavalink 設定", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ 清除失敗", ephemeral=True)
+
     @button(label="🔄 重新整理", style=discord.ButtonStyle.secondary, row=1)
     async def refresh_button(self, interaction: discord.Interaction, button: Button):
         panel = SystemAdminPanel(self.user_id)
-        embed = await panel._create_music_settings_embed(self.guild)
+        embed = await panel._create_music_settings_embed(self.guild, interaction.client)
         await interaction.response.edit_message(embed=embed, view=self)
 
     @button(label="❌ 關閉", style=discord.ButtonStyle.danger, row=1)
@@ -3700,11 +3807,126 @@ class MusicPanelRoleSelect(discord.ui.RoleSelect):
 
         if success:
             admin_panel = SystemAdminPanel(self.parent_view.user_id)
-            embed = await admin_panel._create_music_settings_embed(self.parent_view.guild)
+            embed = await admin_panel._create_music_settings_embed(
+                self.parent_view.guild, interaction.client
+            )
             view = MusicSettingsView(self.parent_view.user_id, self.parent_view.guild)
             await interaction.response.edit_message(embed=embed, view=view)
         else:
             await interaction.response.send_message("❌ 設定失敗，請稍後再試", ephemeral=True)
+
+
+class LavalinkSettingsModal(Modal):
+    """設定 Lavalink 連線"""
+
+    def __init__(self, parent_view: MusicSettingsView, settings: dict):
+        super().__init__(title="設定 Lavalink 連線")
+        self.parent_view = parent_view
+
+        current_uri = settings.get("lavalink_uri") or ""
+        current_host = settings.get("lavalink_host") or ""
+        current_port = settings.get("lavalink_port")
+        current_password = settings.get("lavalink_password") or ""
+        secure_value = settings.get("lavalink_secure")
+        if secure_value is None:
+            secure_text = ""
+        else:
+            secure_text = "true" if secure_value else "false"
+
+        self.uri = TextInput(
+            label="Lavalink URI (選填)",
+            placeholder="https://your-lavalink:443",
+            default=current_uri,
+            required=False,
+            max_length=200,
+        )
+        self.host = TextInput(
+            label="Lavalink Host (選填)",
+            placeholder="your-lavalink-host",
+            default=current_host,
+            required=False,
+            max_length=200,
+        )
+        self.port = TextInput(
+            label="Lavalink Port (選填)",
+            placeholder="2333",
+            default=str(current_port) if current_port else "",
+            required=False,
+            max_length=5,
+        )
+        self.password = TextInput(
+            label="Lavalink Password (選填)",
+            placeholder="your-lavalink-password",
+            default=current_password,
+            required=False,
+            max_length=100,
+        )
+        self.secure = TextInput(
+            label="Lavalink Secure (true/false)",
+            placeholder="true 或 false",
+            default=secure_text,
+            required=False,
+            max_length=5,
+        )
+
+        self.add_item(self.uri)
+        self.add_item(self.host)
+        self.add_item(self.port)
+        self.add_item(self.password)
+        self.add_item(self.secure)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if not await MusicSettingsView._require_owner(interaction):
+            return
+        uri = self.uri.value.strip() or None
+        host = self.host.value.strip() or None
+        port_text = self.port.value.strip()
+        password = self.password.value.strip() or None
+        secure_text = self.secure.value.strip().lower()
+
+        if uri and not (uri.startswith("http://") or uri.startswith("https://")):
+            await interaction.response.send_message("❌ URI 必須為 http/https", ephemeral=True)
+            return
+
+        port = None
+        if port_text:
+            try:
+                port = int(port_text)
+                if port <= 0 or port > 65535:
+                    raise ValueError("port out of range")
+            except Exception:
+                await interaction.response.send_message("❌ Port 必須為 1-65535 的數字", ephemeral=True)
+                return
+
+        secure = None
+        if secure_text:
+            if secure_text in ("true", "1", "yes", "y", "t", "on"):
+                secure = True
+            elif secure_text in ("false", "0", "no", "n", "f", "off"):
+                secure = False
+            else:
+                await interaction.response.send_message("❌ Secure 必須為 true 或 false", ephemeral=True)
+                return
+
+        payload = await self.parent_view._build_music_settings_payload(
+            lavalink_uri=uri,
+            lavalink_host=host,
+            lavalink_port=port,
+            lavalink_password=password,
+            lavalink_secure=secure,
+        )
+        success = await self.parent_view.dao.update_music_settings(
+            self.parent_view.guild.id, payload
+        )
+        if not success:
+            await interaction.response.send_message("❌ 更新失敗，請稍後再試", ephemeral=True)
+            return
+
+        music_cog = interaction.client.get_cog("MusicCore")
+        if music_cog and hasattr(music_cog, "reload_lavalink"):
+            await music_cog.reload_lavalink(interaction.guild.id)
+
+        await interaction.response.send_message("✅ 已更新 Lavalink 設定", ephemeral=True)
 
 
 class BackToMusicSettingsButton(Button):
@@ -3717,7 +3939,7 @@ class BackToMusicSettingsButton(Button):
 
     async def callback(self, interaction: discord.Interaction):
         admin_panel = SystemAdminPanel(self.user_id)
-        embed = await admin_panel._create_music_settings_embed(self.guild)
+        embed = await admin_panel._create_music_settings_embed(self.guild, interaction.client)
         view = MusicSettingsView(self.user_id, self.guild)
         await interaction.response.edit_message(embed=embed, view=view)
 

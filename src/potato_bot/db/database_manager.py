@@ -192,6 +192,11 @@ class DatabaseManager:
                     guild_id BIGINT PRIMARY KEY COMMENT '伺服器ID',
                     allowed_role_ids JSON NULL COMMENT '允許使用音樂系統的身分組',
                     require_role_to_use BOOLEAN DEFAULT FALSE COMMENT '是否需要角色才能使用',
+                    lavalink_host TEXT NULL COMMENT 'Lavalink 主機',
+                    lavalink_port INT NULL COMMENT 'Lavalink 連接埠',
+                    lavalink_password TEXT NULL COMMENT 'Lavalink 密碼',
+                    lavalink_secure BOOLEAN DEFAULT FALSE COMMENT 'Lavalink HTTPS',
+                    lavalink_uri TEXT NULL COMMENT 'Lavalink URI',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間'
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci

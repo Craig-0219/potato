@@ -691,7 +691,7 @@ class MusicMenuView(discord.ui.View, SafeInteractionMixin):
                 )
                 return
 
-            if not await self.music_cog.ensure_lavalink_ready():
+            if not await self.music_cog.ensure_lavalink_ready(interaction.guild.id):
                 await interaction.response.send_message(
                     "❌ 音樂服務尚未連線，請稍後再試或通知管理員檢查 Lavalink。",
                     ephemeral=True,
@@ -748,7 +748,7 @@ class MusicInputModal(discord.ui.Modal, title="🎵 播放音樂"):
                 await interaction.followup.send(embed=embed, ephemeral=True)
                 return
 
-            if not await self.music_cog.ensure_lavalink_ready():
+            if not await self.music_cog.ensure_lavalink_ready(interaction.guild.id):
                 embed = EmbedBuilder.create_error_embed(
                     "❌ 音樂服務未就緒",
                     "Lavalink 尚未連線，請稍後再試或通知管理員檢查設定。",
@@ -846,7 +846,7 @@ class SearchInputModal(discord.ui.Modal, title="🔍 搜索音樂"):
             # 立即延遲回應，避免超時
             await interaction.response.defer(ephemeral=True)
 
-            if not await self.music_cog.ensure_lavalink_ready():
+            if not await self.music_cog.ensure_lavalink_ready(interaction.guild.id):
                 embed = EmbedBuilder.create_error_embed(
                     "❌ 音樂服務未就緒",
                     "Lavalink 尚未連線，請稍後再試或通知管理員檢查設定。",

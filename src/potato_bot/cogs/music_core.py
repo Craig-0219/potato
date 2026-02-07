@@ -383,6 +383,7 @@ class MusicCore(commands.Cog):
         self._lavalink_connected = False
         self._lavalink_lock = asyncio.Lock()
         self._lavalink_error: Optional[str] = None
+        self._lavalink_config_signature: Optional[tuple] = None
         self.DISABLED_SLASH_COMMANDS = {
             "play",
             "music_control",
@@ -393,26 +394,122 @@ class MusicCore(commands.Cog):
         }
         logger.info("🎵 音樂系統核心初始化完成")
 
-    def _build_lavalink_uri(self) -> Optional[str]:
-        if LAVALINK_URI:
-            return LAVALINK_URI
-        if not LAVALINK_HOST:
+    @staticmethod
+    def _clean_text(value: Optional[object]) -> Optional[str]:
+        if value is None:
             return None
-        scheme = "https" if LAVALINK_SECURE else "http"
-        return f"{scheme}://{LAVALINK_HOST}:{LAVALINK_PORT}"
+        text = str(value).strip()
+        return text or None
 
-    async def ensure_lavalink_ready(self) -> bool:
+    async def _resolve_lavalink_config(self, guild_id: Optional[int] = None) -> dict:
+        settings: dict = {}
+        if guild_id:
+            settings = await self.settings_dao.get_music_settings(guild_id) or {}
+
+        def has_value(val: Optional[object]) -> bool:
+            if val is None:
+                return False
+            if isinstance(val, str):
+                return bool(val.strip())
+            if isinstance(val, (int, float)):
+                return val != 0
+            return True
+
+        override_present = any(
+            has_value(settings.get(key))
+            for key in (
+                "lavalink_host",
+                "lavalink_port",
+                "lavalink_password",
+                "lavalink_uri",
+            )
+        ) or settings.get("lavalink_secure") is not None
+
+        host = self._clean_text(settings.get("lavalink_host")) or LAVALINK_HOST
+        uri = self._clean_text(settings.get("lavalink_uri")) or LAVALINK_URI
+        password = self._clean_text(settings.get("lavalink_password")) or LAVALINK_PASSWORD
+
+        port = settings.get("lavalink_port")
+        if port is None or port == "":
+            port = LAVALINK_PORT
+        else:
+            try:
+                port = int(port)
+            except (TypeError, ValueError):
+                port = LAVALINK_PORT
+
+        secure = settings.get("lavalink_secure")
+        if secure is None:
+            secure = LAVALINK_SECURE
+        else:
+            secure = bool(secure)
+
+        return {
+            "host": host,
+            "port": port,
+            "password": password,
+            "secure": secure,
+            "uri": uri,
+            "source": "admin" if override_present else "env",
+        }
+
+    @staticmethod
+    def _build_lavalink_uri(config: dict) -> Optional[str]:
+        uri = config.get("uri")
+        if uri:
+            return uri
+        host = config.get("host")
+        if not host:
+            return None
+        scheme = "https" if config.get("secure") else "http"
+        return f"{scheme}://{host}:{config.get('port')}"
+
+    async def _disconnect_lavalink(self) -> None:
+        nodes = getattr(wavelink.Pool, "nodes", None) or {}
+        try:
+            disconnect = getattr(wavelink.Pool, "disconnect", None)
+            if callable(disconnect):
+                result = disconnect()
+                if asyncio.iscoroutine(result):
+                    await result
+        except Exception:
+            pass
+
+        try:
+            for node in list(getattr(nodes, "values", lambda: [])()):
+                for method_name in ("close", "disconnect"):
+                    method = getattr(node, method_name, None)
+                    if not method:
+                        continue
+                    try:
+                        result = method()
+                        if asyncio.iscoroutine(result):
+                            await result
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+    async def ensure_lavalink_ready(self, guild_id: Optional[int] = None, force: bool = False) -> bool:
+        config = await self._resolve_lavalink_config(guild_id)
+        uri = self._build_lavalink_uri(config)
+        signature = (uri, config.get("password"), config.get("secure"))
+
         nodes = getattr(wavelink.Pool, "nodes", None)
-        if self._lavalink_connected and nodes:
+        if not force and self._lavalink_connected and nodes:
             return True
 
         async with self._lavalink_lock:
             nodes = getattr(wavelink.Pool, "nodes", None)
-            if self._lavalink_connected and nodes:
+            if not force and self._lavalink_connected and nodes:
                 return True
 
-            uri = self._build_lavalink_uri()
-            if not uri or not LAVALINK_PASSWORD:
+            if signature != self._lavalink_config_signature:
+                await self._disconnect_lavalink()
+                self._lavalink_connected = False
+                self._lavalink_config_signature = signature
+
+            if not uri or not config.get("password"):
                 self._lavalink_error = "缺少 Lavalink 連線設定"
                 logger.error("❌ Lavalink 連線設定不足，請檢查環境變數")
                 return False
@@ -420,7 +517,7 @@ class MusicCore(commands.Cog):
             try:
                 node = wavelink.Node(
                     uri=uri,
-                    password=LAVALINK_PASSWORD,
+                    password=config.get("password"),
                     identifier="main",
                 )
                 await wavelink.Pool.connect(nodes=[node], client=self.bot)
@@ -433,6 +530,49 @@ class MusicCore(commands.Cog):
                 self._lavalink_error = str(exc)
                 logger.error("❌ Lavalink 連線失敗: %s", exc)
                 return False
+
+    async def reload_lavalink(self, guild_id: Optional[int] = None) -> bool:
+        """重新連線 Lavalink"""
+        try:
+            await self._disconnect_lavalink()
+        except Exception:
+            pass
+        self._lavalink_connected = False
+        return await self.ensure_lavalink_ready(guild_id, force=True)
+
+    async def get_lavalink_status(self, guild_id: Optional[int] = None) -> dict:
+        """取得 Lavalink 連線狀態"""
+        config = await self._resolve_lavalink_config(guild_id)
+        uri = self._build_lavalink_uri(config)
+        nodes = getattr(wavelink.Pool, "nodes", None) or {}
+        node = None
+        if isinstance(nodes, dict) and nodes:
+            node = nodes.get("main") or next(iter(nodes.values()), None)
+        elif nodes:
+            try:
+                node = next(iter(nodes), None)
+            except Exception:
+                node = None
+
+        connected = None
+        if node is not None:
+            connected = getattr(node, "connected", None)
+            if connected is None:
+                connected = getattr(node, "is_connected", None)
+        if connected is None:
+            connected = self._lavalink_connected
+
+        return {
+            "connected": bool(connected),
+            "error": self._lavalink_error,
+            "uri": uri,
+            "host": config.get("host"),
+            "port": config.get("port"),
+            "secure": config.get("secure"),
+            "password_set": bool(config.get("password")),
+            "source": config.get("source"),
+            "node_count": len(nodes) if isinstance(nodes, dict) else 0,
+        }
 
     @staticmethod
     def _can_use_music_menu(
@@ -557,7 +697,7 @@ class MusicCore(commands.Cog):
         try:
             await interaction.response.defer()
 
-            if not await self.ensure_lavalink_ready():
+            if not await self.ensure_lavalink_ready(interaction.guild.id):
                 embed = EmbedBuilder.create_error_embed(
                     "❌ 音樂服務未就緒",
                     "Lavalink 尚未連線，請稍後再試或聯絡管理員檢查設定",
@@ -1062,7 +1202,7 @@ class MusicCore(commands.Cog):
                 )
                 return
 
-            if not await self.ensure_lavalink_ready():
+            if not await self.ensure_lavalink_ready(interaction.guild.id):
                 await interaction.response.send_message(
                     "❌ 音樂服務尚未連線，請稍後再試或通知管理員檢查 Lavalink。",
                     ephemeral=True,
