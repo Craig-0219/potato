@@ -4009,7 +4009,7 @@ class FiveMSettingsView(View):
             )
         )
 
-    @button(label="⏱️ 設定輪詢間隔", style=discord.ButtonStyle.secondary, row=0)
+    @button(label="⏱️ 設定輪詢間隔", style=discord.ButtonStyle.secondary, row=2)
     async def set_poll_interval(self, interaction: discord.Interaction, button: Button):
         settings = await self.dao.get_fivem_settings(self.guild.id)
         await interaction.response.send_modal(
