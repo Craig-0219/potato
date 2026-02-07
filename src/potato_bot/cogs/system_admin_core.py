@@ -12,6 +12,7 @@ from potato_shared.logger import logger
 from potato_shared.cache_manager import cache_manager
 from potato_bot.db.cached_ticket_dao import cached_ticket_dao
 from potato_bot.utils.embed_builder import EmbedBuilder
+from potato_bot.services.system_settings_service import SystemSettingsService
 from potato_bot.utils.ticket_constants import TicketConstants
 
 
@@ -25,9 +26,10 @@ class SystemAdmin(commands.Cog):
     async def admin_panel(self, interaction: discord.Interaction):
         """系統管理面板"""
         try:
-            if not await self.bot.is_owner(interaction.user):
+            allowed = await self._has_admin_access(interaction)
+            if not allowed:
                 await interaction.response.send_message(
-                    "❌ 此功能僅限機器人擁有者使用", ephemeral=True
+                    "❌ 需要管理伺服器權限或已授權管理員", ephemeral=True
                 )
                 return
 
@@ -202,6 +204,17 @@ class SystemAdmin(commands.Cog):
         except Exception as e:
             logger.error(f"❌ 取得快取健康狀態失敗: {e}")
             return {"status": "error", "recommendations": ["無法獲取快取狀態。"]}
+
+    async def _has_admin_access(self, interaction: discord.Interaction) -> bool:
+        if await self.bot.is_owner(interaction.user):
+            return True
+        if interaction.guild and interaction.user.id == interaction.guild.owner_id:
+            return True
+        if interaction.user.guild_permissions.manage_guild:
+            return True
+        service = SystemSettingsService()
+        admin_user_ids = await service.get_admin_user_ids(interaction.guild.id)
+        return interaction.user.id in admin_user_ids
 
 
 async def setup(bot: commands.Bot):

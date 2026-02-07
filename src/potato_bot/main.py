@@ -37,6 +37,7 @@ CURRENT_FILE_DIR, PROJECT_ROOT = bootstrap_paths(__file__)
 
 from potato_bot.utils.cog_loader import COGS_PREFIX, discover_cog_modules
 from potato_bot.utils.persistent_views import log_persistent_views
+from potato_bot.services.presence_manager import PresenceManager
 from potato_bot.utils.command_translator import PotatoTranslator
 
 # 提前載入 .env，讓 shared.config 能吃到
@@ -124,6 +125,9 @@ class PotatoBot(commands.Bot):
 
         # Guild 多租戶入口（已停用）
         self.guild_manager: None = None
+
+        # Presence 管理
+        self.presence_manager: PresenceManager | None = None
 
     # --------------------------
     # ✅ 啟動鉤子：統一 async 初始化流程
@@ -302,6 +306,9 @@ class PotatoBot(commands.Bot):
         except Exception as e:
             logger.error(f"❌ 關閉 DB 時發生錯誤：{e}")
 
+        if self.presence_manager:
+            await self.presence_manager.stop()
+
         await super().close()
         logger.info("✅ Discord 連線已關閉")
 
@@ -318,11 +325,9 @@ class PotatoBot(commands.Bot):
             guild_list = ", ".join([f"{g.name}({g.id})" for g in self.guilds])
             logger.info(f"🧾 伺服器清單：{guild_list}")
 
-        activity = discord.Activity(
-            type=discord.ActivityType.watching,
-            name="我爸不在，現在我最大!",
-        )
-        await self.change_presence(activity=activity)
+        if not self.presence_manager:
+            self.presence_manager = PresenceManager(self)
+        self.presence_manager.start()
 
     # --------------------------
     # ✅ 工具：Uptime 

@@ -50,6 +50,10 @@ class _FiveMGuildState:
     server_link: Optional[str] = None
     status_image_url: Optional[str] = None
     last_status: Optional[str] = None
+    last_result: Optional[FiveMStatusResult] = None
+    last_tx_state: Optional[str] = None
+    last_event_type: Optional[str] = None
+    last_presence_state: Optional[str] = None
     last_panel_signature: Optional[str] = None
     starting_until: float = 0.0
     ftp_fail_count: int = 0
@@ -429,6 +433,44 @@ class FiveMStatusCore(commands.Cog):
         }
         return mapping.get(status, None)
 
+    @staticmethod
+    def _get_presence_state(state: _FiveMGuildState) -> Optional[str]:
+        if state.last_event_type == "serverCrashed" or state.last_tx_state == "crashed":
+            return "crashed"
+        if state.last_status == "offline" or state.last_tx_state in ("stopping", "offline", "stopped"):
+            return "offline"
+        if state.last_status == "online":
+            return "online"
+        return None
+
+    @staticmethod
+    def _format_presence_text(state: _FiveMGuildState, presence_state: Optional[str]) -> Optional[str]:
+        if presence_state == "crashed":
+            return "伺服器崩潰"
+        if presence_state == "offline":
+            return "伺服器關閉"
+        if presence_state == "online":
+            players = 0
+            if state.last_result:
+                players = state.last_result.players
+            return f"福北市城內人數 {players}"
+        return None
+
+    async def _notify_presence(self, guild: discord.Guild, text: Optional[str]) -> None:
+        if not text:
+            return
+        manager = getattr(self.bot, "presence_manager", None)
+        if manager and hasattr(manager, "notify_fivem_update"):
+            await manager.notify_fivem_update(guild.id, text)
+
+    async def get_presence_text(self, guild: discord.Guild) -> Optional[str]:
+        """提供狀態欄位顯示用的 FiveM 文字"""
+        state = await self._get_state(guild)
+        if not state:
+            return None
+        presence_state = self._get_presence_state(state)
+        return self._format_presence_text(state, presence_state)
+
     async def get_ftp_connection_status(self, guild: discord.Guild) -> Optional[bool]:
         """取得 FTP 連線狀態（None 表示未啟用或不可用）"""
         try:
@@ -618,18 +660,24 @@ class FiveMStatusCore(commands.Cog):
                             state.service.get_txadmin_event_type(tx_status)
                         )
                         tx_state = self._normalize_status(tx_status.get("state"))
+                        state.last_event_type = event_type
+                        state.last_tx_state = tx_state
                         if event_type == "serverStarting" or tx_state == "starting":
                             now = time.time()
                             state.starting_until = max(
                                 state.starting_until, now + FIVEM_STARTING_GRACE_SECONDS
                             )
                             state.last_status = "starting"
+                    else:
+                        state.last_event_type = None
+                        state.last_tx_state = None
 
                     starting_active = bool(state.starting_until and time.time() < state.starting_until)
 
                     if state.has_http:
                         result = await state.service.poll_status()
                         panel_result = result
+                        state.last_result = result
                         if result.status == "online":
                             if (starting_active or previous_status == "starting") and previous_status != "online":
                                 await self._send_embed(
@@ -659,6 +707,14 @@ class FiveMStatusCore(commands.Cog):
                                         allowed_mentions=allowed_mentions,
                                     )
                                 state.last_status = "offline"
+                    else:
+                        state.last_result = None
+
+                    presence_state = self._get_presence_state(state)
+                    if presence_state and presence_state != state.last_presence_state:
+                        state.last_presence_state = presence_state
+                        presence_text = self._format_presence_text(state, presence_state)
+                        await self._notify_presence(guild, presence_text)
 
                     if tx_status and state.service.should_announce_txadmin(tx_status):
                         if event_type == "serverStarting":

@@ -7,7 +7,17 @@
 import asyncio
 import time
 import discord
-from discord.ui import Button, ChannelSelect, Modal, RoleSelect, Select, TextInput, View, button
+from discord.ui import (
+    Button,
+    ChannelSelect,
+    Modal,
+    RoleSelect,
+    Select,
+    TextInput,
+    UserSelect,
+    View,
+    button,
+)
 
 from potato_bot.db import vote_dao
 from potato_bot.db.category_auto_dao import CategoryAutoDAO
@@ -27,6 +37,7 @@ from potato_bot.services.data_cleanup_manager import DataCleanupManager
 from potato_bot.services.resume_service import ResumePanelService, ResumeService
 from potato_bot.services.welcome_manager import WelcomeManager
 from potato_bot.services.whitelist_service import WhitelistService
+from potato_bot.services.system_settings_service import SystemSettingsService
 from potato_bot.db.whitelist_dao import WhitelistDAO
 from potato_bot.utils.interaction_helper import BaseView, SafeInteractionHandler
 from potato_bot.utils.embed_builder import EmbedBuilder
@@ -42,6 +53,24 @@ from potato_shared.config import (
     LAVALINK_SECURE,
     LAVALINK_URI,
 )
+
+
+def _is_guild_owner(interaction: discord.Interaction) -> bool:
+    if not interaction.guild:
+        return False
+    return interaction.user.id == interaction.guild.owner_id
+
+
+async def _has_system_admin_access(interaction: discord.Interaction) -> bool:
+    if await interaction.client.is_owner(interaction.user):
+        return True
+    if _is_guild_owner(interaction):
+        return True
+    if interaction.user.guild_permissions.manage_guild:
+        return True
+    service = SystemSettingsService()
+    admin_user_ids = await service.get_admin_user_ids(interaction.guild.id)
+    return interaction.user.id in admin_user_ids
 
 
 class SystemAdminPanel(BaseView):
@@ -60,17 +89,13 @@ class SystemAdminPanel(BaseView):
         if not await super().interaction_check(interaction):
             return False
 
-        if await interaction.client.is_owner(interaction.user):
+        if await _has_system_admin_access(interaction):
             return True
 
-        # 檢查管理權限
-        if not interaction.user.guild_permissions.manage_guild:
-            await SafeInteractionHandler.safe_respond(
-                interaction, content="❌ 需要管理伺服器權限", ephemeral=True
-            )
-            return False
-
-        return True
+        await SafeInteractionHandler.safe_respond(
+            interaction, content="❌ 需要管理伺服器權限或已授權管理員", ephemeral=True
+        )
+        return False
 
     @button(label="🎫 票券系統設定", style=discord.ButtonStyle.primary, row=0)
     async def ticket_settings_button(self, interaction: discord.Interaction, button: Button):
@@ -859,6 +884,18 @@ class SystemAdminPanel(BaseView):
         embed.add_field(
             name="🗂️ 類別自動建立",
             value="• 批量建立類別\n• 設定可用身分組與管理身分組",
+            inline=True,
+        )
+
+        embed.add_field(
+            name="🤖 狀態欄位設定",
+            value="• 輪播內容\n• 輪播間隔",
+            inline=True,
+        )
+
+        embed.add_field(
+            name="🛡️ 管理面板授權",
+            value="• Owner 指定授權成員",
             inline=True,
         )
 
@@ -2378,7 +2415,7 @@ class SystemToolsView(View):
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         return interaction.user.id == self.user_id
 
-    @button(label="🧹 清理資料", style=discord.ButtonStyle.secondary)
+    @button(label="🧹 清理資料", style=discord.ButtonStyle.secondary, row=0)
     async def cleanup_button(self, interaction: discord.Interaction, button: Button):
         """資料清理工具"""
         embed = discord.Embed(
@@ -2487,10 +2524,27 @@ class SystemToolsView(View):
         view = MusicMenuView(music_cog)
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
-    @button(label="🗂️ 類別自動建立", style=discord.ButtonStyle.primary, row=0)
+    @button(label="🗂️ 類別自動建立", style=discord.ButtonStyle.primary, row=1)
     async def category_auto_button(self, interaction: discord.Interaction, button: Button):
         """類別自動建立設定"""
         view = CategoryAutoSettingsView(self.user_id, interaction.guild)
+        embed = await view.build_embed()
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+    @button(label="🤖 狀態欄位設定", style=discord.ButtonStyle.secondary, row=1)
+    async def presence_settings_button(self, interaction: discord.Interaction, button: Button):
+        """Bot 狀態欄位設定"""
+        view = PresenceSettingsView(self.user_id, interaction.guild)
+        embed = await view.build_embed()
+        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+
+    @button(label="🛡️ 管理面板授權", style=discord.ButtonStyle.secondary, row=1)
+    async def admin_access_button(self, interaction: discord.Interaction, button: Button):
+        """管理面板授權（僅限伺服器 Owner）"""
+        if not (_is_guild_owner(interaction) or await interaction.client.is_owner(interaction.user)):
+            await interaction.response.send_message("❌ 僅限伺服器 Owner 設定", ephemeral=True)
+            return
+        view = AdminAccessSettingsView(self.user_id, interaction.guild)
         embed = await view.build_embed()
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
 
@@ -2532,6 +2586,252 @@ class SystemToolsView(View):
                     await interaction.followup.send("❌ 開啟清空頻道面板時發生錯誤", ephemeral=True)
             except:
                 pass
+
+
+class PresenceSettingsView(View):
+    """狀態欄位設定"""
+
+    def __init__(self, user_id: int, guild: discord.Guild, timeout=300):
+        super().__init__(timeout=timeout)
+        self.user_id = user_id
+        self.guild = guild
+        self.service = SystemSettingsService()
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 只有開啟此面板的管理員可設定", ephemeral=True)
+            return False
+        if await _has_system_admin_access(interaction):
+            return True
+        await interaction.response.send_message("❌ 需要管理伺服器權限或已授權管理員", ephemeral=True)
+        return False
+
+    async def build_embed(self) -> discord.Embed:
+        custom = await self.service.get_custom_settings(self.guild.id)
+        messages = custom.get("presence_messages") or []
+        interval = custom.get("presence_interval")
+        if isinstance(messages, str):
+            messages = [line.strip() for line in messages.splitlines() if line.strip()]
+        if not isinstance(messages, list):
+            messages = []
+
+        interval_text = f"{interval} 秒" if interval else "預設 (30 秒)"
+        if messages:
+            lines = [f"• {line}" for line in messages[:10]]
+            if len(messages) > 10:
+                lines.append(f"... 其餘 {len(messages) - 10} 項")
+            message_text = "\n".join(lines)
+        else:
+            message_text = "未設定（使用預設狀態）"
+
+        embed = discord.Embed(
+            title="🤖 狀態欄位設定",
+            description="設定 Bot 狀態輪播內容與間隔",
+            color=0x5865F2,
+        )
+        embed.add_field(name="輪播間隔", value=interval_text, inline=False)
+        embed.add_field(name="輪播內容", value=message_text, inline=False)
+        embed.add_field(name="提示", value="狀態更新時會優先顯示 FiveM 狀態", inline=False)
+        return embed
+
+    @button(label="✏️ 設定內容", style=discord.ButtonStyle.secondary, row=0)
+    async def set_messages(self, interaction: discord.Interaction, button: Button):
+        custom = await self.service.get_custom_settings(self.guild.id)
+        messages = custom.get("presence_messages") or []
+        if isinstance(messages, list):
+            default = "\n".join(str(line) for line in messages)
+        else:
+            default = ""
+        await interaction.response.send_modal(PresenceMessagesModal(self, default))
+
+    @button(label="⏱️ 設定間隔", style=discord.ButtonStyle.secondary, row=0)
+    async def set_interval(self, interaction: discord.Interaction, button: Button):
+        custom = await self.service.get_custom_settings(self.guild.id)
+        interval = custom.get("presence_interval")
+        default = str(interval) if interval else ""
+        await interaction.response.send_modal(PresenceIntervalModal(self, default))
+
+    @button(label="🧹 清除設定", style=discord.ButtonStyle.secondary, row=1)
+    async def clear_settings(self, interaction: discord.Interaction, button: Button):
+        success = await self.service.update_custom_settings(
+            self.guild.id,
+            {"presence_messages": [], "presence_interval": None},
+        )
+        if success:
+            manager = getattr(interaction.client, "presence_manager", None)
+            if manager:
+                await manager.refresh_settings(self.guild.id)
+            embed = await self.build_embed()
+            await interaction.response.edit_message(embed=embed, view=self)
+        else:
+            await interaction.response.send_message("❌ 清除失敗", ephemeral=True)
+
+    @button(label="🔄 重新整理", style=discord.ButtonStyle.secondary, row=1)
+    async def refresh_button(self, interaction: discord.Interaction, button: Button):
+        embed = await self.build_embed()
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @button(label="❌ 關閉", style=discord.ButtonStyle.danger, row=1)
+    async def close_button(self, interaction: discord.Interaction, button: Button):
+        embed = discord.Embed(title="✅ 狀態欄位設定已關閉", color=0x95A5A6)
+        await interaction.response.edit_message(embed=embed, view=None)
+
+
+class PresenceMessagesModal(Modal):
+    """設定狀態欄位內容"""
+
+    def __init__(self, parent_view: PresenceSettingsView, default: str):
+        super().__init__(title="設定狀態輪播內容")
+        self.parent_view = parent_view
+        self.messages = TextInput(
+            label="狀態內容（一行一個）",
+            placeholder="例如：\n歡迎來到福北市\n福北市城內人數 ...",
+            default=default,
+            style=discord.TextStyle.paragraph,
+            required=False,
+            max_length=600,
+        )
+        self.add_item(self.messages)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        raw = self.messages.value.strip()
+        lines = [line.strip() for line in raw.splitlines() if line.strip()]
+        success = await self.parent_view.service.update_custom_settings(
+            self.parent_view.guild.id,
+            {"presence_messages": lines},
+        )
+        if success:
+            manager = getattr(interaction.client, "presence_manager", None)
+            if manager:
+                await manager.refresh_settings(self.parent_view.guild.id)
+            await interaction.response.send_message("✅ 已更新狀態內容", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ 更新失敗", ephemeral=True)
+
+
+class PresenceIntervalModal(Modal):
+    """設定狀態輪播間隔"""
+
+    def __init__(self, parent_view: PresenceSettingsView, default: str):
+        super().__init__(title="設定狀態輪播間隔")
+        self.parent_view = parent_view
+        self.interval = TextInput(
+            label="輪播間隔（秒）",
+            placeholder="最小 3 秒，留空使用預設",
+            default=default,
+            required=False,
+            max_length=5,
+        )
+        self.add_item(self.interval)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        raw = self.interval.value.strip()
+        if raw:
+            try:
+                interval = int(raw)
+            except ValueError:
+                await interaction.response.send_message("❌ 請輸入有效的整數秒數", ephemeral=True)
+                return
+            if interval < 3:
+                await interaction.response.send_message("❌ 輪播間隔最小為 3 秒", ephemeral=True)
+                return
+        else:
+            interval = None
+
+        success = await self.parent_view.service.update_custom_settings(
+            self.parent_view.guild.id,
+            {"presence_interval": interval},
+        )
+        if success:
+            manager = getattr(interaction.client, "presence_manager", None)
+            if manager:
+                await manager.refresh_settings(self.parent_view.guild.id)
+            await interaction.response.send_message("✅ 已更新輪播間隔", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ 更新失敗", ephemeral=True)
+
+
+class AdminAccessUserSelect(UserSelect):
+    """選擇授權成員"""
+
+    def __init__(self, parent_view, row: int | None = None):
+        self.parent_view = parent_view
+        super().__init__(
+            placeholder="選擇可使用 /admin 的成員（可多選）",
+            min_values=0,
+            max_values=25,
+            row=row,
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        user_ids = [member.id for member in self.values]
+        success = await self.parent_view.service.update_custom_settings(
+            self.parent_view.guild.id,
+            {"admin_user_ids": user_ids},
+        )
+        if success:
+            embed = await self.parent_view.build_embed()
+            await interaction.response.edit_message(embed=embed, view=self.parent_view)
+        else:
+            await interaction.response.send_message("❌ 更新失敗", ephemeral=True)
+
+
+class AdminAccessSettingsView(View):
+    """管理面板授權設定（Owner Only）"""
+
+    def __init__(self, user_id: int, guild: discord.Guild, timeout=300):
+        super().__init__(timeout=timeout)
+        self.user_id = user_id
+        self.guild = guild
+        self.service = SystemSettingsService()
+
+        self.add_item(AdminAccessUserSelect(self, row=0))
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 只有開啟此面板的 Owner 可設定", ephemeral=True)
+            return False
+        if _is_guild_owner(interaction) or await interaction.client.is_owner(interaction.user):
+            return True
+        await interaction.response.send_message("❌ 僅限伺服器 Owner 設定", ephemeral=True)
+        return False
+
+    async def build_embed(self) -> discord.Embed:
+        admin_user_ids = await self.service.get_admin_user_ids(self.guild.id)
+        if admin_user_ids:
+            lines = []
+            for user_id in admin_user_ids[:15]:
+                lines.append(f"<@{user_id}>")
+            if len(admin_user_ids) > 15:
+                lines.append(f"... 其餘 {len(admin_user_ids) - 15} 人")
+            text = "、".join(lines)
+        else:
+            text = "未設定"
+
+        embed = discord.Embed(
+            title="🛡️ 管理面板授權",
+            description="指定可使用 /admin 的成員（Owner 專用）",
+            color=0xF1C40F,
+        )
+        embed.add_field(name="授權成員", value=text, inline=False)
+        return embed
+
+    @button(label="🧹 清除授權", style=discord.ButtonStyle.secondary, row=1)
+    async def clear_admins(self, interaction: discord.Interaction, button: Button):
+        success = await self.service.update_custom_settings(
+            self.guild.id,
+            {"admin_user_ids": []},
+        )
+        if success:
+            embed = await self.build_embed()
+            await interaction.response.edit_message(embed=embed, view=self)
+        else:
+            await interaction.response.send_message("❌ 清除失敗", ephemeral=True)
+
+    @button(label="❌ 關閉", style=discord.ButtonStyle.danger, row=1)
+    async def close_button(self, interaction: discord.Interaction, button: Button):
+        embed = discord.Embed(title="✅ 授權設定已關閉", color=0x95A5A6)
+        await interaction.response.edit_message(embed=embed, view=None)
 
 
 # ========== 類別自動建立 ==========
@@ -3290,11 +3590,11 @@ class VoteSettingsView(View):
             )
             return False
 
-        if not interaction.user.guild_permissions.manage_guild:
-            await interaction.response.send_message("❌ 需要管理伺服器權限", ephemeral=True)
-            return False
+        if await _has_system_admin_access(interaction):
+            return True
 
-        return True
+        await interaction.response.send_message("❌ 需要管理伺服器權限或已授權管理員", ephemeral=True)
+        return False
 
     @button(label="🚀 現代GUI投票", style=discord.ButtonStyle.success, row=0)
     async def modern_vote_gui_button(self, interaction: discord.Interaction, button: Button):
@@ -3549,10 +3849,10 @@ class LotterySettingsView(View):
                 "❌ 只有指令使用者可以操作此面板", ephemeral=True
             )
             return False
-        if not interaction.user.guild_permissions.manage_guild:
-            await interaction.response.send_message("❌ 需要管理伺服器權限", ephemeral=True)
-            return False
-        return True
+        if await _has_system_admin_access(interaction):
+            return True
+        await interaction.response.send_message("❌ 需要管理伺服器權限或已授權管理員", ephemeral=True)
+        return False
 
     @button(label="👥 設定面板身分組", style=discord.ButtonStyle.secondary, row=0)
     async def set_lottery_panel_roles_button(
@@ -3679,10 +3979,10 @@ class MusicSettingsView(View):
                 "❌ 只有指令使用者可以操作此面板", ephemeral=True
             )
             return False
-        if not interaction.user.guild_permissions.manage_guild:
-            await interaction.response.send_message("❌ 需要管理伺服器權限", ephemeral=True)
-            return False
-        return True
+        if await _has_system_admin_access(interaction):
+            return True
+        await interaction.response.send_message("❌ 需要管理伺服器權限或已授權管理員", ephemeral=True)
+        return False
 
     @staticmethod
     async def _require_owner(interaction: discord.Interaction) -> bool:
@@ -3980,10 +4280,10 @@ class FiveMSettingsView(View):
                 "❌ 只有指令使用者可以操作此面板", ephemeral=True
             )
             return False
-        if not interaction.user.guild_permissions.manage_guild:
-            await interaction.response.send_message("❌ 需要管理伺服器權限", ephemeral=True)
-            return False
-        return True
+        if await _has_system_admin_access(interaction):
+            return True
+        await interaction.response.send_message("❌ 需要管理伺服器權限或已授權管理員", ephemeral=True)
+        return False
 
     @button(label="📣 設定播報頻道", style=discord.ButtonStyle.secondary, row=0)
     async def set_status_channel(self, interaction: discord.Interaction, button: Button):

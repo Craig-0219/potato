@@ -45,6 +45,27 @@ class WelcomeDAO(BaseDAO):
 
     async def _initialize(self):
         """初始化方法 - BaseDAO要求的抽象方法"""
+        try:
+            async with self.db.connection() as conn:
+                async with conn.cursor() as cursor:
+                    await cursor.execute(
+                        """
+                        CREATE TABLE IF NOT EXISTS system_settings (
+                            guild_id BIGINT PRIMARY KEY COMMENT '伺服器ID',
+                            general_settings JSON NULL COMMENT '一般設定',
+                            channel_settings JSON NULL COMMENT '頻道設定',
+                            role_settings JSON NULL COMMENT '角色設定',
+                            notification_settings JSON NULL COMMENT '通知設定',
+                            feature_toggles JSON NULL COMMENT '功能開關',
+                            custom_settings JSON NULL COMMENT '自定義設定',
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '創建時間',
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新時間'
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                    """
+                    )
+                    await conn.commit()
+        except Exception as exc:
+            logger.warning("system_settings 初始化失敗: %s", exc)
 
     # ========== 歡迎設定管理 ==========
 
