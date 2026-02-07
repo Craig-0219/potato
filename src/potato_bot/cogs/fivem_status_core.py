@@ -229,6 +229,8 @@ class FiveMStatusCore(commands.Cog):
                 str(players or ""),
                 str(max_players or ""),
                 str(hostname or ""),
+                str(result.info_ok if result else ""),
+                str(result.players_ok if result else ""),
                 str(result.status if result else ""),
             ]
         )
@@ -270,7 +272,7 @@ class FiveMStatusCore(commands.Cog):
                 embed.set_image(url=url)
 
         now_dt = discord.utils.utcnow()
-        embed.add_field(name="最後更新", value=discord.utils.format_dt(now_dt, "R"), inline=True)
+        embed.add_field(name="最後更新", value=discord.utils.format_dt(now_dt, "f"), inline=True)
         return embed
 
     @staticmethod
@@ -749,15 +751,12 @@ class FiveMStatusCore(commands.Cog):
                                     )
                                 state.ftp_last_alert = now
 
-                    force_panel = state.panel_message_id == 0 or (
-                        state.has_http and panel_result is not None
-                    )
                     await self._update_status_panel(
                         guild,
                         state,
                         panel_result,
                         panel_tx_status,
-                        force=force_panel,
+                        force=state.panel_message_id == 0,
                     )
             except Exception as exc:
                 logger.error("FiveM 狀態輪詢失敗: %s", exc)
