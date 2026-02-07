@@ -112,8 +112,8 @@ class FiveMStatusCore(commands.Cog):
             embed = EmbedBuilder.create_error_embed(title, description)
         else:
             embed = EmbedBuilder.create_info_embed(title, description)
-        if delete_after is None and content:
-            delete_after = 30
+        if delete_after is None:
+            delete_after = 30 if content else 60
 
         try:
             await channel.send(
