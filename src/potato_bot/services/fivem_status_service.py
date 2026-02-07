@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 import aiohttp
+from aiohttp import ClientConnectionError, ServerDisconnectedError
 from ftplib import FTP, error_perm
 
 from potato_shared.logger import logger
@@ -77,16 +78,26 @@ class FiveMStatusService:
                 await asyncio.to_thread(self._disconnect_ftp)
 
     async def fetch_json(self, url: str) -> Optional[Any]:
-        try:
-            async with self._session.get(url) as response:
-                if response.status != 200:
-                    return None
-                return await response.json(content_type=None)
-        except asyncio.TimeoutError:
+        if not url:
             return None
-        except Exception as exc:
-            logger.error("FiveM 狀態請求失敗: %s", exc)
-            return None
+        last_exc: Optional[Exception] = None
+        for attempt in range(2):
+            try:
+                async with self._session.get(url) as response:
+                    if response.status != 200:
+                        return None
+                    return await response.json(content_type=None)
+            except (asyncio.TimeoutError, ClientConnectionError, ServerDisconnectedError) as exc:
+                last_exc = exc
+                if attempt == 0:
+                    await asyncio.sleep(0.3)
+                continue
+            except Exception as exc:
+                last_exc = exc
+                break
+        if last_exc:
+            logger.warning("FiveM 狀態請求失敗: %s (url=%s)", last_exc, url)
+        return None
 
     async def poll_status(self) -> FiveMStatusResult:
         info_data = await self.fetch_json(self.info_url)

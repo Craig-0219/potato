@@ -593,6 +593,7 @@ class FiveMStatusCore(commands.Cog):
                     panel_result: Optional[FiveMStatusResult] = None
                     event_type = None
                     tx_state = None
+                    previous_status = state.last_status
 
                     tx_status = await state.service.read_txadmin_status()
                     panel_tx_status = tx_status
@@ -615,6 +616,15 @@ class FiveMStatusCore(commands.Cog):
                         result = await state.service.poll_status()
                         panel_result = result
                         if result.status == "online":
+                            if (starting_active or previous_status == "starting") and previous_status != "online":
+                                await self._send_embed(
+                                    state.channel_id,
+                                    "✅ Server已啟動",
+                                    "伺服器已成功啟動。",
+                                    "success",
+                                    content=mention_text if mention_text else None,
+                                    allowed_mentions=allowed_mentions,
+                                )
                             if starting_active:
                                 state.starting_until = 0.0
                             state.last_status = "online"
