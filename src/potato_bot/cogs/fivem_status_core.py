@@ -211,7 +211,7 @@ class FiveMStatusCore(commands.Cog):
             "resourceStopping": "serverStopping",
             "resourceCrashed": "serverCrashed",
             "serverShuttingDown": "serverStopping",
-            "serverStarted": "serverStarting",
+            "serverStarted": "serverStarted",
             "serverStarting": "serverStarting",
         }
         return mapping.get(event_type, event_type)
@@ -690,6 +690,11 @@ class FiveMStatusCore(commands.Cog):
                                 state.stop_override_until, now + self.STOP_DISPLAY_SECONDS
                             )
                             state.stop_override_type = event_type
+
+                        if event_type == "serverStopping" or tx_state == "stopping":
+                            state.last_status = "stopping"
+                        elif event_type == "serverStopped" or tx_state in ("offline", "crashed"):
+                            state.last_status = "offline"
                     else:
                         state.last_event_type = None
                         state.last_tx_state = None
@@ -708,21 +713,28 @@ class FiveMStatusCore(commands.Cog):
                             panel_result = result
                             state.last_result = result
                             if result.status == "online":
-                                if (
-                                    previous_status in ("starting", "offline", "stopping")
-                                    or starting_active
-                                ) and previous_status != "online":
-                                    await self._send_embed(
-                                        state.channel_id,
-                                        "✅ Server已啟動",
-                                        "伺服器已成功啟動。",
-                                        "success",
-                                        content=mention_text if mention_text else None,
-                                        allowed_mentions=allowed_mentions,
-                                    )
-                                if starting_active:
-                                    state.starting_until = 0.0
-                                state.last_status = "online"
+                                stopping_now = tx_state in ("stopping", "offline", "crashed")
+                                stopping_now = stopping_now or event_type in (
+                                    "serverStopping",
+                                    "serverStopped",
+                                    "serverCrashed",
+                                )
+                                if not stopping_now:
+                                    if (
+                                        previous_status in ("starting", "offline", "stopping")
+                                        or starting_active
+                                    ) and previous_status != "online":
+                                        await self._send_embed(
+                                            state.channel_id,
+                                            "✅ Server已啟動",
+                                            "伺服器已成功啟動。",
+                                            "success",
+                                            content=mention_text if mention_text else None,
+                                            allowed_mentions=allowed_mentions,
+                                        )
+                                    if starting_active:
+                                        state.starting_until = 0.0
+                                    state.last_status = "online"
                             elif result.status == "offline":
                                 if not starting_active:
                                     should_skip = False
