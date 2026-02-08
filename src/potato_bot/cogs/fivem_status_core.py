@@ -173,14 +173,20 @@ class FiveMStatusCore(commands.Cog):
         }
         if event_type == "serverCrashed":
             return event_map[event_type]
+        if result and result.status == "offline":
+            if event_type == "serverStopped":
+                return event_map[event_type]
+            if tx_state == "stopping":
+                return "🟠 關閉中"
+            if tx_state == "crashed":
+                return "🚨 崩潰"
+            return "🔴 離線"
         if event_type in ("serverStarting", "serverStopping", "serverStopped", "scheduledRestart"):
             if event_type == "serverStarting" and result and result.status == "online":
                 return "🟢 在線"
             return event_map[event_type]
 
         if result:
-            if result.status == "offline":
-                return "🔴 離線"
             if result.status == "online":
                 return "🟢 在線"
 
@@ -188,6 +194,8 @@ class FiveMStatusCore(commands.Cog):
             return "🟢 在線"
         if tx_state == "offline":
             return "🔴 離線"
+        if tx_state == "crashed":
+            return "🚨 崩潰"
         if tx_state == "starting":
             return "🟡 啟動中"
         if tx_state == "stopping":
@@ -659,6 +667,7 @@ class FiveMStatusCore(commands.Cog):
                         discord.AllowedMentions(roles=True) if mention_text else None
                     )
                     panel_result: Optional[FiveMStatusResult] = state.last_result
+                    previous_api_status = state.last_result.status if state.last_result else None
                     event_type = None
                     tx_state = None
                     previous_status = state.last_status
@@ -720,10 +729,7 @@ class FiveMStatusCore(commands.Cog):
                                     "serverCrashed",
                                 )
                                 if not stopping_now:
-                                    if (
-                                        previous_status in ("starting", "offline", "stopping")
-                                        or starting_active
-                                    ) and previous_status != "online":
+                                    if previous_api_status != "online":
                                         await self._send_embed(
                                             state.channel_id,
                                             "✅ Server已啟動",
@@ -741,7 +747,7 @@ class FiveMStatusCore(commands.Cog):
                                     if tx_status and state.service.should_announce_txadmin(tx_status):
                                         if event_type in ("serverStopping", "serverStopped", "serverCrashed"):
                                             should_skip = True
-                                    if not should_skip and previous_status != "offline":
+                                    if not should_skip and previous_api_status != "offline":
                                         await self._send_embed(
                                             state.channel_id,
                                             "🔴 Server已關閉",
