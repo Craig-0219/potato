@@ -673,7 +673,7 @@ class FiveMStatusCore(commands.Cog):
                         state.last_tx_state = tx_state
                         if event_type != previous_event_type or tx_state != previous_tx_state:
                             state.last_panel_signature = None
-                        if (event_type == "serverStarting" or tx_state == "starting") and state.last_status != "online":
+                        if event_type == "serverStarting" or tx_state == "starting":
                             now = time.time()
                             state.starting_until = max(
                                 state.starting_until, now + FIVEM_STARTING_GRACE_SECONDS
@@ -704,7 +704,10 @@ class FiveMStatusCore(commands.Cog):
                             panel_result = result
                             state.last_result = result
                             if result.status == "online":
-                                if (starting_active or previous_status == "starting") and previous_status != "online":
+                                if (
+                                    previous_status in ("starting", "offline", "stopping")
+                                    or starting_active
+                                ) and previous_status != "online":
                                     await self._send_embed(
                                         state.channel_id,
                                         "✅ Server已啟動",
@@ -766,20 +769,19 @@ class FiveMStatusCore(commands.Cog):
 
                     if tx_status and should_notify_event:
                         if event_type == "serverStarting" or tx_state == "starting":
-                            if state.last_status != "online":
-                                now = time.time()
-                                state.starting_until = max(
-                                    state.starting_until, now + FIVEM_STARTING_GRACE_SECONDS
-                                )
-                                state.last_status = "starting"
-                                await self._send_embed(
-                                    state.channel_id,
-                                    "🟡 Server啟動中",
-                                    "伺服器正在啟動中，請稍候。",
-                                    "warning",
-                                    content=mention_text if mention_text else None,
-                                    allowed_mentions=allowed_mentions,
-                                )
+                            now = time.time()
+                            state.starting_until = max(
+                                state.starting_until, now + FIVEM_STARTING_GRACE_SECONDS
+                            )
+                            state.last_status = "starting"
+                            await self._send_embed(
+                                state.channel_id,
+                                "🟡 Server啟動中",
+                                "伺服器正在啟動中，請稍候。",
+                                "warning",
+                                content=mention_text if mention_text else None,
+                                allowed_mentions=allowed_mentions,
+                            )
                         elif event_type == "serverStopping" or tx_state == "stopping":
                             await self._send_embed(
                                 state.channel_id,
