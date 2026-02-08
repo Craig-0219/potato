@@ -70,6 +70,8 @@ class FiveMStatusCore(commands.Cog):
     """Server狀態播報"""
 
     STOP_DISPLAY_SECONDS = 15
+    TX_EVENT_ALLOWED = {"serverStarting", "serverStopping"}
+    TX_STATE_ALLOWED = {"starting", "stopping"}
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -163,23 +165,15 @@ class FiveMStatusCore(commands.Cog):
         tx_state: Optional[str] = None,
     ) -> str:
         event_type = FiveMStatusCore._normalize_event_type(event_type)
+        if event_type and event_type not in FiveMStatusCore.TX_EVENT_ALLOWED:
+            event_type = None
+        if tx_state and tx_state not in FiveMStatusCore.TX_STATE_ALLOWED:
+            tx_state = None
         event_map = {
             "serverStarting": "🟡 啟動中",
-            "serverStarted": "✅ 已啟動",
             "serverStopping": "🟠 關閉中",
-            "serverStopped": "🔴 已停止",
-            "serverCrashed": "🚨 崩潰",
-            "scheduledRestart": "🔁 重啟中",
         }
-        if event_type == "serverCrashed":
-            return event_map[event_type]
         if result and result.status == "offline":
-            if event_type == "serverStopped":
-                return event_map[event_type]
-            if tx_state == "stopping":
-                return "🟠 關閉中"
-            if tx_state == "crashed":
-                return "🚨 崩潰"
             return "🔴 離線"
         if event_type in ("serverStarting", "serverStopping", "serverStopped", "scheduledRestart"):
             if event_type == "serverStarting" and result and result.status == "online":
@@ -194,8 +188,6 @@ class FiveMStatusCore(commands.Cog):
             return "🟢 在線"
         if tx_state == "offline":
             return "🔴 離線"
-        if tx_state == "crashed":
-            return "🚨 崩潰"
         if tx_state == "starting":
             return "🟡 啟動中"
         if tx_state == "stopping":
@@ -334,6 +326,10 @@ class FiveMStatusCore(commands.Cog):
             event_type = self._normalize_event_type(event.get("type"))
             event_updated_at = tx_status.get("updated_at")
             tx_state = self._normalize_status(tx_status.get("state"))
+            if event_type and event_type not in self.TX_EVENT_ALLOWED:
+                event_type = None
+            if tx_state and tx_state not in self.TX_STATE_ALLOWED:
+                tx_state = None
 
         status_label = self._get_status_label(result, event_type, tx_state)
         if state.starting_until and time.time() < state.starting_until:
@@ -682,6 +678,10 @@ class FiveMStatusCore(commands.Cog):
                             state.service.get_txadmin_event_type(tx_status)
                         )
                         tx_state = self._normalize_status(tx_status.get("state"))
+                        if event_type and event_type not in self.TX_EVENT_ALLOWED:
+                            event_type = None
+                        if tx_state and tx_state not in self.TX_STATE_ALLOWED:
+                            tx_state = None
                         state.last_event_type = event_type
                         state.last_tx_state = tx_state
                         if event_type != previous_event_type or tx_state != previous_tx_state:
@@ -693,7 +693,7 @@ class FiveMStatusCore(commands.Cog):
                             )
                             state.last_status = "starting"
 
-                        if event_type in ("serverStopping", "serverStopped"):
+                        if event_type == "serverStopping":
                             now = time.time()
                             state.stop_override_until = max(
                                 state.stop_override_until, now + self.STOP_DISPLAY_SECONDS
@@ -702,8 +702,6 @@ class FiveMStatusCore(commands.Cog):
 
                         if event_type == "serverStopping" or tx_state == "stopping":
                             state.last_status = "stopping"
-                        elif event_type == "serverStopped" or tx_state in ("offline", "crashed"):
-                            state.last_status = "offline"
                     else:
                         state.last_event_type = None
                         state.last_tx_state = None
@@ -778,12 +776,10 @@ class FiveMStatusCore(commands.Cog):
                     if tx_status and event_type in (
                         "serverStarting",
                         "serverStopping",
-                        "serverStopped",
-                        "serverCrashed",
                     ):
                         if event_type != state.last_announced_event_type:
                             should_notify_event = True
-                    if tx_status and tx_state in ("starting", "stopping", "offline", "crashed"):
+                    if tx_status and tx_state in ("starting", "stopping"):
                         if tx_state != state.last_announced_tx_state:
                             should_notify_event = True
                     if tx_status and state.service.should_announce_txadmin(tx_status):
@@ -814,24 +810,6 @@ class FiveMStatusCore(commands.Cog):
                                 content=mention_text if mention_text else None,
                                 allowed_mentions=allowed_mentions,
                             )
-                        elif event_type == "serverStopped" or tx_state == "offline":
-                            await self._send_embed(
-                                state.channel_id,
-                                "🔴 Server已停止",
-                                "伺服器已停止，請稍後再試。",
-                                "error",
-                                content=mention_text if mention_text else None,
-                                allowed_mentions=allowed_mentions,
-                            )
-                        elif event_type == "serverCrashed" or tx_state == "crashed":
-                            await self._send_embed(
-                                state.channel_id,
-                                "🚨 Server崩潰",
-                                "偵測到伺服器異常崩潰，請等待修復。",
-                                "error",
-                                content=mention_text if mention_text else None,
-                                allowed_mentions=allowed_mentions,
-                            )
                         state.last_announced_event_type = event_type
                         state.last_announced_tx_state = tx_state
                     elif not tx_status and not state.has_http:
@@ -841,13 +819,6 @@ class FiveMStatusCore(commands.Cog):
                             now = time.time()
                             error_text = (read_status.get("error") or "").lower()
                             is_crash = "ftp_retries_exhausted" in error_text
-                            if is_crash:
-                                panel_tx_status = {
-                                    "state": "crashed",
-                                    "updated_at": int(now),
-                                    "event": {"type": "serverCrashed", "data": {}},
-                                }
-
                             if now - state.ftp_last_alert >= 600:
                                 if is_crash:
                                     await self._send_embed(
