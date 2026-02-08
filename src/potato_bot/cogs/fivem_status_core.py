@@ -182,7 +182,7 @@ class FiveMStatusCore(commands.Cog):
         }
         if result and result.status == "offline":
             return "🔴 離線"
-        if event_type in ("serverStarting", "serverStopping", "serverStopped", "scheduledRestart"):
+        if event_type in ("serverStarting", "serverStopping"):
             if event_type == "serverStarting" and result and result.status == "online":
                 return "🟢 在線"
             return event_map[event_type]
@@ -191,16 +191,10 @@ class FiveMStatusCore(commands.Cog):
             if result.status == "online":
                 return "🟢 在線"
 
-        if tx_state == "online":
-            return "🟢 在線"
-        if tx_state == "offline":
-            return "🔴 離線"
         if tx_state == "starting":
             return "🟡 啟動中"
         if tx_state == "stopping":
             return "🟠 關閉中"
-        if tx_state == "restarting":
-            return "🔁 重啟中"
 
         if event_type in event_map:
             return event_map[event_type]
@@ -213,13 +207,11 @@ class FiveMStatusCore(commands.Cog):
         mapping = {
             "resourceStart": "serverStarting",
             "resourceStarted": "serverStarting",
-            "resourceStop": "serverStopped",
-            "resourceStopped": "serverStopped",
             "resourceStopping": "serverStopping",
-            "resourceCrashed": "serverCrashed",
             "serverShuttingDown": "serverStopping",
-            "serverStarted": "serverStarted",
+            "serverStarted": "serverStarting",
             "serverStarting": "serverStarting",
+            "serverStopping": "serverStopping",
         }
         return mapping.get(event_type, event_type)
 
@@ -330,6 +322,10 @@ class FiveMStatusCore(commands.Cog):
                 event_type = None
             if tx_state and tx_state not in self.TX_STATE_ALLOWED:
                 tx_state = None
+
+        if result and (event_type == "serverStopping" or tx_state == "stopping"):
+            if not result.info_ok or not result.players_ok:
+                return "🔴 離線"
 
         status_label = self._get_status_label(result, event_type, tx_state)
         now_value = now_ts if now_ts is not None else time.time()
