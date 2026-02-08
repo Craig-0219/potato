@@ -183,8 +183,6 @@ class FiveMStatusCore(commands.Cog):
         if result and result.status == "offline":
             return "🔴 離線"
         if event_type in ("serverStarting", "serverStopping"):
-            if event_type == "serverStarting" and result and result.status == "online":
-                return "🟢 在線"
             return event_map[event_type]
 
         if result:
@@ -323,12 +321,21 @@ class FiveMStatusCore(commands.Cog):
             if tx_state and tx_state not in self.TX_STATE_ALLOWED:
                 tx_state = None
 
+        now_value = now_ts if now_ts is not None else time.time()
+        starting_event = event_type == "serverStarting" or tx_state == "starting"
+        if starting_event:
+            if (state.starting_until and now_value < state.starting_until) or (
+                not result or result.status != "online"
+            ):
+                return "🟡 啟動中"
+            event_type = None
+            tx_state = None
+
         if result and (event_type == "serverStopping" or tx_state == "stopping"):
             if not result.info_ok or not result.players_ok:
                 return "🔴 離線"
 
         status_label = self._get_status_label(result, event_type, tx_state)
-        now_value = now_ts if now_ts is not None else time.time()
         if state.starting_until and now_value < state.starting_until:
             if not result or result.status != "online":
                 status_label = "🟡 啟動中"
@@ -765,12 +772,15 @@ class FiveMStatusCore(commands.Cog):
                         state.last_tx_state = tx_state
                         if event_type != previous_event_type or tx_state != previous_tx_state:
                             state.last_panel_signature = None
-                        if (event_type == "serverStarting" or tx_state == "starting") and state.last_status != "online":
+                        if event_type == "serverStarting" or tx_state == "starting":
                             now = time.time()
                             state.starting_until = max(
                                 state.starting_until, now + FIVEM_STARTING_GRACE_SECONDS
                             )
                             state.last_status = "starting"
+                            if state.stop_override_until:
+                                state.stop_override_until = 0.0
+                                state.stop_override_type = None
 
                         if event_type == "serverStopping":
                             now = time.time()
