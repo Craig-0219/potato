@@ -62,6 +62,9 @@ class _FiveMGuildState:
     starting_until: float = 0.0
     stop_override_until: float = 0.0
     stop_override_type: Optional[str] = None
+    starting_since: float = 0.0
+    starting_alerted: bool = False
+    starting_timeout: int = 120
     ftp_fail_count: int = 0
     ftp_last_alert: float = 0.0
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
@@ -71,6 +74,7 @@ class FiveMStatusCore(commands.Cog):
     """Server狀態播報"""
 
     STOP_DISPLAY_SECONDS = 15
+    STARTING_TIMEOUT_SECONDS = 120
     TX_EVENT_ALLOWED = {"serverStarting", "serverStopping"}
     TX_STATE_ALLOWED = {"starting", "stopping"}
     PANEL_ANNOUNCE_MAP = {
@@ -324,9 +328,7 @@ class FiveMStatusCore(commands.Cog):
         now_value = now_ts if now_ts is not None else time.time()
         starting_event = event_type == "serverStarting" or tx_state == "starting"
         if starting_event:
-            if (state.starting_until and now_value < state.starting_until) or (
-                not result or result.status != "online"
-            ):
+            if state.starting_until and now_value < state.starting_until:
                 return "🟡 啟動中"
             event_type = None
             tx_state = None
@@ -648,6 +650,7 @@ class FiveMStatusCore(commands.Cog):
         dm_role_ids = settings.get("dm_role_ids", []) or []
         panel_message_id = int(settings.get("panel_message_id") or 0)
         poll_interval = settings.get("poll_interval")
+        starting_timeout = settings.get("starting_timeout")
         server_link = settings.get("server_link")
         status_image_url = settings.get("status_image_url")
         has_http = bool(info_url and players_url)
@@ -660,6 +663,13 @@ class FiveMStatusCore(commands.Cog):
             poll_interval_value = 0
         if poll_interval_value < 3:
             poll_interval_value = int(FIVEM_POLL_INTERVAL or 3)
+
+        try:
+            starting_timeout_value = int(starting_timeout) if starting_timeout else 0
+        except (TypeError, ValueError):
+            starting_timeout_value = 0
+        if starting_timeout_value < 30:
+            starting_timeout_value = self.STARTING_TIMEOUT_SECONDS
 
         if poll_interval_value != self._api_poll_interval:
             self._api_poll_interval = poll_interval_value
@@ -716,6 +726,7 @@ class FiveMStatusCore(commands.Cog):
                 panel_message_id=panel_message_id,
                 server_link=server_link,
                 status_image_url=status_image_url,
+                starting_timeout=starting_timeout_value,
             )
 
         state = self._guild_states.get(guild.id)
@@ -727,6 +738,7 @@ class FiveMStatusCore(commands.Cog):
             state.panel_message_id = panel_message_id
             state.server_link = server_link
             state.status_image_url = status_image_url
+            state.starting_timeout = starting_timeout_value
         return state
 
     @tasks.loop(seconds=1.5)
@@ -772,15 +784,22 @@ class FiveMStatusCore(commands.Cog):
                         state.last_tx_state = tx_state
                         if event_type != previous_event_type or tx_state != previous_tx_state:
                             state.last_panel_signature = None
-                        if event_type == "serverStarting" or tx_state == "starting":
+                        starting_now = event_type == "serverStarting" or tx_state == "starting"
+                        starting_before = (
+                            previous_event_type == "serverStarting" or previous_tx_state == "starting"
+                        )
+                        if starting_now and not starting_before:
                             now = time.time()
-                            state.starting_until = max(
-                                state.starting_until, now + FIVEM_STARTING_GRACE_SECONDS
-                            )
+                            state.starting_until = now + FIVEM_STARTING_GRACE_SECONDS
+                            state.starting_since = now
+                            state.starting_alerted = False
                             state.last_status = "starting"
                             if state.stop_override_until:
                                 state.stop_override_until = 0.0
                                 state.stop_override_type = None
+                        elif not starting_now:
+                            state.starting_since = 0.0
+                            state.starting_alerted = False
 
                         if event_type == "serverStopping":
                             now = time.time()
@@ -818,6 +837,8 @@ class FiveMStatusCore(commands.Cog):
                                 if not stopping_now:
                                     if starting_active:
                                         state.starting_until = 0.0
+                                    state.starting_since = 0.0
+                                    state.starting_alerted = False
                                     state.last_status = "online"
                             elif result.status == "offline":
                                 if not starting_active:
@@ -837,6 +858,30 @@ class FiveMStatusCore(commands.Cog):
                             override["event"] = {**override_event, "type": state.stop_override_type}
                             override.setdefault("updated_at", int(time.time()))
                             panel_tx_status = override
+
+                    if state.starting_since:
+                        last_result = state.last_result
+                        if (
+                            (not last_result or last_result.status != "online")
+                            and (now - state.starting_since) >= state.starting_timeout
+                            and not state.starting_alerted
+                        ):
+                            state.starting_alerted = True
+                            await self._send_embed(
+                                state.channel_id,
+                                "⚠️ Server 啟動異常",
+                                "啟動超過 2 分鐘仍未偵測到 API 上線，請檢查伺服器狀態。",
+                                "warning",
+                                content=mention_text if mention_text else None,
+                                allowed_mentions=allowed_mentions,
+                            )
+                            await self._dm_alert_roles(
+                                guild,
+                                state.dm_role_ids,
+                                "⚠️ Server 啟動異常",
+                                "啟動超過 2 分鐘仍未偵測到 API 上線，請檢查伺服器狀態。",
+                                "warning",
+                            )
 
                     panel_status_label = self._compute_panel_status_label(
                         state,

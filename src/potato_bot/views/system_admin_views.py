@@ -526,6 +526,8 @@ class SystemAdminPanel(BaseView):
         players_url = settings.get("players_url") or "未設定"
         poll_interval = settings.get("poll_interval")
         poll_text = f"{poll_interval} 秒" if poll_interval else "預設"
+        starting_timeout = settings.get("starting_timeout")
+        starting_text = f"{starting_timeout} 秒" if starting_timeout else "預設"
         server_link = settings.get("server_link") or "未設定"
         status_image_url = settings.get("status_image_url") or "未設定"
         status_roles = settings.get("alert_role_ids", []) or []
@@ -650,7 +652,7 @@ class SystemAdminPanel(BaseView):
         )
         embed.add_field(
             name="🌐 API",
-            value=f"info: {info_url}\nplayers: {players_url}\n輪詢: {poll_text}",
+            value=f"info: {info_url}\nplayers: {players_url}\n輪詢: {poll_text}\n啟動超時: {starting_text}",
             inline=False,
         )
         embed.add_field(
@@ -4325,6 +4327,7 @@ class FiveMSettingsBaseView(View):
             "dm_role_ids": current.get("dm_role_ids", []),
             "panel_message_id": current.get("panel_message_id", 0),
             "poll_interval": current.get("poll_interval"),
+            "starting_timeout": current.get("starting_timeout"),
             "server_link": current.get("server_link"),
             "status_image_url": current.get("status_image_url"),
         }
@@ -4424,6 +4427,13 @@ class FiveMBasicSettingsView(FiveMSettingsBaseView):
         settings = await self.dao.get_fivem_settings(self.guild.id)
         await interaction.response.send_modal(
             FiveMPollIntervalModal(self, settings.get("poll_interval"))
+        )
+
+    @button(label="⏲️ 啟動超時", style=discord.ButtonStyle.secondary, row=1)
+    async def set_starting_timeout(self, interaction: discord.Interaction, button: Button):
+        settings = await self.dao.get_fivem_settings(self.guild.id)
+        await interaction.response.send_modal(
+            FiveMStartingTimeoutModal(self, settings.get("starting_timeout"))
         )
 
     @button(label="← 返回", style=discord.ButtonStyle.secondary, row=1)
@@ -4548,6 +4558,7 @@ class FiveMMaintenanceSettingsView(FiveMSettingsBaseView):
             info_url=None,
             players_url=None,
             poll_interval=None,
+            starting_timeout=None,
             server_link=None,
             status_image_url=None,
         )
@@ -4683,6 +4694,46 @@ class FiveMPollIntervalModal(Modal):
         )
         if success:
             await interaction.response.send_message("✅ 已更新輪詢間隔", ephemeral=True)
+        else:
+            await interaction.response.send_message("❌ 更新失敗，請稍後再試", ephemeral=True)
+
+
+class FiveMStartingTimeoutModal(Modal):
+    """設定 FiveM 啟動超時"""
+
+    def __init__(self, parent_view: FiveMSettingsBaseView, starting_timeout: int | None):
+        super().__init__(title="設定啟動超時")
+        self.parent_view = parent_view
+        default_value = str(starting_timeout) if starting_timeout else ""
+        self.starting_timeout = TextInput(
+            label="啟動超時（秒）",
+            placeholder="留空使用預設值",
+            default=default_value,
+            required=False,
+            max_length=5,
+        )
+        self.add_item(self.starting_timeout)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        raw_value = self.starting_timeout.value.strip()
+        if raw_value:
+            try:
+                timeout_value = int(raw_value)
+            except ValueError:
+                await interaction.response.send_message("❌ 請輸入有效的整數秒數", ephemeral=True)
+                return
+            if timeout_value < 30:
+                await interaction.response.send_message("❌ 啟動超時最小為 30 秒", ephemeral=True)
+                return
+        else:
+            timeout_value = None
+
+        payload = await self.parent_view._build_payload(starting_timeout=timeout_value)
+        success = await self.parent_view.dao.update_fivem_settings(
+            self.parent_view.guild.id, payload
+        )
+        if success:
+            await interaction.response.send_message("✅ 已更新啟動超時", ephemeral=True)
         else:
             await interaction.response.send_message("❌ 更新失敗，請稍後再試", ephemeral=True)
 

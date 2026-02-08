@@ -76,6 +76,15 @@ class FiveMDAO(BaseDAO):
                         )
                         await conn.commit()
                         logger.info("✅ 已補齊 fivem_settings.status_image_url 欄位")
+
+                    await cursor.execute("SHOW COLUMNS FROM fivem_settings LIKE 'starting_timeout'")
+                    exists = await cursor.fetchone()
+                    if not exists:
+                        await cursor.execute(
+                            "ALTER TABLE fivem_settings ADD COLUMN starting_timeout INT NULL COMMENT '啟動超時(秒)' AFTER poll_interval"
+                        )
+                        await conn.commit()
+                        logger.info("✅ 已補齊 fivem_settings.starting_timeout 欄位")
         except Exception as exc:
             logger.warning("FiveMDAO 初始化檢查欄位失敗: %s", exc)
 
@@ -111,6 +120,11 @@ class FiveMDAO(BaseDAO):
                         result["poll_interval"] = (
                             int(result.get("poll_interval")) if result.get("poll_interval") else None
                         )
+                        result["starting_timeout"] = (
+                            int(result.get("starting_timeout"))
+                            if result.get("starting_timeout")
+                            else None
+                        )
                         result["server_link"] = result.get("server_link")
                         result["status_image_url"] = result.get("status_image_url")
                         result["exists"] = True
@@ -125,6 +139,7 @@ class FiveMDAO(BaseDAO):
                         "dm_role_ids": [],
                         "panel_message_id": 0,
                         "poll_interval": None,
+                        "starting_timeout": None,
                         "server_link": None,
                         "status_image_url": None,
                         "exists": False,
@@ -140,6 +155,7 @@ class FiveMDAO(BaseDAO):
                 "dm_role_ids": [],
                 "panel_message_id": 0,
                 "poll_interval": None,
+                "starting_timeout": None,
                 "server_link": None,
                 "status_image_url": None,
                 "exists": False,
@@ -153,8 +169,8 @@ class FiveMDAO(BaseDAO):
                 async with conn.cursor() as cursor:
                     query = """
                     INSERT INTO fivem_settings (
-                        guild_id, info_url, players_url, status_channel_id, alert_role_ids, dm_role_ids, panel_message_id, poll_interval, server_link, status_image_url
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        guild_id, info_url, players_url, status_channel_id, alert_role_ids, dm_role_ids, panel_message_id, poll_interval, starting_timeout, server_link, status_image_url
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON DUPLICATE KEY UPDATE
                         info_url = VALUES(info_url),
                         players_url = VALUES(players_url),
@@ -163,6 +179,7 @@ class FiveMDAO(BaseDAO):
                         dm_role_ids = VALUES(dm_role_ids),
                         panel_message_id = VALUES(panel_message_id),
                         poll_interval = VALUES(poll_interval),
+                        starting_timeout = VALUES(starting_timeout),
                         server_link = VALUES(server_link),
                         status_image_url = VALUES(status_image_url),
                         updated_at = CURRENT_TIMESTAMP
@@ -178,6 +195,7 @@ class FiveMDAO(BaseDAO):
                             json.dumps(settings.get("dm_role_ids", [])),
                             settings.get("panel_message_id") or 0,
                             settings.get("poll_interval"),
+                            settings.get("starting_timeout"),
                             settings.get("server_link"),
                             settings.get("status_image_url"),
                         ),
