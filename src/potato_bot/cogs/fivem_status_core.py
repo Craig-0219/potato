@@ -722,7 +722,7 @@ class FiveMStatusCore(commands.Cog):
             state.status_image_url = status_image_url
         return state
 
-    @tasks.loop(seconds=3)
+    @tasks.loop(seconds=1.5)
     async def monitor_task(self):
         if getattr(self.bot, "is_closing", False):
             return
