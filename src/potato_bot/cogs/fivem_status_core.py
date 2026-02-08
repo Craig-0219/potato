@@ -55,6 +55,7 @@ class _FiveMGuildState:
     last_event_type: Optional[str] = None
     last_presence_state: Optional[str] = None
     last_panel_signature: Optional[str] = None
+    last_panel_status_label: Optional[str] = None
     last_announced_event_type: Optional[str] = None
     last_announced_tx_state: Optional[str] = None
     last_api_poll_at: float = 0.0
@@ -72,6 +73,12 @@ class FiveMStatusCore(commands.Cog):
     STOP_DISPLAY_SECONDS = 15
     TX_EVENT_ALLOWED = {"serverStarting", "serverStopping"}
     TX_STATE_ALLOWED = {"starting", "stopping"}
+    PANEL_ANNOUNCE_MAP = {
+        "🟢 在線": ("✅ Server已啟動", "伺服器已成功啟動。", "success"),
+        "🔴 離線": ("🔴 Server已關閉", "伺服器已關閉或無法連線。", "error"),
+        "🟡 啟動中": ("🟡 Server啟動中", "伺服器正在啟動中，請稍候。", "warning"),
+        "🟠 關閉中": ("🟠 Server準備停止", "伺服器即將停止，請注意保存進度。", "warning"),
+    }
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -306,12 +313,58 @@ class FiveMStatusCore(commands.Cog):
         )
         return view
 
+    def _compute_panel_status_label(
+        self,
+        state: _FiveMGuildState,
+        result: Optional[FiveMStatusResult],
+        tx_status: Optional[dict],
+        now_ts: Optional[float] = None,
+    ) -> str:
+        event_type = None
+        tx_state = None
+        if isinstance(tx_status, dict):
+            event = tx_status.get("event") or {}
+            event_type = self._normalize_event_type(event.get("type"))
+            tx_state = self._normalize_status(tx_status.get("state"))
+            if event_type and event_type not in self.TX_EVENT_ALLOWED:
+                event_type = None
+            if tx_state and tx_state not in self.TX_STATE_ALLOWED:
+                tx_state = None
+
+        status_label = self._get_status_label(result, event_type, tx_state)
+        now_value = now_ts if now_ts is not None else time.time()
+        if state.starting_until and now_value < state.starting_until:
+            if not result or result.status != "online":
+                status_label = "🟡 啟動中"
+        return status_label
+
+    async def _announce_panel_status(
+        self,
+        state: _FiveMGuildState,
+        status_label: str,
+        mention_text: str,
+        allowed_mentions: Optional[discord.AllowedMentions],
+    ) -> None:
+        payload = self.PANEL_ANNOUNCE_MAP.get(status_label)
+        if not payload:
+            return
+        title, description, color = payload
+        await self._send_embed(
+            state.channel_id,
+            title,
+            description,
+            color,
+            content=mention_text if mention_text else None,
+            allowed_mentions=allowed_mentions,
+        )
+
     async def _update_status_panel(
         self,
         guild: discord.Guild,
         state: _FiveMGuildState,
         result: Optional[FiveMStatusResult],
         tx_status: Optional[dict],
+        status_label: Optional[str] = None,
         force: bool = False,
     ) -> None:
         channel = await self._get_channel(state.channel_id)
@@ -331,10 +384,11 @@ class FiveMStatusCore(commands.Cog):
             if tx_state and tx_state not in self.TX_STATE_ALLOWED:
                 tx_state = None
 
-        status_label = self._get_status_label(result, event_type, tx_state)
-        if state.starting_until and time.time() < state.starting_until:
-            if not result or result.status != "online":
-                status_label = "🟡 啟動中"
+        if not status_label:
+            status_label = self._get_status_label(result, event_type, tx_state)
+            if state.starting_until and time.time() < state.starting_until:
+                if not result or result.status != "online":
+                    status_label = "🟡 啟動中"
         signature = self._build_panel_signature(
             result,
             event_type,
@@ -727,15 +781,6 @@ class FiveMStatusCore(commands.Cog):
                                     "serverCrashed",
                                 )
                                 if not stopping_now:
-                                    if previous_api_status != "online":
-                                        await self._send_embed(
-                                            state.channel_id,
-                                            "✅ Server已啟動",
-                                            "伺服器已成功啟動。",
-                                            "success",
-                                            content=mention_text if mention_text else None,
-                                            allowed_mentions=allowed_mentions,
-                                        )
                                     if starting_active:
                                         state.starting_until = 0.0
                                     state.last_status = "online"
@@ -745,16 +790,8 @@ class FiveMStatusCore(commands.Cog):
                                     if tx_status and state.service.should_announce_txadmin(tx_status):
                                         if event_type in ("serverStopping", "serverStopped", "serverCrashed"):
                                             should_skip = True
-                                    if not should_skip and previous_api_status != "offline":
-                                        await self._send_embed(
-                                            state.channel_id,
-                                            "🔴 Server已關閉",
-                                            "伺服器已關閉或無法連線。",
-                                            "error",
-                                            content=mention_text if mention_text else None,
-                                            allowed_mentions=allowed_mentions,
-                                        )
-                                    state.last_status = "offline"
+                                    if not should_skip:
+                                        state.last_status = "offline"
                     else:
                         state.last_result = None
 
@@ -766,53 +803,27 @@ class FiveMStatusCore(commands.Cog):
                             override.setdefault("updated_at", int(time.time()))
                             panel_tx_status = override
 
+                    panel_status_label = self._compute_panel_status_label(
+                        state,
+                        panel_result,
+                        panel_tx_status,
+                        now_ts=now,
+                    )
+                    if panel_status_label != state.last_panel_status_label:
+                        await self._announce_panel_status(
+                            state,
+                            panel_status_label,
+                            mention_text,
+                            allowed_mentions,
+                        )
+
                     presence_state = self._get_presence_state(state)
                     if presence_state and presence_state != state.last_presence_state:
                         state.last_presence_state = presence_state
                         presence_text = self._format_presence_text(state, presence_state)
                         await self._notify_presence(guild, presence_text)
 
-                    should_notify_event = False
-                    if tx_status and event_type in (
-                        "serverStarting",
-                        "serverStopping",
-                    ):
-                        if event_type != state.last_announced_event_type:
-                            should_notify_event = True
-                    if tx_status and tx_state in ("starting", "stopping"):
-                        if tx_state != state.last_announced_tx_state:
-                            should_notify_event = True
-                    if tx_status and state.service.should_announce_txadmin(tx_status):
-                        should_notify_event = True
-
-                    if tx_status and should_notify_event:
-                        if event_type == "serverStarting" or tx_state == "starting":
-                            if state.last_status != "online":
-                                now = time.time()
-                                state.starting_until = max(
-                                    state.starting_until, now + FIVEM_STARTING_GRACE_SECONDS
-                                )
-                                state.last_status = "starting"
-                                await self._send_embed(
-                                    state.channel_id,
-                                    "🟡 Server啟動中",
-                                    "伺服器正在啟動中，請稍候。",
-                                    "warning",
-                                    content=mention_text if mention_text else None,
-                                    allowed_mentions=allowed_mentions,
-                                )
-                        elif event_type == "serverStopping" or tx_state == "stopping":
-                            await self._send_embed(
-                                state.channel_id,
-                                "🟠 Server準備停止",
-                                "伺服器即將停止，請注意保存進度。",
-                                "warning",
-                                content=mention_text if mention_text else None,
-                                allowed_mentions=allowed_mentions,
-                            )
-                        state.last_announced_event_type = event_type
-                        state.last_announced_tx_state = tx_state
-                    elif not tx_status and not state.has_http:
+                    if not tx_status and not state.has_http:
                         read_status = state.service.get_txadmin_read_status()
                         if read_status is not None:
                             state.ftp_fail_count += 1
@@ -859,8 +870,10 @@ class FiveMStatusCore(commands.Cog):
                         state,
                         panel_result,
                         panel_tx_status,
+                        status_label=panel_status_label,
                         force=state.panel_message_id == 0,
                     )
+                    state.last_panel_status_label = panel_status_label
             except Exception as exc:
                 logger.error("FiveM 狀態輪詢失敗: %s", exc)
 
