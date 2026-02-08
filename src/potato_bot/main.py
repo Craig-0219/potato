@@ -128,6 +128,7 @@ class PotatoBot(commands.Bot):
 
         # Presence 管理
         self.presence_manager: PresenceManager | None = None
+        self._is_closing: bool = False
 
     # --------------------------
     # ✅ 啟動鉤子：統一 async 初始化流程
@@ -292,6 +293,19 @@ class PotatoBot(commands.Bot):
     # --------------------------
     async def close(self) -> None:
         logger.info("🔄 正在關閉 Potato Bot...")
+        self._is_closing = True
+
+        # 停止需要 DB 的背景任務
+        if self.presence_manager:
+            await self.presence_manager.stop()
+
+        for cog in list(self.cogs.values()):
+            monitor_task = getattr(cog, "monitor_task", None)
+            try:
+                if monitor_task and getattr(monitor_task, "is_running", lambda: False)():
+                    monitor_task.cancel()
+            except Exception:
+                pass
 
         # 取消背景任務
         try:
@@ -306,11 +320,12 @@ class PotatoBot(commands.Bot):
         except Exception as e:
             logger.error(f"❌ 關閉 DB 時發生錯誤：{e}")
 
-        if self.presence_manager:
-            await self.presence_manager.stop()
-
         await super().close()
         logger.info("✅ Discord 連線已關閉")
+
+    @property
+    def is_closing(self) -> bool:
+        return self._is_closing
 
     # --------------------------
     # ✅ lifecycle event：on_ready

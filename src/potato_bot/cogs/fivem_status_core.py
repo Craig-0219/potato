@@ -548,6 +548,8 @@ class FiveMStatusCore(commands.Cog):
         return True
 
     async def _get_state(self, guild: discord.Guild) -> Optional[_FiveMGuildState]:
+        if getattr(self.bot, "is_closing", False):
+            return None
         settings = await self.dao.get_fivem_settings(guild.id)
         info_url = (settings.get("info_url") or "").strip() or None
         players_url = (settings.get("players_url") or "").strip() or None
@@ -639,6 +641,8 @@ class FiveMStatusCore(commands.Cog):
 
     @tasks.loop(seconds=3)
     async def monitor_task(self):
+        if getattr(self.bot, "is_closing", False):
+            return
         if not self.bot.guilds:
             return
 
