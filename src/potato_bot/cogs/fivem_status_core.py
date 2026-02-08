@@ -572,6 +572,35 @@ class FiveMStatusCore(commands.Cog):
         except Exception:
             return None
 
+    async def get_status_snapshot(self, guild: discord.Guild) -> Optional[dict]:
+        """取得 FiveM/API 與 txAdmin 的快照狀態（不觸發輪詢）"""
+        try:
+            state = await self._get_state(guild)
+            if not state:
+                return None
+            result = state.last_result
+            tx_status = None
+            if state.last_event_type or state.last_tx_state:
+                tx_status = {
+                    "event": {"type": state.last_event_type},
+                    "state": state.last_tx_state,
+                }
+            panel_status = self._compute_panel_status_label(state, result, tx_status)
+            read_status = state.service.get_txadmin_read_status()
+            tx_last_at = read_status.get("last_read_at") if read_status else None
+            return {
+                "api_status": result.status if result else None,
+                "players": result.players if result else None,
+                "max_players": result.max_players if result else None,
+                "api_last_at": state.last_api_poll_at or None,
+                "tx_event": state.last_event_type,
+                "tx_state": state.last_tx_state,
+                "tx_last_at": tx_last_at,
+                "panel_status": panel_status,
+            }
+        except Exception:
+            return None
+
     async def reload_guild(self, guild: discord.Guild) -> bool:
         """重新讀取指定伺服器的 FiveM 設定並重建連線"""
         try:

@@ -559,7 +559,7 @@ class SystemAdminPanel(BaseView):
         )
 
         panel_message_id = settings.get("panel_message_id") or 0
-        panel_status_text = "✅ 已部署" if panel_message_id else "❌ 未部署"
+        panel_deploy_text = "✅ 已部署" if panel_message_id else "❌ 未部署"
 
         ftp_configured = bool(FIVEM_TXADMIN_FTP_HOST and FIVEM_TXADMIN_FTP_PATH)
         txadmin_source_configured = ftp_configured or bool(FIVEM_TXADMIN_STATUS_FILE)
@@ -601,9 +601,51 @@ class SystemAdminPanel(BaseView):
                         else:
                             txadmin_read_text = "⏳ 尚未讀取"
 
+        api_status_text = "未取得"
+        tx_status_text = "未取得"
+        panel_status_text = "未取得"
+        if bot:
+            fivem_cog = bot.get_cog("FiveMStatusCore")
+            if fivem_cog and hasattr(fivem_cog, "get_status_snapshot"):
+                snapshot = await fivem_cog.get_status_snapshot(guild)
+                if snapshot:
+                    panel_status_text = snapshot.get("panel_status") or "未取得"
+                    api_status = snapshot.get("api_status")
+                    api_last_at = snapshot.get("api_last_at")
+                    if api_last_at:
+                        api_ago = max(0, int(time.time() - api_last_at))
+                        api_time_text = f"{api_ago} 秒前"
+                    else:
+                        api_time_text = "尚未"
+                    if api_status == "online":
+                        players = snapshot.get("players")
+                        max_players = snapshot.get("max_players")
+                        if max_players:
+                            api_status_text = f"🟢 在線 {players}/{max_players}（{api_time_text}）"
+                        else:
+                            api_status_text = f"🟢 在線 {players}（{api_time_text}）"
+                    elif api_status == "offline":
+                        api_status_text = f"🔴 離線（{api_time_text}）"
+                    elif api_status:
+                        api_status_text = f"❓ {api_status}（{api_time_text}）"
+                    tx_state = snapshot.get("tx_state")
+                    tx_event = snapshot.get("tx_event")
+                    tx_last_at = snapshot.get("tx_last_at")
+                    if tx_last_at:
+                        tx_ago = max(0, int(time.time() - tx_last_at))
+                        tx_time_text = f"{tx_ago} 秒前"
+                    else:
+                        tx_time_text = "尚未"
+                    if tx_state == "starting" or tx_event == "serverStarting":
+                        tx_status_text = f"🟡 啟動中（{tx_time_text}）"
+                    elif tx_state == "stopping" or tx_event == "serverStopping":
+                        tx_status_text = f"🟠 關閉中（{tx_time_text}）"
+                    else:
+                        tx_status_text = f"未取得（{tx_time_text}）"
+
         embed.add_field(
             name="📣 播報",
-            value=f"頻道: {channel_text}\n面板: {panel_status_text}",
+            value=f"頻道: {channel_text}\n面板: {panel_deploy_text}",
             inline=False,
         )
         embed.add_field(
@@ -624,6 +666,11 @@ class SystemAdminPanel(BaseView):
         embed.add_field(
             name="🧪 txAdmin",
             value=f"FTP: {ftp_status_text}\n狀態檔: {txadmin_read_text}",
+            inline=False,
+        )
+        embed.add_field(
+            name="📊 即時狀態",
+            value=f"面板: {panel_status_text}\nAPI: {api_status_text}\ntx: {tx_status_text}",
             inline=False,
         )
 
