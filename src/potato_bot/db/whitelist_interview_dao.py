@@ -229,6 +229,35 @@ class WhitelistInterviewDAO(BaseDAO):
         )
         return rows or []
 
+    async def get_latest_queue_entry_for_user(
+        self, guild_id: int, user_id: int
+    ) -> Optional[Dict[str, Any]]:
+        await self._ensure_initialized()
+        query = """
+            SELECT id, queue_date, queue_number, status, original_nickname
+            FROM whitelist_interview_queue
+            WHERE guild_id=%s AND user_id=%s
+            ORDER BY queue_date DESC, id DESC
+            LIMIT 1
+        """
+        return await self.execute_query(
+            query,
+            (guild_id, user_id),
+            fetch_one=True,
+            dictionary=True,
+        )
+
+    async def complete_waiting_entries_for_user(self, guild_id: int, user_id: int) -> int:
+        """將該成員所有 WAITING 隊列標記為 DONE，避免繼續被叫號。"""
+        await self._ensure_initialized()
+        query = """
+            UPDATE whitelist_interview_queue
+            SET status='DONE', done_at=CURRENT_TIMESTAMP
+            WHERE guild_id=%s AND user_id=%s AND status='WAITING'
+        """
+        rows = await self.execute_query(query, (guild_id, user_id))
+        return int(rows or 0)
+
     async def set_status(
         self, guild_id: int, user_id: int, queue_date: date, status: str
     ) -> bool:

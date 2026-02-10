@@ -293,6 +293,7 @@ class ReviewView(discord.ui.View):
         super().__init__(timeout=None)
         self.bot = bot
         self.dao = dao
+        self.interview_dao = WhitelistInterviewDAO()
         self.app_id = app_id
         self.applicant_id = applicant_id
         self.settings = settings
@@ -336,6 +337,10 @@ class ReviewView(discord.ui.View):
             await interaction.followup.send("⚠️ 申請已被其他管理員處理", ephemeral=True)
             return
 
+        if status in ("DENIED", "NEED_MORE"):
+            await self._restore_interview_original_nickname(interaction.guild, applicant_id, status)
+            await self._mark_interview_queue_done(interaction.guild.id, applicant_id)
+
         # 身分組處理（僅通過）
         if status == "APPROVED":
             member = interaction.guild.get_member(applicant_id)
@@ -369,6 +374,62 @@ class ReviewView(discord.ui.View):
             pass
 
         await interaction.followup.send(f"✅ 已更新申請 #{self.app_id} 為 {status}", ephemeral=True)
+
+    async def _restore_interview_original_nickname(
+        self,
+        guild: discord.Guild,
+        applicant_id: int,
+        status: str,
+    ) -> None:
+        try:
+            row = await self.interview_dao.get_latest_queue_entry_for_user(guild.id, applicant_id)
+            if not row:
+                return
+
+            member = guild.get_member(applicant_id)
+            if not member:
+                try:
+                    member = await guild.fetch_member(applicant_id)
+                except Exception:
+                    member = None
+            if not member:
+                return
+
+            me = guild.me
+            if not me and self.bot.user:
+                me = guild.get_member(self.bot.user.id)
+            if not me or not me.guild_permissions.manage_nicknames:
+                return
+            if member == guild.owner:
+                return
+            if me.top_role <= member.top_role:
+                return
+
+            original_nickname = row.get("original_nickname")
+            target_nick: str | None
+            if original_nickname is None:
+                target_nick = None
+            else:
+                cleaned = str(original_nickname).strip()
+                target_nick = cleaned if cleaned else None
+
+            if member.nick == target_nick:
+                return
+
+            reason = (
+                "Whitelist denied - restore original nickname"
+                if status == "DENIED"
+                else "Whitelist need more - restore original nickname"
+            )
+            await member.edit(nick=target_nick, reason=reason)
+        except Exception as e:
+            logger.warning(f"還原面試原暱稱失敗 (user={applicant_id}): {e}")
+
+    async def _mark_interview_queue_done(self, guild_id: int, applicant_id: int) -> None:
+        try:
+            await self.interview_dao.complete_waiting_entries_for_user(guild_id, applicant_id)
+        except Exception as e:
+            logger.warning(f"更新面試隊列狀態失敗 (user={applicant_id}): {e}")
 
     @discord.ui.button(
         label="✅ 通過",
