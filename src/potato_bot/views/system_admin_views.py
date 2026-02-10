@@ -42,6 +42,7 @@ from potato_bot.db.whitelist_dao import WhitelistDAO
 from potato_bot.utils.interaction_helper import BaseView, SafeInteractionHandler
 from potato_bot.utils.embed_builder import EmbedBuilder
 from potato_bot.views.resume_views import ResumePanelView
+from potato_bot.views.whitelist_interview_views import WhitelistInterviewAdminView
 from potato_shared.logger import logger
 from potato_shared.config import (
     FIVEM_TXADMIN_FTP_HOST,
@@ -688,7 +689,7 @@ class SystemAdminPanel(BaseView):
 
         embed = discord.Embed(
             title="🛂 入境審核設定",
-            description="入境面板、審核頻道與角色配置",
+            description="入境面板、審核頻道與角色配置（語音面試請按「🎙️ 面試設定」）",
             color=0x9B59B6,
         )
 
@@ -995,6 +996,7 @@ class WhitelistSettingsView(View):
 
         # 角色設定改為子面板
         self.add_item(OpenRoleSettingsButton(self.user_id, self.guild, self.service, row=3))
+        self.add_item(OpenInterviewSettingsButton(self.user_id, self.guild, row=3))
 
         self.add_item(CloseWhitelistSettingsButton(row=4))
 
@@ -1120,6 +1122,29 @@ class OpenRoleSettingsButton(Button):
         embed = await panel._create_whitelist_settings_embed(self.guild, settings=settings)
         view = WhitelistRoleSettingsView(self.user_id, self.guild, self.service)
         await interaction.response.edit_message(embed=embed, view=view)
+
+
+class OpenInterviewSettingsButton(Button):
+    """開啟語音面試設定面板（Admin 專用）"""
+
+    def __init__(self, user_id: int, guild: discord.Guild, row: int | None = None):
+        super().__init__(label="🎙️ 面試設定", style=discord.ButtonStyle.secondary, row=row)
+        self.user_id = user_id
+        self.guild = guild
+
+    async def callback(self, interaction: discord.Interaction):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ 只有開啟此面板的管理員可設定", ephemeral=True)
+            return
+
+        panel_view = WhitelistInterviewAdminView(
+            interaction.client,
+            self.guild,
+            self.user_id,
+            allow_configuration=True,
+        )
+        embed = await panel_view.build_embed(notice="🔧 此面板可設定語音面試頻道與面試官。")
+        await interaction.response.send_message(embed=embed, view=panel_view, ephemeral=True)
 
 
 class WhitelistRoleSettingsView(View):

@@ -236,5 +236,10 @@ class PanelService:
             except Exception:
                 pass
             await self.dao.update_panel_message_id(settings.guild_id, message.id)
+        else:
+            try:
+                await message.edit(embed=embed, view=view)
+            except Exception as e:
+                logger.warning(f"更新入境申請面板訊息失敗: {e}")
 
         return message

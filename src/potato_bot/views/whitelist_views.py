@@ -11,7 +11,10 @@ import discord
 from discord.ext import commands
 
 from potato_bot.db.whitelist_dao import WhitelistDAO
+from potato_bot.db.whitelist_interview_dao import WhitelistInterviewDAO
+from potato_bot.services.whitelist_interview_service import WhitelistInterviewService
 from potato_bot.services.whitelist_service import AnnounceService, RoleService, WhitelistSettings
+from potato_bot.views.whitelist_interview_views import WhitelistInterviewAdminView
 from potato_bot.utils.interaction_helper import SafeInteractionHandler
 from potato_shared.logger import logger
 
@@ -223,6 +226,57 @@ class PanelView(discord.ui.View):
             app_id=app_id,
         )
         await interaction.response.send_modal(modal)
+
+    @discord.ui.button(
+        label="🎙️ 面試管理",
+        style=discord.ButtonStyle.secondary,
+        custom_id="whitelist:interview_manage",
+        row=1,
+    )
+    async def interview_manage_button(
+        self, interaction: discord.Interaction, button: discord.ui.Button
+    ):
+        guild = interaction.guild
+        member = interaction.user if isinstance(interaction.user, discord.Member) else None
+        if not guild or not member:
+            await interaction.response.send_message("❌ 僅能在伺服器中使用。", ephemeral=True)
+            return
+
+        if not await self._can_manage_interview(member):
+            await interaction.response.send_message("❌ 你沒有面試管理權限。", ephemeral=True)
+            return
+
+        panel_view = WhitelistInterviewAdminView(
+            self.bot,
+            guild,
+            member.id,
+            allow_configuration=False,
+        )
+        embed = await panel_view.build_embed()
+        await interaction.response.send_message(embed=embed, view=panel_view, ephemeral=True)
+
+    async def _can_manage_interview(self, member: discord.Member) -> bool:
+        if (
+            member.guild_permissions.administrator
+            or member.guild_permissions.manage_guild
+            or member.guild_permissions.manage_channels
+        ):
+            return True
+
+        member_role_ids = {role.id for role in member.roles}
+        if self.settings.role_staff_id and self.settings.role_staff_id in member_role_ids:
+            return True
+
+        try:
+            interview_settings = await WhitelistInterviewService(
+                WhitelistInterviewDAO()
+            ).load_settings(member.guild.id)
+            if interview_settings.staff_role_id and interview_settings.staff_role_id in member_role_ids:
+                return True
+        except Exception:
+            pass
+
+        return False
 
 
 class ReviewView(discord.ui.View):

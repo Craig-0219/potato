@@ -15,7 +15,7 @@ class DatabaseManager:
 
     def __init__(self):
         self.db = db_pool
-        self.current_version = "1.0.4"
+        self.current_version = "1.0.5"
         self._initialized = False
 
     async def initialize_all_tables(self, force_recreate: bool = False):
@@ -51,6 +51,7 @@ class DatabaseManager:
             await self._create_system_settings_table()
             await self._create_resume_tables()
             await self._create_whitelist_tables()
+            await self._create_whitelist_interview_tables()
             await self._create_lottery_tables()
             await self._create_music_tables()
             await self._create_fivem_tables()
@@ -625,6 +626,62 @@ class DatabaseManager:
         }
 
         await self._create_tables_batch(tables, "入境審核")
+
+    async def _create_whitelist_interview_tables(self):
+        """創建入境語音面試相關表格"""
+        logger.info("🎙️ 創建入境語音面試表格...")
+
+        tables = {
+            "whitelist_interview_settings": """
+                CREATE TABLE IF NOT EXISTS whitelist_interview_settings (
+                    guild_id BIGINT PRIMARY KEY,
+                    waiting_channel_id BIGINT NULL,
+                    interview_channel_id BIGINT NULL,
+                    notify_channel_id BIGINT NULL,
+                    staff_role_id BIGINT NULL,
+                    timezone VARCHAR(64) NOT NULL DEFAULT 'Asia/Taipei',
+                    session_start_hour TINYINT NOT NULL DEFAULT 19,
+                    session_end_hour TINYINT NOT NULL DEFAULT 23,
+                    is_enabled BOOLEAN DEFAULT FALSE,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+            "whitelist_interview_counters": """
+                CREATE TABLE IF NOT EXISTS whitelist_interview_counters (
+                    guild_id BIGINT NOT NULL,
+                    queue_date DATE NOT NULL,
+                    next_number INT NOT NULL DEFAULT 1,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    PRIMARY KEY (guild_id, queue_date)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+            "whitelist_interview_queue": """
+                CREATE TABLE IF NOT EXISTS whitelist_interview_queue (
+                    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                    guild_id BIGINT NOT NULL,
+                    user_id BIGINT NOT NULL,
+                    username VARCHAR(255) NULL,
+                    original_nickname VARCHAR(255) NULL,
+                    queue_date DATE NOT NULL,
+                    queue_number INT NOT NULL,
+                    status VARCHAR(20) NOT NULL DEFAULT 'WAITING',
+                    notified_message_id BIGINT NULL,
+                    called_at TIMESTAMP NULL,
+                    done_at TIMESTAMP NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+                    UNIQUE KEY uniq_guild_user_date (guild_id, user_id, queue_date),
+                    UNIQUE KEY uniq_guild_date_number (guild_id, queue_date, queue_number),
+                    INDEX idx_guild_date_status (guild_id, queue_date, status),
+                    INDEX idx_guild_date_number (guild_id, queue_date, queue_number)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            """,
+        }
+
+        await self._create_tables_batch(tables, "入境語音面試")
 
     async def _create_lottery_tables(self):
         """創建抽獎系統相關表格"""
