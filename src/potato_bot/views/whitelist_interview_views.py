@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 
 import discord
 
+from potato_bot.db.whitelist_dao import WhitelistDAO
 from potato_bot.db.whitelist_interview_dao import WhitelistInterviewDAO
 from potato_bot.services.whitelist_interview_service import (
     WhitelistInterviewService,
@@ -209,6 +210,7 @@ class WhitelistInterviewAdminView(discord.ui.View):
         self.user_id = user_id
         self.allow_configuration = allow_configuration
         self.dao = WhitelistInterviewDAO()
+        self.whitelist_dao = WhitelistDAO()
         self.service = WhitelistInterviewService(self.dao)
 
         if self.allow_configuration:
@@ -325,6 +327,7 @@ class WhitelistInterviewAdminView(discord.ui.View):
             return "❌ 語音頻道設定無效。"
 
         queue_date = settings.local_today()
+        await self._sync_waiting_members_to_queue(settings, waiting_channel, queue_date)
         queue_rows = await self.dao.list_waiting_queue(self.guild.id, queue_date)
         for row in queue_rows:
             user_id = int(row.get("user_id") or 0)
@@ -345,6 +348,74 @@ class WhitelistInterviewAdminView(discord.ui.View):
                 return "❌ 移動失敗，請檢查機器人語音權限。"
 
         return "⚠️ 等候區目前沒有可叫號的成員。"
+
+    async def _sync_waiting_members_to_queue(
+        self,
+        settings: WhitelistInterviewSettings,
+        waiting_channel: discord.VoiceChannel,
+        queue_date,
+    ) -> None:
+        """
+        補齊目前已在等候區但尚未排號的成員。
+        解決：成員在面試時段前先進等候區，時段開始後不重進就無法叫號。
+        """
+        for member in waiting_channel.members:
+            if member.bot:
+                continue
+
+            try:
+                latest_application = await self.whitelist_dao.get_latest_application(
+                    self.guild.id, member.id
+                )
+                if not latest_application:
+                    continue
+
+                row = await self.dao.get_queue_entry(self.guild.id, member.id, queue_date)
+                if row:
+                    status = str(row.get("status") or "")
+                    if status == "LEFT":
+                        await self.dao.set_status(
+                            self.guild.id, member.id, queue_date, "WAITING"
+                        )
+                    queue_number = int(row.get("queue_number") or 0)
+                    if queue_number > 0:
+                        await self._apply_queue_nickname(member, queue_number)
+                    continue
+
+                entry = await self.dao.get_or_create_queue_entry(
+                    guild_id=self.guild.id,
+                    user_id=member.id,
+                    username=str(member),
+                    original_nickname=member.nick,
+                    queue_date=queue_date,
+                )
+                await self.dao.set_status(self.guild.id, member.id, queue_date, "WAITING")
+                queue_number = int(entry.get("queue_number") or 0)
+                if queue_number > 0:
+                    await self._apply_queue_nickname(member, queue_number)
+            except Exception as e:
+                logger.warning(f"同步等候區排隊失敗 (user={member.id}): {e}")
+
+    async def _apply_queue_nickname(self, member: discord.Member, queue_number: int) -> None:
+        me = self.guild.me
+        if not me and self.bot.user:
+            me = self.guild.get_member(self.bot.user.id)
+        if not me:
+            return
+        if not me.guild_permissions.manage_nicknames:
+            return
+        if member == self.guild.owner:
+            return
+        if me.top_role <= member.top_role:
+            return
+
+        target_nick = str(queue_number)
+        if member.nick == target_nick:
+            return
+        try:
+            await member.edit(nick=target_nick, reason="Whitelist interview queue sync")
+        except Exception:
+            pass
 
     @discord.ui.button(label="🔁 啟用/停用", style=discord.ButtonStyle.primary, row=4)
     async def toggle_enabled(self, interaction: discord.Interaction, button: discord.ui.Button):
