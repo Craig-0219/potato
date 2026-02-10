@@ -79,15 +79,28 @@ class InterviewScheduleModal(discord.ui.Modal):
             await interaction.response.send_message("❌ 小時範圍需在 0 到 23 之間。", ephemeral=True)
             return
 
-        await self.parent_view.service.save_settings(
-            self.parent_view.guild.id,
-            timezone=tz,
-            session_start_hour=start,
-            session_end_hour=end,
-        )
+        try:
+            saved = await self.parent_view.service.save_settings(
+                self.parent_view.guild.id,
+                timezone=tz,
+                session_start_hour=start,
+                session_end_hour=end,
+            )
+        except Exception as e:
+            logger.error(f"更新面試時段失敗: {e}")
+            await interaction.response.send_message(
+                "❌ 更新失敗，請稍後再試或查看 bot log。",
+                ephemeral=True,
+            )
+            return
+
         await interaction.response.send_message(
-            f"✅ 面試時段已更新為 {start:02d}:00 - {end:02d}:00 ({tz})。\n"
-            "回到上一個面板按「🔄 重新整理」即可看到最新內容。",
+            (
+                "✅ 面試時段已更新。\n"
+                f"目前：{int(saved.session_start_hour)%24:02d}:00 - "
+                f"{int(saved.session_end_hour)%24:02d}:00 ({saved.timezone})\n"
+                "回到面板按「🔄 重新整理」可同步顯示。"
+            ),
             ephemeral=True,
         )
 
