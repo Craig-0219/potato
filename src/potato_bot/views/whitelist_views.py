@@ -19,6 +19,42 @@ from potato_bot.utils.interaction_helper import SafeInteractionHandler
 from potato_shared.logger import logger
 
 
+async def _build_interview_reminder(
+    guild: discord.Guild,
+) -> tuple[str, str]:
+    """
+    回傳：
+    - 審核卡片欄位內容（給審核員看）
+    - 送出申請後提醒內容（給申請者看）
+    """
+    try:
+        interview_settings = await WhitelistInterviewService(
+            WhitelistInterviewDAO()
+        ).load_settings(guild.id)
+    except Exception:
+        return ("狀態：未設定\n時段：未設定\n等候區：未設定", "")
+
+    start_hour = int(interview_settings.session_start_hour) % 24
+    end_hour = int(interview_settings.session_end_hour) % 24
+    status_text = "已啟用" if interview_settings.is_enabled else "未啟用"
+    waiting_channel_id = interview_settings.waiting_channel_id
+    waiting_text = f"<#{waiting_channel_id}>" if waiting_channel_id else "未設定"
+    schedule_text = (
+        f"{start_hour:02d}:00 - {end_hour:02d}:00 ({interview_settings.timezone})"
+    )
+
+    reviewer_field = (
+        f"狀態：{status_text}\n"
+        f"時段：{schedule_text}\n"
+        f"等候區：{waiting_text}"
+    )
+    applicant_reminder = (
+        "🎙️ 面試提醒：填寫完申請表後，"
+        f"請於 {schedule_text} 前往 {waiting_text} 準備面試。"
+    )
+    return reviewer_field, applicant_reminder
+
+
 class ApplyModal(discord.ui.Modal):
     """入境申請表單"""
 
@@ -142,6 +178,12 @@ class ApplyModal(discord.ui.Modal):
             settings=self.settings,
         )
         embed = build_review_embed(app_id, interaction.user, answers)
+        interview_reviewer_field, interview_reminder = await _build_interview_reminder(guild)
+        embed.add_field(
+            name="🎙️ 海關語音面試資訊",
+            value=interview_reviewer_field[:1024],
+            inline=False,
+        )
         try:
             mention = f"<@&{self.settings.role_staff_id}>" if self.settings.role_staff_id else None
             existing_message_id = None
@@ -176,9 +218,13 @@ class ApplyModal(discord.ui.Modal):
             )
             return
 
+        response_text = f"✅ 已提交申請編號 #{app_id}，請等待審核結果"
+        if interview_reminder:
+            response_text += f"\n\n{interview_reminder}"
+
         await SafeInteractionHandler.safe_respond(
             interaction,
-            content=f"✅ 已提交申請編號 #{app_id}，請等待審核結果",
+            content=response_text,
             ephemeral=True,
         )
 
@@ -294,6 +340,7 @@ class ReviewView(discord.ui.View):
         self.bot = bot
         self.dao = dao
         self.interview_dao = WhitelistInterviewDAO()
+        self.interview_service = WhitelistInterviewService(self.interview_dao)
         self.app_id = app_id
         self.applicant_id = applicant_id
         self.settings = settings
@@ -336,6 +383,8 @@ class ReviewView(discord.ui.View):
         if not updated:
             await interaction.followup.send("⚠️ 申請已被其他管理員處理", ephemeral=True)
             return
+
+        await self._remove_from_interview_channel(interaction.guild, applicant_id)
 
         if status in ("DENIED", "NEED_MORE"):
             await self._restore_interview_original_nickname(interaction.guild, applicant_id, status)
@@ -430,6 +479,30 @@ class ReviewView(discord.ui.View):
             await self.interview_dao.complete_waiting_entries_for_user(guild_id, applicant_id)
         except Exception as e:
             logger.warning(f"更新面試隊列狀態失敗 (user={applicant_id}): {e}")
+
+    async def _remove_from_interview_channel(
+        self, guild: discord.Guild, applicant_id: int
+    ) -> None:
+        try:
+            interview_settings = await self.interview_service.load_settings(guild.id)
+            interview_channel_id = interview_settings.interview_channel_id
+            if not interview_channel_id:
+                return
+
+            member = guild.get_member(applicant_id)
+            if not member:
+                try:
+                    member = await guild.fetch_member(applicant_id)
+                except Exception:
+                    member = None
+            if not member or not member.voice or not member.voice.channel:
+                return
+            if member.voice.channel.id != interview_channel_id:
+                return
+
+            await member.move_to(None, reason="Whitelist review completed")
+        except Exception as e:
+            logger.warning(f"移除面試語音成員失敗 (user={applicant_id}): {e}")
 
     @discord.ui.button(
         label="✅ 通過",

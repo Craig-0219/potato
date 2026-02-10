@@ -11,6 +11,8 @@ import discord
 import json
 
 from potato_bot.db.whitelist_dao import WhitelistDAO
+from potato_bot.db.whitelist_interview_dao import WhitelistInterviewDAO
+from potato_bot.services.whitelist_interview_service import WhitelistInterviewService
 from potato_shared.logger import logger
 
 
@@ -216,11 +218,40 @@ class PanelService:
             logger.warning("找不到入境申請頻道")
             return None
 
+        interview_section = (
+            "狀態：未設定\n"
+            "時段：未設定\n"
+            "等候區：未設定\n"
+            "提醒：填寫完申請表後，請於指定時段至等候區準備面試。"
+        )
+        try:
+            interview_settings = await WhitelistInterviewService(
+                WhitelistInterviewDAO()
+            ).load_settings(settings.guild_id)
+            start_hour = int(interview_settings.session_start_hour) % 24
+            end_hour = int(interview_settings.session_end_hour) % 24
+            status_text = "已啟用" if interview_settings.is_enabled else "未啟用"
+            waiting_channel_id = interview_settings.waiting_channel_id
+            waiting_text = (
+                f"<#{waiting_channel_id}>"
+                if waiting_channel_id
+                else "未設定"
+            )
+            interview_section = (
+                f"狀態：{status_text}\n"
+                f"時段：{start_hour:02d}:00 - {end_hour:02d}:00 ({interview_settings.timezone})\n"
+                f"等候區：{waiting_text}\n"
+                "提醒：填寫完申請表後，請於指定時段至等候區準備面試。"
+            )
+        except Exception as e:
+            logger.warning(f"讀取 whitelist interview 設定失敗: {e}")
+
         embed = discord.Embed(
             title="🛂 入境申請櫃台",
             description="點擊下方按鈕填寫入境申請表。",
             color=0x3498DB,
         )
+        embed.add_field(name="🎙️ 海關語音面試資訊", value=interview_section, inline=False)
 
         message = None
         if settings.panel_message_id:
