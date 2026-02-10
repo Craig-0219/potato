@@ -76,7 +76,7 @@ class ApplyModal(discord.ui.Modal):
         self.existing_app_id = app_id
 
         self.character_name = discord.ui.TextInput(
-            label="角色名",
+            label="角色名(至少有名有姓)",
             max_length=64,
             required=True,
             default=str(self.prefill.get("character_name", ""))[:64],
@@ -88,7 +88,7 @@ class ApplyModal(discord.ui.Modal):
             default=str(self.prefill.get("age", ""))[:10],
         )
         self.background = discord.ui.TextInput(
-            label="角色背景(1000字內)",
+            label="角色人設(1000字內)",
             style=discord.TextStyle.paragraph,
             max_length=1000,
             required=True,
@@ -560,7 +560,7 @@ def build_review_embed(app_id: int, user: discord.abc.User, answers: Dict[str, A
     )
     embed.add_field(name="角色名", value=answers.get("character_name", "未填"), inline=False)
     embed.add_field(name="年齡", value=answers.get("age", "未填"), inline=False)
-    embed.add_field(name="角色背景", value=answers.get("background", "未填")[:1024], inline=False)
+    embed.add_field(name="角色人設", value=answers.get("background", "未填")[:1024], inline=False)
     embed.add_field(name="超人扮演/情緒帶入示例", value=answers.get("roleplay_examples", "未填")[:1024], inline=False)
     embed.add_field(name="同意規章", value=answers.get("rules", "未填"), inline=False)
     return embed
