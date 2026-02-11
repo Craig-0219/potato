@@ -65,6 +65,7 @@ class _FiveMGuildState:
     starting_since: float = 0.0
     starting_alerted: bool = False
     starting_timeout: int = 120
+    maintenance_mode: bool = False
     ftp_fail_count: int = 0
     ftp_last_alert: float = 0.0
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
@@ -314,6 +315,9 @@ class FiveMStatusCore(commands.Cog):
         tx_status: Optional[dict],
         now_ts: Optional[float] = None,
     ) -> str:
+        if state.maintenance_mode:
+            return "🛠️ 維修中"
+
         event_type = None
         tx_state = None
         if isinstance(tx_status, dict):
@@ -389,7 +393,9 @@ class FiveMStatusCore(commands.Cog):
             if tx_state and tx_state not in self.TX_STATE_ALLOWED:
                 tx_state = None
 
-        if not status_label:
+        if state.maintenance_mode:
+            status_label = "🛠️ 維修中"
+        elif not status_label:
             status_label = self._get_status_label(result, event_type, tx_state)
             if state.starting_until and time.time() < state.starting_until:
                 if not result or result.status != "online":
@@ -651,6 +657,7 @@ class FiveMStatusCore(commands.Cog):
         panel_message_id = int(settings.get("panel_message_id") or 0)
         poll_interval = settings.get("poll_interval")
         starting_timeout = settings.get("starting_timeout")
+        maintenance_mode = bool(settings.get("maintenance_mode"))
         server_link = settings.get("server_link")
         status_image_url = settings.get("status_image_url")
         has_http = bool(info_url and players_url)
@@ -727,6 +734,7 @@ class FiveMStatusCore(commands.Cog):
                 server_link=server_link,
                 status_image_url=status_image_url,
                 starting_timeout=starting_timeout_value,
+                maintenance_mode=maintenance_mode,
             )
 
         state = self._guild_states.get(guild.id)
@@ -739,6 +747,7 @@ class FiveMStatusCore(commands.Cog):
             state.server_link = server_link
             state.status_image_url = status_image_url
             state.starting_timeout = starting_timeout_value
+            state.maintenance_mode = maintenance_mode
         return state
 
     @tasks.loop(seconds=1.5)

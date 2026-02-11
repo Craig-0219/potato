@@ -85,6 +85,15 @@ class FiveMDAO(BaseDAO):
                         )
                         await conn.commit()
                         logger.info("✅ 已補齊 fivem_settings.starting_timeout 欄位")
+
+                    await cursor.execute("SHOW COLUMNS FROM fivem_settings LIKE 'maintenance_mode'")
+                    exists = await cursor.fetchone()
+                    if not exists:
+                        await cursor.execute(
+                            "ALTER TABLE fivem_settings ADD COLUMN maintenance_mode BOOLEAN NOT NULL DEFAULT FALSE COMMENT '維修模式' AFTER starting_timeout"
+                        )
+                        await conn.commit()
+                        logger.info("✅ 已補齊 fivem_settings.maintenance_mode 欄位")
         except Exception as exc:
             logger.warning("FiveMDAO 初始化檢查欄位失敗: %s", exc)
 
@@ -125,6 +134,7 @@ class FiveMDAO(BaseDAO):
                             if result.get("starting_timeout")
                             else None
                         )
+                        result["maintenance_mode"] = bool(result.get("maintenance_mode"))
                         result["server_link"] = result.get("server_link")
                         result["status_image_url"] = result.get("status_image_url")
                         result["exists"] = True
@@ -140,6 +150,7 @@ class FiveMDAO(BaseDAO):
                         "panel_message_id": 0,
                         "poll_interval": None,
                         "starting_timeout": None,
+                        "maintenance_mode": False,
                         "server_link": None,
                         "status_image_url": None,
                         "exists": False,
@@ -156,6 +167,7 @@ class FiveMDAO(BaseDAO):
                 "panel_message_id": 0,
                 "poll_interval": None,
                 "starting_timeout": None,
+                "maintenance_mode": False,
                 "server_link": None,
                 "status_image_url": None,
                 "exists": False,
@@ -169,8 +181,8 @@ class FiveMDAO(BaseDAO):
                 async with conn.cursor() as cursor:
                     query = """
                     INSERT INTO fivem_settings (
-                        guild_id, info_url, players_url, status_channel_id, alert_role_ids, dm_role_ids, panel_message_id, poll_interval, starting_timeout, server_link, status_image_url
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        guild_id, info_url, players_url, status_channel_id, alert_role_ids, dm_role_ids, panel_message_id, poll_interval, starting_timeout, maintenance_mode, server_link, status_image_url
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                     ON DUPLICATE KEY UPDATE
                         info_url = VALUES(info_url),
                         players_url = VALUES(players_url),
@@ -180,6 +192,7 @@ class FiveMDAO(BaseDAO):
                         panel_message_id = VALUES(panel_message_id),
                         poll_interval = VALUES(poll_interval),
                         starting_timeout = VALUES(starting_timeout),
+                        maintenance_mode = VALUES(maintenance_mode),
                         server_link = VALUES(server_link),
                         status_image_url = VALUES(status_image_url),
                         updated_at = CURRENT_TIMESTAMP
@@ -196,6 +209,7 @@ class FiveMDAO(BaseDAO):
                             settings.get("panel_message_id") or 0,
                             settings.get("poll_interval"),
                             settings.get("starting_timeout"),
+                            bool(settings.get("maintenance_mode")),
                             settings.get("server_link"),
                             settings.get("status_image_url"),
                         ),

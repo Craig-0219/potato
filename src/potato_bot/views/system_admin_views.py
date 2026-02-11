@@ -529,6 +529,8 @@ class SystemAdminPanel(BaseView):
         poll_text = f"{poll_interval} 秒" if poll_interval else "預設"
         starting_timeout = settings.get("starting_timeout")
         starting_text = f"{starting_timeout} 秒" if starting_timeout else "預設"
+        maintenance_mode = bool(settings.get("maintenance_mode"))
+        maintenance_text = "✅ 開啟" if maintenance_mode else "❌ 關閉"
         server_link = settings.get("server_link") or "未設定"
         status_image_url = settings.get("status_image_url") or "未設定"
         status_roles = settings.get("alert_role_ids", []) or []
@@ -663,7 +665,7 @@ class SystemAdminPanel(BaseView):
         )
         embed.add_field(
             name="🧩 面板",
-            value=f"連結: {server_link}\n圖片: {status_image_url}",
+            value=f"連結: {server_link}\n圖片: {status_image_url}\n維修模式: {maintenance_text}",
             inline=False,
         )
         embed.add_field(
@@ -4353,6 +4355,7 @@ class FiveMSettingsBaseView(View):
             "panel_message_id": current.get("panel_message_id", 0),
             "poll_interval": current.get("poll_interval"),
             "starting_timeout": current.get("starting_timeout"),
+            "maintenance_mode": bool(current.get("maintenance_mode")),
             "server_link": current.get("server_link"),
             "status_image_url": current.get("status_image_url"),
         }
@@ -4558,6 +4561,38 @@ class FiveMPanelSettingsView(FiveMSettingsBaseView):
 class FiveMMaintenanceSettingsView(FiveMSettingsBaseView):
     """FiveM 維護設定"""
 
+    @button(label="🛠️ 開啟維修模式", style=discord.ButtonStyle.secondary, row=0)
+    async def enable_maintenance_mode(self, interaction: discord.Interaction, button: Button):
+        payload = await self._build_payload(maintenance_mode=True)
+        success = await self.dao.update_fivem_settings(self.guild.id, payload)
+        if not success:
+            await interaction.response.send_message("❌ 更新失敗，請稍後再試", ephemeral=True)
+            return
+
+        fivem_cog = interaction.client.get_cog("FiveMStatusCore")
+        if fivem_cog and hasattr(fivem_cog, "deploy_status_panel"):
+            await fivem_cog.deploy_status_panel(interaction.guild)
+
+        panel = SystemAdminPanel(self.user_id)
+        embed = await panel._create_fivem_settings_embed(self.guild, interaction.client)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @button(label="✅ 關閉維修模式", style=discord.ButtonStyle.secondary, row=0)
+    async def disable_maintenance_mode(self, interaction: discord.Interaction, button: Button):
+        payload = await self._build_payload(maintenance_mode=False)
+        success = await self.dao.update_fivem_settings(self.guild.id, payload)
+        if not success:
+            await interaction.response.send_message("❌ 更新失敗，請稍後再試", ephemeral=True)
+            return
+
+        fivem_cog = interaction.client.get_cog("FiveMStatusCore")
+        if fivem_cog and hasattr(fivem_cog, "deploy_status_panel"):
+            await fivem_cog.deploy_status_panel(interaction.guild)
+
+        panel = SystemAdminPanel(self.user_id)
+        embed = await panel._create_fivem_settings_embed(self.guild, interaction.client)
+        await interaction.response.edit_message(embed=embed, view=self)
+
     @button(label="🔄 重讀 FiveM Core", style=discord.ButtonStyle.secondary, row=0)
     async def reload_fivem_core(self, interaction: discord.Interaction, button: Button):
         fivem_cog = interaction.client.get_cog("FiveMStatusCore")
@@ -4584,6 +4619,7 @@ class FiveMMaintenanceSettingsView(FiveMSettingsBaseView):
             players_url=None,
             poll_interval=None,
             starting_timeout=None,
+            maintenance_mode=False,
             server_link=None,
             status_image_url=None,
         )
