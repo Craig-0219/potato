@@ -4563,35 +4563,43 @@ class FiveMMaintenanceSettingsView(FiveMSettingsBaseView):
 
     @button(label="🛠️ 開啟維修模式", style=discord.ButtonStyle.secondary, row=0)
     async def enable_maintenance_mode(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.defer()
         payload = await self._build_payload(maintenance_mode=True)
         success = await self.dao.update_fivem_settings(self.guild.id, payload)
         if not success:
-            await interaction.response.send_message("❌ 更新失敗，請稍後再試", ephemeral=True)
+            await interaction.followup.send("❌ 更新失敗，請稍後再試", ephemeral=True)
             return
 
         fivem_cog = interaction.client.get_cog("FiveMStatusCore")
         if fivem_cog and hasattr(fivem_cog, "deploy_status_panel"):
-            await fivem_cog.deploy_status_panel(interaction.guild)
+            try:
+                await fivem_cog.deploy_status_panel(interaction.guild)
+            except Exception as e:
+                logger.warning(f"開啟維修模式後刷新狀態面板失敗: {e}")
 
         panel = SystemAdminPanel(self.user_id)
         embed = await panel._create_fivem_settings_embed(self.guild, interaction.client)
-        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.edit_original_response(embed=embed, view=self)
 
     @button(label="✅ 關閉維修模式", style=discord.ButtonStyle.secondary, row=0)
     async def disable_maintenance_mode(self, interaction: discord.Interaction, button: Button):
+        await interaction.response.defer()
         payload = await self._build_payload(maintenance_mode=False)
         success = await self.dao.update_fivem_settings(self.guild.id, payload)
         if not success:
-            await interaction.response.send_message("❌ 更新失敗，請稍後再試", ephemeral=True)
+            await interaction.followup.send("❌ 更新失敗，請稍後再試", ephemeral=True)
             return
 
         fivem_cog = interaction.client.get_cog("FiveMStatusCore")
         if fivem_cog and hasattr(fivem_cog, "deploy_status_panel"):
-            await fivem_cog.deploy_status_panel(interaction.guild)
+            try:
+                await fivem_cog.deploy_status_panel(interaction.guild)
+            except Exception as e:
+                logger.warning(f"關閉維修模式後刷新狀態面板失敗: {e}")
 
         panel = SystemAdminPanel(self.user_id)
         embed = await panel._create_fivem_settings_embed(self.guild, interaction.client)
-        await interaction.response.edit_message(embed=embed, view=self)
+        await interaction.edit_original_response(embed=embed, view=self)
 
     @button(label="🔄 重讀 FiveM Core", style=discord.ButtonStyle.secondary, row=0)
     async def reload_fivem_core(self, interaction: discord.Interaction, button: Button):
