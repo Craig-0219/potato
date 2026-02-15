@@ -414,7 +414,6 @@ class ReviewView(discord.ui.View):
             {**app, "id": self.app_id, "user_id": applicant_id},
             status,
             note,
-            reviewer=interaction.user,
         )
 
         # 關閉按鈕 + 更新審核卡（顯示審核者）
