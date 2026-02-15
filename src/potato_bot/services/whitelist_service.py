@@ -146,6 +146,8 @@ class AnnounceService:
         application: Dict[str, Any],
         status: str,
         note: Optional[str] = None,
+        *,
+        reviewer: Optional[discord.abc.User] = None,
     ) -> None:
         """公告結果並通知玩家"""
         guild = self.bot.get_guild(application["guild_id"])
@@ -168,6 +170,8 @@ class AnnounceService:
         status_text = {"APPROVED": "通過", "DENIED": "拒絕", "NEED_MORE": "補件"}.get(status, status)
         embed.add_field(name="申請編號", value=f"#{application['id']}", inline=True)
         embed.add_field(name="狀態", value=status_text, inline=True)
+        if reviewer:
+            embed.add_field(name="審核員", value=reviewer.mention, inline=True)
         if note:
             embed.add_field(name="備註", value=note[:1000], inline=False)
         if status == "NEED_MORE":

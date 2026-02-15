@@ -177,7 +177,7 @@ class ApplyModal(discord.ui.Modal):
             applicant_id=interaction.user.id,
             settings=self.settings,
         )
-        embed = build_review_embed(app_id, interaction.user, answers)
+        embed = build_review_embed(app_id, interaction.user.id, interaction.user, answers)
         interview_reviewer_field, interview_reminder = await _build_interview_reminder(guild)
         embed.add_field(
             name="🎙️ 海關語音面試資訊",
@@ -374,6 +374,15 @@ class ReviewView(discord.ui.View):
 
         applicant_id = app.get("user_id", self.applicant_id)
 
+        answers: Any = app.get("answers_json")
+        if isinstance(answers, str):
+            try:
+                answers = json.loads(answers)
+            except json.JSONDecodeError:
+                answers = {}
+        if not isinstance(answers, dict):
+            answers = {}
+
         if app.get("status") not in ("PENDING", "NEED_MORE"):
             await interaction.followup.send("⚠️ 申請已處理", ephemeral=True)
             return
@@ -394,15 +403,8 @@ class ReviewView(discord.ui.View):
         if status == "APPROVED":
             member = interaction.guild.get_member(applicant_id)
             if member:
-                answers = app.get("answers_json")
-                if isinstance(answers, str):
-                    try:
-                        answers = json.loads(answers)
-                    except json.JSONDecodeError:
-                        answers = {}
                 character_name = None
-                if isinstance(answers, dict):
-                    character_name = answers.get("character_name")
+                character_name = answers.get("character_name")
                 await RoleService(self.settings).apply_approved(
                     member, character_name=character_name
                 )
@@ -412,15 +414,41 @@ class ReviewView(discord.ui.View):
             {**app, "id": self.app_id, "user_id": applicant_id},
             status,
             note,
+            reviewer=interaction.user,
         )
 
-        # 關閉按鈕
+        # 關閉按鈕 + 更新審核卡（顯示審核者）
         for item in self.children:
             item.disabled = True
         try:
-            await interaction.message.edit(view=self)
+            applicant = interaction.guild.get_member(applicant_id)
+            if applicant is None:
+                try:
+                    applicant = await self.bot.fetch_user(applicant_id)
+                except Exception:
+                    applicant = None
+
+            embed = build_review_embed(
+                self.app_id,
+                applicant_id,
+                applicant,
+                answers,
+                status=status,
+                note=note,
+                reviewer=interaction.user,
+            )
+            interview_reviewer_field, _ = await _build_interview_reminder(interaction.guild)
+            embed.add_field(
+                name="🎙️ 海關語音面試資訊",
+                value=interview_reviewer_field[:1024],
+                inline=False,
+            )
+            await interaction.message.edit(embed=embed, view=self)
         except Exception:
-            pass
+            try:
+                await interaction.message.edit(view=self)
+            except Exception:
+                pass
 
         await interaction.followup.send(f"✅ 已更新申請 #{self.app_id} 為 {status}", ephemeral=True)
 
@@ -551,16 +579,46 @@ class ReasonModal(discord.ui.Modal):
         await self.review_view._mark_done(interaction, self.status, note=str(self.note))
 
 
-def build_review_embed(app_id: int, user: discord.abc.User, answers: Dict[str, Any]) -> discord.Embed:
-    """建立審核卡片 embed"""
+def build_review_embed(
+    app_id: int,
+    applicant_id: int,
+    user: Optional[discord.abc.User],
+    answers: Dict[str, Any],
+    *,
+    status: str | None = None,
+    note: str | None = None,
+    reviewer: Optional[discord.abc.User] = None,
+) -> discord.Embed:
+    """建立審核卡片 embed。"""
+    status_text = {
+        "PENDING": "待審核",
+        "APPROVED": "通過",
+        "DENIED": "拒絕",
+        "NEED_MORE": "補件",
+    }
+    color_map = {
+        "PENDING": 0x9B59B6,
+        "APPROVED": 0x2ECC71,
+        "DENIED": 0xE74C3C,
+        "NEED_MORE": 0xF1C40F,
+    }
+    status_code = status or "PENDING"
+    mention = user.mention if user else f"<@{applicant_id}>"
+    display_id = user.id if user else applicant_id
     embed = discord.Embed(
         title=f"🧾 申請單 #{app_id}",
-        description=f"申請人: {user.mention} (`{user.id}`)",
-        color=0x9b59b6,
+        description=f"申請人: {mention} (`{display_id}`)",
+        color=color_map.get(status_code, 0x9B59B6),
     )
     embed.add_field(name="角色名", value=answers.get("character_name", "未填"), inline=False)
     embed.add_field(name="年齡", value=answers.get("age", "未填"), inline=False)
     embed.add_field(name="角色人設", value=answers.get("background", "未填")[:1024], inline=False)
     embed.add_field(name="超人扮演/情緒帶入示例", value=answers.get("roleplay_examples", "未填")[:1024], inline=False)
     embed.add_field(name="同意規章", value=answers.get("rules", "未填"), inline=False)
+    if status is not None:
+        embed.add_field(name="狀態", value=status_text.get(status_code, status_code), inline=False)
+    if reviewer:
+        embed.add_field(name="審核員", value=reviewer.mention, inline=False)
+    if note:
+        embed.add_field(name="備註", value=note[:1024], inline=False)
     return embed
