@@ -134,14 +134,34 @@ FIVEM_TXADMIN_STATUS_FILE = os.getenv("FIVEM_TXADMIN_STATUS_FILE")
 FIVEM_RESTART_NOTIFY_SECONDS = os.getenv(
     "FIVEM_RESTART_NOTIFY_SECONDS", "600,300,180,120,60,10"
 )
-# txAdmin 狀態檔（FTP 讀取）
-FIVEM_TXADMIN_FTP_HOST = os.getenv("FIVEM_TXADMIN_FTP_HOST")
-FIVEM_TXADMIN_FTP_PORT = int(os.getenv("FIVEM_TXADMIN_FTP_PORT", "21") or 21)
-FIVEM_TXADMIN_FTP_USER = os.getenv("FIVEM_TXADMIN_FTP_USER")
-FIVEM_TXADMIN_FTP_PASSWORD = os.getenv("FIVEM_TXADMIN_FTP_PASSWORD")
-FIVEM_TXADMIN_FTP_PATH = os.getenv("FIVEM_TXADMIN_FTP_PATH")
-FIVEM_TXADMIN_FTP_PASSIVE = os.getenv("FIVEM_TXADMIN_FTP_PASSIVE", "true").lower() == "true"
-FIVEM_TXADMIN_FTP_TIMEOUT = int(os.getenv("FIVEM_TXADMIN_FTP_TIMEOUT", "10") or 10)
+# txAdmin 狀態檔（SFTP 讀取）
+FIVEM_TXADMIN_SFTP_HOST = os.getenv("FIVEM_TXADMIN_SFTP_HOST") or os.getenv(
+    "FIVEM_TXADMIN_FTP_HOST"
+)
+FIVEM_TXADMIN_SFTP_PORT = int(
+    os.getenv("FIVEM_TXADMIN_SFTP_PORT", os.getenv("FIVEM_TXADMIN_FTP_PORT", "22")) or 22
+)
+FIVEM_TXADMIN_SFTP_USER = os.getenv("FIVEM_TXADMIN_SFTP_USER") or os.getenv(
+    "FIVEM_TXADMIN_FTP_USER"
+)
+FIVEM_TXADMIN_SFTP_PASSWORD = os.getenv("FIVEM_TXADMIN_SFTP_PASSWORD") or os.getenv(
+    "FIVEM_TXADMIN_FTP_PASSWORD"
+)
+FIVEM_TXADMIN_SFTP_PATH = os.getenv("FIVEM_TXADMIN_SFTP_PATH") or os.getenv(
+    "FIVEM_TXADMIN_FTP_PATH"
+)
+FIVEM_TXADMIN_SFTP_TIMEOUT = int(
+    os.getenv("FIVEM_TXADMIN_SFTP_TIMEOUT", os.getenv("FIVEM_TXADMIN_FTP_TIMEOUT", "10")) or 10
+)
+
+# 相容舊命名（FTP）
+FIVEM_TXADMIN_FTP_HOST = FIVEM_TXADMIN_SFTP_HOST
+FIVEM_TXADMIN_FTP_PORT = FIVEM_TXADMIN_SFTP_PORT
+FIVEM_TXADMIN_FTP_USER = FIVEM_TXADMIN_SFTP_USER
+FIVEM_TXADMIN_FTP_PASSWORD = FIVEM_TXADMIN_SFTP_PASSWORD
+FIVEM_TXADMIN_FTP_PATH = FIVEM_TXADMIN_SFTP_PATH
+FIVEM_TXADMIN_FTP_PASSIVE = False
+FIVEM_TXADMIN_FTP_TIMEOUT = FIVEM_TXADMIN_SFTP_TIMEOUT
 # FiveM 推送 API（跨機上報）
 # Lavalink 連線設定
 LAVALINK_HOST = os.getenv("LAVALINK_HOST")
@@ -233,13 +253,12 @@ def get_config_summary() -> dict:
             "uri": LAVALINK_URI,
             "password": "***" if LAVALINK_PASSWORD else None,
         },
-        "fivem_txadmin_ftp": {
-            "host": FIVEM_TXADMIN_FTP_HOST,
-            "port": FIVEM_TXADMIN_FTP_PORT,
-            "user": "***" if FIVEM_TXADMIN_FTP_USER else None,
-            "password": "***" if FIVEM_TXADMIN_FTP_PASSWORD else None,
-            "path": FIVEM_TXADMIN_FTP_PATH,
-            "passive": FIVEM_TXADMIN_FTP_PASSIVE,
+        "fivem_txadmin_sftp": {
+            "host": FIVEM_TXADMIN_SFTP_HOST,
+            "port": FIVEM_TXADMIN_SFTP_PORT,
+            "user": "***" if FIVEM_TXADMIN_SFTP_USER else None,
+            "password": "***" if FIVEM_TXADMIN_SFTP_PASSWORD else None,
+            "path": FIVEM_TXADMIN_SFTP_PATH,
         },
     }
 

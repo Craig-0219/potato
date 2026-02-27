@@ -113,18 +113,17 @@ FIVEM_RESTART_NOTIFY_SECONDS=600,300,180,120,60,10
 
 備註：txAdmin 狀態檔讀取目前固定每 3 秒輪詢；API（info.json / players.json）則依上方輪詢間隔。
 
-### txAdmin 狀態檔（FTP 讀取）
+### txAdmin 狀態檔（SFTP 讀取）
 
-若 bot 無法直接存取檔案，可改用 FTP 讀取：
+若 bot 無法直接存取檔案，可改用 SFTP 讀取：
 
 ```bash
-FIVEM_TXADMIN_FTP_HOST=your-ftp-host
-FIVEM_TXADMIN_FTP_PORT=21
-FIVEM_TXADMIN_FTP_USER=your-ftp-user
-FIVEM_TXADMIN_FTP_PASSWORD=your-ftp-password
-FIVEM_TXADMIN_FTP_PATH=/txData/QBBOX/resources/[01-核心系統]/Potato_Discord_API/data/txadmin_status.json
-FIVEM_TXADMIN_FTP_PASSIVE=true
-FIVEM_TXADMIN_FTP_TIMEOUT=10
+FIVEM_TXADMIN_SFTP_HOST=your-sftp-host
+FIVEM_TXADMIN_SFTP_PORT=22
+FIVEM_TXADMIN_SFTP_USER=your-sftp-user
+FIVEM_TXADMIN_SFTP_PASSWORD=your-sftp-password
+FIVEM_TXADMIN_SFTP_PATH=/txData/QBBOX/resources/[01-核心系統]/Potato_Discord_API/data/txadmin_status.json
+FIVEM_TXADMIN_SFTP_TIMEOUT=10
 ```
 
 ## 票券系統常用指令

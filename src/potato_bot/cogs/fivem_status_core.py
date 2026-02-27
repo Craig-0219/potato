@@ -14,14 +14,13 @@ from potato_shared.config import (
     FIVEM_POLL_INTERVAL,
     FIVEM_RESTART_NOTIFY_SECONDS,
     FIVEM_STARTING_GRACE_SECONDS,
+    FIVEM_TXADMIN_SFTP_HOST,
+    FIVEM_TXADMIN_SFTP_PASSWORD,
+    FIVEM_TXADMIN_SFTP_PATH,
+    FIVEM_TXADMIN_SFTP_PORT,
+    FIVEM_TXADMIN_SFTP_TIMEOUT,
+    FIVEM_TXADMIN_SFTP_USER,
     FIVEM_TXADMIN_STATUS_FILE,
-    FIVEM_TXADMIN_FTP_HOST,
-    FIVEM_TXADMIN_FTP_PASSWORD,
-    FIVEM_TXADMIN_FTP_PASSIVE,
-    FIVEM_TXADMIN_FTP_PATH,
-    FIVEM_TXADMIN_FTP_PORT,
-    FIVEM_TXADMIN_FTP_TIMEOUT,
-    FIVEM_TXADMIN_FTP_USER,
 )
 from potato_shared.logger import logger
 
@@ -66,8 +65,8 @@ class _FiveMGuildState:
     starting_alerted: bool = False
     starting_timeout: int = 120
     maintenance_mode: bool = False
-    ftp_fail_count: int = 0
-    ftp_last_alert: float = 0.0
+    sftp_fail_count: int = 0
+    sftp_last_alert: float = 0.0
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
 
@@ -160,7 +159,7 @@ class FiveMStatusCore(commands.Cog):
     def _txadmin_enabled() -> bool:
         return bool(
             FIVEM_TXADMIN_STATUS_FILE
-            or (FIVEM_TXADMIN_FTP_HOST and FIVEM_TXADMIN_FTP_PATH)
+            or (FIVEM_TXADMIN_SFTP_HOST and FIVEM_TXADMIN_SFTP_PATH)
         )
 
     @staticmethod
@@ -547,13 +546,20 @@ class FiveMStatusCore(commands.Cog):
         presence_state = self._get_presence_state(state)
         return self._format_presence_text(state, presence_state)
 
-    async def get_ftp_connection_status(self, guild: discord.Guild) -> Optional[bool]:
-        """取得 FTP 連線狀態（None 表示未啟用或不可用）"""
+    async def get_sftp_connection_status(self, guild: discord.Guild) -> Optional[bool]:
+        """取得 SFTP 連線狀態（None 表示未啟用或不可用）"""
         try:
             state = await self._get_state(guild)
             if not state:
                 return None
-            return state.service.is_ftp_connected()
+            return state.service.is_sftp_connected()
+        except Exception:
+            return None
+
+    async def get_ftp_connection_status(self, guild: discord.Guild) -> Optional[bool]:
+        """相容舊介面，回傳 SFTP 連線狀態"""
+        try:
+            return await self.get_sftp_connection_status(guild)
         except Exception:
             return None
 
@@ -716,13 +722,12 @@ class FiveMStatusCore(commands.Cog):
                 offline_threshold=FIVEM_OFFLINE_THRESHOLD,
                 txadmin_status_file=FIVEM_TXADMIN_STATUS_FILE,
                 restart_notify_seconds=_parse_seconds_list(FIVEM_RESTART_NOTIFY_SECONDS),
-                ftp_host=FIVEM_TXADMIN_FTP_HOST,
-                ftp_port=FIVEM_TXADMIN_FTP_PORT,
-                ftp_user=FIVEM_TXADMIN_FTP_USER,
-                ftp_password=FIVEM_TXADMIN_FTP_PASSWORD,
-                ftp_path=FIVEM_TXADMIN_FTP_PATH,
-                ftp_passive=FIVEM_TXADMIN_FTP_PASSIVE,
-                ftp_timeout=FIVEM_TXADMIN_FTP_TIMEOUT,
+                sftp_host=FIVEM_TXADMIN_SFTP_HOST,
+                sftp_port=FIVEM_TXADMIN_SFTP_PORT,
+                sftp_user=FIVEM_TXADMIN_SFTP_USER,
+                sftp_password=FIVEM_TXADMIN_SFTP_PASSWORD,
+                sftp_path=FIVEM_TXADMIN_SFTP_PATH,
+                sftp_timeout=FIVEM_TXADMIN_SFTP_TIMEOUT,
             )
             self._guild_states[guild.id] = _FiveMGuildState(
                 service=service,
@@ -780,7 +785,7 @@ class FiveMStatusCore(commands.Cog):
                     tx_status = await state.service.read_txadmin_status()
                     panel_tx_status = tx_status
                     if tx_status:
-                        state.ftp_fail_count = 0
+                        state.sftp_fail_count = 0
                         event_type = self._normalize_event_type(
                             state.service.get_txadmin_event_type(tx_status)
                         )
@@ -915,11 +920,14 @@ class FiveMStatusCore(commands.Cog):
                     if not tx_status and not state.has_http:
                         read_status = state.service.get_txadmin_read_status()
                         if read_status is not None:
-                            state.ftp_fail_count += 1
+                            state.sftp_fail_count += 1
                             now = time.time()
                             error_text = (read_status.get("error") or "").lower()
-                            is_crash = "ftp_retries_exhausted" in error_text
-                            if now - state.ftp_last_alert >= 600:
+                            is_crash = (
+                                "sftp_retries_exhausted" in error_text
+                                or "ftp_retries_exhausted" in error_text
+                            )
+                            if now - state.sftp_last_alert >= 600:
                                 if is_crash:
                                     await self._send_embed(
                                         state.channel_id,
@@ -933,7 +941,7 @@ class FiveMStatusCore(commands.Cog):
                                         guild,
                                         state.dm_role_ids,
                                         "🚨 Server崩潰",
-                                        "FTP 連線重試兩次仍失敗，判定伺服器異常崩潰。",
+                                        "SFTP 連線重試兩次仍失敗，判定伺服器異常崩潰。",
                                         "error",
                                     )
                                 else:
@@ -949,10 +957,10 @@ class FiveMStatusCore(commands.Cog):
                                         guild,
                                         state.dm_role_ids,
                                         "⚠️ Server 狀態異常",
-                                        "無法讀取 txAdmin 狀態檔（FTP/檔案）。請檢查連線或路徑設定。",
+                                        "無法讀取 txAdmin 狀態檔（SFTP/檔案）。請檢查連線或路徑設定。",
                                         "warning",
                                     )
-                                state.ftp_last_alert = now
+                                state.sftp_last_alert = now
 
                     await self._update_status_panel(
                         guild,

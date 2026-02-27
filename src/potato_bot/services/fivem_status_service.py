@@ -1,5 +1,4 @@
 import asyncio
-import io
 import json
 import os
 import time
@@ -7,8 +6,8 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 import aiohttp
+import paramiko
 from aiohttp import ClientConnectionError, ServerDisconnectedError
-from ftplib import FTP, error_perm
 
 from potato_shared.logger import logger
 
@@ -31,30 +30,29 @@ class FiveMStatusService:
         offline_threshold: int = 3,
         txadmin_status_file: Optional[str] = None,
         restart_notify_seconds: Optional[list[int]] = None,
-        ftp_host: Optional[str] = None,
-        ftp_port: int = 21,
-        ftp_user: Optional[str] = None,
-        ftp_password: Optional[str] = None,
-        ftp_path: Optional[str] = None,
-        ftp_passive: bool = True,
-        ftp_timeout: int = 10,
+        sftp_host: Optional[str] = None,
+        sftp_port: int = 22,
+        sftp_user: Optional[str] = None,
+        sftp_password: Optional[str] = None,
+        sftp_path: Optional[str] = None,
+        sftp_timeout: int = 10,
     ):
         self.info_url = info_url
         self.players_url = players_url
         self.offline_threshold = max(1, offline_threshold)
         self.txadmin_status_file = txadmin_status_file
         self.restart_notify_seconds = restart_notify_seconds or []
-        self.ftp_host = ftp_host
-        self.ftp_port = ftp_port
-        self.ftp_user = ftp_user
-        self.ftp_password = ftp_password
-        self.ftp_path = ftp_path
-        self.ftp_passive = ftp_passive
-        self.ftp_timeout = max(3, int(ftp_timeout or 10))
+        self.sftp_host = sftp_host
+        self.sftp_port = sftp_port
+        self.sftp_user = sftp_user
+        self.sftp_password = sftp_password
+        self.sftp_path = sftp_path
+        self.sftp_timeout = max(3, int(sftp_timeout or 10))
 
-        self._ftp: Optional[FTP] = None
-        self._ftp_last_used = 0.0
-        self._ftp_lock = asyncio.Lock()
+        self._ssh_client: Optional[paramiko.SSHClient] = None
+        self._sftp: Optional[paramiko.SFTPClient] = None
+        self._sftp_last_used = 0.0
+        self._sftp_lock = asyncio.Lock()
 
         self._last_txadmin_read_ok: Optional[bool] = None
         self._last_txadmin_read_at: Optional[float] = None
@@ -73,9 +71,9 @@ class FiveMStatusService:
     async def close(self):
         if not self._session.closed:
             await self._session.close()
-        if self._ftp_enabled() and self._ftp:
-            async with self._ftp_lock:
-                await asyncio.to_thread(self._disconnect_ftp)
+        if self._sftp_enabled() and (self._sftp or self._ssh_client):
+            async with self._sftp_lock:
+                await asyncio.to_thread(self._disconnect_sftp)
 
     async def fetch_json(self, url: str) -> Optional[Any]:
         if not url:
@@ -148,14 +146,14 @@ class FiveMStatusService:
         return result
 
     async def read_txadmin_status(self) -> Optional[dict]:
-        if self._ftp_enabled():
-            async with self._ftp_lock:
-                return await asyncio.to_thread(self._read_txadmin_status_ftp)
+        if self._sftp_enabled():
+            async with self._sftp_lock:
+                return await asyncio.to_thread(self._read_txadmin_status_sftp)
         return self._read_txadmin_status_local()
 
     def get_txadmin_read_status(self) -> Optional[dict]:
         """取得 txAdmin 狀態檔讀取狀態（None 表示未啟用）"""
-        if not self._ftp_enabled() and not self.txadmin_status_file:
+        if not self._sftp_enabled() and not self.txadmin_status_file:
             return None
         return {
             "ok": self._last_txadmin_read_ok,
@@ -171,8 +169,8 @@ class FiveMStatusService:
         """取得最後一次成功讀取 txAdmin JSON 的時間戳"""
         return self._last_txadmin_payload_at
 
-    def _ftp_enabled(self) -> bool:
-        return bool(self.ftp_host and self.ftp_path)
+    def _sftp_enabled(self) -> bool:
+        return bool(self.sftp_host and self.sftp_path)
 
     def _read_txadmin_status_local(self) -> Optional[dict]:
         if not self.txadmin_status_file:
@@ -192,85 +190,127 @@ class FiveMStatusService:
             self._mark_txadmin_read(False, str(exc))
             return None
 
-    def _read_txadmin_status_ftp(self) -> Optional[dict]:
-        if not self._ftp_enabled():
+    def _read_txadmin_status_sftp(self) -> Optional[dict]:
+        if not self._sftp_enabled():
             self._mark_txadmin_read(None)
             return None
 
         last_error: Optional[str] = None
         for attempt in range(3):  # 1 次 + 2 次重試
             try:
-                ftp = self._ensure_ftp_connection()
-                if not ftp:
-                    raise RuntimeError("ftp_connect_failed")
+                sftp = self._ensure_sftp_connection()
+                if not sftp:
+                    raise RuntimeError("sftp_connect_failed")
 
-                # 若連線過久未使用，先發 NOOP 保持連線
                 now = time.time()
-                if self._ftp_last_used and now - self._ftp_last_used > 30:
-                    try:
-                        ftp.voidcmd("NOOP")
-                    except Exception:
-                        self._disconnect_ftp()
-                        ftp = self._ensure_ftp_connection()
-                        if not ftp:
-                            raise RuntimeError("ftp_reconnect_failed")
+                if self._sftp_last_used and now - self._sftp_last_used > 30:
+                    if not self._is_sftp_transport_active():
+                        self._disconnect_sftp()
+                        sftp = self._ensure_sftp_connection()
+                        if not sftp:
+                            raise RuntimeError("sftp_reconnect_failed")
 
-                buffer = io.BytesIO()
-                ftp.retrbinary(f"RETR {self.ftp_path}", buffer.write)
-                self._ftp_last_used = time.time()
-                data = buffer.getvalue().decode("utf-8")
+                with sftp.file(str(self.sftp_path), "rb") as remote_file:
+                    raw_data = remote_file.read()
+
+                self._sftp_last_used = time.time()
+                if isinstance(raw_data, (bytes, bytearray)):
+                    data = raw_data.decode("utf-8")
+                else:
+                    data = str(raw_data)
                 parsed = json.loads(data)
                 self._mark_txadmin_read(True, payload=parsed)
                 return parsed
-            except error_perm as exc:
+            except (FileNotFoundError, PermissionError) as exc:
                 last_error = str(exc)
-                logger.warning("FTP 取檔失敗（權限/路徑）：%s", exc)
-                self._disconnect_ftp()
+                logger.warning("SFTP 取檔失敗（權限/路徑）：%s", exc)
+                self._disconnect_sftp()
+            except OSError as exc:
+                last_error = str(exc)
+                logger.warning("SFTP 取檔失敗（連線/路徑）：%s", exc)
+                self._disconnect_sftp()
+            except json.JSONDecodeError as exc:
+                last_error = str(exc)
+                logger.error("SFTP txAdmin JSON 解析失敗: %s", exc)
+                self._disconnect_sftp()
             except Exception as exc:
                 last_error = str(exc)
-                logger.error("FTP 讀取 txAdmin 狀態檔失敗: %s", exc)
-                self._disconnect_ftp()
+                logger.error("SFTP 讀取 txAdmin 狀態檔失敗: %s", exc)
+                self._disconnect_sftp()
 
             if attempt < 2:
                 time.sleep(0.2 * (attempt + 1))
 
-        self._mark_txadmin_read(False, f"ftp_retries_exhausted:{last_error}")
+        self._mark_txadmin_read(False, f"sftp_retries_exhausted:{last_error}")
         return None
 
-    def _ensure_ftp_connection(self) -> Optional[FTP]:
-        if self._ftp:
-            return self._ftp
-        try:
-            ftp = FTP()
-            ftp.connect(self.ftp_host, self.ftp_port, timeout=self.ftp_timeout)
-            ftp.login(self.ftp_user, self.ftp_password)
-            ftp.set_pasv(self.ftp_passive)
-            self._ftp = ftp
-            self._ftp_last_used = time.time()
-            return ftp
-        except Exception as exc:
-            logger.error("FTP 連線失敗: %s", exc)
-            self._ftp = None
+    def _ensure_sftp_connection(self) -> Optional[paramiko.SFTPClient]:
+        if self._sftp and self._is_sftp_transport_active():
+            return self._sftp
+
+        self._disconnect_sftp()
+        if not self.sftp_host:
             return None
 
-    def _disconnect_ftp(self) -> None:
-        if not self._ftp:
-            return
         try:
-            self._ftp.quit()
+            ssh_client = paramiko.SSHClient()
+            ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            use_password = bool(self.sftp_password)
+            ssh_client.connect(
+                hostname=str(self.sftp_host),
+                port=int(self.sftp_port or 22),
+                username=self.sftp_user,
+                password=self.sftp_password,
+                timeout=self.sftp_timeout,
+                auth_timeout=self.sftp_timeout,
+                banner_timeout=self.sftp_timeout,
+                look_for_keys=not use_password,
+                allow_agent=not use_password,
+            )
+            sftp = ssh_client.open_sftp()
+            self._ssh_client = ssh_client
+            self._sftp = sftp
+            self._sftp_last_used = time.time()
+            return sftp
+        except Exception as exc:
+            logger.error("SFTP 連線失敗: %s", exc)
+            self._disconnect_sftp()
+            return None
+
+    def _is_sftp_transport_active(self) -> bool:
+        if not self._ssh_client:
+            return False
+        try:
+            transport = self._ssh_client.get_transport()
+            return bool(transport and transport.is_active())
         except Exception:
+            return False
+
+    def _disconnect_sftp(self) -> None:
+        if self._sftp:
             try:
-                self._ftp.close()
+                self._sftp.close()
             except Exception:
                 pass
-        self._ftp = None
-        self._ftp_last_used = 0.0
+        self._sftp = None
+
+        if self._ssh_client:
+            try:
+                self._ssh_client.close()
+            except Exception:
+                pass
+        self._ssh_client = None
+        self._sftp_last_used = 0.0
+
+    def is_sftp_connected(self) -> Optional[bool]:
+        """回報 SFTP 連線狀態（None 表示未啟用）"""
+        if not self._sftp_enabled():
+            return None
+        return self._sftp is not None and self._is_sftp_transport_active()
 
     def is_ftp_connected(self) -> Optional[bool]:
-        """回報 FTP 連線狀態（None 表示未啟用）"""
-        if not self._ftp_enabled():
-            return None
-        return self._ftp is not None
+        """相容舊介面，回報 SFTP 連線狀態"""
+        return self.is_sftp_connected()
 
     def _mark_txadmin_read(
         self, ok: Optional[bool], error: Optional[str] = None, payload: Optional[dict] = None

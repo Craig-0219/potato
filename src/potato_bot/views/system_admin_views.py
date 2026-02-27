@@ -45,8 +45,8 @@ from potato_bot.views.resume_views import ResumePanelView
 from potato_bot.views.whitelist_interview_views import WhitelistInterviewAdminView
 from potato_shared.logger import logger
 from potato_shared.config import (
-    FIVEM_TXADMIN_FTP_HOST,
-    FIVEM_TXADMIN_FTP_PATH,
+    FIVEM_TXADMIN_SFTP_HOST,
+    FIVEM_TXADMIN_SFTP_PATH,
     FIVEM_TXADMIN_STATUS_FILE,
     LAVALINK_HOST,
     LAVALINK_PASSWORD,
@@ -566,21 +566,26 @@ class SystemAdminPanel(BaseView):
         panel_message_id = settings.get("panel_message_id") or 0
         panel_deploy_text = "✅ 已部署" if panel_message_id else "❌ 未部署"
 
-        ftp_configured = bool(FIVEM_TXADMIN_FTP_HOST and FIVEM_TXADMIN_FTP_PATH)
-        txadmin_source_configured = ftp_configured or bool(FIVEM_TXADMIN_STATUS_FILE)
-        ftp_status_text = "未啟用"
-        if ftp_configured:
-            ftp_status_text = "⏳ 尚未取得"
+        sftp_configured = bool(FIVEM_TXADMIN_SFTP_HOST and FIVEM_TXADMIN_SFTP_PATH)
+        txadmin_source_configured = sftp_configured or bool(FIVEM_TXADMIN_STATUS_FILE)
+        sftp_status_text = "未啟用"
+        if sftp_configured:
+            sftp_status_text = "⏳ 尚未取得"
             if bot:
                 fivem_cog = bot.get_cog("FiveMStatusCore")
-                if fivem_cog and hasattr(fivem_cog, "get_ftp_connection_status"):
+                if fivem_cog and hasattr(fivem_cog, "get_sftp_connection_status"):
+                    status = await fivem_cog.get_sftp_connection_status(guild)
+                elif fivem_cog and hasattr(fivem_cog, "get_ftp_connection_status"):
                     status = await fivem_cog.get_ftp_connection_status(guild)
+                else:
+                    status = None
+                if fivem_cog:
                     if status is True:
-                        ftp_status_text = "✅ 已連線"
+                        sftp_status_text = "✅ 已連線"
                     elif status is False:
-                        ftp_status_text = "❌ 未連線"
+                        sftp_status_text = "❌ 未連線"
                     else:
-                        ftp_status_text = "未啟用"
+                        sftp_status_text = "未啟用"
 
         txadmin_read_text = "未啟用"
         if txadmin_source_configured:
@@ -670,7 +675,7 @@ class SystemAdminPanel(BaseView):
         )
         embed.add_field(
             name="🧪 txAdmin",
-            value=f"FTP: {ftp_status_text}\n狀態檔: {txadmin_read_text}",
+            value=f"SFTP: {sftp_status_text}\n狀態檔: {txadmin_read_text}",
             inline=False,
         )
         embed.add_field(
